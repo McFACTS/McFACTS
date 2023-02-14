@@ -1,0 +1,96 @@
+# This file is for making model choices for a single run of McFACTS
+# It is your start up file!
+#
+# SMBH mass in units of M_sun:
+#
+mass_smbh = 1.e8
+#
+# Choices about the SMBH accretion disk:
+# 
+# If user has a disk model, it must specify the disk surface density
+#   as a function of radius in a file called name_surface_density.txt
+#   where the surface density is in units of kg/m^2 and the radius is in
+#   units of gravitational radii (R_g=GM_SMBH/c^2).
+#   McFACTS assumes the innermost specified radius in the disk surface density
+#   input file is the inner edge of the disk, and the outermost specified 
+#   radius is the outer edge.
+#   User must also supply the disk aspect ratio as a function of radius
+#   in a file called name_aspect_ratio.txt
+#   Both files must have surface density & aspect ratio specified at the
+#       SAME set of radii.
+#   Here name = disk_model_name
+#
+#   McFACTS comes with the following example options for disk models:
+#       flat: constant surface density & aspect ratio (unphysical)
+#       LIES! sirko_goodman: from Sirko & Goodman 2003
+#       LIES! thompson_etal: from Thompson, Quataert & Murray 2005
+#
+#   If the disk has a migration trap, its radius must be specified below
+#       to prevent overshooting in coarse grained models. If there is no
+#       trap, set trap_radius = 0. (all BH will eventually accrete onto SMBH)
+#
+# Specify prefix to filenames for input disk model
+disk_model_name = 'flat'
+# trap radius
+trap_radius = 700.
+#
+# !!!Next few inputs should actually come from disk model files
+# will have to sort this out in mcfacts main...
+# read in first/last radii and dump them to appropriate variables
+# disk_outer_radius in units of gravitational radii (R_g=GM_SMBH/c^2)
+#disk_outer_radius = 1.e5
+# disk_surface_density in units of kg/m^2
+#disk_surface_density=1.e5
+# disk aspect ratio is scale height over radius
+#disk_aspect_ratio=0.03
+#
+# Choices about Nuclear Star Cluster Population:
+#
+# Initial conditions assume a Pareto initial mass function (user specifies
+#   peak mass and power law index), a Gaussian initial spin distribution, 
+#   the spin torque condition to align with the AGN disk, & mass accretion 
+#   rate of fully embedded stellar mass black holes in terms of the Eddington
+#   ratio.
+#
+# number of BH in disk to start
+n_bh = 100.
+# Mode of initial BH mass distribution in M_sun (peak of Pareto fn)
+mode_mbh_init = 10.
+# Pareto (powerlaw) initial BH mass index
+mbh_powerlaw_index = 2.
+# Mean of Gaussian initial spin distribution (zero is good)
+mu_spin_distribution = 0.
+# Sigma of Gaussian initial spin distribution (small is good)
+sigma_spin_distribution = 0.1
+# Spin torque condition: fraction of initial mass required to be accreted
+#   before BH spin is torqued fully into alignment with the AGN disk. 
+#   We don't know for sure but Bogdanovic et al. says between
+#   0.01=1% and 0.1=10% is what is required.
+spin_torque_condition = 0.1
+# Accretion rate of fully embedded stellar mass black hole in units of 
+#   Eddington accretion rate. 1.0=embedded BH accreting at Eddington.
+#   (1 is perfectly reasonable fiducial!)
+frac_Eddington_ratio = 1.0
+#
+# Choices about Nuclear Star Cluster initial orbits:
+#
+# Maximum initial eccentricity (upper bound to initial uniform distribution)
+#   this is ecc around SMBH of single orbiter
+#   want to eventually turn this into some physically motivated thing
+#   for now assuming uniform distribution [0.0 .. max_initial_eccentricity]
+max_initial_eccentricity = 0.3
+#
+# Choices about timing:
+#
+# McFACTS evolves populations once per timestep according to chosen physics
+#   Choose a timestep that allows some things to happen, but not everything
+#   to happen in one timestep. Migration timescale across your disk is a
+#   good fiducial: 10kyr=1.e4 is a reasonable choice in a Sirko & Goodman
+#   disk with a lot of 10Msun BH. Timestep is in units of years. Disk 
+#   lifetime is set by choosing your number of timesteps:
+#   lifetime = timestep * number_of_timesteps
+# 
+# timestep in years
+timestep = 1.e4
+# For timestep=1.e4, number_of_timesteps=100. gives us 1Myr disk lifetime
+number_of_timesteps = 100.

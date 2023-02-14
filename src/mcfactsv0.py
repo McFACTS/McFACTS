@@ -1,78 +1,144 @@
 from cgi import print_arguments
 import numpy as np
 import matplotlib.pyplot as plt
-#McFACTS v0.0 9/15/22 BMcK
-#What does this code do?
-#a.Set up a simple 1-d AGN disk model
-#b.Insert stellar-origin BH at random locations in the disk
-#c.Make their orbits prograde or retrograde. Make a note of which is which,
-#since for now, only prograde orbiters migrate, accrete/torque into alignment
-#d.Pick initial BH masses from a powerlaw distribution
-#e.Pick initial BH spins from a narrow Gaussian distribution centered on zero. 
-#Make a note of which spins are negative since initial spin angles 
-#depend on sign of spin. Positive spin means spin angle [0,1.57]rad.
-#Negative spin means spin angle [1.571,3.14]rad.
-#f.Pick initial BH spin angle from a uniform random distribution:
+# McFACTS v0.0 9/15/22 BMcK
+# What does this code do?
+# a.Set up a simple 1-d AGN disk model
+# b.Insert stellar-origin BH at random locations in the disk
+# c.Make their orbits prograde or retrograde. Make a note of which is which,
+# since for now, only prograde orbiters migrate, accrete/torque into alignment
+# d.Pick initial BH masses from a powerlaw distribution
+# e.Pick initial BH spins from a narrow Gaussian distribution centered on zero. 
+# Make a note of which spins are negative since initial spin angles 
+# depend on sign of spin. Positive spin means spin angle [0,1.57]rad.
+# Negative spin means spin angle [1.571,3.14]rad.
+# f.Pick initial BH spin angle from a uniform random distribution:
 #  [0,1.57]rad if positive spin, [1.571,3.14]rad if negative spin
-#g. Iterate time in units of timestep
+# g. Iterate time in units of timestep
 #  Per iteration, do the following to the prograde orbiting BH 
 # move them inwards in the disk according to a Type I migration prescription
 # Accrete mass according to a fractional Eddington prescription
 # Torque spin angle and change spin according to gas mass accreted
 # At end time print out final locations/masses etc. 
-#Lots of comments throughout. Much of commentary can end up in a README for 
+# Lots of comments throughout. Much of commentary can end up in a README for 
 # the various definitions/functions etc. For now it's all here.
 
 
 #PART 1 Inputs for Initial Conditions & Disk
 #I'm putting in test initial values just to get this going. 
 # TO DO: These should all go in an input file to be read in. 
-#number of BH in disk to start
-n_bh=100.
-#Mode of initial BH mass distribution in M_sun
-mode_mbh_init=10.
-#Pareto(powerlaw) initial BH mass index
-mbh_powerlaw_index=2.
-#Mean of Gaussian initial spin distribution (zero is good)
-mu_spin_distribution=0.
-#Sigma of Gaussian initial spin distribution (small is good)
-sigma_spin_distribution=0.1
-#What is the spin angle indicating alignment with AGN disk (should be zero rad)
+
+# Read in inputs
+
+# create a dictionary to store numerical variables in
+input_variables = {}
+
+# open the main input file for reading
+model_inputs = open("model_choice.txt", 'r')
+# go through the file line by line
+for line in model_inputs:
+    line = line.strip()
+    # If it is NOT a comment line
+    if (line.startswith('#') == 0):
+        # split the line between the variable name and its value
+        varname, varvalue = line.split("=")
+        # remove whitespace
+        varname = varname.strip()
+        varvalue = varvalue.strip()
+        # if the variable is the one that's a filename for the disk model, deal with it
+        if (varname == 'disk_model_name'):
+            disk_model_name = varvalue.strip("'")
+        # otherwise, typecast to float and stick it in the dictionary
+        else:
+            input_variables[varname] = float(varvalue)
+ 
+# close the file
+model_inputs.close()
+
+# Recast the inputs from the dictionary lookup to actual variable names
+#   !!!is there a better (automated?) way to do this?
+n_bh = input_variables['n_bh']
+mode_mbh_init = input_variables['mode_mbh_init']
+mbh_powerlaw_index = input_variables['mbh_powerlaw_index']
+mu_spin_distribution = input_variables['mu_spin_distribution']
+sigma_spin_distribution = input_variables['sigma_spin_distribution']
+spin_torque_condition = input_variables['spin_torque_condition']
+frac_Eddington_ratio = input_variables['frac_Eddington_ratio']
+max_initial_eccentricity = input_variables['max_initial_eccentricity']
+timestep = input_variables['timestep']
+number_of_timesteps = input_variables['number_of_timesteps']
+
+# open the disk model surface density file and read it in
+# Note format is assumed to be comments with #
+#   density in SI in first column
+#   radius in r_g in second column
+#   infile = model_surface_density.txt, where model is user choice
+infile_suffix = '_surface_density.txt'
+infile = disk_model_name+infile_suffix
+surface_density_file = open(infile, 'r')
+density_list = []
+radius_list = []
+for line in surface_density_file:
+    line = line.strip()
+    # If it is NOT a comment line
+    if (line.startswith('#') == 0):
+        columns = line.split()
+        density_list.append(float(columns[0]))
+        radius_list.append(float(columns[1]))
+# close file
+surface_density_file.close()
+
+# re-cast from lists to arrays
+surface_density_array = np.array(density_list)
+disk_model_radius_array = np.array(radius_list)
+
+# open the disk model aspect ratio file and read it in
+# Note format is assumed to be comments with #
+#   aspect ratio in first column
+#   radius in r_g in second column must be identical to surface density file
+#       (radius is actually ignored in this file!)
+#   filename = model_aspect_ratio.txt, where model is user choice
+infile_suffix = '_aspect_ratio.txt'
+infile = disk_model_name+infile_suffix
+aspect_ratio_file = open(infile, 'r')
+aspect_ratio_list = []
+for line in aspect_ratio_file:
+    line = line.strip()
+    # If it is NOT a comment line
+    if (line.startswith('#') == 0):
+        columns = line.split()
+        aspect_ratio_list.append(float(columns[0]))
+# close file
+aspect_ratio_file.close()
+
+# re-cast from lists to arrays
+aspect_ratio_array = np.array(aspect_ratio_list)
+
+# Housekeeping from input variables
+disk_outer_radius = disk_model_radius_array[-1]
+disk_inner_radius = disk_model_radius_array[0]
+# these are bogus--right now just assuming constant so pull the first value
+# !!! fix later
+disk_aspect_ratio = aspect_ratio_array[0]
+disk_surface_density = surface_density_array[0]
+
+# Housekeeping initialization stuff -- do not change!
+
+# What is the spin angle indicating alignment with AGN disk (should be zero rad)
 aligned_spin_angle_radians=0.0
-#Spin angle indicating anti-alignment with AGN disk (should be pi radians=180deg)
+# Spin angle indicating anti-alignment with AGN disk (should be pi radians=180deg)
 antialigned_spin_angle_radians=3.14
-#Spin torque condition. 0.1=10% mass accretion to torque fully into alignment. 
-# 0.01=1% mass accretion
-spin_torque_condition=0.1
-#Start time (in years)
-initial_time=0.
-#fraction of Eddington ratio accretion (1 is perfectly reasonable fiducial!)
-frac_Eddington_ratio=1.0
-#Fractional rate of mass growth per year at the Eddington rate(2.3e-8/yr)
+# minimum spin angle resolution (ie less than this value gets fixed to zero) e.g 0.02 rad=1deg
+spin_minimum_resolution=0.02
+# Fractional rate of mass growth per year at the Eddington rate(2.3e-8/yr)
 mass_growth_Edd_rate=2.3e-8
 
-#trap radius (fiducial 700r_g is reasonable to start)
-trap_radius=700.
-#timestep in years. 10kyr=1.e4 is reasonable fiducial. Gives enough time for 
-# significant migration steps in Sirko & Goodman disk model and opportunity for
-# multiple (repeat) dynamical encounters at plausible disk orbits
-timestep=1.e4
-#For timestep=1.e4, number_of_timesteps=100 gives us 1Myr total time which is fine to start.
-number_of_timesteps=20.
+# Binary properties
+# Number of binary properties that we want to record (e.g. M_1,_2,a_1,2,theta_1,2,a_bin,a_com,t_gw,ecc,bin_ang_mom,generation)
+number_of_binary_properties=13.0
 
-#PART 2: Set up disk model 1-d
-#TO DO: PUT all the disk stuff into a disk initialization FUNCTION.
-# READ IN: disk model and interpolate (or whatever) to set up radial model
-#for Sigma, h/R, R_inner, R_outer etc as a function of disk radius/location.
-# Allow user to implement their own disk model.
-#Set up disk surface density & aspect ratio e.g. SG03 model as input. 
-#Also add TQM model & maybe a Shakura-Sunyaev or Novikov-Thorne 
-# as interesting test cases.
-# For now, single constant value for Sigma and h/r
-disk_outer_radius=1.e5
-disk_surface_density=1.e5
-disk_aspect_ratio=0.03
-
+# Start time (in years)
+initial_time=0.
 
 #PART 3 Set up Initial Black hole population
 # TO DO: put all this in an initializing FUNCTION call.

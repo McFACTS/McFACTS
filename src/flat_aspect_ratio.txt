@@ -1,0 +1,3 @@
+#Aspect ratio (H/radius) radius (units: R_g=GM_SMBH/c^2)
+0.03        6.e0
+0.03        1.e5
