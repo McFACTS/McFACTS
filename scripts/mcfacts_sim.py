@@ -34,6 +34,7 @@ from mcfacts.outputs import mergerfile
 
 binary_field_names="R1 R2 M1 M2 a1 a2 theta1 theta2 sep com t_gw merger_flag t_mgr  gen_1 gen_2  bin_ang_mom bin_ecc bin_incl bin_orb_ecc nu_gw h_bin"
 merger_field_names=' '.join(mergerfile.names_rec)
+bh_initial_params_field_names = "R M a theta orb_ang_mom orb_ecc orb_incl"
 DEFAULT_INI = Path(__file__).parent.resolve() / ".." / "recipes" / "model_choice.ini"
 assert DEFAULT_INI.is_file()
 
@@ -281,7 +282,20 @@ def main():
         # Test dynamics
         #post_dynamics_orb_ecc = dynamics.circular_singles_encounters_prograde(rng,opts.mass_smbh, prograde_bh_locations, prograde_bh_masses, surf_dens_func, aspect_ratio_func, prograde_bh_orb_ecc, opts.timestep, opts.crit_ecc, de)
     
-        
+        #Write initial parameters to file for each run
+        np.savetxt(
+        os.path.join(opts.work_directory, f"run{iteration_zfilled_str}/initial_params_bh.dat"),
+                np.c_[bh_initial_locations.T,
+                      bh_initial_masses.T,
+                      bh_initial_spins.T,
+                      bh_initial_spin_angles.T,
+                      bh_initial_orb_ang_mom.T,
+                      bh_initial_orb_ecc.T,
+                      bh_initial_orb_incl.T],
+        header = bh_initial_params_field_names
+        )
+
+
 
         # Migrate
         # First if feedback present, find ratio of feedback heating torque to migration torque
