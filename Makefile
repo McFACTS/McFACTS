@@ -31,21 +31,19 @@ version: clean
 	echo "__version__ = '${VERSION}'" > src/mcfacts/__version__.py
 
 install: clean version
-	pip3 install -e .
+	pip install -e .
 
 #### Test one thing at a time ####
 
 mcfacts_sim: clean
-	python3 ${MCFACTS_SIM_EXE} \
-		--n_iterations 100 \
+	python ${MCFACTS_SIM_EXE} \
 		--fname-log out.log \
-		--seed 10000001
 
 plots:  mcfacts_sim
-	python3 ${POPULATION_PLOTS_EXE} 
+	python ${POPULATION_PLOTS_EXE} 
 
 vera_plots: mcfacts_sim
-	python3 ${VERA_PLOTS_EXE} \
+	python ${VERA_PLOTS_EXE} \
 		--cdf chi_eff chi_p M gen1 gen2 t_merge \
 		--verbose
 
