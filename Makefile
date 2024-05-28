@@ -24,6 +24,8 @@ POPULATION_PLOTS_EXE = ${HERE}/scripts/population_plots.py
 VERA_PLOTS_EXE = ${HERE}/scripts/vera_plots.py
 
 ######## Instructions ########
+####Troubleshooting on Sonoma 14.4.1, mamba, and VSCode.
+####Try changing python3 to python and pip3 to pip
 #### Install ####
 
 version: clean
@@ -31,19 +33,19 @@ version: clean
 	echo "__version__ = '${VERSION}'" > src/mcfacts/__version__.py
 
 install: clean version
-	pip install -e .
+	pip3 install -e .
 
 #### Test one thing at a time ####
 
 mcfacts_sim: clean
-	python ${MCFACTS_SIM_EXE} \
+	python3 ${MCFACTS_SIM_EXE} \
 		--fname-log out.log \
 
 plots:  mcfacts_sim
-	python ${POPULATION_PLOTS_EXE} 
+	python3 ${POPULATION_PLOTS_EXE} 
 
 vera_plots: mcfacts_sim
-	python ${VERA_PLOTS_EXE} \
+	python3 ${VERA_PLOTS_EXE} \
 		--cdf chi_eff chi_p M gen1 gen2 t_merge \
 		--verbose
 
