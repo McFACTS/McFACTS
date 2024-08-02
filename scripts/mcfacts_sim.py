@@ -14,6 +14,7 @@ import sys
 import argparse
 
 from mcfacts.inputs import ReadInputs
+from mcfacts.inputs.ReadInputs import INPUT_TYPES
 
 from mcfacts.setup import setupdiskblackholes
 from mcfacts.physics.migration.type1 import type1
@@ -34,9 +35,6 @@ from mcfacts.outputs import mergerfile
 
 binary_field_names="R1 R2 M1 M2 a1 a2 theta1 theta2 sep com t_gw merger_flag t_mgr  gen_1 gen_2  bin_ang_mom bin_ecc bin_incl bin_orb_ecc nu_gw h_bin"
 merger_field_names=' '.join(mergerfile.names_rec)
-#DEFAULT_INI = Path(__file__).parent.resolve() / ".." / "recipes" / "model_choice.ini"
-DEFAULT_INI = Path(__file__).parent.resolve() / ".." / "recipes" / "paper1_fig_dyn_on.ini"
-assert DEFAULT_INI.is_file()
 
 def arg():
     import argparse
@@ -46,7 +44,7 @@ def arg():
     parser.add_argument("--n_bins_max", default=1000, type=int)
     parser.add_argument("--n_bins_max_out", default=100, type=int)
     parser.add_argument("--fname-ini",help="Filename of configuration file",
-        default=DEFAULT_INI,type=str)
+        required=True,type=str)
     parser.add_argument("--fname-output-mergers",default="output_mergers.dat",
         help="output merger file (if any)",type=str)
     parser.add_argument("--fname-snapshots-bh",
@@ -65,22 +63,248 @@ def arg():
         help="Specify a file to save the arguments for mcfacts")
     
     ## Add inifile arguments
-    # Read default inifile
-    _variable_inputs, _disk_model_radius_array, _surface_density_array, _aspect_ratio_array \
-        = ReadInputs.ReadInputs_ini(DEFAULT_INI,False)
-    # Loop the arguments
-    for name in _variable_inputs:
-        _metavar    = name
-        _opt        = "--%s"%(name)
-        _default    = _variable_inputs[name]
-        _dtype      = type(_variable_inputs[name])
-        parser.add_argument(
-            _opt,
-            default=_default,
-            type=_dtype,
-            metavar=_metavar,
-           )
+    # SMBH Mass
+    parser.add_argument(
+                        "--mass_smbh",
+                        type=float,
+                        default=1.e8,
+                        help="SMBH mass in units of M_sun",
+                       )
+    # Disk model name
+    parser.add_argument(
+                        "--disk_model_name",
+                        type=str,
+                        default='sirko_goodman',
+                        help="Specify prefix to filenames for input disk model",
+                       )
+    # Trap radius in r_g
+    parser.add_argument(
+                        "--trap_radius",
+                        type=float,
+                        default=700.,
+                        help="trap radius in r_g",
+                       )
+    # Maximum disk outer radius
+    parser.add_argument(
+                        "--max_disk_radius_pc",
+                        type=float,
+                        default=0.,
+                        help="Maximum disk radius in parsec. 0 disables. < 0 sets exact radius",
+                       )
+    # Disk alpha parameter
+    parser.add_argument(
+                        "--alpha",
+                        type=float,
+                        default=0.01,
+                        help="Disk alpha parameter (viscosity parameter, alpha=0.01 in sirko_goodman"
+                       )
+    # Outer radius of NSC in units of pc
+    parser.add_argument(
+                        "--r_nsc_out",
+                        type=float,
+                        default=5.0,
+                        help="Outer radius of NSC (1-10 pc) in parsec",
+                       )
+    # Mass of NSC
+    parser.add_argument(
+                        "--M-nsc",
+                        type=float,
+                        default=3.e7,
+                        help="Mass of NSC (Msun). Milky-Way NSC has 3e7 Msun. Typically 10^[6-8]"
+                       )
+    # Inner critical NSC radius
+    parser.add_argument(
+                        "--r_nsc_crit",
+                        type=float,
+                        default=0.25,
+                        help="Inner critical NSC radius (where radial number density changes) in units of pc. 0.25 for SgrA*",
+                       )
+    # Ratio of number of BH to number of stars
+    parser.add_argument(
+                        "--nbh_nstar_ratio",
+                        type=float,
+                        default=1.e-3,
+                        help="Ratio of number of BH to number of stars (spans 3e-4 to 1e-2 in Generozov+18)",
+                       )
+    #Typical ratio of mass of BH to mass of star (10Msun:1Msun in Generozov+18)
+    parser.add_argument(
+                        "--mbh_mstar_ratio",
+                        default= 10.0,
+                        type=float,
+                        help="Typical ratio of mass of BH to mass of star (10Msun:1Msun in Generozov+18",
+                       )
+    #Radial density index for inner NSC, for r<r_nsc_crit. n propto r^-7/4 for Bahcall-Wolf (& Generozov+18)
+    parser.add_argument(
+                        "--nsc_index_inner",
+                        default= 1.75,
+                        type=float,
+                        help="Radial density index for inner NSC, for r<r_nsc_crit. n propto r^-7/4 for Bahcall-Wolf (& Generozov+18)",
+                       )
+    #Radial density index for outer NSC, for r>r_nsc_crit. n propto r^-2.5 for Generozov+18, r^-2.25 Peebles)
+    parser.add_argument(
+                        "--nsc_index_outer",
+                        default= 2.5,
+                        type=float,
+                        help="Radial density index for outer NSC, for r>r_nsc_crit. n propto r^-2.5 for Generozov+18, r^-2.25 Peebles)",
+                       )
+    #Average aspect ratio of disk (calculate this based on r_disk_outer?). Roughly 3% or so for Sirko&Goodman03.
+    parser.add_argument(
+                        "--h_disk_average",
+                        default= 0.03,
+                        type=float,
+                        help="Average aspect ratio of disk (calculate this based on r_disk_outer?). Roughly 3% or so for Sirko&Goodman03.",
+                       )
+    #Normalize spheroid component rate of interactions (default = 1.0)
+    parser.add_argument(
+                        "--sph_norm",
+                        default= 1.0,
+                        type=float,
+                        help="Normalize spheroid component rate of interactions (default = 1.0)",
+                       )
+    # Mode of initial BH mass distribution in M_sun (peak of Pareto fn)
+    parser.add_argument(
+                        "--mode_mbh_init",
+                        default= 10.,
+                        type=float,
+                        help="Mode of initial BH mass distribution in M_sun (peak of Pareto fn)",
+                       )
+    # Pareto (powerlaw) initial BH mass index
+    parser.add_argument(
+                        "--mbh_powerlaw_index",
+                        default= 2.,
+                        type=float,
+                        help="Pareto (powerlaw) initial BH mass index",
+                       )
+    # Maximum initial BH mass in distribution in M_sun
+    parser.add_argument(
+                        "--max_initial_bh_mass",
+                        default= 40.,
+                        type=float,
+                        help="Maximum initial BH mass in distribution in M_sun",
+                       )
+    # Mean of Gaussian initial spin distribution 
+    parser.add_argument(
+                        "--mu_spin_distribution",
+                        default= 0.,
+                        type=float,
+                        help="Mean of Gaussian initial spin distribution",
+                       )
+    # Sigma of Gaussian initial spin distribution 
+    parser.add_argument(
+                        "--sigma_spin_distribution",
+                        default= 0.1,
+                        type=float,
+                        help="Sigma of Gaussian initial spin distribution",
+                       )
+    # Spin torque condition
+    parser.add_argument(
+                        "--spin_torque_condition",
+                        default= 0.1,
+                        type=float,
+                        help="Spin torque condition",
+                       )
+    # Accretion rate of fully embedded stellar mass black hole in units of 
+    #   Eddington accretion rate
+    parser.add_argument(
+                        "--frac_Eddington_ratio",
+                        default= 1.0,
+                        type=float,
+                        help="Accretion rate of fully embedded stellar mass black hole in units of Eddington accretion rate",
+                       )
+    # Maximum initial eccentricity
+    parser.add_argument(
+                        "--max_initial_eccentricity",
+                        default= 0.3,
+                        type=float,
+                        help="Maximum initial eccentricity",
+                       )
+    #
+    # Timing:
+    # 
+    # timestep in years (float)
+    parser.add_argument(
+                        "--timestep",
+                        default= 1.e4,
+                        type=float,
+                        help="timestep in years (float)",
+                       )
+    # For timestep=1.e4, number_of_timesteps=100 gives us 1Myr disk lifetime
+    parser.add_argument(
+                        "--number_of_timesteps",
+                        default= 100,
+                        type=int,
+                        help="For timestep=1.e4, number_of_timesteps=100 gives us 1Myr disk lifetime",
+                       )
 
+    # number of iterations of code (1 for testing. 30 for a quick run.)
+    parser.add_argument(
+                        "--n_iterations",
+                        default= 1,
+                        type=int,
+                        help="number of iterations of code (1 for testing. 30 for a quick run.)",
+                       )
+    #
+    # Other physics choices: 
+    #
+    # retrograde binaries on/off (1/0) switch. Retrograde = 0(1) means retrograde bins are suppressed(allowed)
+    parser.add_argument(
+                        "--retro",
+                        default= 0,
+                        type=int,
+                        help="retrograde binaries on/off (1/0) switch. Retrograde = 0(1) means retrograde bins are suppressed(allowed)",
+                       )
+    # feedback on/off switch. Feedback = 1(0) means feedback is allowed(off)
+    parser.add_argument(
+                        "--feedback",
+                        default= 1,
+                        type=int,
+                        help="feedback on/off switch. Feedback = 1(0) means feedback is allowed(off)",
+                       )
+    # eccentricity damping (1/0) switch. 
+    # orb_ecc_damping = 1 means orbital damping is on & orb ecc is drawn from e.g. uniform or thermal distribution
+    # orb_ecc_damping = 0 means orbital damping is off and all BH are assumed to be on circularized orbits (=e_crit)
+    parser.add_argument(
+                        "--orb_ecc_damping",
+                        default= 1,
+                        type=int,
+                        help="eccentricity damping (1/0) switch",
+                       )
+    ## capture time in years (float). Secunda et al. (2021) assume capture rate 1/0.1Myr
+    parser.add_argument(
+                        "--capture_time",
+                        default= 1.e5,
+                        type=float,
+                        help="capture time in years (float). Secunda et al. (2021) assume capture rate 1/0.1Myr",
+                       )
+    # Disk capture outer radius (in units of r_g). Secunda et al. (2021) assume <2000r_g from Fabj et al. (2020)
+    parser.add_argument(
+                        "--outer_capture_radius",
+                        default= 1.e3,
+                        type=float,
+                        help="Disk capture outer radius (in units of r_g). Secunda et al. (2021) assume <2000r_g from Fabj et al. (2020)",
+                       )
+    #Critical eccentricity (limiting eccentricity, below which assumed circular orbit)
+    parser.add_argument(
+                        "--crit_ecc",
+                        default= 0.01,
+                        type=float,
+                        help="Critical eccentricity (limiting eccentricity, below which assumed circular orbit)",
+                       )
+    #Dynamics on/off switch. Dynamics = 0(1) means dynamical encounters are off (on)
+    parser.add_argument(
+                        "--dynamic_enc",
+                        default= 1,
+                        type=int,
+                        help="Dynamics on/off switch. Dynamics = 0(1) means dynamical encounters are off (on)",
+                       )
+    # Delta Energy per Strong interaction (can be up to 20%,0.2)
+    parser.add_argument(
+                        "--de",
+                        default= 0.1,
+                        type=float,
+                        help="Delta Energy per Strong interaction (can be up to 20%,0.2)",
+                       )
+    # Typical 
     ## Parse arguments
     opts = parser.parse_args()
     # Check that the inifile exists
@@ -96,11 +320,14 @@ def arg():
     variable_inputs, disk_model_radius_array, surface_density_array, aspect_ratio_array \
         = ReadInputs.ReadInputs_ini(opts.fname_ini, opts.verbose)
     # Okay, this is important. The priority of input arguments is:
-    # command line > specified inifile > default inifile
+    # command line > specified inifile
     for name in variable_inputs:
-        print(name, hasattr(opts, name), getattr(opts, name), _variable_inputs[name], variable_inputs[name])
-        if getattr(opts, name) != _variable_inputs[name]:
-            print(name)
+        if not hasattr(opts, name):
+            # Some things only exist in ReadInputs.py
+            setattr(opts, name, variable_inputs[name])
+            continue
+        #print(name, hasattr(opts, name), getattr(opts, name), variable_inputs[name])
+        if getattr(opts, name) != variable_inputs[name]:
             # This is the case where the user has set the value of an argument
             # from the command line. We don't want to argue with the user.
             pass
@@ -109,9 +336,6 @@ def arg():
             # argument from the command line.
             # We can overwrite the default value with the inifile value
             setattr(opts, name, variable_inputs[name])
-    # Case 3: if an attribute is in the default infile,
-    #   and not the specified inifile,
-    #   it remains unaltered.
 
     # Update opts with variable inputs
     opts.disk_model_radius_array = disk_model_radius_array
