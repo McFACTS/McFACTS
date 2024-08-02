@@ -31,7 +31,7 @@ def add_to_binary_array2(rng, bin_array, bh_locations, bh_masses, bh_spins, bh_s
             [7,j]: float
             spin angle of obj 2 wrt disk gas in radians at time t
             [8,j]: float
-            binary semi-major axis in units of r_g of SMBH
+            binary semi-major axis around c.o.m. in units of r_g of SMBH
             [9,j]: float
             binary center of mass location wrt SMBH in r_g
             [10,j]: float
@@ -122,16 +122,26 @@ def add_to_binary_array2(rng, bin_array, bh_locations, bh_masses, bh_spins, bh_s
                 temp_bin_mass = temp_mass_1 + temp_mass_2
                 bin_array[9,j] = temp_loc_1 + (temp_bin_separation*temp_mass_2/temp_bin_mass)
                 #Set up binary eccentricity around its own center of mass. Draw uniform value btwn [0,1]
-                bin_array[13,j] = np.random.uniform()
+                bin_array[13,j] = rng.random()
                 # Set up binary member generations
                 bin_array[i+14,j] = bh_gens[thing1]
                 # Set up bin orb. ang. mom. (randomly +1 (pro) or -1(retrograde))
-                # random number
+                # random number between [0,1]
                 random_uniform_number = rng.random()
-                bh_initial_orb_ang_mom = (2.0*np.around(random_uniform_number)) - 1.0
-                # If retro switch is zero, turn all retro BBH at formation into prograde.
+                # Generate a random number between [-retro,1-retro] where retro is the fraction of BBH that are retrograde.
+                # For default retro =0.1, range is [-0.1,0.9] and 90% of BBH are prograde.
+                bh_initial_orb_ang_mom = random_uniform_number - retro
+                # If retro =0, range = [0,1] and set L_bbh = +1.
                 if retro == 0:
-                    bh_initial_orb_ang_mom = np.fabs(bh_initial_orb_ang_mom)
+                    bh_initial_orb_ang_mom = 1
+                # If retro =0.1 (default), range = [-0.1,0.9].
+                # If range <0, L_BBH = -1; if range >0, L_BBH = +1
+                if retro > 0:
+                    if bh_initial_orb_ang_mom < 0:
+                        bh_initial_orb_ang_mom = -1
+                    if bh_initial_orb_ang_mom > 0:
+                        bh_initial_orb_ang_mom = 1
+
                 bin_array[16,j] = bh_initial_orb_ang_mom                
                 #Set up binary inclination (in units radians). Will want this to be pi radians if retrograde.
                 bin_array[17,j] = 0

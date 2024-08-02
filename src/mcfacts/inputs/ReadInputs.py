@@ -26,7 +26,7 @@ INPUT_TYPES = {
     'max_initial_eccentricity' : float,
     'timestep' : float,
     'number_of_timesteps' : int,
-    'retro' : int,
+    'retro' : float,
     'feedback' : int,
     'capture_time' : float,
     'outer_capture_radius' : float,
@@ -118,8 +118,8 @@ def ReadInputs_ini(fname='inputs/model_choice.txt', verbose=False):
     aspect_ratio_array : float array
         Aspect ratio corresponding to radii in disk_model_radius_array
         drawn from modelname_aspect_ratio.txt
-    retro : int
-        Switch (0) turns retrograde BBH into prograde BBH at formation to test (q,X_eff) relation 
+    retro : float
+        Fraction of BBH that form retrograde to test (q,X_eff) relation. Default retro=0.1 
     feedback : int
         Switch (1) turns feedback from embedded BH on.
     orb_ecc_damping : int
@@ -144,6 +144,8 @@ def ReadInputs_ini(fname='inputs/model_choice.txt', verbose=False):
         Switch (1) turns dynamical encounters between embedded BH on.
     de : float
         Average energy change per strong interaction. de can be 20% in cluster interactions. May be 10% on average (with gas)                
+    prior_agn : int
+        Switch (1) uses BH from a prior AGN episode (in file /recipes/postagn_bh_pop1.dat)
     """
 
     config = ConfigParser.ConfigParser()
@@ -158,6 +160,43 @@ def ReadInputs_ini(fname='inputs/model_choice.txt', verbose=False):
     # convert to dict
     input_variables = dict(config.items('top'))
 
+
+    # Dictionary of types
+    input_types = {
+        'disk_model_name' : str,
+        'mass_smbh' : float,
+        'trap_radius' : float,
+        'disk_outer_radius' : float,
+        'alpha' : float,
+        'n_iterations' : int,
+        'mode_mbh_init' : float,
+        'max_initial_bh_mass' : float,
+        'mbh_powerlaw_index' : float,
+        'mu_spin_distribution' : float,
+        'sigma_spin_distribution' : float,
+        'spin_torque_condition' : float,
+        'frac_Eddington_ratio' : float,
+        'max_initial_eccentricity' : float,
+        'timestep' : float,
+        'number_of_timesteps' : int,
+        'retro' : int,
+        'feedback' : int,
+        'capture_time' : float,
+        'outer_capture_radius' : float,
+        'crit_ecc' : float,
+        'r_nsc_out' : float,
+        'M_nsc' : float,
+        'r_nsc_crit' : float,
+        'nbh_nstar_ratio' : float,
+        'mbh_mstar_ratio' : float,
+        'nsc_index_inner' : float,
+        'nsc_index_outer' : float,
+        'h_disk_average' : float,
+        'dynamic_enc' : int,
+        'de' : float,
+        'orb_ecc_damping' : int,
+        'prior_agn' : int,
+    }
 
     # try to pretty-convert these to quantites
     for name in input_variables:
@@ -285,3 +324,72 @@ def ReadInputs_ini(fname='inputs/model_choice.txt', verbose=False):
         print("Sending variables back")
 
     return input_variables, disk_model_radius_array, surface_density_array, aspect_ratio_array
+
+def ReadInputs_prior_mergers(fname='recipes/sg1Myrx2_survivors.dat', verbose=False):
+    """This function reads your prior mergers from a file user specifies or
+    default (recipies/prior_mergers_population.dat), and returns the chosen variables for 
+    manipulation by main.    
+
+    Required input formats and units are given in IOdocumentation.txt file.
+
+    See below for full output list, including units & formats
+
+    Example
+    -------
+    To run, ensure a prior_mergers_population.dat is in the same directory and type:
+
+        $ python ReadInputs_prior_mergers.py
+
+    Notes
+    -----
+    Function will tell you what it is doing via print statements along the way.
+
+    Attributes
+    ----------
+    Output variables:
+    radius_bh : float
+        Location of BH in disk
+    mass_bh : float
+        Mass of BH (M_sun)
+    spin_bh : float    
+        Magnitude of BH spin (dimensionless)
+    spin_angle_bh : float
+        Angle of BH spin wrt L_disk (radians). 0(pi) radians = aligned (anti-aligned) with L_disk
+    gen_bh: float
+        Generation of BH (integer). 1.0 =1st gen (wasn't involved in merger in previous episode; but accretion=mass/spin changed)        
+    )                
+    """
+
+    #with open('../recipes/prior_mergers_x2_population.dat') as filedata:
+    #    prior_mergers_file = np.genfromtxt('../recipes/prior_mergers_x2_population.dat', unpack = True)
+    
+    with open('../recipes/sg1Myrx2_survivors.dat') as filedata:
+        prior_mergers_file = np.genfromtxt('../recipes/sg1Myrx2_survivors.dat', unpack = True)
+    
+    
+    #Clean the file of iteration lines (of form 3.0 3.0 3.0 3.0 3.0 etc for it=3.0, same value across each column)
+    cleaned_prior_mergers_file = prior_mergers_file
+    
+    radius_list = []
+    masses_list = []
+    spins_list = []
+    spin_angles_list = []
+    gens_list = []
+    len_columns = prior_mergers_file.shape[1]
+    rows_to_be_removed = []
+
+    for i in range(0,len_columns):
+        # If 1st and 2nd entries in row i are same, it's an iteration marker, delete row.
+        if prior_mergers_file[0,i] == prior_mergers_file[1,i]:
+            rows_to_be_removed = np.append(rows_to_be_removed,int(i))
+            
+    rows_to_be_removed=rows_to_be_removed.astype('int32')
+    cleaned_prior_mergers_file = np.delete(cleaned_prior_mergers_file,rows_to_be_removed,axis=1)
+    
+    radius_list = cleaned_prior_mergers_file[0,:]
+    masses_list = cleaned_prior_mergers_file[1,:]
+    spins_list = cleaned_prior_mergers_file[2,:]
+    spin_angles_list = cleaned_prior_mergers_file[3,:]
+    gens_list = cleaned_prior_mergers_file[4,:]
+
+    return radius_list,masses_list,spins_list,spin_angles_list,gens_list

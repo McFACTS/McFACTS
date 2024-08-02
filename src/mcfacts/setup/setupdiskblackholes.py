@@ -7,6 +7,12 @@ def setup_disk_blackholes_location(rng, n_bh, disk_outer_radius):
     bh_initial_locations = disk_outer_radius*rng.random(integer_nbh)
     return bh_initial_locations
 
+def setup_prior_blackholes_indices(rng, prograde_n_bh, prior_bh_locations):
+    #Return an array of indices which allow us to read prior BH properties & replace prograde BH with these.
+    integer_nbh = int(prograde_n_bh)
+    len_prior_locations = (prior_bh_locations.size)-1
+    bh_indices = np.rint(len_prior_locations*rng.random(integer_nbh))
+    return bh_indices
 
 def setup_disk_blackholes_masses(rng, n_bh,mode_mbh_init,max_initial_bh_mass,mbh_powerlaw_index):
     #Return an array of BH initial masses for a given powerlaw index and max mass
@@ -66,6 +72,18 @@ def setup_disk_blackholes_eccentricity_uniform(rng, n_bh):
     integer_nbh = int(n_bh)
     random_uniform_number = rng.random((integer_nbh,))
     bh_initial_orb_ecc = random_uniform_number
+    return bh_initial_orb_ecc
+
+def setup_disk_blackholes_eccentricity_uniform_modified(rng, mod_factor, n_bh):
+    # Return an array of BH orbital eccentricities
+    # For a uniform initial distribution of eccentricities, select from a uniform distribution in e.
+    # Thus half the eccentricities are <0.5
+    # And about 1/10th eccentricities are >0.9
+    # So rnd = draw from a uniform [0,1] distribution, allows ecc = rnd for uniform distribution
+    # Most real clusters/binaries lie between thermal & uniform (e.g. Geller et al. 2019, ApJ, 872, 165)
+    integer_nbh = int(n_bh)
+    random_uniform_number = rng.random((integer_nbh,))
+    bh_initial_orb_ecc = mod_factor*random_uniform_number
     return bh_initial_orb_ecc
 
 def setup_disk_blackholes_inclination(rng, n_bh):
