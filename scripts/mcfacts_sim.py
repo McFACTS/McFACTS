@@ -107,7 +107,7 @@ def arg():
                        )
     # Mass of NSC
     parser.add_argument(
-                        "--M-nsc",
+                        "--M_nsc",
                         type=float,
                         default=3.e7,
                         help="Mass of NSC (Msun). Milky-Way NSC has 3e7 Msun. Typically 10^[6-8]"
