@@ -172,7 +172,7 @@ class McfactsBatch(object):
         # Identify output*.dat
         fname_mergers = None
         for _file in dir_files:
-            if (_file.startswith('output') and _file.endswith('.dat')):
+            if (_file.startswith('output_mergers_population') and _file.endswith('.dat')):
                 fname_mergers = abspath(join(run_directory, _file))
                 assert isfile(fname_mergers)
         # Check that we found output*.dat
