@@ -1259,8 +1259,8 @@ def main():
         np.savetxt(os.path.join(opts.work_directory, galaxy_save_name), merged_bh_array[:, :number_of_mergers].T, header=merger_field_names)
 
         # Append each galaxy result to output arrays
-        merged_bh_array_pop.append(merged_bh_array.T)
-        surviving_bh_array_pop.append(surviving_bh_array)
+        merged_bh_array_pop.append(merged_bh_array[:,:number_of_mergers].T)
+        surviving_bh_array_pop.append(surviving_bh_array[:total_bh_survived,:])
 
         if total_emris > 0:
             emris_array_pop.append(total_emri_array[:total_emris, :])

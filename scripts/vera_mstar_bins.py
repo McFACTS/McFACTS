@@ -16,22 +16,18 @@ def arg():
     parser.add_argument("--mstar-max", default=1e13, type=float,
         help="Maximum galactic stellar mass")
     parser.add_argument("--nbins", default=9, type=int, help="Number of stellar mass bins")
-    parser.add_argument("--n_bins_max", default=1000, help="Number of binaries allowed at once")
+    parser.add_argument("--bin_num_max", default=1000, help="Number of binaries allowed at once")
     parser.add_argument("--wkdir", default='./run_many', help="top level working directory")
     parser.add_argument("--mcfacts-exe", default="./scripts/mcfacts_sim.py", help="Path to mcfacts exe")
     parser.add_argument("--fname-ini", required=True, help="Path to mcfacts inifile")
-    parser.add_argument("--vera-plots-exe", default="./scripts/vera_plots.py", help="Path to Vera plots script")
+    #parser.add_argument("--vera-plots-exe", default="./scripts/vera_plots.py", help="Path to Vera plots script")
     parser.add_argument("--fname-nal", default=join(expanduser("~"), "Repos", "nal-data", "GWTC-2.nal.hdf5" ),
         help="Path to Vera's data from https://gitlab.com/xevra/nal-data")
     parser.add_argument("--max-nsc-mass", default=1.e8, type=float,
         help="Maximum NSC mass (solar mass)")
-    parser.add_argument("--number_of_timesteps", default=100, type=int,
+    parser.add_argument("--timestep_num", default=100, type=int,
         help="Number of timesteps (10,000 yrs by default)")
-    parser.add_argument("--dynamics", action='store_true',
-        help="Dynamics flag")
-    parser.add_argument("--feedback", action='store_true',
-        help="Feedback flag")
-    parser.add_argument("--n_iterations", default=2, type=int,
+    parser.add_argument("--galaxy_num", default=2, type=int,
         help="Number of iterations per mass bin")
     parser.add_argument("--scrub", action='store_true',
         help="Remove timestep data for individual runs as we go to conserve disk space.")
@@ -93,17 +89,17 @@ def make_batch(opts, wkdir, mcfacts_args, mass_smbh, mass_nsc):
         pass
 
     # Make all iterations
-    cmd = "python3 %s --fname-ini %s --mass_smbh %f --M_nsc %f --work-directory %s %s"%(
+    cmd = "python3 %s --fname-ini %s --smbh_mass %f --nsc_mass %f --work-directory %s %s"%(
         opts.mcfacts_exe, opts.fname_ini, mass_smbh, mass_nsc, wkdir, mcfacts_args)
     print(cmd)
     if not opts.print_only:
         os.system(cmd)
     # Make plots for all iterations
-    cmd = "python3 %s --fname-mergers %s/output_mergers_population.dat --fname-nal %s --cdf chi_eff chi_p M gen1 gen2 t_merge"%(
-        opts.vera_plots_exe, wkdir, opts.fname_nal)
-    print(cmd)
-    if not opts.print_only:
-        os.system(cmd)
+    #cmd = "python3 %s --fname-mergers %s/output_mergers_population.dat --fname-nal %s --cdf chi_eff chi_p M gen1 gen2 t_merge"%(
+    #    opts.vera_plots_exe, wkdir, opts.fname_nal)
+    #print(cmd)
+    #if not opts.print_only:
+    #    os.system(cmd)
 
     # Scrub runs
     if opts.scrub:
@@ -132,13 +128,10 @@ def main():
 
     # Initialize mcfacts arguments dictionary
     mcfacts_arg_dict = {
-                        "--number_of_timesteps" : opts.number_of_timesteps,
-                        "--dynamic_enc"         : int(opts.dynamics),
-                        "--feedback"            : int(opts.feedback),
-                        "--n_iterations"        : opts.n_iterations,
-                        "--n_bins_max"          : 10_000,
-                        "--fname-log"           : "out.log",
-                        "--n_bins_max"          : opts.n_bins_max,
+                        "--timestep_num"    : opts.timestep_num,
+                        "--galaxy_num"      : opts.galaxy_num,
+                        "--fname-log"       : "out.log",
+                        "--bin_num_max"     : opts.bin_num_max,
                        }
     mcfacts_args = ""
     for item in mcfacts_arg_dict:

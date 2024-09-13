@@ -80,24 +80,23 @@ plots: mcfacts_sim
 
 vera_plots: mcfacts_sim
 	python ${VERA_PLOTS_EXE} \
-		--cdf chi_eff chi_p M gen1 gen2 t_merge \
+		--cdf-fields chi_eff chi_p final_mass gen1 gen2 time_merge \
 		--verbose
 
 mstar_runs:
 	python ${MSTAR_RUNS_EXE} \
 		--fname-ini ${FNAME_INI} \
-		--number_of_timesteps 1000 \
-		--n_bins_max 10000 \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--nbins 9 \
 		--galaxy_num 3 \
-		--dynamics \
-		--feedback \
 		--mstar-min 1e9 \
 		--mstar-max 1e13 \
-		--nbins 33 \
 		--scrub \
 		--fname-nal ${FNAME_GWTC2_NAL} \
 		--wkdir ${MSTAR_RUNS_WKDIR}
-	python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
+		#--nbins 33 
+	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
 		
 
 #### CLEAN ####

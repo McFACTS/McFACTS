@@ -48,9 +48,9 @@ def main():
     emris = np.loadtxt(opts.fname_emris, skiprows=2)
     lvk = np.loadtxt(opts.fname_lvk,skiprows=2)
 
-    mask = np.isfinite(mergers[:,2])
+    # exclude all rows with NaNs or zeros in the final mass column
+    mask = (np.isfinite(mergers[:,2])) & (mergers[:,2] != 0)
     mergers = mergers[mask]
-
     
     # plt.figure(figsize=(10,6))
     # plt.figure()
