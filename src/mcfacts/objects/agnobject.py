@@ -2,25 +2,10 @@ import numpy as np
 from copy import deepcopy
 from mcfacts.setup import setupdiskstars, setupdiskblackholes
 
-"""
-def check_1d_length(arr_list):
-    if(len({arr.shape for arr in arr_list}) > 1):
-        raise ValueError('Arrays are not all 1d.')
 
-    if( len(set(map(len,arr_list))) != 1):
-        raise ValueError('Arrays are not all the same length.')
- """
-
-# TODO: similar vein: print method? Same thing maybe?
-# TODO: custom error messages when you don't supply all the fields for init and add methods
-# TODO: custom error messages when input arrays to init and add methods aren't the same length
 # TODO: dump_record_array writes every value as a float. Make dictionary with all attributes and datatypes? Or is a float fine?
 # TODO: init_from_file: you have to initialize an empty AGNObject before you can init_from_file and that seems weird.
 #       check if this is now just an AGNObject because we would want it to be an AGNStar or AGNBlackHole etc
-# TODO: error if you try to pass kwarg that doesnt exist. AttributeError?
-# TODO: issue: right now you can pass AGNStar arrays that are 8-elements long for the star parameters and 10-elements long 
-#       for the AGNObject parameters and it doesn't complain.
-
 # Empty array to pass
 empty_arr = np.array([])
 
@@ -513,17 +498,17 @@ class AGNObject(object):
 
         assert fname is not None, "Need to pass filename"
 
-        header = " ".join(cols)
-
-        if extra_header is not None:
-            header = extra_header + header
-
         self.check_consistency()
 
         if cols is not None:
             attributes = cols
         else:
             attributes = get_attr_list(self)
+
+        header = " ".join(attributes)
+
+        if extra_header is not None:
+            header = extra_header + header
 
         attrs_list = []
         for attr in attributes:
@@ -746,8 +731,8 @@ class AGNBlackHole(AGNObject):
             self.orb_ang_mom = setupdiskblackholes.setup_disk_blackholes_orb_ang_mom(bh_num)
 
             if ((gw_freq is empty_arr) and (gw_strain is empty_arr)):
-                self.gw_freq = np.full(bh_num, -1)
-                self.gw_strain = np.full(bh_num, -1)
+                self.gw_freq = np.full(bh_num, -1) #BUG np.full(bh_num, -1.5)
+                self.gw_strain =np.full(bh_num, -1) # BUG np.full(bh_num, -1.5)
 
             elif ((gw_freq is not empty_arr) and (gw_strain is not empty_arr)):
                 self.gw_freq = gw_freq
@@ -792,12 +777,12 @@ class AGNBlackHole(AGNObject):
         assert new_mass.shape == (bh_num,),"bh_num must match the number of objects"
 
         if new_gw_freq is empty_arr:
-            self.gw_freq = np.concatenate([self.gw_freq, np.full(bh_num, -1)])
+            self.gw_freq = np.concatenate([self.gw_freq, np.full(bh_num, -1)]) # BUG np.concatenate([self.gw_freq, np.full(bh_num, -1.5)])
         else:
             self.gw_freq = np.concatenate([self.gw_freq, new_gw_freq])
         
         if new_gw_strain is empty_arr:
-            self.gw_strain = np.concatenate([self.gw_strain, np.full(bh_num, -1)])
+            self.gw_strain = np.concatenate([self.gw_strain, np.full(bh_num, -1)])#BUG np.concatenate([self.gw_strain, np.full(bh_num, -1.5)])
         else:
             self.gw_strain = np.concatenate([self.gw_strain, new_gw_strain])
 
@@ -1445,7 +1430,6 @@ class AGNMergedBlackHole(AGNObject):
         self.num += num_obj_merge
 
         self.check_consistency()
-
 
 
 obj_types = {0: "single black hole",

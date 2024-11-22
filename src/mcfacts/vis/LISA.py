@@ -1,3 +1,8 @@
+"""
+Helper functions for plotting LISA sensitivity curve
+
+Credit: ???
+"""
 import numpy as np
 from scipy import interpolate
 import matplotlib.pyplot as plt

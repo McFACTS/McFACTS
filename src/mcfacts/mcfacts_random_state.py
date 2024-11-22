@@ -1,4 +1,6 @@
-
+"""
+Controls the global random state used throughout McFACTS simulations.
+"""
 import numpy as np
 
 default_seed = 1

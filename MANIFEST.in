@@ -1,3 +1,7 @@
+include __version__.py
+include LICENSE
+include README.md
+include src/mcfacts/vis/mcfacts_figures.mplstyle
 include src/mcfacts/inputs/data/*.txt
 include src/mcfacts/inputs/data/*.ini
 include src/mcfacts/vis/data/*.txt

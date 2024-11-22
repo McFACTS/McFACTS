@@ -1,0 +1,21 @@
+#text.usetex: True
+#font.family: cmr10
+
+# Commented out so auto-scaling works
+# Uncomment if you want fonts scaled for ApJ
+# ApJ: small = 9pt, normal = 10pt, large = 12pt
+#font.size: 10 #9
+#legend.fontsize: 9
+#xtick.labelsize: 9
+#ytick.labelsize: 9
+#axes.labelsize: 9
+#axes.formatter.use_mathtext: True
+
+figure.facecolor: white
+figure.dpi: 300
+figure.constrained_layout.use: True
+
+xtick.top: True
+xtick.direction: in
+ytick.right: True
+ytick.direction: in

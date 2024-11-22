@@ -1,21 +1,18 @@
-McFacts documentation
-=====================
+====================================================
+ Monte Carlo For AGN Channel Testing and Simulations
+====================================================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
-
+A Python package that does the AGN channel for you!
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 3
+   :hidden:
 
-.. autosummary::
-   :toctree: _autosummary
-   :template: custom-module-template.rst
-   :recursive:
+   installation
+   cite
+   modules
+   contribute
 
-   mcfacts
 
 Indices and tables
 ==================

@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
 
-######## Globals ########
-COLUMN_NAMES = "iter CM M chi_eff a_tot spin_angle m1 m2 a1 a2 theta1 theta2 gen1 gen2 t_merge chi_p"
-
 ######## Imports ########
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import numpy as np
 import mcfacts.vis.LISA as li
 import mcfacts.vis.PhenomA as pa
 import pandas as pd
 import os
+from scipy.optimize import curve_fit
 # Grab those txt files
 from importlib import resources as impresources
 from mcfacts.vis import data
+from mcfacts.vis import plotting
+from mcfacts.vis import styles
+
+# Use the McFACTS plot style
+plt.style.use("mcfacts.vis.mcfacts_figures")
+
+figsize = "apj_col"
 
 
 ######## Arg ########
@@ -20,17 +26,17 @@ def arg():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--fname-emris",
-        default="output_mergers_emris.dat",
-        type=str, help="output_emris file")
+                        default="output_mergers_emris.dat",
+                        type=str, help="output_emris file")
     parser.add_argument("--fname-mergers",
-        default="output_mergers_population.dat",
-        type=str, help="output_mergers file")
+                        default="output_mergers_population.dat",
+                        type=str, help="output_mergers file")
     parser.add_argument("--plots-directory",
-        default=".",
-        type=str, help="directory to save plots")
+                        default=".",
+                        type=str, help="directory to save plots")
     parser.add_argument("--fname-lvk",
-        default="output_mergers_lvk.dat",
-        type=str, help="output_lvk file")
+                        default="output_mergers_lvk.dat",
+                        type=str, help="output_lvk file")
     opts = parser.parse_args()
     print(opts.fname_mergers)
     assert os.path.isfile(opts.fname_mergers)
@@ -38,147 +44,353 @@ def arg():
     assert os.path.isfile(opts.fname_lvk)
     return opts
 
+
+def linefunc(x, m):
+    """Model for a line passing through (x,y) = (0,1).
+
+    Function for a line used when fitting to the data.
+    """
+    return m * (x - 1)
+
+
+def make_gen_masks(table, col1, col2):
+    """Create masks for retrieving different sets of a merged or binary population based on generation.
+    """
+    # Column of generation data
+    gen_obj1 = table[:, col1]
+    gen_obj2 = table[:, col2]
+
+    # Masks for hierarchical generations
+    # g1 : all 1g-1g objects
+    # g2 : 2g-1g and 2g-2g objects
+    # g3 : >=3g-Ng (first object at least 3rd gen; second object any gen)
+    # Pipe operator (|) = logical OR. (&)= logical AND.
+    g1_mask = (gen_obj1 == 1) & (gen_obj2 == 1)
+    g2_mask = ((gen_obj1 == 2) | (gen_obj2 == 2)) & ((gen_obj1 <= 2) & (gen_obj2 <= 2))
+    gX_mask = (gen_obj1 >= 3) | (gen_obj2 >= 3)
+
+    return g1_mask, g2_mask, gX_mask
+
+
 ######## Main ########
 def main():
-    #plt.style.use('seaborn-v0_8-poster')
+    # plt.style.use('seaborn-v0_8-poster')
 
-    # need section for loading data
+    # Load data from output files
     opts = arg()
+
     mergers = np.loadtxt(opts.fname_mergers, skiprows=2)
     emris = np.loadtxt(opts.fname_emris, skiprows=2)
-    lvk = np.loadtxt(opts.fname_lvk,skiprows=2)
+    lvk = np.loadtxt(opts.fname_lvk, skiprows=2)
 
-    # exclude all rows with NaNs or zeros in the final mass column
-    mask = (np.isfinite(mergers[:,2])) & (mergers[:,2] != 0)
-    mergers = mergers[mask]
-    
-    # plt.figure(figsize=(10,6))
-    # plt.figure()
+    # Exclude all rows with NaNs or zeros in the final mass column
+    merger_nan_mask = (np.isfinite(mergers[:, 2])) & (mergers[:, 2] != 0)
+    mergers = mergers[merger_nan_mask]
+
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = make_gen_masks(mergers, 12, 13)
+
+    # Ensure no union between sets
+    assert all(merger_g1_mask & merger_g2_mask) == 0
+    assert all(merger_g1_mask & merger_gX_mask) == 0
+    assert all(merger_g2_mask & merger_gX_mask) == 0
+
+    # Ensure no elements are missed
+    assert all(merger_g1_mask | merger_g2_mask | merger_gX_mask) == 1
+
+
+    # ========================================
+    # Number of Mergers vs Mass
+    # ========================================
 
     # Plot intial and final mass distributions
-    counts, bins = np.histogram(mergers[:,2])
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    counts, bins = np.histogram(mergers[:, 2])
     # plt.hist(bins[:-1], bins, weights=counts)
-    bins = np.arange(int(mergers[:,2].min()), int(mergers[:,2].max())+2, 1)
-    plt.hist(mergers[:,2], bins=bins, align='left', color='rebeccapurple', alpha=0.9, rwidth=0.8)
+    bins = np.arange(int(mergers[:, 2].min()), int(mergers[:, 2].max()) + 2, 1)
 
-    # plt.hist(bh_masses_by_sorted_location, bins=numbins, align='left', label='Final', color='purple', alpha=0.5)
-    # plt.hist(binary_bh_array[2:4,:bin_index], bins=numbins, align='left', label='Final', color=['purple'], alpha=0.5)
-    #plt.title(f'Black Hole Merger Remnant Masses\n'+
-    #            f'Number of Mergers: {mergers.shape[0]}')
+    hist_data = [mergers[:, 2][merger_g1_mask], mergers[:, 2][merger_g2_mask], mergers[:, 2][merger_gX_mask]]
+    hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
     plt.ylabel('Number of Mergers')
-    plt.xlabel(r'Mass ($M_\odot$)')
-
-    ax = plt.gca()
-    ax.set_axisbelow(True)
-    plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory+"/merger_remnant_mass.png", format='png')
-    plt.tight_layout()
-    plt.close()
-
-
-    # TQM has a trap at 245r_g, SG has a trap radius at 700r_g.
-    #trap_radius = 245
-    trap_radius = 700
-    plt.figure()
-    #plt.title('Migration Trap influence')
-    for i in range(len(mergers[:,1])):
-        if mergers[i,1] < 10.0:
-            mergers[i,1] = 10.0
-
-    plt.scatter(mergers[:,1], mergers[:,2], color='teal')
-    plt.axvline(trap_radius, color='grey', linewidth=20, zorder=0, alpha=0.6, label=f'Radius = {trap_radius} '+r'$R_g$')
-    #plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
-    plt.ylabel(r'Mass ($M_\odot$)')
-    plt.xlabel(r'Radius ($R_g$)')
+    plt.xlabel(r'Remnant Mass [$M_\odot$]')
     plt.xscale('log')
-    plt.legend(frameon=False)
-    plt.ylim(10,1000)
+    # plt.ylim(-5,max(counts))
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    svf_ax.tick_params(axis='x', direction='out', which='both')
+    #plt.grid(True, color='gray', ls='dashed')
+    svf_ax.yaxis.grid(True, color='gray', ls='dashed')
 
-    ax = plt.gca()
-    ax.set_axisbelow(True)
-    plt.grid(True, color='gray', ls='dashed')
-    plt.tight_layout()
-    plt.savefig(opts.plots_directory+"/merger_mass_v_radius.png", format='png')
+    plt.xticks(np.geomspace(int(mergers[:, 2].min()), int( mergers[:, 2].max()), 5).astype(int))
+    #plt.xticks(np.geomspace(20, 200, 5).astype(int))
+
+    svf_ax.xaxis.set_major_formatter(mticker.StrMethodFormatter('{x:.0f}'))
+    svf_ax.xaxis.set_minor_formatter(mticker.NullFormatter())
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.savefig(opts.plots_directory + r"/merger_remnant_mass.png", format='png')
+
     plt.close()
 
 
+    # ========================================
+    # Merger Mass vs Radius
+    # ========================================
+
+    # TQM has a trap at 500r_g, SG has a trap radius at 700r_g.
+    # trap_radius = 500
+    trap_radius = 700
+
+    # plt.title('Migration Trap influence')
+    for i in range(len(mergers[:, 1])):
+        if mergers[i, 1] < 10.0:
+            mergers[i, 1] = 10.0
+
+    # Separate generational subpopulations
+    gen1_orb_a = mergers[:, 1][merger_g1_mask]
+    gen2_orb_a = mergers[:, 1][merger_g2_mask]
+    genX_orb_a = mergers[:, 1][merger_gX_mask]
+    gen1_mass = mergers[:, 2][merger_g1_mask]
+    gen2_mass = mergers[:, 2][merger_g2_mask]
+    genX_mass = mergers[:, 2][merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_mass,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_mass,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_mass,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Remnant Mass [$M_\odot$]')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.ylim(18, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/merger_mass_v_radius.png", format='png')
+    plt.close()
 
 
+    # ========================================
+    # q vs Chi Effective
+    # ========================================
+
+    # retrieve component masses and mass ratio
     m1 = np.zeros(mergers.shape[0])
     m2 = np.zeros(mergers.shape[0])
     mass_ratio = np.zeros(mergers.shape[0])
     for i in range(mergers.shape[0]):
-        if mergers[i,6] < mergers[i,7]:
-            m1[i] = mergers[i,7]
-            m2[i] = mergers[i,6]
-            mass_ratio[i] = mergers[i,6] / mergers[i,7]
+        if mergers[i, 6] < mergers[i, 7]:
+            m1[i] = mergers[i, 7]
+            m2[i] = mergers[i, 6]
+            mass_ratio[i] = mergers[i, 6] / mergers[i, 7]
         else:
-            mass_ratio[i] = mergers[i,7] / mergers[i,6]
-            m1[i] = mergers[i,6]
-            m2[i] = mergers[i,7]
+            mass_ratio[i] = mergers[i, 7] / mergers[i, 6]
+            m1[i] = mergers[i, 6]
+            m2[i] = mergers[i, 7]
 
     # (q,X_eff) Figure details here:
     # Want to highlight higher generation mergers on this plot
-    chi_eff = mergers[:,3]
-    gen1 = mergers[:,12]
-    gen2 = mergers[:,13]
-    chi_p = mergers[:,15]
-    
-    plt.ylim(0,1.05)
-    plt.xlim(-1,1)
-    fig = plt.figure()
+    chi_eff = mergers[:, 3]
+
+    # Get 1g-1g population
+    gen1_chi_eff = chi_eff[merger_g1_mask]
+    gen1_mass_ratio = mass_ratio[merger_g1_mask]
+    # 2g-1g and 2g-2g population
+    gen2_chi_eff = chi_eff[merger_g2_mask]
+    gen_mass_ratio = mass_ratio[merger_g2_mask]
+    # >=3g-Ng population (i.e., N=1,2,3,4,...)
+    genX_chi_eff = chi_eff[merger_gX_mask]
+    genX_mass_ratio = mass_ratio[merger_gX_mask]
+    # all 2+g mergers; H = hierarchical
+    genH_chi_eff = chi_eff[(merger_g2_mask + merger_gX_mask)]
+    genH_mass_ratio = mass_ratio[(merger_g2_mask + merger_gX_mask)]
+
+    # points for plotting line fit
+    x = np.linspace(-1, 1, num=2)
+
+    # fit the hierarchical mergers (any binaries with 2+g) to a line passing through 0,1
+    # popt contains the model parameters, pcov the covariances
+    # poptHigh, pcovHigh = curve_fit(linefunc, high_gen_mass_ratio, high_gen_chi_eff)
+
+    # plot the 1g-1g population
+    fig = plt.figure(figsize=(plotting.set_size(figsize)[0], 2.8))
     ax2 = fig.add_subplot(111)
+    # 1g-1g mergers
+    ax2.scatter(gen1_chi_eff, gen1_mass_ratio,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
 
-    # Pipe operator (|) = logical OR. (&)= logical AND.
-    high_gen_chi_eff = np.where((gen1 > 1.0) | (gen2 > 1.0), chi_eff, np.nan)
-    extreme_gen_chi_eff = np.where((gen1 > 2.0) | (gen2 > 2.0), chi_eff, np.nan)
+    # plot the 2g+ mergers
+    ax2.scatter(gen2_chi_eff, gen_mass_ratio,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
 
+    # plot the 3g+ mergers
+    ax2.scatter(genX_chi_eff, genX_mass_ratio,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
 
-    ax2.scatter(chi_eff,mass_ratio, color='darkgoldenrod')
-    ax2.scatter(high_gen_chi_eff,mass_ratio, color='rebeccapurple',marker='+')
-    ax2.scatter(extreme_gen_chi_eff,mass_ratio,color='red',marker='o')
-    #plt.scatter(chi_eff, mass_ratio, color='darkgoldenrod')
-    #plt.title("Mass Ratio vs. Effective Spin")
-    plt.ylabel(r'$q = M_2 / M_1$ ($M_1 > M_2$)')
-    plt.xlabel(r'$\chi_{\rm eff}$')
-    plt.ylim(0,1.05)
-    plt.xlim(-1,1)
-    ax = plt.gca()
-    ax.set_axisbelow(True)
-    plt.grid(True, color='gray', ls='dashed')
-    plt.tight_layout()
-    plt.savefig("./q_chi_eff.png", format='png')
+    if len(genH_chi_eff) > 0:
+        poptHier, pcovHier = curve_fit(linefunc, genH_mass_ratio, genH_chi_eff)
+        errHier = np.sqrt(np.diag(pcovHier))[0]
+        # plot the line fitting the hierarchical mergers
+        ax2.plot(linefunc(x, *poptHier), x,
+                 ls='dashed',
+                 lw=1,
+                 color='gray',
+                 zorder=3,
+                 label=r'$d\chi/dq(\geq$2g)=' +
+                       f'{poptHier[0]:.2f}' +
+                       r'$\pm$' + f'{errHier:.2f}'
+                 )
+        #         #  alpha=linealpha,
+
+    if len(chi_eff) > 0:
+        poptAll, pcovAll = curve_fit(linefunc, mass_ratio, chi_eff)
+        errAll = np.sqrt(np.diag(pcovAll))[0]
+        ax2.plot(linefunc(x, *poptAll), x,
+                 ls='solid',
+                 lw=1,
+                 color='black',
+                 zorder=3,
+                 label=r'$d\chi/dq$(all)=' +
+                       f'{poptAll[0]:.2f}' +
+                       r'$\pm$' + f'{errAll:.2f}'
+                 )
+        #  alpha=linealpha,
+
+    ax2.set(
+        ylabel=r'$q = M_2 / M_1$',  # ($M_1 > M_2$)')
+        xlabel=r'$\chi_{\rm eff}$',
+        ylim=(0, 1),
+        xlim=(-1, 1),
+        axisbelow=True
+    )
+
+    if figsize == 'apj_col':
+        ax2.legend(loc='lower left', fontsize=6)
+    elif figsize == 'apj_page':
+        ax2.legend(loc='lower left')
+
+    ax2.grid('on', color='gray', ls='dotted')
+    plt.savefig(opts.plots_directory + "./q_chi_eff.png", format='png')  # ,dpi=600)
     plt.close()
 
-    #Figure of Disk radius vs Chi_p follows.
+
+    # ========================================
+    # Disk Radius vs Chi_p
+    # ========================================
+
     # Can break out higher mass Chi_p events as test/illustration.
-    #Set up default arrays for high mass BBH (>40Msun say) to overplot vs chi_p. 
-    all_masses = mergers[:,2]
-    all_locations = mergers[:,1]
-    mass_bound = 40.0
-    #print("All BBH merger masses:",all_masses)
-    #print("All BBH merger locations:",all_locations)
-    high_masses = np.where(all_masses > mass_bound, all_masses, np.nan)
-    #print("High masses", high_masses)
-    high_masses_locations = np.where(np.isfinite(high_masses),all_locations, np.nan )
-    #print("High masses locations",high_masses_locations)
-    plt.ylim(0,1)
-    plt.xlim(0.,5.e4)
-    fig = plt.figure()
+    # Set up default arrays for high mass BBH (>40Msun say) to overplot vs chi_p.
+    chi_p = mergers[:, 15]
+    gen1_chi_p = chi_p[merger_g1_mask]
+    gen2_chi_p = chi_p[merger_g2_mask]
+    genX_chi_p = chi_p[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
     ax1 = fig.add_subplot(111)
-    ax1.scatter(all_locations,chi_p, color='darkgoldenrod')
-    ax1.scatter(high_masses_locations,chi_p, color='rebeccapurple',marker='+')
-    #plt.title("In-plane effective Spin vs. Merger radius")
-    plt.ylabel(r'$\chi_{\rm p}$')
-    plt.xlabel(r'Radius ($R_g$)')
-    plt.xlim(0.,5.e4)
-    ax = plt.gca()
-    ax.set_axisbelow(True)
-    plt.grid(True, color='gray', ls='dashed')
-    plt.tight_layout()
-    plt.savefig("./r_chi_p.png", format='png')
+
+    ax1.scatter(np.log10(gen1_orb_a), gen1_chi_p,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g')
+
+    # plot the 2g+ mergers
+    ax1.scatter(np.log10(gen2_orb_a), gen2_chi_p,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g')
+
+    # plot the 3g+ mergers
+    ax1.scatter(np.log10(genX_orb_a), genX_chi_p,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng')
+
+    # plt.title("In-plane effective Spin vs. Merger radius")
+    ax1.set(
+        ylabel=r'$\chi_{\rm p}$',
+        xlabel=r'$\log_{10} (R)$ [$R_g$]',
+        ylim=(0, 1),
+        axisbelow=True)
+
+    ax1.grid(True, color='gray', ls='dashed')
+
+    if figsize == 'apj_col':
+        ax1.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        ax1.legend()
+
+    plt.savefig(opts.plots_directory + "./r_chi_p.png", format='png')
     plt.close()
-    
+
     # plt.figure()
     # index = 2
     # mode = 10
@@ -193,45 +405,162 @@ def main():
     # plt.show()
 
 
-    plt.figure()
-    #plt.title("Time of Merger after AGN Onset")
-    plt.scatter(mergers[:,14]/1e6, mergers[:,2], color='darkolivegreen')
-    plt.xlabel('Time (Myr)')
-    plt.ylabel(r'Mass ($M_\odot$)')
-    # plt.xscale("log")
-    ax = plt.gca()
-    ax.set_axisbelow(True)
+    # ========================================
+    # Mass 2 vs Mass 1
+    # ========================================
+
+    all_time = mergers[:, 14]
+    gen1_time = all_time[merger_g1_mask]
+    gen2_time = all_time[merger_g2_mask]
+    genX_time = all_time[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+
+    # plt.title("Time of Merger after AGN Onset")
+    # ax3.scatter(mergers[:,14]/1e6, mergers[:,2], s=pointsize_merge_time, color='darkolivegreen')
+    ax3.scatter(gen1_time / 1e6, gen1_mass,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    # plot the 2g+ mergers
+    ax3.scatter(gen2_time / 1e6, gen2_mass,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    # plot the 3g+ mergers
+    ax3.scatter(genX_time / 1e6, genX_mass,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    ax3.set(
+        xlabel='Time [Myr]',
+        ylabel=r'Remnant Mass [$M_\odot$]',
+        yscale="log",
+        axisbelow=True
+    )
+
     plt.grid(True, color='gray', ls='dashed')
-    plt.tight_layout()
-    plt.savefig(opts.plots_directory+'/time_of_merger.png', format='png')
+
+    if figsize == 'apj_col':
+        ax3.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        ax3.legend()
+
+    plt.savefig(opts.plots_directory + '/time_of_merger.png', format='png')
     plt.close()
 
 
+    # ========================================
+    # Number of Mergers vs Mass
+    # ========================================
+
+    # Sort Objects into Mass 1 and Mass 2 by generation
+    mass_mask_g1 = mergers[merger_g1_mask, 6] > mergers[merger_g1_mask, 7]
+    gen1_mass_1 = np.zeros(np.sum(merger_g1_mask))
+    gen1_mass_1[mass_mask_g1] = mergers[merger_g1_mask, 6][mass_mask_g1]
+    gen1_mass_1[~mass_mask_g1] = mergers[merger_g1_mask, 7][~mass_mask_g1]
+    gen1_mass_2 = np.zeros(np.sum(merger_g1_mask))
+    gen1_mass_2[~mass_mask_g1] = mergers[merger_g1_mask, 6][~mass_mask_g1]
+    gen1_mass_2[mass_mask_g1] = mergers[merger_g1_mask, 7][mass_mask_g1]
+
+    mass_mask_g2 = mergers[merger_g2_mask, 6] > mergers[merger_g2_mask, 7]
+    gen2_mass_1 = np.zeros(np.sum(merger_g2_mask))
+    gen2_mass_1[mass_mask_g2] = mergers[merger_g2_mask, 6][mass_mask_g2]
+    gen2_mass_1[~mass_mask_g2] = mergers[merger_g2_mask, 7][~mass_mask_g2]
+    gen2_mass_2 = np.zeros(np.sum(merger_g2_mask))
+    gen2_mass_2[~mass_mask_g2] = mergers[merger_g2_mask, 6][~mass_mask_g2]
+    gen2_mass_2[mass_mask_g2] = mergers[merger_g2_mask, 7][mass_mask_g2]
+
+    mass_mask_gX = mergers[merger_gX_mask, 6] > mergers[merger_gX_mask, 7]
+    genX_mass_1 = np.zeros(np.sum(merger_gX_mask))
+    genX_mass_1[mass_mask_gX] = mergers[merger_gX_mask, 6][mass_mask_gX]
+    genX_mass_1[~mass_mask_gX] = mergers[merger_gX_mask, 7][~mass_mask_gX]
+    genX_mass_2 = np.zeros(np.sum(merger_gX_mask))
+    genX_mass_2[~mass_mask_gX] = mergers[merger_gX_mask, 6][~mass_mask_gX]
+    genX_mass_2[mass_mask_gX] = mergers[merger_gX_mask, 7][mass_mask_gX]
+
+    # Check that there aren't any zeros remaining.
+    assert (gen1_mass_1 > 0).all()
+    assert (gen1_mass_2 > 0).all()
+    assert (gen2_mass_1 > 0).all()
+    assert (gen2_mass_2 > 0).all()
+    assert (genX_mass_1 > 0).all()
+    assert (genX_mass_2 > 0).all()
+
+    pointsize_m1m2 = 5
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax4 = fig.add_subplot(111)
+
+    # plt.scatter(m1, m2, s=pointsize_m1m2, color='k')
+    ax4.scatter(gen1_mass_1, gen1_mass_2,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    # plot the 2g+ mergers
+    ax4.scatter(gen2_mass_1, gen2_mass_2,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    # plot the 3g+ mergers
+    ax4.scatter(genX_mass_1, genX_mass_2,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    ax4.set(
+        xlabel=r'$M_1$ [$M_\odot$]',
+        ylabel=r'$M_2$ [$M_\odot$]',
+        xscale='log',
+        yscale='log',
+        axisbelow=(True),
+        # aspect=('equal')
+    )
+
+    ax4.legend(fontsize=6)
+
+    # plt.grid(True, color='gray', ls='dotted')
+    plt.savefig(opts.plots_directory + '/m1m2.png', format='png')
+    plt.close()
 
 
-    plt.figure()
-    plt.scatter(m1, m2, color='k')
-    plt.xlabel(r'$M_1$ ($M_\odot$)')
-    plt.ylabel(r'$M_2$ ($M_\odot$)')
-    ax = plt.gca()
-    ax.set_aspect('equal')
-    ax.set_axisbelow(True)
-    plt.grid(True, color='gray', ls='dashed')
-    plt.tight_layout()
-    plt.savefig(opts.plots_directory+'/m1m2.png', format='png')
+    # ========================================
+    # LVK and LISA Strain vs Freq
+    # ========================================
 
-    #GW strain figure: 
-    #make sure LISA.py and PhenomA.py in /vis directory
-    #Using https://github.com/eXtremeGravityInstitute/LISA_Sensitivity/blob/master/LISA.py 
-    # and same location for PhenomA.py
-    #Also make sure LIGO sensitivity curves are in /vis directory
+    # Read LIGO O3 sensitivity data (https://git.ligo.org/sensitivity-curves/o3-sensitivity-curves)
+    H1 = impresources.files(data) / 'O3-H1-C01_CLEAN_SUB60HZ-1262197260.0_sensitivity_strain_asd.txt'
+    L1 = impresources.files(data) / 'O3-L1-C01_CLEAN_SUB60HZ-1262141640.0_sensitivity_strain_asd.txt'
 
-    #--------------Here we're pulling the LIGO data from the released files and setting them to H1 and L1 values-------------
-    # READ LIGO O3 Sensitivity data (from https://git.ligo.org/sensitivity-curves/o3-sensitivity-curves)
-    H1 = impresources.files(data) / \
-        'O3-H1-C01_CLEAN_SUB60HZ-1262197260.0_sensitivity_strain_asd.txt'  
-    L1 = impresources.files(data) / \
-        'O3-L1-C01_CLEAN_SUB60HZ-1262141640.0_sensitivity_strain_asd.txt'
     # Adjust sep according to your delimiter (e.g., '\t' for tab-delimited files)
     dfh1 = pd.read_csv(H1, sep='\t', header=None)  # Use header=None if the file doesn't contain header row
     dfl1 = pd.read_csv(L1, sep='\t', header=None)
@@ -240,73 +569,127 @@ def main():
     f_H1 = dfh1[0]
     h_H1 = dfh1[1]
 
-    #H - hanford 
-    #L - Ligvston
+    # H - hanford
+    # L - Ligvston
 
-    # create LISA object
-    lisa = li.LISA() 
+    # Using https://github.com/eXtremeGravityInstitute/LISA_Sensitivity/blob/master/LISA.py
+    # Create LISA object
+    lisa = li.LISA()
 
-    # Plot LISA's sensitivity curve
-    #-------------- f is the frequency (x-axis) being created -------------
-    #-------------- Sn is the sensitivity curve of LISA -------------
-    f  = np.logspace(np.log10(1.0e-5), np.log10(1.0e0), 1000)
-    Sn = lisa.Sn(f)
+    #   lisa_freq is the frequency (x-axis) being created
+    #   lisa_sn is the sensitivity curve of LISA
+    lisa_freq = np.logspace(np.log10(1.0e-5), np.log10(1.0e0), 1000)
+    lisa_sn = lisa.Sn(lisa_freq)
 
+    # Create figure and ax
+    fig, svf_ax = plt.subplots(1, figsize=(plotting.set_size(figsize)[0], 2.9))
 
-    fig, ax = plt.subplots(1, figsize=(8,6))
-    #plt.tight_layout()
+    svf_ax.set_xlabel(r'f [Hz]')  # , fontsize=20, labelpad=10)
+    svf_ax.set_ylabel(r'${\rm h}_{\rm char}$')  # , fontsize=20, labelpad=10)
+    # ax.tick_params(axis='both', which='major', labelsize=20)
 
-    ax.set_xlabel(r'f [Hz]', fontsize=20, labelpad=10)
-    ax.set_ylabel(r'${\rm h}_{\rm char}$', fontsize=20, labelpad=10)
-    ax.tick_params(axis='both', which='major', labelsize=20)
+    svf_ax.set_xlim(0.5e-7, 1.0e+4)
+    svf_ax.set_ylim(1.0e-28, 1.0e-15)
 
-    ax.set_xlim(1.0e-7, 1.0e+4)
-    ax.set_ylim(1.0e-24, 1.0e-15)
-
-    #----------Finding the rows in which EMRIs signals are either identical or zeroes and removing them----------
-    identical_rows_emris = np.where( emris[:,5] == emris[:,6])
-    zero_rows_emris = np.where(emris[:,6] == 0)    
-    emris = np.delete(emris,identical_rows_emris,0)
-    #emris = np.delete(emris,zero_rows_emris,0)
+    # ----------Finding the rows in which EMRIs signals are either identical or zeroes and removing them----------
+    identical_rows_emris = np.where(emris[:, 5] == emris[:, 6])
+    zero_rows_emris = np.where(emris[:, 6] == 0)
+    emris = np.delete(emris, identical_rows_emris, 0)
+    # emris = np.delete(emris,zero_rows_emris,0)
     emris[~np.isfinite(emris)] = 1.e-40
 
-    #----------Finding the rows in which LVKs signals are either identical or zeroes and removing them----------
-    identical_rows_lvk = np.where(lvk[:,5] == lvk[:,6])
-    zero_rows_lvk = np.where(lvk[:,6] == 0)
-    lvk = np.delete(lvk,identical_rows_lvk,0)
-    #lvk = np.delete(lvk,zero_rows_lvk,0)
+    # ----------Finding the rows in which LVKs signals are either identical or zeroes and removing them----------
+    identical_rows_lvk = np.where(lvk[:, 5] == lvk[:, 6])
+    zero_rows_lvk = np.where(lvk[:, 6] == 0)
+    lvk = np.delete(lvk, identical_rows_lvk, 0)
+    # lvk = np.delete(lvk,zero_rows_lvk,0)
     lvk[~np.isfinite(lvk)] = 1.e-40
 
-    #----------Setting the values for the EMRIs and LVKs signals and inverting them----------
-    inv_freq_emris = 1/emris[:,6]
-    inv_freq_lvk = 1/lvk[:,6]
-    #ma_freq_emris = np.ma.where(freq_emris == 0)
-    #ma_freq_lvk = np.ma.where(freq_lvk == 0)
-    #indices_where_zeros_emris = np.where(freq_emris = 0.)
-    #freq_emris = freq_emris[freq_emris !=0]
-    #freq_lvk = freq_lvk[freq_lvk !=0]
+    lvk_g1_mask, lvk_g2_mask, lvk_gX_mask = make_gen_masks(lvk, 7, 8)
 
-    #inv_freq_emris = 1.0/ma_freq_emris
-    #inv_freq_lvk = 1.0/ma_freq_lvk
+    lvk_g1 = lvk[lvk_g1_mask]
+    lvk_g2 = lvk[lvk_g2_mask]
+    lvk_gX = lvk[lvk_gX_mask]
+
+    # ----------Setting the values for the EMRIs and LVKs signals and inverting them----------
+    inv_freq_emris = 1 / emris[:, 6]
+    # inv_freq_lvk = 1/lvk[:,6]
+    # ma_freq_emris = np.ma.where(freq_emris == 0)
+    # ma_freq_lvk = np.ma.where(freq_lvk == 0)
+    # indices_where_zeros_emris = np.where(freq_emris = 0.)
+    # freq_emris = freq_emris[freq_emris !=0]
+    # freq_lvk = freq_lvk[freq_lvk !=0]
+
+    # inv_freq_emris = 1.0/ma_freq_emris
+    # inv_freq_lvk = 1.0/ma_freq_lvk
     # timestep =1.e4yr
     timestep = 1.e4
-    strain_per_freq_emris = emris[:,5]*inv_freq_emris/timestep
-    strain_per_freq_lvk = lvk[:,5]*inv_freq_lvk/timestep
-    ax.loglog(f, np.sqrt(f*Sn),label = 'LISA Sensitivity') # plot the characteristic strain
-    ax.loglog(f_H1, h_H1,label = 'LIGO O3, H1 Sensitivity') # plot the characteristic strain
-    ax.scatter(emris[:,6],strain_per_freq_emris)
-    ax.scatter(lvk[:,6],strain_per_freq_lvk)
-    ax.set_yscale('log')
-    ax.set_xscale('log')
-    #ax.loglog(f_L1, h_L1,label = 'LIGO O3, L1 Sensitivity') # plot the characteristic strain
+    strain_per_freq_emris = emris[:, 5] * inv_freq_emris / timestep
 
-    #ax.loglog(f_gw,h,color ='black', label='GW150914')
+    strain_per_freq_lvk_g1 = lvk_g1[:, 5] * (1 / lvk_g1[:, 6]) / timestep
+    strain_per_freq_lvk_g2 = lvk_g2[:, 5] * (1 / lvk_g2[:, 6]) / timestep
+    strain_per_freq_lvk_gX = lvk_gX[:, 5] * (1 / lvk_gX[:, 6]) / timestep
 
-    ax.legend()
-    ax.set_xlabel(r'f [Hz]', fontsize=20, labelpad=10)
-    ax.set_ylabel(r'h', fontsize=20, labelpad=10)
-    plt.savefig('./gw_strain.png', format='png')
+    # plot the characteristic detector strains
+    svf_ax.loglog(lisa_freq, np.sqrt(lisa_freq * lisa_sn),
+              label='LISA Sensitivity',
+              #   color='darkred',
+              zorder=0)
+
+    svf_ax.loglog(f_H1, h_H1,
+              label='LIGO O3, H1 Sensitivity',
+              #   color='darkblue',
+              zorder=0)
+
+    svf_ax.scatter(emris[:, 6], strain_per_freq_emris,
+               s=0.4 * styles.markersize_gen1,
+               alpha=styles.markeralpha_gen1
+               )
+
+    svf_ax.scatter(lvk_g1[:, 6], strain_per_freq_lvk_g1,
+                   s=0.4 * styles.markersize_gen1,
+                   marker=styles.marker_gen1,
+                   edgecolor=styles.color_gen1,
+                   facecolor='none',
+                   alpha=styles.markeralpha_gen1,
+                   label='1g-1g'
+                   )
+
+    svf_ax.scatter(lvk_g2[:, 6], strain_per_freq_lvk_g2,
+                   s=0.4 * styles.markersize_gen2,
+                   marker=styles.marker_gen2,
+                   edgecolor=styles.color_gen2,
+                   facecolor='none',
+                   alpha=styles.markeralpha_gen2,
+                   label='2g-1g or 2g-2g'
+                   )
+
+    svf_ax.scatter(lvk_gX[:, 6], strain_per_freq_lvk_gX,
+                   s=0.4 * styles.markersize_genX,
+                   marker=styles.marker_genX,
+                   edgecolor=styles.color_genX,
+                   facecolor='none',
+                   alpha=styles.markeralpha_genX,
+                   label=r'$\geq$3g-Ng'
+                   )
+
+    svf_ax.set_yscale('log')
+    svf_ax.set_xscale('log')
+
+    # ax.loglog(f_L1, h_L1,label = 'LIGO O3, L1 Sensitivity') # plot the characteristic strain
+    # ax.loglog(f_gw,h,color ='black', label='GW150914')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=7, loc="upper right")
+    elif figsize == 'apj_page':
+        plt.legend(loc="upper right")
+
+    svf_ax.set_xlabel(r'$\nu_{\rm GW}$ [Hz]')  # , fontsize=20, labelpad=10)
+    svf_ax.set_ylabel(r'$h_{\rm char}/\nu_{\rm GW}$')  # , fontsize=20, labelpad=10)
+
+    plt.savefig(opts.plots_directory + './gw_strain.png', format='png')
     plt.close()
+
 
 ######## Execution ########
 if __name__ == "__main__":

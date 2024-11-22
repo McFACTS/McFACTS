@@ -1,7 +1,5 @@
 """
-constants.py
-
-This module defines a collection of global variables used throughout the our code.
+Defines a collection of global variables used throughout McFACTS.
 
 
 Global Variables:

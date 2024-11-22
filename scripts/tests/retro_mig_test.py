@@ -1,8 +1,8 @@
 import numpy as np
 import scipy
 
-from mcfacts.physics.migration.type1 import retro_mig
-from mcfacts.physics.eccentricity import retro_ecc
+import mcfacts.physics.disk_capture
+from misc import retro_mig, retro_ecc
 from mcfacts.physics.disk_capture import capture_inc_damp
 
 if __name__ == "__main__":
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     print("retro_ecc")
     print(thing2)
 
-    thing3 = capture_inc_damp.orb_inc_damping(
+    thing3 = mcfacts.physics.disk_capture.orb_inc_damping(
         mass_smbh,
         retrograde_bh_locations,
         retrograde_bh_masses,

@@ -6,6 +6,8 @@ Inifile
         'sirko_goodman' or 'thompson_etal'
     "flag_use_pagn"                 : bool
         Use pAGN to generate disk model?
+    "flag_add_stars"                : bool
+        Add stars to the disk
     "smbh_mass"                     : float
         Mass of the supermassive black hole (solMass)
     "disk_radius_trap"              : float
@@ -95,9 +97,6 @@ Inifile
         How many timesteps are you taking (timestep*number_of_timesteps = disk_lifetime)
     "galaxy_num"                    : int
         Number of galaxies of code run (e.g. 1 for testing, 30 for a quick run)
-    "fraction_retro"                : float
-        Fraction of BBH that form retrograde to test (q,X_eff) relation.
-        Default retro=0.1. Possibly overwritten by initial retro population
     "fraction_bin_retro"            : float
         Fraction of BBH that form retrograde to test (q,X_eff) relation. Default retro=0.1
     "flag_thermal_feedback"         : int
@@ -142,6 +141,7 @@ from astropy import constants as ct
 INPUT_TYPES = {
     "disk_model_name"               : str,
     "flag_use_pagn"                 : bool,
+    "flag_add_stars"                : bool,
     "smbh_mass"                     : float,
     "disk_radius_trap"              : float,
     "disk_radius_outer"             : float,
@@ -179,7 +179,6 @@ INPUT_TYPES = {
     "timestep_duration_yr"          : float,
     "timestep_num"                  : int,
     "galaxy_num"                    : int,
-    "fraction_retro"                : float,
     "fraction_bin_retro"            : float,
     "flag_thermal_feedback"         : int,
     "flag_orb_ecc_damping"          : int,
@@ -191,6 +190,7 @@ INPUT_TYPES = {
     "inner_disk_outer_radius"       : float,
     "disk_inner_stable_circ_orb"    : float,
     "mass_pile_up"                  : float,
+    "save_snapshots"                : bool,
 }
 
 

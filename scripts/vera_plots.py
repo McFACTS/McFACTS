@@ -11,8 +11,21 @@ import sys
 ## Local imports ##
 import mcfacts.vis.LISA as li
 import mcfacts.vis.PhenomA as pa
-from mcfacts.vis import data
+from mcfacts.vis import data, plotting, styles
 from mcfacts.outputs.mergerfile import MERGER_FIELD_NAMES
+
+## Set plot style ##
+plt.style.use('bmh')
+plt.style.use("mcfacts.vis.mcfacts_figures")
+size = "apj_col"
+
+## Dictionary of LaTeX style axes labels
+label_dict = {"chi_eff" : r"$\chi_\mathrm{eff}$",
+              "chi_p" : r"$\chi_\mathrm{p}$",
+              "final_mass": r"$M_\mathrm{final}$ [$M_\odot$]",
+              "gen1" : r"Generation 1",
+              "gen2" : r"Generation 2",
+              "time_merge": r"$t_\mathrm{merge}$ [yr]"}
 
 ######## Arg ########
 def arg():
@@ -39,6 +52,10 @@ def arg():
     assert isdir(opts.wkdir)
     return opts
 
+######## Coordinates ########
+def mc_of_m1_m2(m1,m2):
+    return ((m1*m2)**0.6) * ((m1+m2)**-0.2)
+
 ######## Load data ########
 def load_mergers_txt(fname, verbose=False):
     """Load output_mergers_population.dat
@@ -63,6 +80,8 @@ def load_mergers_txt(fname, verbose=False):
     print("Removing %d nans out of %d sample mergers"%(np.sum(~mask), mask.size), file=sys.stderr)
     for item in merger_dict:
         merger_dict[item] = merger_dict[item][mask]
+    # Add chirp mass
+    merger_dict["mc"] = mc_of_m1_m2(merger_dict["mass_1"], merger_dict["mass_2"])
 
     ## Print things
     # Loop the merger dict
@@ -156,53 +175,56 @@ def nal_cdf(fname_nal,n=1000):
     
 
 ######## Plots ########
-def plot_cdf(merger_dict, label, fname):
+def plot_cdf(merger_dict, field, label, fname):
     """The simplest plot I could imagine to plot the cdf for a field
 
     Parameters
     ----------
     merger_dict : dict
         The dictionary with all of the sample values
-    label : str
+    field : str
         The key to the dictionary for the field we want to use
+    label : str
+        The plot label
     fname : str
         The path to where we want to save the plot
     """
-    x, y = simple_cdf(merger_dict[label])
+    x, y = simple_cdf(merger_dict[field])
     from matplotlib import pyplot as plt
-    plt.style.use('bmh')
-    fig, ax = plt.subplots()
-    ax.plot(x, y)
+    fig, ax = plt.subplots(figsize=plotting.set_size(size))
+    ax.plot(x, y, color=styles.color_line1)
     ax.set_xlabel(label)
     ax.set_ylabel("CDF")
     plt.savefig(fname)
     plt.close()
 
 
-def plot_nal_cdf(merger_dict, label, fname, nal_dict):
+def plot_nal_cdf(merger_dict, field, label, fname, nal_dict):
     """A simple plot for NAL cdfs
 
     Parameters
     ----------
     merger_dict : dict
         The dictionary with all of the sample values
-    label : str
+    field : str
         The key to the dictionary for the field we want to use
+    label : str
+        The plot label
     fname : str
         The path to where we want to save the plot
     nal_dict : dict
         The dictionary we are using for NAL data
     """
-    x, y = simple_cdf(merger_dict[label])
+    x, y = simple_cdf(merger_dict[field])
     from matplotlib import pyplot as plt
-    plt.style.use('bmh')
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=plotting.set_size(size))
     fig.suptitle(label)
-    ax.plot(x, y, label="mcfacts")
-    ax.plot(nal_dict[label], nal_dict["%s_cdf"%(label)], label="GWTC-2")
+    ax.plot(x, y, label="mcfacts",color=styles.color_line1)
+    ax.plot(nal_dict[field], nal_dict["%s_cdf"%(field)], label="GWTC-2")
     ax.set_xlabel(label)
     ax.set_ylabel("CDF")
     fig.legend()
+    fig.tight_layout()
     plt.savefig(fname)
     plt.close()
 
@@ -214,19 +236,19 @@ def main():
 
     #### Cdf plots ####
     for _item in opts.cdf_fields:
-        assert _item in merger_dict, "%s not found in %s"%(_item, str(opts.cdf))
+        assert _item in merger_dict, "%s not found in %s"%(_item, merger_dict.keys())
         fname_item = join(opts.wkdir, "mergers_cdf_%s.png"%(_item))
-        plot_cdf(merger_dict, _item, fname_item)
+        plot_cdf(merger_dict, _item, label_dict[_item], fname_item)
 
     #### NAL plots ####
     if not opts.fname_nal is None:
         nal_dict = nal_cdf(opts.fname_nal)
         _item = "chi_eff"
         fname_item = join(opts.wkdir, "mergers_nal_cdf_%s.png"%(_item))
-        plot_nal_cdf(merger_dict, _item, fname_item, nal_dict)
-        _item = "M"
+        plot_nal_cdf(merger_dict, _item, label_dict[_item] ,fname_item, nal_dict)
+        _item = "mc"
         fname_item = join(opts.wkdir, "mergers_nal_cdf_%s.png"%(_item))
-        plot_nal_cdf(merger_dict, _item, fname_item, nal_dict)
+        plot_nal_cdf(merger_dict, _item, label_dict[_item], fname_item, nal_dict)
     return
 
 ######## Execution ########

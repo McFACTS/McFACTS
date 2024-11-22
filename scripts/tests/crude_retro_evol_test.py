@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 
+import mcfacts.physics.disk_capture
 from mcfacts.physics.disk_capture import crude_retro_evol
 #from mcfacts.physics.migration.type1 import retro_mig
 #from mcfacts.physics.eccentricity import retro_ecc
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     retro_arg_periapse = 0.0 * np.pi * np.ones(7)
     timestep = 1e4
 
-    thing1, thing2, thing3 = crude_retro_evol.crude_retro_bh(
+    thing1, thing2, thing3 = mcfacts.physics.disk_capture.retro_bh_orb_disk_evolve(
         mass_smbh,
         retrograde_bh_masses,
         retrograde_bh_locations,
