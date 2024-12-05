@@ -11,13 +11,22 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     ----------
     smbh_mass : float
         supermassive black hole mass in units of solar masses
-        default : 1.e8
+            default : 1.e8
+    flag_use_pagn : bool
+        Switch pAGN program on or off
+        Gangardt, Daria et al. 2024      
+            default : True  
     disk_model_name : string
-        prefix to filenames for input disk model
         McFACTS comes with the following example options for disk models:
-        flat: constant surface density & aspect ratio (unphysical)
         sirko_goodman: from Sirko & Goodman 2003
         thompson_etal: from Thompson, Quataert & Murray 2005
+
+        If user sets pAGN to True, only sirko_goodman and thompson_etal are available to use   
+            this variable sets the model used by pAGN Sirko & Goodman 2003 or Thompson, Quataert, and Murray 2005
+        If user sets pAGN to False, tabulated models will be used. Options included are sirko_goodman and thompson_etal
+            which will use the tablulated models within src/mcfacts/inputs/data/
+            However, the intended use is for users that wish to input their own tabulated models 
+        
         If user has a disk model, it must specify the disk surface density
            as a function of radius in a file called name_surface_density.txt
            where the surface density is in units of kg/m^2 and the radius is in
@@ -27,6 +36,7 @@ star cluster variables second, and assorted other choices (time resolution etc.)
            radius is the outer edge.
            User must also supply the disk aspect ratio as a function of radius
            in a file called name_aspect_ratio.txt
+        User must specify name_opacity.txt as a function of radius
            Both files must have surface density & aspect ratio specified at the
                SAME set of radii.
            Here name = disk_model_name
@@ -68,7 +78,7 @@ star cluster variables second, and assorted other choices (time resolution etc.)
         E.g. Bahcall-Wolf is n \propto r^-7/4 (& in Generozov+18). So e.g. 1.75 is the index here not -1.75.
             default: 1.75
     nsc_density_index_outer: float
-        Index fo radial density profile of Nuclear Star Cluster at r>r_nsc_crit. Implicit assumed negative.
+        Index for radial density profile of Nuclear Star Cluster at r>r_nsc_crit. Implicit assumed negative.
         E.g. Generozov+18 have n \propto r^-2.5, Peebles has r^-2.25. So e.g. 2.5 is the index here not -2.5
             default: 2.5
     disk_aspect_ratio_avg : float
@@ -119,7 +129,7 @@ star cluster variables second, and assorted other choices (time resolution etc.)
         choosing default settings gives 1Myr lifetime
         default : 100
 
-    iteration_num : float
+    galaxy_num : int
         Number of iterations of code. 
         Choosing default settings gives 1 run. Quick test for n_iterations = 30.
         default : 1            
@@ -144,7 +154,7 @@ star cluster variables second, and assorted other choices (time resolution etc.)
         Outer radius at which capture can occur in units of R_g=GM_SMBH/c^2. From Fabj+20, ~2000R_g is reasonable.
         default : 2.e3
     disk_bh_pro_orb_ecc_crit : int
-        Value of critical eccentricity below which it is assumed circularized in its orbit & can migrate/ form binaries.
+        Value of critical eccentricity below which it is assumed circularized in its orbit & can migrate/form binaries.
         default : 0.01
     flag_dynamic_enc : int
         Switch to allow for dynamical interactions. 
@@ -160,6 +170,41 @@ star cluster variables second, and assorted other choices (time resolution etc.)
         The eccentric BH decreases semi-major axis a_ecc to (1-de)a_ecc 
         and decreases eccentricity e to e-de.
         default : 0.1
+    mass_pile_up : float
+        Mass pile up term <nsc_bh_inf_max_mass> Units of M_sun. Default is user set 
+        Used to make a uniform pile up in mass between [mass_pile_up, nsc_bh_inf_max_mass] for masses selected
+        from nsc_bh_imf_powerlaw_index beyond nsc_bh_inf_max_mass. E.g default [35,40] pile up of masses.
+        default : 35.0
+    inner_disk_outer_radius : float
+        Outer radius of the inner disk in units of gravitational radii (R_g=GM_SMBH/c^2).
+        default : 50.0
+    disk_radius_max_pc : float
+        Maximum disk size in units of parsecs (0. for off)
+        default : -0.25
+    disk_inner_stable_circ_orb : float
+        Innermost stable circular orbit around SMBH in units of gravitational radii (R_g=GM_SMBH/c^2).
+        deafult : 6.0
+    nsc_spheroid_normalization : float
+        Normalization factor determines the departures from sphericity of the initial distribution of perturbers
+        default : 1.0
+    save_snapshots : bool
+        Saving the snapshots of each object being per time step. Deafult is 0 [off] 
+        default : 0
+
+    # =========================== DONT TOUCH STARS YET SINCE NOT ADDED ===========================
+    disk_star_torque_condition
+    disk_star_orb_ecc_max_init
+    disk_star_eddington_ratio
+    disk_star_mass_min_init
+    disk_star_mass_max_init
+    nsc_star_metallicity_x_init
+    nsc_star_metallicity_y_init
+    nsc_star_metallicity_z_init
+    nsc_star_spin_dist_mu
+    nsc_star_spin_dist_sigma
+    nsc_imf_star_mass_mode
+    nsc_imf_star_powerlaw_index
+    
 
 
 Output file : output_mergers.dat
@@ -168,90 +213,256 @@ First row is # short parameter listing
 
     Parameters
     ----------
-    CM : float
-        distance of the center of mass of the binary from the SMBH in r_g at time of merger
-    M : float
+    galaxy : float
+        the galaxy that is currently being run
+    bin_orb_a : float
+        semi major axis of the binary orbiters
+    mass_final : float
         mass of remnant post-merger (mass loss accounted for via Tichy & Maronetti 08)
     chi_eff : float
         chi_effective for the merger
-    a_tot : float
+    spin_final : float
         dimensionless spin magnitude of remnant
-    spin_angle : float
+    spin_angle_final : float
         spin angle of remnant (wrt disk angular momentum) in radians
-    m1 : float
+    mass_1 : float
         mass of progenitor A in solar masses at time of merger (should make this more massive one)
-    m2 : float
+    mass_2 : float
         mass of progenitor B in solar masses at time of merger (should make this less massive one)
-    a1 : float
+    spin_1 : float
         dimensionless spin magnitude of m1 at time of merger
-    a2 : float
+    spin_2 : float
         dimensionless spin magnitude of m2 at time of merger
-    theta1 : float
+    spin_angle_1 : float
         spin angle of m1 (wrt disk angular momentum) in radians
-    theta2 : float
+    spin_angle_2 : float
         spin angle of m2 (wrt disk angular momentum) in radians
-    gen1 : int
+    gen_1 : int
         generation of m1 (before merger) (1=natal BH that has never been in a prior merger)
-    gen2 : int
+    gen_2 : int
         generation of m2 (before merger)
-    t_merge : float
+    time_merged : float
         time of merger after onset of AGN in units of years (disk assumed to appear magically at t=0)
 
 
-Output file : output_bh_single_ts.dat
-5 column file listing all single orbiters appearing at beginning? of timestep ts in a single run of test1.py
-ts = [0:N] where N = number_of_timesteps from input file
-First row is # short parameter listing
-    r_bh : float
-        distance of object from SMBH in units of r_g at start of timestep ts
-    m : float
-        mass of object in solar masses at start of timestep ts
-    a : float
-        dimensionless spin magnitude of object at start of timestep ts
-    theta : float
-        spin angle of object (wrt disk angular momentum) in radians
-    gen : int
-        generation of object (1=natal BH that has never been in a prior merger)
-
 Output file : output_bh_binary_ts.dat
-16 column file listing all binaries appearing at beginning? of timestep ts in a single run of test1.py
+22 column file listing all binaries appearing at beginning? of timestep ts in a single run of test1.py
 ts = [0:N] where N = number_of_timesteps from input file
 First row is # short parameter listing
-    R1 : float
-        distance of progenitor A from SMBH in units of r_g_SMBH at start of timestep ts
-    R2 : float
-        distance of progenitor B from SMBH in units of r_g_SMBH at start of timestep ts
-    M1 : float
-        mass of progenitor A in solar masses at start of timestep ts
-    M2 : float
-        mass of progenitor B in solar masses at start of timestep ts
-    a1 : float
+    orb_a_1 : float
+        distance of progenitor A from SMBH in units of graviational radii (R_g=GM_SMBH/c^2) at start of timestep ts
+    orb_a_2 : float
+        distance of progenitor B from SMBH in units of graviational radii (R_g=GM_SMBH/c^2) at start of timestep ts
+    mass_1 : float
+        mass of progenitor A in units of solar masses at start of timestep ts
+    mass_2 : float
+        mass of progenitor B in units of solar masses at start of timestep ts
+    spin_1 : float
         dimensionless spin magnitude of M1 at start of timestep ts
-    a2 : float
+    spin_2 : float
         dimensionless spin magnitude of M2 at start of timestep ts
-    theta1 : float
+    spin_angle_1 : float
         spin angle of M1 (wrt disk angular momentum) in radians
-    theta2 : float
+    spin_angle_2 : float
         spin angle of M2 (wrt disk angular momentum) in radians
-    sep : float
-        separation of M1 and M2 in units of r_g_SMBH at start of timestep ts
-    com : float
-        distance of the center of mass of the binary from SMBH in units of r_g_SMBH at start of timestep ts
-    t_gw : float
+    bin_sep : float
+        separation of M1 and M2 in units of graviational radii (R_g=GM_SMBH/c^2) at start of timestep ts
+    bin_orb_a : float
+        distance of the center of mass of the binary from SMBH in units of graviational radii (R_g=GM_SMBH/c^2) at start of timestep ts
+    time_to_merger_gw : float
         time to binary merger due to purely GW-driven evolution in units of seconds at start of timestep ts (Peters formula, put it in here?)
-    merger_flag : int
+    flag_merging : int
         flag to indicate this binary will merge in less than duration ts of timestep given the Baruteau time to merger is less than ts (-2 will merge, 0 will not merge)
-    t_mgr : float
+    time_merged : float
         time of merger in years since t=0 (start of AGN phase)
-    mystery variable : FuckKnows
-        unlabelled... seriously, this is never actually set anywhere... placeholder for eccentricity?
+    bin_ecc : float
+        eccentricity of the binary system with respect to their center of mass
     gen_1 : int
         generation of M1 (1=natal BH that has never been in a prior merger)
     gen_2 : int
         generation of M2
-    bin_ang_mom : int
+    bin_orb_ang_mom : int
         Orbital angular momentum of the binary direction; +1=prograde, -1=retrograde
-        This is referring to the orbital angular momentum of the binary around its
-        own center of mass.
+        This is referring to the orbital angular momentum of the binary around its own center of mass.
         Note binaries that form with bin_ang_mom = -1 will be flipped to +1 if retro = 0
         switch is set in your input file.
+    bin_orb_inc : float
+        inclination of the binary system with respect to the SMBH in units of radians
+    bin_orb_ecc : float 
+        eccentricity of the binary system with respect to the SMBH
+    gw_freq : float
+        expected frequency of the merger in units of Hertz
+    gw_strain : float
+        expected characteristic strain of the merger 
+    id_num : float
+        Identification number that is assigned to each object
+
+
+Output file : output_bh_single_pro_ts.dat
+13 column file listing all single orbiters appearing at beginning? of timestep ts in a single run of test1.py
+ts = [0:N] where N = number_of_timesteps from input file
+First row is # short parameter listing
+    id_num : float
+        Identification number that is assigned to each object
+    orb_a : float
+        semi major axis of the orbiting system
+    mass : float
+        mass of object in solar masses at start of timestep ts
+    spin : float
+        dimensionless spin magnitude of the object
+    spin_angle : float
+        spin angle of object (wrt disk angular momentum) in radians
+    orb_inc : float
+        orbital inclination of the object with respect to the plane of the disk
+    orb_ecc : float
+        orbital eccentricity of the object
+    orb_arg_periapse : float
+        orbital periapsis of the object 
+    orb_ang_mom : float
+        orbital angular momentum of the object 
+    gen : int
+        generation of object (1=natal BH that has never been in a prior merger)
+    galaxy : int
+        current galaxy number being run
+    time_passed : float
+        time step in which the object is added into the disk
+    gw_freq : float
+        None
+    gw_strain : float
+        None
+    
+
+Output file : output_bh_single_retro_ts.dat
+13 column file listing all single orbiters appearing at beginning? of timestep ts in a single run of test1.py
+ts = [0:N] where N = number_of_timesteps from input file
+First row is # short parameter listing
+    id_num : float
+        Identification number that is assigned to each object
+    orb_a : float
+        semi major axis 
+    mass : float
+        mass of object in solar masses at start of timestep ts
+    spin : float
+        dimensionless spin magnitude of the object
+    spin_angle : float
+        spin angle of object (wrt disk angular momentum) in radians
+    orb_inc : float
+        orbital inclination of the object with respect to the plane of the disk
+    orb_ecc : float
+        orbital eccentricity of the object
+    orb_arg_periapse : float
+        orbital periapsis of the object 
+    orb_ang_mom : float
+        orbital angular momentum of the object 
+    gen : int
+        generation of object (1=natal BH that has never been in a prior merger)
+    galaxy : int
+        current galaxy number being run
+    time_passed : float
+        time step in which the object is added into the disk
+    gw_freq : float
+        none
+    gw_strain : float
+        none
+
+
+Output file : output_mergers_emris.dat
+8 column file listing all mergers between EMRI orbiters of timestep ts in a single run of test1.py
+ts = [0:N] where N = number_of_timesteps from input file
+First row is # short parameter listing
+    galaxy : float
+        current galaxy number being run
+    time_passed : float
+        time step in which the object is added into the disk in units of yrs
+    orb_a : float
+        semi major axis of the orbiting system
+    mass : float
+        mass of object in solar masses at start of timestep ts
+    orb_ecc : float
+        orbital eccentricity of the object
+    gw_freq : float
+        expected frequency of the merger in units of Hertz
+    gw_strain : float
+        expected characteristic strain of the merger
+    id_num : float
+        Identification number that is assigned to each object
+
+
+Output file : output_mergers_lvk.dat
+9 column file listing all mergers detected by LVK of timestep ts in a single run of test1.py
+ts = [0:N] where N = number_of_timesteps from input file
+First row is # short parameter listing
+    galaxy : float
+        current galaxy number being run
+    time_merged : float
+        timestep in which the objects mergred and are detected by LVK
+    bin_sep : float
+        separation of M1 and M2 in units of graviational radii (R_g=GM_SMBH/c^2) at start of timestep ts
+    mass_total : float
+        remant mass of the object in units of solar masses
+    bin_ecc : float
+        eccentricity of the binary system with respect to their center of mass
+    gw_freq : float
+        expected frequency of the merger in units of Hertz
+    gw_strain : float
+        expected characteristic strain of the merger
+    gen_1 : int
+        generation of M1 (1=natal BH that has never been in a prior merger)
+    gen_2 : int
+        generation of M2
+
+
+Output file : output_mergers_population.dat
+15 column file listing all mergers in the disk population of timestep ts in a single run of test1.py
+ts = [0:N] where N = number_of_timesteps from input file
+First row is # short parameter listing
+    galaxy : float
+        current galaxy number being run
+    mass_final : float
+        mass of remnant post-merger (mass loss accounted for via Tichy & Maronetti 08)
+    chi_eff : float
+        chi_effective for the merger
+    spin_final : float
+        dimensionless spin magnitude of remnant
+    spin_angle_final : float
+        spin angle of remnant (wrt disk angular momentum) in radians
+    mass_1 : float
+        mass of progenitor A in solar masses at time of merger (should make this more massive one)
+    mass_2 : float
+        mass of progenitor B in solar masses at time of merger (should make this less massive one)
+    spin_1 : float
+        dimensionless spin magnitude of m1 at time of merger
+    spin_2 : float
+        dimensionless spin magnitude of m2 at time of merger
+    spin_angle_1 : float
+        spin angle of m1 (wrt disk angular momentum) in radians
+    spin_angle_2 : float
+        spin angle of m2 (wrt disk angular momentum) in radians
+    gen_1 : int
+        generation of M1 (1=natal BH that has never been in a prior merger)
+    gen_2 : int
+        generation of M2
+    time_merged : float
+        timestep in which the objects mergred and are detected by LVK 
+    chi_p : float
+        precessing spin component of the binary prior to merger
+    
+
+Output file : output_mergers_surviors.dat
+15 column file listing all mergers in the disk population of timestep ts in a single run of test1.py
+ts = [0:N] where N = number_of_timesteps from input file
+First row is # short parameter listing
+    galaxy : float
+        current galaxy number being run
+    orb_a : float
+        semi major axis of the orbiting system
+    mass : float
+        mass of object in solar masses at start of timestep ts
+    spin : float
+        dimensionless spin magnitude of the object
+    spin_angle : float
+        spin angle of object (wrt disk angular momentum) in radians
+    gen : int
+        generation of object (1=natal BH that has never been in a prior merger)
+    id_num : float
+        Identification number that is assigned to each object

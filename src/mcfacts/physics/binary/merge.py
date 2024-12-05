@@ -3,16 +3,18 @@ Module for calculating the final variables of a merging binary.
 """
 import numpy as np
 from astropy import units as u
+from astropy import constants as const
+from mcfacts.mcfacts_random_state import rng
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
 
 def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_ang_mom):
-    """Calculates the effective spin :math:`\chi_{\rm eff}` associated with a merger.
+    """Calculates the effective spin :math:`\\chi_{\rm eff}` associated with a merger.
 
     The measured effective spin of a merger is calculated as
 
-    .. math:: \chi_{\rm eff}=\frac{m_1*\chi_1*\cos(\theta_1) + m_2*\chi_2*\cos(\theta_2)}/{m_{\rm bin}}
+    .. math:: \\chi_{\rm eff}=\frac{m_1*\\chi_1*\\cos(\theta_1) + m_2*\\chi_2*\\cos(\theta_2)}/{m_{\rm bin}}
 
     Parameters
     ----------
@@ -178,7 +180,7 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius):
 def merged_mass(masses_1, masses_2, spins_1, spins_2):
     """Calculates the final mass of a merged binary.
 
-    Using approximations from Tichy \& Maronetti (2008) where
+    Using approximations from Tichy \\& Maronetti (2008) where
     m_final=(M_1+M_2)*[1.0-0.2\nu-0.208\nu^2(a_1+a_2)]
     where nu is the symmetric mass ratio or nu=q/((1+q)^2)
 
@@ -205,7 +207,7 @@ def merged_mass(masses_1, masses_2, spins_1, spins_2):
 
     total_masses = masses_1 + masses_2
     total_spins = spins_1 + spins_2
-    nu_factors = np.power(1.0 + mass_ratios, 2)
+    nu_factors = (1.0 + mass_ratios) ** 2.0
     nu = mass_ratios / nu_factors
     nu_squared = nu * nu
 
@@ -219,7 +221,7 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2):
     """Calculates the spin magnitude of a merged binary.
 
     Only depends on M1,M2,a1,a2 and the binary ang mom around its center of mass.
-    Using approximations from Tichy \& Maronetti(2008) where
+    Using approximations from Tichy \\& Maronetti(2008) where
     :math:`a_{final}=0.686(5.04\nu-4.16\nu^2) +0.4[a_{1}/((0.632+1/q)^2)+ a_2/((0.632+q)^2)]`
     where q=m_2/m_1 and nu=q/((1+q)^2)
 
@@ -246,13 +248,40 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2):
 
     mass_ratios_inv = 1.0 / mass_ratios
 
-    nu_factors = np.power(1.0 + mass_ratios, 2)
+    nu_factors = (1.0 + mass_ratios) ** 2.0
     nu = mass_ratios / nu_factors
     nu_squared = nu * nu
 
-    spin_factors_1 = np.power(0.632 + mass_ratios_inv, 2)
-    spin_factors_2 = np.power(0.632 + mass_ratios, 2)
+    spin_factors_1 = (0.632 + mass_ratios_inv) ** 2.0
+    spin_factors_2 = (0.632 + mass_ratios) ** 2.0
 
     merged_spins = 0.686 * ((5.04 * nu) - (4.16 * nu_squared)) + (0.4 * ((spins_1 / spin_factors_1) + (spins_2 / spin_factors_2)))
 
     return (merged_spins)
+
+
+def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
+    """Calculates orbital eccentricity of a merged binary.
+
+    Parameters
+    ----------
+    bin_orbs_a : numpy.ndarray
+        Location of binary [r_{g,SMBH}] wrt to the SMBH with :obj:`float` type
+    v_kicks : numpy.ndarray
+        Kick velocity [km/s] with :obj:`float` type
+    smbh_mass : float
+        Mass [Msun] of the SMBH
+
+    Returns
+    -------
+    merged_ecc : numpy.ndarray
+        Orbital eccentricity of merged binary with :obj:`float` type
+    """
+    smbh_mass_units = smbh_mass * u.solMass
+    orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+
+    v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
+
+    merged_ecc = v_kicks/v_kep
+
+    return (merged_ecc)

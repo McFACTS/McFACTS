@@ -6,7 +6,7 @@ from mcfacts.mcfacts_random_state import rng
 def setup_disk_stars_orb_a(star_num, disk_radius_outer):
     """Generates initial single star semi-major axes
 
-    BH semi-major axes are distributed randomly uniformly through disk of radial size :math:`\mathtt{disk_outer_radius}`
+    BH semi-major axes are distributed randomly uniformly through disk of radial size :math:`\\mathtt{disk_outer_radius}`
 
     Parameters
     ----------
@@ -49,8 +49,8 @@ def setup_disk_stars_masses(star_num,
     """
 
     # Convert min and max mass to x = m ^ {-p + 1} format
-    x_min = np.power(disk_star_mass_min_init, -nsc_imf_star_powerlaw_index+1.)
-    x_max = np.power(disk_star_mass_max_init, -nsc_imf_star_powerlaw_index+1.)
+    x_min = disk_star_mass_min_init**(-nsc_imf_star_powerlaw_index+1.)
+    x_max = disk_star_mass_max_init**(-nsc_imf_star_powerlaw_index+1.)
 
     # Get array of uniform random numbers
     p_vals = rng.uniform(low=0.0, high=1.0, size=star_num)
@@ -59,7 +59,7 @@ def setup_disk_stars_masses(star_num,
     x_vals = x_min - p_vals * (x_min - x_max)
 
     # Convert back to mass
-    masses = np.power(x_vals, 1./(-nsc_imf_star_powerlaw_index+1))
+    masses = (x_vals**(1./(-nsc_imf_star_powerlaw_index+1)))
 
     return (masses)
 
@@ -77,7 +77,7 @@ def setup_disk_stars_radius(masses):
     radii : numpy.ndarray
         stellar radii
     """
-    star_radius_initial = np.power(masses, 0.8)
+    star_radius_initial = (masses**0.8)
     return (star_radius_initial)
 
 

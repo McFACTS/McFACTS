@@ -190,6 +190,7 @@ INPUT_TYPES = {
     "inner_disk_outer_radius"       : float,
     "disk_inner_stable_circ_orb"    : float,
     "mass_pile_up"                  : float,
+    "save_snapshots"                : bool,
 }
 
 

@@ -731,8 +731,8 @@ class AGNBlackHole(AGNObject):
             self.orb_ang_mom = setupdiskblackholes.setup_disk_blackholes_orb_ang_mom(bh_num)
 
             if ((gw_freq is empty_arr) and (gw_strain is empty_arr)):
-                self.gw_freq = np.full(bh_num, -1)
-                self.gw_strain = np.full(bh_num, -1)
+                self.gw_freq = np.full(bh_num, -1.5)
+                self.gw_strain =np.full(bh_num, -1.5)
 
             elif ((gw_freq is not empty_arr) and (gw_strain is not empty_arr)):
                 self.gw_freq = gw_freq
@@ -777,12 +777,12 @@ class AGNBlackHole(AGNObject):
         assert new_mass.shape == (bh_num,),"bh_num must match the number of objects"
 
         if new_gw_freq is empty_arr:
-            self.gw_freq = np.concatenate([self.gw_freq, np.full(bh_num, -1)])
+            self.gw_freq = np.concatenate([self.gw_freq, np.full(bh_num, -1.5)])
         else:
             self.gw_freq = np.concatenate([self.gw_freq, new_gw_freq])
         
         if new_gw_strain is empty_arr:
-            self.gw_strain = np.concatenate([self.gw_strain, np.full(bh_num, -1)])
+            self.gw_strain = np.concatenate([self.gw_strain, np.full(bh_num, -1.5)])
         else:
             self.gw_strain = np.concatenate([self.gw_strain, new_gw_strain])
 
@@ -1430,7 +1430,6 @@ class AGNMergedBlackHole(AGNObject):
         self.num += num_obj_merge
 
         self.check_consistency()
-
 
 
 obj_types = {0: "single black hole",

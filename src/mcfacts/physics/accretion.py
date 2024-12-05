@@ -117,17 +117,17 @@ def change_star_spin_magnitudes(disk_star_pro_spins,
     timestep_duration_yr_normalized = timestep_duration_yr/1.e4
     disk_star_torque_condition_normalized = disk_star_torque_condition/0.1
 
-    spin_iteration = (1.e-3*disk_bh_eddington_ratio_normalized*disk_star_torque_condition_normalized*timestep_duration_yr_normalized)
+    spin_iteration = ((1.e-3)*disk_bh_eddington_ratio_normalized*disk_star_torque_condition_normalized*timestep_duration_yr_normalized)
 
     disk_star_pro_spins_new = disk_star_pro_spins
-    # Singleton star with orb ecc > disk_star_pro_orbs_ecc_crit will spin down b/c accrete retrograde
-    disk_star_pro_spin_down = np.ma.masked_where(disk_star_pro_orbs_ecc <= disk_star_pro_orbs_ecc_crit, disk_star_pro_orbs_ecc)
-    # Singleton star with orb ecc < disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
-    disk_star_pro_spin_up = np.ma.masked_where(disk_star_pro_orbs_ecc > disk_star_pro_orbs_ecc_crit, disk_star_pro_orbs_ecc)
-    # Indices of singleton star with orb ecc > disk_star_pro_orbs_ecc_crit
-    disk_star_pro_indices_spin_down = np.ma.nonzero(disk_star_pro_spin_down)
-    # Indices of singleton star with orb ecc < disk_star_pro_orbs_ecc_crit
-    disk_star_pro_indices_spin_up = np.ma.nonzero(disk_star_pro_spin_up)
+
+    # Singleton star with orb_ecc > orb_ecc_crit will spin down bc accrete retrograde
+    disk_star_pro_indices_spin_down = np.asarray(disk_star_pro_orbs_ecc > disk_star_pro_orbs_ecc_crit).nonzero()[0]
+    # Singleton star with orb ecc <= disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
+    disk_star_pro_indices_spin_up = np.asarray(disk_star_pro_orbs_ecc <= disk_star_pro_orbs_ecc_crit).nonzero()[0]
+
+
+
     # disk_star_pro_spins_new[prograde_orb_ang_mom_indices]=disk_star_pro_spins_new[prograde_orb_ang_mom_indices]+(4.4e-3*disk_bh_eddington_ratio_normalized*disk_star_torque_condition_normalized*timestep_duration_yr_normalized)
     disk_star_pro_spins_new[disk_star_pro_indices_spin_up] = disk_star_pro_spins[disk_star_pro_indices_spin_up] + spin_iteration
     # Spin down stars with orb ecc > disk_star_pro_orbs_ecc_crit
@@ -199,14 +199,12 @@ def change_star_spin_angles(prograde_stars_spin_angles,
 
     # Assume same angles as before to start
     disk_star_spin_angles_new = prograde_stars_spin_angles
-    # Singleton star with orb ecc > disk_star_pro_orbs_ecc_crit will spin down b/c accrete retrograde
-    disk_star_pro_spin_down = np.ma.masked_where(disk_star_pro_orbs_ecc <= disk_star_pro_orbs_ecc_crit, disk_star_pro_orbs_ecc)
-    # Singleton star with orb ecc < disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
-    disk_star_pro_spin_up = np.ma.masked_where(disk_star_pro_orbs_ecc > disk_star_pro_orbs_ecc_crit, disk_star_pro_orbs_ecc)
-    # Indices of singleton star with orb ecc > disk_star_pro_orbs_ecc_crit
-    disk_star_pro_indices_spin_down = np.ma.nonzero(disk_star_pro_spin_down)
-    # Indices of singleton star with orb ecc < disk_star_pro_orbs_ecc_crit
-    disk_star_pro_indices_spin_up = np.ma.nonzero(disk_star_pro_spin_up)
+
+    # Singleton star with orb_ecc > orb_ecc_crit will spin down bc accrete retrograde
+    disk_star_pro_indices_spin_down = np.asarray(disk_star_pro_orbs_ecc > disk_star_pro_orbs_ecc_crit).nonzero()[0]
+    # Singleton star with orb ecc <= disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
+    disk_star_pro_indices_spin_up = np.asarray(disk_star_pro_orbs_ecc <= disk_star_pro_orbs_ecc_crit).nonzero()[0]
+
 
     # Spin up stars are torqued towards zero (ie alignment with disk,
     # so decrease mag of spin angle)
@@ -269,14 +267,12 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
     spin_iteration = (1.e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
 
     disk_bh_pro_spins_new = disk_bh_pro_spins
-    # Singleton BH with orb ecc > disk_bh_pro_orbs_ecc_crit will spin down b/c accrete retrograde
-    prograde_bh_spin_down = np.ma.masked_where(disk_bh_pro_orbs_ecc <= disk_bh_pro_orbs_ecc_crit, disk_bh_pro_orbs_ecc)
-    # Singleton BH with orb ecc < disk_bh_pro_orbs_ecc_crit will spin up b/c accrete prograde
-    prograde_bh_spin_up = np.ma.masked_where(disk_bh_pro_orbs_ecc > disk_bh_pro_orbs_ecc_crit, disk_bh_pro_orbs_ecc)
-    # Indices of singleton BH with orb ecc > disk_bh_pro_orbs_ecc_crit
-    indices_bh_spin_down = np.ma.nonzero(prograde_bh_spin_down)
-    # Indices of singleton BH with orb ecc < disk_bh_pro_orbs_ecc_crit
-    indices_bh_spin_up = np.ma.nonzero(prograde_bh_spin_up)
+
+    # Singleton BH with orb_ecc > orb_ecc_crit will spin down bc accrete retrograde
+    indices_bh_spin_down = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orbs_ecc_crit).nonzero()[0]
+    # Singleton BH with orb ecc < disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
+    indices_bh_spin_up = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orbs_ecc_crit).nonzero()[0]
+
     # disk_bh_pro_spins_new[prograde_orb_ang_mom_indices]=disk_bh_pro_spins_new[prograde_orb_ang_mom_indices]+(4.4e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
     disk_bh_pro_spins_new[indices_bh_spin_up] = disk_bh_pro_spins[indices_bh_spin_up] + spin_iteration
     # Spin down BH with orb ecc > disk_bh_pro_orbs_ecc_crit
@@ -341,14 +337,12 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
 
     # Assume same angles as before to start
     disk_bh_spin_angles_new = disk_bh_pro_spin_angles
-    # Singleton BH with orb ecc > disk_bh_pro_orbs_ecc_crit will spin down b/c accrete retrograde
-    prograde_bh_spin_down = np.ma.masked_where(disk_bh_pro_orbs_ecc <= disk_bh_pro_orbs_ecc_crit, disk_bh_pro_orbs_ecc)
-    # Singleton BH with orb ecc < disk_bh_pro_orbs_ecc_crit will spin up b/c accrete prograde
-    prograde_bh_spin_up = np.ma.masked_where(disk_bh_pro_orbs_ecc > disk_bh_pro_orbs_ecc_crit, disk_bh_pro_orbs_ecc)
-    # Indices of singleton BH with orb ecc > disk_bh_pro_orbs_ecc_crit
-    indices_bh_spin_down = np.ma.nonzero(prograde_bh_spin_down)
-    # Indices of singleton BH with orb ecc < disk_bh_pro_orbs_ecc_crit
-    indices_bh_spin_up = np.ma.nonzero(prograde_bh_spin_up)
+
+    # Singleton BH with orb_ecc > orb_ecc_crit will spin down bc accrete retrograde
+    indices_bh_spin_down = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orbs_ecc_crit).nonzero()[0]
+    # Singleton BH with orb ecc < disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
+    indices_bh_spin_up = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orbs_ecc_crit).nonzero()[0]
+
 
     # Spin up BH are torqued towards zero (ie alignment with disk, so decrease mag of spin angle)
     disk_bh_spin_angles_new[indices_bh_spin_up] = disk_bh_pro_spin_angles[indices_bh_spin_up] - spin_torque_iteration

@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 
 import mcfacts.physics.disk_capture
-from mcfacts.physics.disk_capture import crude_retro_evol
+#from mcfacts.physics.disk_capture import crude_retro_evol
 #from mcfacts.physics.migration.type1 import retro_mig
 #from mcfacts.physics.eccentricity import retro_ecc
 #from mcfacts.physics.disk_capture import capture_inc_damp

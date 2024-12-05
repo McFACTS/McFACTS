@@ -72,3 +72,6 @@ dependencies = [
 
 #TODO: Add description and other dynamically defined variables created in setup.py
 dynamic = [ "version" ]
+
+[tool.pytest.ini_options]
+pythonpath = "src"

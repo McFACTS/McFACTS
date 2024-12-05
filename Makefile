@@ -53,9 +53,15 @@ setup: clean version
 	source ~/.bash_profile && \
 	conda activate base && \
 	conda remove -n mcfacts-dev --all -y && \
-	conda create --name mcfacts-dev "python>=3.10.4<=3.13" pip "pytest" -c conda-forge -c defaults -y && \
+	conda create --name mcfacts-dev "python>=3.10.4,<3.13" pip "pytest" -c conda-forge -c defaults -y && \
 	conda activate mcfacts-dev && \
 	python -m pip install --editable .
+	@echo "\n"
+	@echo "Run 'conda activate mcfacts-dev' to switch to the correct conda environment."
+	@echo "\n"
+	@echo "Want to keep up-to-date with future McUpdates and announcements? Sign up for our mailing list!"
+	@echo "https://docs.google.com/forms/d/e/1FAIpQLSeupzj8ledPslYc0bHbnJHKB7_LKlr8SY3SfbEVyL5AfeFlVg/viewform"
+	@echo "\n"
 
 unit_test: clean version
 	source ~/.bash_profile && \

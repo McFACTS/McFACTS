@@ -1,4 +1,4 @@
-name: Run Test
+name: Run Tests
 
 on:
   push:
@@ -10,13 +10,16 @@ on:
 
 jobs:
   run-test:
-    name: ($)
-    runs-on: $
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
 
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "macos-latest"]
+        os: ["macos-latest"] # "ubuntu-latest" We'll target linux, and maybe windows later.
 
     steps:
       - name: Check out the code
@@ -34,9 +37,11 @@ jobs:
 
       - name: Install dependencies and McFACTS
         run: |
+          conda activate mcfacts-dev
           conda install pytest
           python -m pip install --editable .
 
       - name: Run Pytest
         run: |
+          conda activate mcfacts-dev
           pytest
