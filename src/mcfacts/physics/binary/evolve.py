@@ -430,10 +430,14 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
     # Finite check
     assert np.isfinite(time_to_merger_gw.value).all(),\
         "Finite check failure: time_to_merger_gw"
+    print(timestep_duration.to('yr'))
+    print((blackholes_binary.time_to_merger_gw[idx_non_mergers] * u.s).to('yr'))
     blackholes_binary.time_to_merger_gw[idx_non_mergers] = time_to_merger_gw.to('s').value
+    print((blackholes_binary.time_to_merger_gw[idx_non_mergers] * u.s).to('yr'))
 
     # Identify merging binaries
     mask_merging = (time_to_merger_gw.to('s').value <= timestep_duration.to('s').value)
+    print(mask_merging)
     # Binary will not merge in this timestep
     # new bin_sep according to Baruteu+11 prescription
     bin_sep[~mask_merging] = bin_sep[~mask_merging] * (0.5 ** scaled_num_orbits[~mask_merging])
@@ -444,7 +448,9 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
 
     # Otherwise binary will merge in this timestep
     # Update flag_merging to -2 and time_merged to current time
+    print(blackholes_binary.flag_merging)
     blackholes_binary.flag_merging[idx_non_mergers[mask_merging]] = -2
+    print(blackholes_binary.flag_merging)
     blackholes_binary.time_merged[idx_non_mergers[mask_merging]] = \
         ((time_passed * u.yr) + time_to_merger_gw[mask_merging]).to('s').value
     # Finite check

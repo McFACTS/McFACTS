@@ -6,6 +6,7 @@ from os.path import isfile, isdir
 from pathlib import Path
 
 import numpy as np
+from astropy import units as u
 
 from mcfacts.physics.binary import evolve
 from mcfacts.physics.binary import formation
@@ -1044,6 +1045,12 @@ def main():
                                                                  np.full(bh_binary_id_num_merger.size, v_kick),
                                                                  opts.smbh_mass)
 
+                        time_to_merger_of_mergers = \
+                            (blackholes_binary.at_id_num(bh_binary_id_num_merger,"time_to_merger_gw") * u.s).to('yr').value
+                        print(time_to_merger_of_mergers)
+                        print(opts.timestep_duration_yr)
+                        if any(time_to_merger_of_mergers > opts.timestep_duration_yr):
+                            raise RuntimeError("time_to_merger > timestep, but merger flag is active")
                         # Append new merged BH to arrays of single BH locations, masses, spins, spin angles & gens
                         blackholes_merged.add_blackholes(
                             new_id_num=bh_binary_id_num_merger,
