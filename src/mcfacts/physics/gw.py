@@ -50,32 +50,32 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
 
     """
 
-    redshift_d_obs_dict = {0.1: 421*u.Mpc,
-                           0.5: 1909*u.Mpc}
+    redshift_d_obs_dict = {0.1: 421 * u.Mpc,
+                           0.5: 1909 * u.Mpc}
 
     timestep_units = (timestep_duration_yr*u.year).to(u.second)
 
     # 1rg =1AU=1.5e11m for 1e8Msun
-    rg = 1.5e11*(smbh_mass/1.e8)*u.meter
+    rg = 1.5e11 * (smbh_mass/1.e8) * u.meter
     mass_1 = (mass_1 * cds.Msun).to(u.kg)
     mass_2 = (mass_2 * cds.Msun).to(u.kg)
     mass_total = mass_1 + mass_2
     bin_sep = obj_sep * rg
 
-    mass_chirp = np.power(mass_1 * mass_2, 3./5.) / np.power(mass_total, 1./5.)
-    rg_chirp = ((const.G * mass_chirp) / np.power(const.c, 2)).to(u.meter)
+    mass_chirp = ((mass_1 * mass_2) ** (3./5.)) / (mass_total ** (1./5.))
+    rg_chirp = ((const.G * mass_chirp) / (const.c ** 2.0)).to(u.meter)
 
     # If separation is less than rg_chirp then cap separation at rg_chirp.
     bin_sep[bin_sep < rg_chirp] = rg_chirp[bin_sep < rg_chirp]
 
-    nu_gw = (1.0/np.pi) * np.sqrt(mass_total * const.G / np.power(bin_sep, 3))
+    nu_gw = (1.0/np.pi) * np.sqrt(mass_total * const.G / (bin_sep ** 3.0))
     nu_gw = nu_gw.to(u.Hz)
 
     # For local distances, approx d=cz/H0 = 3e8m/s(z)/70km/s/Mpc =3.e8 (z)/7e4 Mpc =428 Mpc
     # From Ned Wright's calculator https://www.astro.ucla.edu/~wright/CosmoCalc.html
     # (z=0.1)=421Mpc. (z=0.5)=1909 Mpc
     d_obs = redshift_d_obs_dict[agn_redshift].to(u.meter)
-    strain = (4/d_obs) * rg_chirp * np.power(np.pi * nu_gw * rg_chirp / const.c, 2./3.)
+    strain = (4/d_obs) * rg_chirp * ((np.pi * nu_gw * rg_chirp / const.c) ** (2./3.))
 
     # But power builds up in band over multiple cycles!
     # So characteristic strain amplitude measured by e.g. LISA is given by h_char^2 = N/8*h_0^2 where N is number of cycles per year & divide by 8 to average over viewing angles
@@ -83,7 +83,7 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
 
     # char amplitude = strain_factor*h0
     #                = sqrt(N/8)*h_0 and N=freq*1yr for approx const. freq. sources over ~~yr.
-    strain_factor[nu_gw < (1e-6)*u.Hz] = np.sqrt(nu_gw[nu_gw < (1e-6)*u.Hz]*np.pi*(1e7)/8)
+    strain_factor[nu_gw < (1e-6) * u.Hz] = np.sqrt(nu_gw[nu_gw < (1e-6) * u.Hz] * np.pi * (1e7) / 8)
 
     # For a source changing rapidly over 1 yr, N~freq^2/ (dfreq/dt).
     # char amplitude = strain_factor*h0
@@ -91,11 +91,11 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
     if (flag_include_old_gw_freq == 1):
         delta_nu = np.abs(old_gw_freq - nu_gw)
         delta_nu_delta_timestep = delta_nu/timestep_units
-        nu_squared = (nu_gw*nu_gw)
-        strain_factor[nu_gw > (1e-6)*u.Hz] = np.sqrt((nu_squared[nu_gw > (1e-6)*u.Hz] / delta_nu_delta_timestep[nu_gw > (1e-6)*u.Hz])/8.)
+        nu_squared = (nu_gw * nu_gw)
+        strain_factor[nu_gw > (1e-6) * u.Hz] = np.sqrt((nu_squared[nu_gw > (1e-6) * u.Hz] / delta_nu_delta_timestep[nu_gw > (1e-6) * u.Hz]) / 8.)
     # Condition from evolve_gw
     elif (flag_include_old_gw_freq == 0):
-        strain_factor[nu_gw > (1e-6)*u.Hz] = np.full(np.sum(nu_gw > (1e-6)*u.Hz), 4.e3)
+        strain_factor[nu_gw > (1e-6) * u.Hz] = 4.e3
     char_strain = strain_factor*strain
 
     return (char_strain.value, nu_gw.value)
@@ -143,7 +143,7 @@ def bbh_gw_params(blackholes_binary, bh_binary_id_num_gw, smbh_mass, timestep_du
     blackholes_binary : AGNBinaryBlackHole
         Binary black hole parameters
     bh_binary_id_num_gw : numpy.ndarray
-        ID numbers of binaries with separations below :math:`\mathtt{min_bbh_gw_separation}` with :obj:`float` type
+        ID numbers of binaries with separations below :math:`\\mathtt{min_bbh_gw_separation}` with :obj:`float` type
     smbh_mass : float
         Mass [M_sun] of the SMBH
     timestep_duration_yr : float

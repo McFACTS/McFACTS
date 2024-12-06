@@ -2,11 +2,12 @@ import numpy as np
 import scipy
 from astropy.constants import M_sun
 
+
 def retro_mig(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
               disk_bh_retro_orbs_e, disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
               timestep_duration_yr, disk_surf_density_func):
     """Apply change to retrograde orbiters' semi-major axes (migration) due to dynamical friction.
-    
+
     This function calculates how fast the semi-major axis of a retrograde single orbiter
     changes due to dynamical friction (appropriate for BH, NS, maaaybe WD?--check) using
     Wang, Zhu & Lin 2024, MNRAS, 528, 4958 (WZL). It returns the new locations of the retrograde
@@ -19,7 +20,7 @@ def retro_mig(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
     away from inc = pi (say, pi - 1e-6--but haven't done thorough param search) 
     you get something like sensible answers.
     So we gotta watch out for this
-    
+
     Parameters
     ----------
     smbh_mass : float/ndarray
@@ -52,37 +53,37 @@ def retro_mig(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
     #    or more locally convenient variable names
     smbh_mass_kg = smbh_mass * M_sun.si.value
     semi_maj_axis = disk_bh_retro_orbs_a * scipy.constants.G * smbh_mass_kg \
-                    / (scipy.constants.c)**2  # m
+                    / (scipy.constants.c ** 2)  # m
     retro_mass = disk_bh_retro_masses * M_sun.si.value  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_e  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
-    timestep_duration_yr = timestep_duration_yr * scipy.constants.Julian_year # sec
+    timestep_duration_yr = timestep_duration_yr * scipy.constants.Julian_year  # sec
 
     # period in units of sec
-    period = 2.0 * np.pi * np.sqrt(semi_maj_axis**3/(scipy.constants.G * smbh_mass_kg))
+    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3)/(scipy.constants.G * smbh_mass_kg))
     # semi-latus rectum in units of meters
-    semi_lat_rec = semi_maj_axis * (1.0 - ecc**2)
+    semi_lat_rec = semi_maj_axis * (1.0 - (ecc ** 2))
     # WZL Eqn 7 (sigma+/-)
-    sigma_plus = np.sqrt(1.0 + ecc**2 + 2.0*ecc*np.cos(omega))
-    sigma_minus = np.sqrt(1.0 + ecc**2 - 2.0*ecc*np.cos(omega))
+    sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * np.cos(omega))
+    sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * np.cos(omega))
     # WZL Eqn 8 (eta+/-)
-    eta_plus = np.sqrt(1.0 + ecc*np.cos(omega))
-    eta_minus = np.sqrt(1.0 - ecc*np.cos(omega))
+    eta_plus = np.sqrt(1.0 + ecc * np.cos(omega))
+    eta_minus = np.sqrt(1.0 - ecc * np.cos(omega))
     # WZL Eqn 65
-    kappa_bar = 0.5 * (np.sqrt(1.0/eta_plus**7) + np.sqrt(1.0/eta_minus**7))
+    kappa_bar = 0.5 * (np.sqrt(1.0/(eta_plus ** 7)) + np.sqrt(1.0/(eta_minus ** 7)))
     # WZL Eqn 66
-    xi_bar = 0.5 * (np.sqrt(sigma_plus**4/eta_plus**13) + np.sqrt(sigma_minus**4/eta_minus**13))
+    xi_bar = 0.5 * (np.sqrt((sigma_plus ** 4)/(eta_plus ** 13)) + np.sqrt((sigma_minus ** 4)/(eta_minus ** 13)))
     # WZL Eqn 67
     zeta_bar = xi_bar / kappa_bar
     # WZL Eqn 30
-    delta = 0.5 * (sigma_plus/eta_plus**2 + sigma_minus/eta_minus**2)
+    delta = 0.5 * (sigma_plus/(eta_plus ** 2) + sigma_minus/(eta_minus ** 2))
     # WZL Eqn 72
     #   NOTE: preserved retrograde_bh_locations in r_g to feed to disk_surf_model function
     #   tau in units of sec
-    tau_a_dyn = (1.0-ecc**2) * np.sin(inc) * (delta - np.cos(inc))**1.5 \
-                * smbh_mass_kg**2 * period \
-                / (retro_mass*disk_surf_density_func(disk_bh_retro_orbs_a)*np.pi*semi_lat_rec**2) \
+    tau_a_dyn = (1.0-(ecc ** 2)) * np.sin(inc) * ((delta - np.cos(inc)) ** 1.5) \
+                * (smbh_mass_kg ** 2) * period \
+                / (retro_mass * disk_surf_density_func(disk_bh_retro_orbs_a) * np.pi * (semi_lat_rec ** 2)) \
                 / (np.sqrt(2)) * kappa_bar * np.abs(np.cos(inc) - zeta_bar)
 
     # assume the fractional change in semi-major axis is the fraction
@@ -95,7 +96,7 @@ def retro_mig(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
     #    handling procedure for these--like, remove & count them)
     # we may also want to add a check for if a_0/tau_a_dyn > c (should only cause
     #    issues not handled here at very small a_0 or very large timesteps)
-    frac_change[frac_change>1.0] = 1.0
+    frac_change[frac_change > 1.0] = 1.0
 
     disk_bh_retro_orbs_a_new = disk_bh_retro_orbs_a * (1.0 - frac_change)
 

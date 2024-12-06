@@ -7,4 +7,6 @@ Global Variables:
 
 """
 
-mass_per_msun = 1.99e30
+from astropy import constants as const
+
+# mass_per_msun = 1.99e30

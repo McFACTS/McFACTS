@@ -59,10 +59,9 @@ def binary_check(
     # binaries.
 
     # Singleton BH with orb ecc < e_crit (candidates for binary formation)
-    prograde_bh_can_form_bins = np.ma.masked_where(disk_bh_pro_orbs_ecc > disk_bh_pro_orb_ecc_crit, disk_bh_pro_orbs_ecc)
-    indices_bh_can_form_bins = np.ma.nonzero(prograde_bh_can_form_bins)
+    indices_bh_can_form_bins = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
     # Indices of those candidates for binary formation
-    allowed_to_form_bins = np.array(indices_bh_can_form_bins[0])
+    allowed_to_form_bins = np.array(indices_bh_can_form_bins)
     # Sort the location of the candidates
     sorted_bh_locations = np.sort(disk_bh_pro_orbs_a[allowed_to_form_bins])
     # Sort the indices of all singleton BH (the superset)
@@ -145,7 +144,7 @@ def binary_check(
     return disk_bin_bhbh_pro_indices
 
 
-def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, id_start_val, fraction_bin_retro, smbh_mass, agn_redshift):
+def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, id_start_val, fraction_bin_retro, smbh_mass, agn_redshift, disk_bh_pro_orb_ecc_crit):
     """Create new BH binaries with appropriate parameters.
 
     We take the semi-maj axis, masses, spins, spin angles and generations
@@ -210,8 +209,8 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
     # to be pi radians if retrograde.
     bin_orb_inc = np.zeros(bin_num)
     # Set up binary orbital eccentricity of com around SMBH.
-    # Assume initially v.small (e~0.01)
-    bin_orb_ecc = np.full(bin_num, 0.01)
+    # Assume initially v.small (e~0.01 = disk_bh_pro_orb_ecc_crit)
+    bin_orb_ecc = np.full(bin_num, disk_bh_pro_orb_ecc_crit)
     galaxy = np.zeros(bin_num)
 
     for i in range(bin_num):

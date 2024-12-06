@@ -23,13 +23,13 @@ def true_mass_location_relation(disk_star_num, disk_stars_mass_min, smbh_mass, P
     """
     exp1_top = P_m/(P_m - (1./3.))
     exp1_bottom = 1./(3*(P_m - (1./3.)))
-    frac1 = (np.power(disk_stars_mass_min,exp1_top))/(np.power(3*smbh_mass,exp1_bottom))
+    frac1 = ((disk_stars_mass_min**exp1_top))/((3*smbh_mass)**exp1_bottom)
 
     exp2 = 1./(P_m - (1./3.))
-    frac2 = np.power(disk_star_num*P_r,exp2)
+    frac2 = (disk_star_num*P_r)**exp2
 
     exp3 = P_r/(P_m - (1./3.))
-    frac3 = np.power(disk_stars_orb_a/disk_radius_trap,exp3)
+    frac3 = (disk_stars_orb_a/disk_radius_trap)**exp3
 
     mass_threshold = frac1*frac2*frac3
 
@@ -39,12 +39,12 @@ def true_mass_location_relation(disk_star_num, disk_stars_mass_min, smbh_mass, P
 def get_location_steps(r_location_sorted, mass_threshold, smbh_mass, R_disk):
     delta_r_locations = []
     delta_r_locations.append(10)
-    loc = delta_r_locations[0]*np.power(mass_threshold[0]/(3.*smbh_mass),1./3.) + delta_r_locations[0]
+    loc = delta_r_locations[0]*((mass_threshold[0]/(3.*smbh_mass))**(1./3.)) + delta_r_locations[0]
     delta_r_locations.append(loc)
     while loc < R_disk:
         idx = (np.abs(loc - r_location_sorted)).argmin()
         #print(idx)
-        loc += r_location_sorted[idx]*np.power(mass_threshold[idx]/(3.*smbh_mass),1./3.)
+        loc += r_location_sorted[idx]*((mass_threshold[idx]/(3.*smbh_mass))**(1./3.))
         delta_r_locations.append(loc)
     delta_r_locations = np.array(delta_r_locations)
     return(delta_r_locations)

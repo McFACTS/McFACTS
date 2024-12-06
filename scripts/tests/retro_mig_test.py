@@ -3,7 +3,7 @@ import scipy
 
 import mcfacts.physics.disk_capture
 from misc import retro_mig, retro_ecc
-from mcfacts.physics.disk_capture import capture_inc_damp
+#from mcfacts.physics.disk_capture import capture_inc_damp
 
 if __name__ == "__main__":
     # I just want to run retro_mig.py on its own to see if it runs, so I'm

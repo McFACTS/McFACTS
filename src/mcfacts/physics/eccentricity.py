@@ -3,6 +3,7 @@ Module for calculating the orbital and binary eccentricity damping.
 """
 
 import numpy as np
+from mcfacts.mcfacts_random_state import rng
 
 
 def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk_surf_density_func,
@@ -63,7 +64,7 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
     For eccentricity e>2h eqn. 9 in McKernan & Ford (2023), based on Horn et al. (2012) the scaling time is now t_ecc.
     :math:`t_{ecc} = (t_{damp}/0.78)*[1 - (0.14*(e/h)^2) + (0.06*(e/h)^3)]` ......(2)
     which in the limit of e>0.1 for most disk models becomes
-    :math:`t_{ecc} \propto (t_{damp}/0.78)*[1 + (0.06*(e/h)^3)]`
+    :math:`t_{ecc} \\propto (t_{damp}/0.78)*[1 + (0.06*(e/h)^3)]`
     """
     # Check incoming eccentricities for nans
     assert np.isfinite(disk_bh_pro_orbs_ecc).all(), \
@@ -87,7 +88,7 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
     # E.g. normalize q=bh_mass/smbh_mass to 10^-7
     mass_ratio = disk_bh_pro_orbs_masses / smbh_mass
 
-    normalized_mass_ratio = mass_ratio / 10 ** (-7)
+    normalized_mass_ratio = mass_ratio / (10 ** -7)
     normalized_bh_locations = disk_bh_pro_orbs_a / 1.e4
     normalized_disk_surf_density_func = disk_surface_density / 1.e5
     normalized_aspect_ratio = disk_aspect_ratio / 0.03
@@ -100,20 +101,10 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
 
     # Modest orb eccentricities: e < 2h (experience simple exponential damping): mask entries > 2*aspect_ratio;
     # only show BH with e<2h
-    prograde_bh_modest_ecc = np.ma.masked_where(
-        prograde_disk_bh_pro_orbs_ecc > 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a),
-        prograde_disk_bh_pro_orbs_ecc)
+    modest_ecc_prograde_indices = np.asarray(prograde_disk_bh_pro_orbs_ecc <= 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
 
     # Large orb eccentricities: e > 2h (experience more complicated damping)
-    prograde_bh_large_ecc = np.ma.masked_where(
-        prograde_disk_bh_pro_orbs_ecc < 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a),
-        prograde_disk_bh_pro_orbs_ecc)
-
-    # Indices of orb eccentricities where e<2h
-    modest_ecc_prograde_indices = np.ma.nonzero(prograde_bh_modest_ecc)
-
-    # Indices of orb eccentricities where e>2h
-    large_ecc_prograde_indices = np.ma.nonzero(prograde_bh_large_ecc)
+    large_ecc_prograde_indices = np.asarray(prograde_disk_bh_pro_orbs_ecc > 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
 
     # print('modest ecc indices', modest_ecc_prograde_indices)
     # print('large ecc indices', large_ecc_prograde_indices)
@@ -126,7 +117,7 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
     modest_timescale_ratio = timestep_duration_yr / t_damp
 
     # timescale for large ecc damping from eqn. 2 above
-    t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio) ** (2.0)) + (0.06 * (e_h_ratio) ** (3.0)))
+    t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio ** 2.0)) + (0.06 * (e_h_ratio ** 3.0)))
     large_timescale_ratio = timestep_duration_yr / t_ecc
     # print("t_damp",timestep_duration_yr/t_damp)
     # print("t_ecc",timestep_duration_yr/t_ecc)
@@ -149,7 +140,7 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
 def orbital_bin_ecc_damping(smbh_mass, blackholes_binary, disk_surf_density_func, disk_aspect_ratio_func, timestep_duration_yr,
                             disk_bh_pro_orb_ecc_crit):
     """Calculates damping of BBH orbital eccentricities according to a prescription.
-    
+
     Use same mechanisms as for prograde singleton BH.
 
     E.g. Tanaka & Ward (2004)  t_damp = M^3/2 h^4 / (2^1/2 m Sigma a^1/2 G )
@@ -217,7 +208,7 @@ def orbital_bin_ecc_damping(smbh_mass, blackholes_binary, disk_surf_density_func
     # E.g. normalize q=bh_mass/smbh_mass to 10^-7
     mass_ratio = (blackholes_binary.mass_1 + blackholes_binary.mass_2) / smbh_mass
 
-    normalized_mass_ratio = mass_ratio / 10 ** (-7)
+    normalized_mass_ratio = mass_ratio / (10 ** -7)
     normalized_bh_locations = blackholes_binary.bin_orb_a / 1.e4
     normalized_disk_surf_density_func = disk_surface_density / 1.e5
     normalized_aspect_ratio = disk_aspect_ratio / 0.03
@@ -231,7 +222,7 @@ def orbital_bin_ecc_damping(smbh_mass, blackholes_binary, disk_surf_density_func
     e_h_ratio = blackholes_binary.bin_orb_ecc / disk_aspect_ratio
 
     # Calculate damping time for large orbital eccentricity binaries
-    t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio) ** (2.0)) + (0.06 * (e_h_ratio) ** (3.0)))
+    t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio ** 2.0)) + (0.06 * (e_h_ratio ** 3.0)))
     large_timescale_ratio = timestep_duration_yr / t_ecc
 
     # If bin orb ecc <= disk_bh_pro_orb_ecc_crit, do nothing (no damping needed)
@@ -246,14 +237,14 @@ def orbital_bin_ecc_damping(smbh_mass, blackholes_binary, disk_surf_density_func
     mask3 = (blackholes_binary.bin_orb_ecc > disk_bh_pro_orb_ecc_crit) & (blackholes_binary.bin_orb_ecc > (2 * disk_aspect_ratio))
     new_bin_orb_ecc[mask3] = blackholes_binary.bin_orb_ecc[mask3] * np.exp(-large_timescale_ratio[mask3])
 
-    new_bin_orb_ecc[new_bin_orb_ecc < disk_bh_pro_orb_ecc_crit] = np.full(np.sum(new_bin_orb_ecc < disk_bh_pro_orb_ecc_crit), disk_bh_pro_orb_ecc_crit)
+    new_bin_orb_ecc[new_bin_orb_ecc < disk_bh_pro_orb_ecc_crit] = disk_bh_pro_orb_ecc_crit
     # Check output
     assert np.isfinite(new_bin_orb_ecc).all(), \
         "Finite check failed for new_bin_orb_ecc"
 
     blackholes_binary.bin_orb_ecc = new_bin_orb_ecc
 
-    return
+    return (blackholes_binary)
 
 
 def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk_surf_density_func,
@@ -345,7 +336,7 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
     # E.g. normalize q=bh_mass/smbh_mass to 10^-7
     mass_ratio = disk_bh_pro_orbs_masses / smbh_mass
 
-    normalized_mass_ratio = mass_ratio / 10 ** (-7)
+    normalized_mass_ratio = mass_ratio / (10 ** -7)
     normalized_bh_locations = disk_bh_pro_orbs_a / 1.e4
     normalized_disk_surf_density_func = disk_surface_density / 1.e5
     normalized_aspect_ratio = disk_aspect_ratio / 0.03
@@ -358,20 +349,10 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
 
     # Modest orb eccentricities: e < 2h (experience simple exponential damping): mask entries > 2*aspect_ratio;
     # only show BH with e<2h
-    prograde_bh_modest_ecc = np.ma.masked_where(
-        prograde_disk_bh_pro_orbs_ecc > 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a),
-        prograde_disk_bh_pro_orbs_ecc)
+    modest_ecc_prograde_indices = np.asarray(prograde_disk_bh_pro_orbs_ecc <= 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
 
     # Large orb eccentricities: e > 2h (experience more complicated damping)
-    prograde_bh_large_ecc = np.ma.masked_where(
-        prograde_disk_bh_pro_orbs_ecc < 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a),
-        prograde_disk_bh_pro_orbs_ecc)
-
-    # Indices of orb eccentricities where e<2h
-    modest_ecc_prograde_indices = np.ma.nonzero(prograde_bh_modest_ecc)
-
-    # Indices of orb eccentricities where e>2h
-    large_ecc_prograde_indices = np.ma.nonzero(prograde_bh_large_ecc)
+    large_ecc_prograde_indices = np.asarray(prograde_disk_bh_pro_orbs_ecc > 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
 
     # print('modest ecc indices', modest_ecc_prograde_indices)
     # print('large ecc indices', large_ecc_prograde_indices)
@@ -384,7 +365,7 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
     modest_timescale_ratio = timestep_duration_yr / t_damp
 
     # timescale for large ecc damping from eqn. 2 above
-    t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio) ** (2.0)) + (0.06 * (e_h_ratio) ** (3.0)))
+    t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio ** 2.0)) + (0.06 * (e_h_ratio ** 3.0)))
     large_timescale_ratio = timestep_duration_yr / t_ecc
     # print("t_damp",timestep_duration_yr/t_damp)
     # print("t_ecc",timestep_duration_yr/t_ecc)
@@ -402,3 +383,18 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
     assert np.isfinite(new_disk_bh_pro_orbs_ecc).all(),\
         "Finite check failed for new_disk_bh_pro_orbs_ecc"
     return new_disk_bh_pro_orbs_ecc
+
+
+def ionized_orb_ecc(num_bh, orb_ecc_max):
+    """Calculate new eccentricity for each component of an ionized binary.
+
+    Parameters
+    ----------
+    num_bh : int
+        Number of BHs (num of ionized binaries * 2)
+    orb_ecc_max : float
+        Maximum allowed orb_ecc
+    """
+    orb_eccs = rng.uniform(low=0.0, high=orb_ecc_max, size=num_bh)
+
+    return (orb_eccs)

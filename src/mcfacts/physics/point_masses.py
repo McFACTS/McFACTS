@@ -48,11 +48,11 @@ def time_of_orbital_shrinkage(mass_1, mass_2, sep_initial, sep_final):
     sep_initial = sep_initial.to('m').value
     sep_final = sep_final.to('m').value
     # Set up the constant as a single float
-    const = ((64 / 5) * G**3) * (c**-5)
+    const = ((64 / 5) * (G ** 3)) * (c ** -5)
     # Calculate the beta array
     beta_arr = const * mass_1 * mass_2 * (mass_1 + mass_2)
     # Calculate the time
-    time_of_shrinkage = (sep_initial ** 4 - sep_final ** 4) / 4 / beta_arr
+    time_of_shrinkage = ((sep_initial ** 4) - (sep_final ** 4)) / 4 / beta_arr
     # Assign units
     time_of_shrinkage = time_of_shrinkage * astropy_units.s
     return time_of_shrinkage
@@ -86,11 +86,11 @@ def orbital_separation_evolve(mass_1, mass_2, sep_initial, evolve_time):
     sep_initial = sep_initial.to('m').value
     evolve_time = evolve_time.to('s').value
     # Set up the constant as a single float
-    const = ((64 / 5) * G**3) * (c**-5)
+    const = ((64 / 5) * (G ** 3)) * (c ** -5)
     # Calculate the beta array
     beta_arr = const * mass_1 * mass_2 * (mass_1 + mass_2)
     # Calculate an intermediate quantity
-    quantity = (sep_initial**4) - (4 * beta_arr * evolve_time)
+    quantity = (sep_initial ** 4) - (4 * beta_arr * evolve_time)
     # Calculate final separation
     sep_final = np.zeros_like(sep_initial)
     sep_final[quantity > 0] = np.sqrt(np.sqrt(quantity[quantity > 0]))
@@ -125,11 +125,11 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
     sep_final = sep_final.to('m').value
     evolve_time = evolve_time.to('s').value
     # Set up the constant as a single float
-    const = ((64 / 5) * G**3) * (c**-5)
+    const = ((64 / 5) * (G ** 3)) * (c ** -5)
     # Calculate the beta array
     beta_arr = const * mass_1 * mass_2 * (mass_1 + mass_2)
     # Calculate an intermediate quantity
-    quantity = (sep_final**4) + (4 * beta_arr * evolve_time)
+    quantity = (sep_final ** 4) + (4 * beta_arr * evolve_time)
     # Calculate final separation
     sep_initial = np.sqrt(np.sqrt(quantity))
     return sep_initial * astropy_units.m
@@ -161,9 +161,9 @@ def si_from_r_g(smbh_mass, distance_rg):
     # convert smbh mass to kg
     smbh_mass = smbh_mass.to('kg')
     # Calculate r_g in SI
-    r_g = G*smbh_mass/(c**2)
+    r_g = G*smbh_mass/(c ** 2)
     # Calculate distance
-    distance = distance_rg * r_g
+    distance = (distance_rg * r_g).to("meter")
     return distance
 
 
@@ -193,7 +193,11 @@ def r_g_from_units(smbh_mass, distance):
     # convert smbh mass to kg
     smbh_mass = smbh_mass.to('kg')
     # Calculate r_g in SI
-    r_g = G*smbh_mass/(c**2)
+    r_g = G*smbh_mass/(c ** 2)
     # Calculate distance
-    distance_rg = distance / r_g
+    distance_rg = distance.to("meter") / r_g
+
+    # Check to make sure units are okay.
+    assert astropy_units.dimensionless_unscaled == distance_rg.unit, "distance_rg is not dimensionless. Check your input is a astropy Quantity, not an astropy Unit."
+
     return distance_rg
