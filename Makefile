@@ -24,6 +24,7 @@ POPULATION_PLOTS_EXE = ${HERE}/scripts/population_plots.py
 VERA_PLOTS_EXE = ${HERE}/scripts/vera_plots.py
 MSTAR_RUNS_EXE = ${HERE}/scripts/vera_mstar_bins.py
 MSTAR_PLOT_EXE = ${HERE}/src/mcfacts/outputs/plot_mcfacts_handler_quantities.py
+STARS_PLOTS = ${HERE}/scripts/stars_plots.py
 
 #### Setup ####
 SEED=3456789108
@@ -122,6 +123,13 @@ mstar_runs:
 		#--nbins 33 
 		#--timestep_num 1000 \
 	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
+
+kaila_stars: plots
+	cd runs; \
+	python ../${STARS_PLOTS} \
+	--runs-directory ${wd} \
+	--fname-stars ${wd}/output_mergers_stars.dat \
+	--plots-directory ${wd}
 		
 
 #### CLEAN ####

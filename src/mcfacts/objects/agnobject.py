@@ -1,6 +1,5 @@
 import numpy as np
 from copy import deepcopy
-from mcfacts.setup import setupdiskstars, setupdiskblackholes
 
 
 # TODO: dump_record_array writes every value as a float. Make dictionary with all attributes and datatypes? Or is a float fine?
@@ -14,10 +13,10 @@ attr_bh = ["id_num", "orb_a", "mass", "spin", "spin_angle",
            "gen", "galaxy", "time_passed",
            "gw_freq", "gw_strain"]
 
-attr_star = ["id_num", "orb_a", "mass", "spin", "spin_angle",
+attr_star = ["id_num", "orb_a", "mass",
              "orb_inc", "orb_ecc", "orb_arg_periapse", "orb_ang_mom",
              "gen", "galaxy", "time_passed",
-             "star_X", "star_Y", "star_Z", "radius"]
+             "star_X", "star_Y", "star_Z", "log_radius", "log_teff", "log_luminosity"]
 
 attr_binary_bh = ["id_num", "orb_a_1", "orb_a_2", "mass_1", "mass_2", #"mass_total",
                   "spin_1", "spin_2", "spin_angle_1", "spin_angle_2",
@@ -124,7 +123,7 @@ class AGNObject(object):
                  spin_angle=empty_arr,  # angle between J and orbit around SMBH for binary
                  orb_a=empty_arr,  # location
                  orb_inc=empty_arr,  # of CoM for binary around SMBH
-                 # orb_ang_mom = None,  # redundant, should be computed from keplerian orbit formula for L in terms of mass, a, eccentricity
+                 orb_ang_mom=empty_arr,  # redundant, should be computed from keplerian orbit formula for L in terms of mass, a, eccentricity
                  orb_ecc=empty_arr,
                  orb_arg_periapse=empty_arr,
                  galaxy=empty_arr,
@@ -146,6 +145,8 @@ class AGNObject(object):
             orbital semi-major axis with respect to the SMBH in R_g
         orb_inc : numpy array
             orbital inclination with respect to the SMBH
+        orb_ang_mom : numpy array
+            orbital angular momentum with respect to the SMBH
         orb_ecc : numpy array
             orbital eccentricity with respect to the SMBH
         orb_arg_periapse : numpy array
@@ -164,13 +165,14 @@ class AGNObject(object):
         if (obj_num == 0):
             obj_num = mass.shape[0]
 
-        assert spin.shape == (obj_num,), "obj_num must match the number of objects"
+        assert orb_a.shape == (obj_num,), "obj_num must match the number of objects"
 
         self.mass = mass
         self.spin = spin
         self.spin_angle = spin_angle
         self.orb_a = orb_a
         self.orb_inc = orb_inc
+        self.orb_ang_mom = orb_ang_mom
         self.orb_ecc = orb_ecc
         self.orb_arg_periapse = orb_arg_periapse
         self.gen = np.full(obj_num, 1)
@@ -555,7 +557,7 @@ class AGNObject(object):
             for attr in attr_list:
                 print(f"{attr}.shape = {getattr(self, attr).shape}")
             raise AttributeError("Attributes are not all the same size")
-        
+
         if self.num != shape[0]:
             print(f"num = {self.num}, num objects = {shape[0]}")
             raise AttributeError("num does not match number of objects in AGNObject")
@@ -580,13 +582,13 @@ class AGNStar(AGNObject):
 
     def __init__(self,
                  mass=empty_arr,
-                 orb_a=empty_arr,
-                 orb_inc=empty_arr,
+                 log_radius=empty_arr,
+                 log_luminosity=empty_arr,
+                 log_teff=empty_arr,
                  star_X=empty_arr,
                  star_Y=empty_arr,
                  star_Z=empty_arr,
                  star_num=0,
-                 smbh_mass=None,
                  **kwargs):
         """Creates an instance of the AGNStar class. This is a subclass
            of the AGNObject class. AGNStar adds additional star-specific
@@ -599,6 +601,8 @@ class AGNStar(AGNObject):
             star mass
         orb_a : numpy array
             star orbital semi-major axis with respect to the SMBH
+        radius : numpy array
+            log of star radius in Rsun
         orb_inc : numpy array
             star orbital inclination with respect to the SMBH
         star_Y : numpy array
@@ -620,18 +624,9 @@ class AGNStar(AGNObject):
 
         assert mass.shape == (star_num,), "star_num must match the number of objects"
 
-        if mass is empty_arr:
-            self.radius = empty_arr
-            self.orb_ang_mom = empty_arr
-        else:
-            self.radius = setupdiskstars.setup_disk_stars_radius(masses=mass)
-            mass_total = mass + smbh_mass
-            mass_reduced = mass*smbh_mass/mass_total
-            self.orb_ang_mom = setupdiskstars.setup_disk_stars_orb_ang_mom(star_num=star_num,
-                                                                           mass_reduced=mass_reduced,
-                                                                           mass_total=mass_total,
-                                                                           orb_a=orb_a,
-                                                                           orb_inc=orb_inc)
+        self.log_radius = log_radius
+        self.log_luminosity = log_luminosity
+        self.log_teff = log_teff
 
         if (np.any(star_X + star_Y + star_Z > 1.)):
             raise ValueError("star_X, star_Y, and star_Z must sum to 1 or less.")
@@ -640,7 +635,7 @@ class AGNStar(AGNObject):
         self.star_Y = star_Y
         self.star_Z = star_Z
 
-        super(AGNStar, self).__init__(mass=mass, orb_a=orb_a, orb_inc=orb_inc, obj_num=star_num, **kwargs)  # calls top level functions
+        super(AGNStar, self).__init__(mass=mass, obj_num=star_num, **kwargs)  # calls top level functions
 
     def __repr__(self):
         """
@@ -656,7 +651,9 @@ class AGNStar(AGNObject):
         return (totals)
 
     def add_stars(self,
-                  new_radius=empty_arr,
+                  new_log_radius=empty_arr,
+                  new_log_luminosity=empty_arr,
+                  new_log_teff=empty_arr,
                   new_X=empty_arr,
                   new_Y=empty_arr,
                   new_Z=empty_arr,
@@ -669,8 +666,8 @@ class AGNStar(AGNObject):
 
         Parameters
         ----------
-        new_radius : numpy array
-            radii of new stars
+        new_log_radius : numpy array
+            log radii of new stars
         new_Y : numpy array
             helium mass fraction of new stars
         new_Z : numpy array
@@ -680,16 +677,18 @@ class AGNStar(AGNObject):
         """
 
         if (star_num == 0):
-            star_num = new_radius.shape[0]
+            star_num = new_log_radius.shape[0]
 
-        assert new_radius.shape == (star_num,), "star_num must match the number of objects"
+        assert new_log_radius.shape == (star_num,), "star_num must match the number of objects"
 
         if (np.any(new_X + new_Y + new_Z) > 1.): raise ValueError("new_Y and new_Z must sum to 1 or less")
 
         self.star_X = np.concatenate([self.star_X, new_X])
         self.star_Y = np.concatenate([self.star_Y, new_Y])
         self.star_Z = np.concatenate([self.star_Z, new_Z])
-        self.radius = np.concatenate([self.radius, new_radius])
+        self.log_radius = np.concatenate([self.log_radius, new_log_radius])
+        self.log_teff = np.concatenate([self.log_teff, new_log_teff])
+        self.log_luminosity = np.concatenate([self.log_luminosity, new_log_luminosity])
 
         super(AGNStar, self).add_objects(obj_num=star_num, **kwargs)
 
@@ -698,7 +697,7 @@ class AGNBlackHole(AGNObject):
     """
     A subclass of AGNObject for single black holes. It extends AGNObject and
     adds attributes for GW frequency and strain. This is only relevant for
-    EMRIs and BBH, so if a value is not passed these attributes are set to -1.
+    EMRIs and BBH, so if a value is not passed these attributes are set to -1.5.
     AGNBlackHole also calculates orbital angular momentum for black holes.
     """
     def __init__(self, mass=empty_arr,
@@ -724,15 +723,15 @@ class AGNBlackHole(AGNObject):
         assert mass.shape == (bh_num,), "bh_num must match the number of objects"
 
         if mass is empty_arr:
-            self.orb_ang_mom = empty_arr
+            #self.orb_ang_mom = empty_arr
             self.gw_freq = empty_arr
             self.gw_strain = empty_arr
         else:
-            self.orb_ang_mom = setupdiskblackholes.setup_disk_blackholes_orb_ang_mom(bh_num)
+            #self.orb_ang_mom = setupdiskblackholes.setup_disk_blackholes_orb_ang_mom(bh_num)
 
             if ((gw_freq is empty_arr) and (gw_strain is empty_arr)):
                 self.gw_freq = np.full(bh_num, -1.5)
-                self.gw_strain =np.full(bh_num, -1.5)
+                self.gw_strain = np.full(bh_num, -1.5)
 
             elif ((gw_freq is not empty_arr) and (gw_strain is not empty_arr)):
                 self.gw_freq = gw_freq
@@ -780,7 +779,7 @@ class AGNBlackHole(AGNObject):
             self.gw_freq = np.concatenate([self.gw_freq, np.full(bh_num, -1.5)])
         else:
             self.gw_freq = np.concatenate([self.gw_freq, new_gw_freq])
-        
+
         if new_gw_strain is empty_arr:
             self.gw_strain = np.concatenate([self.gw_strain, np.full(bh_num, -1.5)])
         else:
@@ -802,16 +801,12 @@ class AGNBinaryStar(AGNObject):
 
     def __init__(self, star_mass1 = None,
                        star_mass2 = None,
-                       star_radius1 = None,
-                       star_radius2 = None,
+                       star_log_radius1 = None,
+                       star_log_radius2 = None,
                        star_Y1 = None,
                        star_Y2 = None,
                        star_Z1 = None,
                        star_Z2 = None,
-                       star_spin1 = None,
-                       star_spin2 = None,
-                       star_spin_angle1 = None,
-                       star_spin_angle2 = None,
                        bin_e = None,
                        bin_a = None,
                        bin_inc=None,
@@ -824,16 +819,12 @@ class AGNBinaryStar(AGNObject):
         #Make sure all inputs are included
         if star_mass1 is None: raise AttributeError("star_mass1 is not included in inputs")
         if star_mass2 is None: raise AttributeError("star_mass2 is not included in inputs")
-        if star_radius1 is None: raise AttributeError("star_radius1 is not included in inputs")
-        if star_radius2 is None: raise AttributeError("star_radius2 is not included in inputs")
+        if star_log_radius1 is None: raise AttributeError("star_log_radius1 is not included in inputs")
+        if star_log_radius2 is None: raise AttributeError("star_log_radius2 is not included in inputs")
         if star_Y1 is None: raise AttributeError("star_Y1 is not included in inputs")
         if star_Y2 is None: raise AttributeError("star_Y2 is not included in inputs")
         if star_Z1 is None: raise AttributeError("star_Z1 is not included in inputs")
         if star_Z2 is None: raise AttributeError("star_Z2 is not included in inputs")
-        if star_spin1 is None: raise AttributeError("star_spin1 is not included in inputs")
-        if star_spin2 is None: raise AttributeError("star_spin2 is not included in inputs")
-        if star_spin_angle1 is None: raise AttributeError("star_spin_angle1 is not included in inputs")
-        if star_spin_angle2 is None: raise AttributeError("star_spin_angle2 is not included in inputs")
         if bin_e is None: raise AttributeError("bin_e is not included in inputs")
         if bin_a is None: raise AttributeError("bin_a is not included in inputs")
 
@@ -842,12 +833,8 @@ class AGNBinaryStar(AGNObject):
         #Check that all inputs are 1d numpy arrays
         assert star_mass1.shape == (obj_num,),"star_mass1: all arrays must be 1d and the same length"
         assert star_mass2.shape == (obj_num,),"star_mass2: all arrays must be 1d and the same length"
-        assert star_radius1.shape == (obj_num,),"star_radius1: all arrays must be 1d and the same length"
-        assert star_radius2.shape == (obj_num,),"star_radius2: all arrays must be 1d and the same length"
-        assert star_spin1.shape == (obj_num,),"star_spin1: all arrays must be 1d and the same length"
-        assert star_spin2.shape == (obj_num,),"star_spin2: all arrays must be 1d and the same length"
-        assert star_spin_angle1.shape == (obj_num,),"star_spin_angle1: all arrays must be 1d and the same length"
-        assert star_spin_angle2.shape == (obj_num,),"star_spin_angle2: all arrays must be 1d and the same length"
+        assert star_log_radius1.shape == (obj_num,),"star_log_radius1: all arrays must be 1d and the same length"
+        assert star_log_radius2.shape == (obj_num,),"star_log_radius2: all arrays must be 1d and the same length"
         assert bin_e.shape == (obj_num,),"bin_e: all arrays must be 1d and the same length"
         assert bin_a.shape == (obj_num,),"bin_a: all arrays must be 1d and the same length"
 
@@ -878,18 +865,14 @@ class AGNBinaryStar(AGNObject):
         #Now assign attributes
         self.star_mass1 = star_mass1
         self.star_mass2 = star_mass2
-        self.star_radius1 = star_radius1
-        self.star_radius2 = star_radius2
+        self.star_log_radius1 = star_log_radius1
+        self.star_log_radius2 = star_log_radius2
         self.star_X1 = star_X1
         self.star_X2 = star_X2
         self.star_Y1 = star_Y1
         self.star_Y2 = star_Y2
         self.star_Z1 = star_Z1
         self.star_Z2 = star_Z2
-        self.star_spin1 = star_spin1
-        self.star_spin2 = star_spin2
-        self.star_spin_angle1 = star_spin_angle1
-        self.star_spin_angle2 = star_spin_angle2
         self.bin_e = bin_e
         self.bin_a = bin_a
         self.bin_inc = bin_inc
@@ -899,24 +882,20 @@ class AGNBinaryStar(AGNObject):
         total_spin = None # we will pass None for now, until we decide how to treat angular momentum
         total_spin_angle = None  # we will pass None for now, until we decide how to treat angular momentum
 
-        super(AGNBinaryStar,self).__init__(mass = total_mass, spin = star_spin_angle2, spin_angle = star_spin_angle2, orb_a = cm_orb_a, orb_inc = cm_orb_inc, orb_ecc = cm_orb_ecc, obj_num = obj_num)
+        super(AGNBinaryStar,self).__init__(mass = total_mass, orb_a = cm_orb_a, orb_inc = cm_orb_inc, orb_ecc = cm_orb_ecc, obj_num = obj_num)
         
 
     def __repr__(self):
         return('AGNBinaryStar(): {} stellar binaries'.format(len(self.mass)))
     
     def add_binaries(self, new_star_mass1 = None,
-                        new_star_radius1 = None,
+                        new_star_log_radius1 = None,
                         new_star_mass2 = None,
-                        new_star_radius2 = None,
+                        new_star_log_radius2 = None,
                         new_star_Y1 = None,
                         new_star_Y2 = None,
                         new_star_Z1 = None,
                         new_star_Z2 = None,
-                        new_star_spin1 = None,
-                        new_star_spin2 = None,
-                        new_star_spin_angle1 = None,
-                        new_star_spin_angle2 = None,
                         new_star_orb_a1 = None,
                         new_star_orb_a2 = None,
                         new_bin_e = None,
@@ -932,8 +911,8 @@ class AGNBinaryStar(AGNObject):
         #Make sure all inputs are included
         if new_star_mass1 is None: raise AttributeError("new_star_mass1 is not included in inputs")
         if new_star_mass2 is None: raise AttributeError("new_star_mass2 is not included in inputs")
-        if new_star_radius1 is None: raise AttributeError("new_star_radius1 is not included in inputs")
-        if new_star_radius2 is None: raise AttributeError("new_star_radius2 is not included in inputs")
+        if new_star_log_radius1 is None: raise AttributeError("new_star_log_radius1 is not included in inputs")
+        if new_star_log_radius2 is None: raise AttributeError("new_star_log_radius2 is not included in inputs")
         if new_star_Y1 is None: raise AttributeError("new_star_Y1 is not included in inputs")
         if new_star_Y2 is None: raise AttributeError("new_star_Y2 is not included in inputs")
         if new_star_Z1 is None: raise AttributeError("new_star_Z1 is not included in inputs")
@@ -950,8 +929,8 @@ class AGNBinaryStar(AGNObject):
         #Check that all inputs are 1d numpy arrays
         assert new_star_mass1.shape == (obj_num,),"new_star_mass1: all arrays must be 1d and the same length"
         assert new_star_mass2.shape == (obj_num,),"new_star_mass2: all arrays must be 1d and the same length"
-        assert new_star_radius1.shape == (obj_num,),"new_star_radius1: all arrays must be 1d and the same length"
-        assert new_star_radius2.shape == (obj_num,),"new_star_radius2: all arrays must be 1d and the same length"
+        assert new_star_log_radius1.shape == (obj_num,),"new_star_log_radius1: all arrays must be 1d and the same length"
+        assert new_star_log_radius2.shape == (obj_num,),"new_star_log_radius2: all arrays must be 1d and the same length"
         assert new_star_spin1.shape == (obj_num,),"new_star_spin1: all arrays must be 1d and the same length"
         assert new_star_spin2.shape == (obj_num,),"new_star_spin2: all arrays must be 1d and the same length"
         assert new_star_spin_angle1.shape == (obj_num,),"new_star_spin_angle1: all arrays must be 1d and the same length"
@@ -986,8 +965,8 @@ class AGNBinaryStar(AGNObject):
         #Now add new values
         self.star_mass1 = np.concatenate([self.star_mass1, new_star_mass1])
         self.star_mass2 = np.concatenate([self.star_mass2, new_star_mass2])
-        self.star_radius1 = np.concatenate([self.star_radius1, new_star_radius1])
-        self.star_radius2 = np.concatenate([self.star_radius2, new_star_radius2])
+        self.star_log_radius1 = np.concatenate([self.star_log_radius1, new_star_log_radius1])
+        self.star_log_radius2 = np.concatenate([self.star_log_radius2, new_star_log_radius2])
         self.star_X1 = np.concatenate([self.star_X1, new_star_X1])
         self.star_Y1 = np.concatenate([self.star_Y1, new_star_Y1])
         self.star_Z1 = np.concatenate([self.star_Z1, new_star_Z1])
@@ -1040,7 +1019,6 @@ class AGNBinaryBlackHole(AGNObject):
                  gw_freq=empty_arr,
                  gw_strain=empty_arr,
                  galaxy=empty_arr,
-                 time_passed=empty_arr,
                  bin_bh_num=0,
                  id_num=empty_arr):
 
@@ -1132,7 +1110,6 @@ class AGNBinaryBlackHole(AGNObject):
         self.gw_strain = gw_strain
         self.id_num = id_num
         self.galaxy = galaxy
-        #self.time_passed = time_passed
 
         if (bin_bh_num == 0):
             bin_bh_num = mass_1.shape[0]
@@ -1479,8 +1456,8 @@ class AGNFilingCabinet(AGNObject):
         mass : numpy array
             masses of the objects (for binaries this is total mass)
         size : numpy array
-            for BH this is set to -1, for stars this is set to the radius in Rsun,
-            for binaries this is the binary's semi-major axis (aka separation)
+            for BH this is set to -1.5, for stars this is set to the stellar radius in R_g,
+            for binaries this is the binary's semi-major axis (aka separation) in R_g
             in R_g
         direction : numpy array
             direction of the orbit of the objects, optional
@@ -1502,7 +1479,7 @@ class AGNFilingCabinet(AGNObject):
         self.category = category
         self.orb_a = orb_a
         self.mass = mass
-        # size is radius for stars, -1 for BH, bin_a for binary BH
+        # size is log radius for stars, -1 for BH, bin_a for binary BH
         self.size = size
 
         # Set direction as 0 (undetermined) if not passed
@@ -1584,9 +1561,8 @@ class AGNFilingCabinet(AGNObject):
 
         getattr(self, attr)[np.isin(getattr(self, "id_num"), id_num)] = new_info
 
-
     def add_objects(self, new_id_num, new_category, new_orb_a,
-                    new_mass, new_size, new_direction, new_disk_inner_outer,fc_num=0):
+                    new_mass, new_size, new_direction, new_disk_inner_outer, fc_num=0):
         """
         Append objects to the AGNFilingCabinet.
 
@@ -1613,7 +1589,7 @@ class AGNFilingCabinet(AGNObject):
 
         if (fc_num == 0):
             fc_num = new_mass.shape[0]
-        
+
         self.id_num = np.concatenate([self.id_num, new_id_num])
         self.category = np.concatenate([self.category, new_category])
         self.orb_a = np.concatenate([self.orb_a, new_orb_a])
