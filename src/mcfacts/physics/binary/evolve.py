@@ -3,6 +3,7 @@ Module for evolving the state of a binary.
 """
 import numpy as np
 import scipy
+from astropy import units as u
 
 
 def change_bin_mass(blackholes_binary, disk_bh_eddington_ratio,
@@ -387,6 +388,9 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
     blackholes_binary : AGNBinaryBlackHole
         Black hole binaries with time_to_merger_gw, bin_sep, flag_merging, and time_merged updated
     """
+    # Get units
+    time_gw_normalization = time_gw_normalization * u.s
+    timestep_duration = timestep_duration_yr * u.yr
 
     # 1. Find active binaries
     # 2. Find number of binary orbits around its center of mass within the timestep
@@ -418,28 +422,31 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
 
     # Find how many binary orbits in timestep. Binary separation is halved for every 10^3 orbits.
     num_orbits_in_timestep = np.zeros(len(bin_period))
-    num_orbits_in_timestep[bin_period > 0] = timestep_duration_yr / bin_period[bin_period > 0]
+    num_orbits_in_timestep[bin_period > 0] = timestep_duration.to('yr').value / bin_period[bin_period > 0]
     scaled_num_orbits = num_orbits_in_timestep / 1000.0
 
     # Timescale for binary merger via GW emission alone, scaled to bin parameters
     time_to_merger_gw = time_gw_normalization * ((bin_sep ** 4.0)) * ((mass_binary/10.0) ** -2) * ((mass_reduced / 2.5) ** -1.0) * ecc_factor
     # Finite check
-    assert np.isfinite(time_to_merger_gw).all(),\
+    assert np.isfinite(time_to_merger_gw.value).all(),\
         "Finite check failure: time_to_merger_gw"
-    blackholes_binary.time_to_merger_gw[idx_non_mergers] = time_to_merger_gw
+    blackholes_binary.time_to_merger_gw[idx_non_mergers] = time_to_merger_gw.to('s').value
 
+    # Identify merging binaries
+    mask_merging = (time_to_merger_gw.to('s').value <= timestep_duration.to('s').value)
     # Binary will not merge in this timestep
     # new bin_sep according to Baruteu+11 prescription
-    bin_sep[time_to_merger_gw > timestep_duration_yr] = bin_sep[time_to_merger_gw > timestep_duration_yr] * (0.5 ** scaled_num_orbits[time_to_merger_gw > timestep_duration_yr])
-    blackholes_binary.bin_sep[idx_non_mergers[time_to_merger_gw > timestep_duration_yr]] = bin_sep[time_to_merger_gw > timestep_duration_yr]
+    bin_sep[~mask_merging] = bin_sep[~mask_merging] * (0.5 ** scaled_num_orbits[~mask_merging])
+    blackholes_binary.bin_sep[idx_non_mergers[~mask_merging]] = bin_sep[~mask_merging]
     # Finite check
     assert np.isfinite(blackholes_binary.bin_sep).all(),\
         "Finite check failure: blackholes_binary.bin_sep"
 
     # Otherwise binary will merge in this timestep
     # Update flag_merging to -2 and time_merged to current time
-    blackholes_binary.flag_merging[idx_non_mergers[time_to_merger_gw <= timestep_duration_yr]] = -2
-    blackholes_binary.time_merged[idx_non_mergers[time_to_merger_gw <= timestep_duration_yr]] = time_passed
+    blackholes_binary.flag_merging[idx_non_mergers[mask_merging]] = -2
+    blackholes_binary.time_merged[idx_non_mergers[mask_merging]] = \
+        ((time_passed * u.yr) + time_to_merger_gw[mask_merging]).to('s').value
     # Finite check
     assert np.isfinite(blackholes_binary.flag_merging).all(),\
         "Finite check failure: blackholes_binary.flag_merging"

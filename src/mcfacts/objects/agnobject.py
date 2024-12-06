@@ -31,7 +31,8 @@ attr_merged_bh = ["id_num", "galaxy", "bin_orb_a", "mass_final",
                   "spin_1", "spin_2",
                   "spin_angle_1", "spin_angle_2",
                   "gen_1", "gen_2",
-                  "chi_eff", "chi_p", "time_merged"]
+                  "chi_eff", "chi_p", "time_merged",
+                  "time_inspiral_flagged", "bin_sep_flagged"]
 
 attr_filing_cabinet = ["id_num", "category", "orb_a", "mass", "size",
                        "direction", "disk_inner_outer"]
@@ -1294,6 +1295,8 @@ class AGNMergedBlackHole(AGNObject):
                  chi_eff=empty_arr,
                  chi_p=empty_arr,
                  time_merged=empty_arr,
+                 time_inspiral_flagged=empty_arr,
+                 bin_sep_flagged=empty_arr,
                  num_obj_merge=0):
         """Creates an instance of AGNMergedBlackHole.
 
@@ -1331,6 +1334,10 @@ class AGNMergedBlackHole(AGNObject):
             precessing spin component of the binary prior to merger
         time_merged : numpy array
             the timestep of merger
+        time_inspiral_flagged : numpy array
+            the time from when the binary was flagged as a merger to merger
+        bin_sep_flagged : numpy array
+            the binary separation when the binary was flagged for merger
         num_obj_merge : int
             number of objects
         """
@@ -1355,6 +1362,8 @@ class AGNMergedBlackHole(AGNObject):
         self.chi_eff = chi_eff
         self.chi_p = chi_p
         self.time_merged = time_merged
+        self.time_inspiral_flagged = time_inspiral_flagged
+        self.bin_sep_flagged =bin_sep_flagged
 
         self.num = num_obj_merge
 
@@ -1364,7 +1373,9 @@ class AGNMergedBlackHole(AGNObject):
                        new_mass_final=empty_arr, new_spin_final=empty_arr, new_spin_angle_final=empty_arr,
                        new_mass_1=empty_arr, new_mass_2=empty_arr, new_spin_1=empty_arr, new_spin_2=empty_arr,
                        new_spin_angle_1=empty_arr, new_spin_angle_2=empty_arr, new_gen_1=empty_arr, new_gen_2=empty_arr,
-                       new_chi_eff=empty_arr, new_chi_p=empty_arr, new_time_merged=empty_arr, num_obj_merge=0):
+                       new_chi_eff=empty_arr, new_chi_p=empty_arr, new_time_merged=empty_arr, 
+                       new_time_inspiral_flagged=empty_arr, new_bin_sep_flagged=empty_arr,
+                       num_obj_merge=0):
         """
         Add blackholes to the AGNMergedBlackHoles object
 
@@ -1402,6 +1413,10 @@ class AGNMergedBlackHole(AGNObject):
             precessing spin component of the binary prior to merger
         new_time_merged : numpy array
             the timestep of merger
+        new_time_inspiral_flagged : numpy array
+            time from merger flag to merger
+        new_bin_sep_flagged : numpy array
+            binary separation when flagged for merger
         num_obj_merge : int
             number of objects to be added
         """
@@ -1423,6 +1438,8 @@ class AGNMergedBlackHole(AGNObject):
         self.chi_eff = np.concatenate([self.chi_eff, new_chi_eff])
         self.chi_p = np.concatenate([self.chi_p, new_chi_p])
         self.time_merged = np.concatenate([self.time_merged, new_time_merged])
+        self.time_inspiral_flagged = np.concatenate([self.time_inspiral_flagged, new_time_inspiral_flagged])
+        self.bin_sep_flagged = np.concatenate([self.bin_sep_flagged, new_bin_sep_flagged])
 
         if (num_obj_merge == 0):
             num_obj_merge = new_mass_final.shape[0]
