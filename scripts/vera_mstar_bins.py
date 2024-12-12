@@ -215,9 +215,11 @@ def make_batch(opts, wkdir, smbh_mass, nsc_mass):
     if not opts.print_only:
         os.system(cmd)
 
+    # Identify output file
+    mcfacts_out = fname_ini_local.rstrip("ini") + "out"
     # Make all iterations
-    cmd = "python3 %s --fname-ini %s --work-directory %s"%(
-        opts.mcfacts_exe, fname_ini_local, wkdir)
+    cmd = "python3 %s --fname-ini %s --work-directory %s > %s"%(
+        opts.mcfacts_exe, fname_ini_local, wkdir, mcfacts_out)
     print(cmd)
     if not opts.print_only:
         os.system(cmd)
