@@ -4,8 +4,8 @@ Module for evolving the state of a binary.
 from mcfacts.physics import point_masses
 import numpy as np
 import scipy
-
-from astropy import units as astropy_units
+import astropy.constants as const
+import astropy.units as u
 
 
 def change_bin_mass(blackholes_binary, disk_bh_eddington_ratio,
@@ -296,12 +296,13 @@ def bin_migration(smbh_mass, disk_bin_bhbh_pro_array, disk_surf_model, disk_aspe
         disk_aspect_ratio = disk_aspect_ratio_model(bin_com)
 
     # This is an exact copy of mcfacts.physics.migration.type1.type1.
-    tau_mig = ((disk_aspect_ratio**2)* scipy.constants.c/(3.0*scipy.constants.G) * (smbh_mass/bin_mass) / disk_surface_density) / np.sqrt(bin_com)
-    # ratio of timestep_duration_yr to tau_mig (timestep_duration_yr in years so convert)
-    dt = timestep_duration_yr * scipy.constants.year / tau_mig
+    tau = ((disk_aspect_ratio ** 2.0) * const.c.value / (3.0 * const.G.value) * (smbh_mass/masses[migration_indices]) / disk_surface_density) / np.sqrt(new_orbs_a)
+    # ratio of timestep to tau_mig (timestep in years so convert)
+    year = (1 * u.yr).to(u.s).value # o.g. vers: (365 * u.day).to(u.s).value; julian yr: (1 * u.yr).to(u.s).value
+    dt = timestep_duration_yr * year / tau
     # migration distance is original locations times fraction of tau_mig elapsed
-    migration_distance = bin_com * dt
-
+    migration_distance = new_orbs_a.copy() * dt
+    
     disk_bin_bhbh_pro_orbs_a = np.zeros_like(bin_com)
 
     # Find indices of objects where feedback ratio <1; these still migrate inwards, but more slowly
@@ -621,8 +622,8 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
     sep_crit = (point_masses.r_schwarzschild_of_m(blackholes_binary.mass_1[idx_non_mergers]) +
                 point_masses.r_schwarzschild_of_m(blackholes_binary.mass_2[idx_non_mergers]))
     time_to_merger_gw = (point_masses.time_of_orbital_shrinkage(
-        blackholes_binary.mass_1[idx_non_mergers] * astropy_units.Msun,
-        blackholes_binary.mass_2[idx_non_mergers] * astropy_units.Msun,
+        blackholes_binary.mass_1[idx_non_mergers] * u.Msun,
+        blackholes_binary.mass_2[idx_non_mergers] * u.Msun,
         point_masses.si_from_r_g(smbh_mass, bin_sep),
         sep_final=sep_crit
     ) * ecc_factor).value
@@ -634,7 +635,7 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
 
     # Create mask for things that WILL merge in this timestep
     # need timestep_duration_yr in seconds
-    timestep_duration_sec = (timestep_duration_yr * astropy_units.year).to("second").value
+    timestep_duration_sec = (timestep_duration_yr * u.year).to("second").value
     merge_mask = time_to_merger_gw <= timestep_duration_sec
 
     # Binary will not merge in this timestep

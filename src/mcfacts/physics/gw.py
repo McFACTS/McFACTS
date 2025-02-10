@@ -143,7 +143,7 @@ def bbh_gw_params(blackholes_binary, bh_binary_id_num_gw, smbh_mass, timestep_du
     blackholes_binary : AGNBinaryBlackHole
         Binary black hole parameters
     bh_binary_id_num_gw : numpy.ndarray
-        ID numbers of binaries with separations below :math:`\\mathtt{min_bbh_gw_separation}` with :obj:`float` type
+        ID numbers of binaries with separations below :math:`mathtt_{min_bbh_gw_separation}` with :obj:`float` type
     smbh_mass : float
         Mass [M_sun] of the SMBH
     timestep_duration_yr : float

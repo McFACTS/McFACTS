@@ -3,7 +3,7 @@ Module for TDE specific calculations.
 """
 
 import numpy as np
-from astropy import units as astropy_units
+import astropy.units as u
 from mcfacts.physics.point_masses import si_from_r_g
 
 
@@ -34,10 +34,10 @@ def check_tde_or_flip(star_retro_id_num, star_retro_mass, star_retro_log_radius,
     """
 
     # Convert everything to units
-    star_mass = star_retro_mass * astropy_units.Msun
-    star_radius = (10 ** star_retro_log_radius) * astropy_units.Rsun
+    star_mass = star_retro_mass * u.Msun
+    star_radius = (10 ** star_retro_log_radius) * u.Rsun
     star_orb_a = (si_from_r_g(smbh_mass, star_retro_orb_a)).to("meter")
-    smbh_mass_units = smbh_mass * astropy_units.Msun
+    smbh_mass_units = smbh_mass * u.Msun
 
     # Tidal disruption radius of the disk is R_star * (M_smbh / M_star)^1/3
     disk_radius_tidal_disruption = (star_radius * ((smbh_mass_units / star_mass) ** (1./3.))).to("meter")

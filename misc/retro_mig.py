@@ -1,7 +1,6 @@
 import numpy as np
-import scipy
-from astropy.constants import M_sun
-
+import astropy.constants as const
+import astropy.units as u
 
 def retro_mig(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
               disk_bh_retro_orbs_e, disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
@@ -51,17 +50,17 @@ def retro_mig(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
 
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
-    smbh_mass_kg = smbh_mass * M_sun.si.value
-    semi_maj_axis = disk_bh_retro_orbs_a * scipy.constants.G * smbh_mass_kg \
-                    / (scipy.constants.c ** 2)  # m
-    retro_mass = disk_bh_retro_masses * M_sun.si.value  # kg
+    smbh_mass_kg = smbh_mass * const.M_sun.si.value
+    semi_maj_axis = disk_bh_retro_orbs_a * const.G * smbh_mass_kg \
+                    / (const.c ** 2)  # m
+    retro_mass = disk_bh_retro_masses * const.M_sun.si.value  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_e  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
-    timestep_duration_yr = timestep_duration_yr * scipy.constants.Julian_year  # sec
+    timestep_duration_yr = timestep_duration_yr * (1 * u.yr).to(u.s)  # sec
 
     # period in units of sec
-    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3)/(scipy.constants.G * smbh_mass_kg))
+    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3)/(const.G * smbh_mass_kg))
     # semi-latus rectum in units of meters
     semi_lat_rec = semi_maj_axis * (1.0 - (ecc ** 2))
     # WZL Eqn 7 (sigma+/-)

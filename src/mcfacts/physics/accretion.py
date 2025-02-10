@@ -3,8 +3,8 @@ Module for calculating change of mass, spin magnitude, and spin angle due to acc
 """
 
 import numpy as np
-import astropy.constants as astropy_const
-import astropy.units as astropy_units
+import astropy.constants as const
+import astropy.units as u
 from mcfacts.physics.point_masses import si_from_r_g
 
 
@@ -49,13 +49,13 @@ def change_star_mass(disk_star_pro_masses,
     """
 
     # Put things in SI units
-    star_masses_si = disk_star_pro_masses * astropy_units.solMass
-    disk_sound_speed_si = disk_sound_speed(disk_star_pro_orbs_a) * astropy_units.meter/astropy_units.second
-    disk_density_si = disk_density(disk_star_pro_orbs_a) * (astropy_units.kg / (astropy_units.m ** 3))
-    timestep_duration_yr_si = timestep_duration_yr * astropy_units.year
+    star_masses_si = disk_star_pro_masses * u.solMass
+    disk_sound_speed_si = disk_sound_speed(disk_star_pro_orbs_a) * u.meter/u.second
+    disk_density_si = disk_density(disk_star_pro_orbs_a) * (u.kg / (u.m ** 3))
+    timestep_duration_yr_si = timestep_duration_yr * u.year
 
     # Calculate Bondi and Hill radii
-    r_bondi = (2 * astropy_const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
+    r_bondi = (2 * const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
     r_hill_rg = (disk_star_pro_orbs_a * (1 - disk_star_pro_eccs) * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
 

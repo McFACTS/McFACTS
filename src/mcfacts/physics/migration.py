@@ -3,8 +3,10 @@ Module for calculating the timescale of migrations.
 """
 
 import numpy as np
-import scipy
+import astropy.constants as const
+import astropy.units as u
 from mcfacts.mcfacts_random_state import rng
+import scipy
 
 
 def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
@@ -83,9 +85,10 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
     #   and Omega is the Keplerian orbital frequency around the SMBH
     # Here smbh_mass/disk_bh_mass_pro are both in M_sun, so units cancel
     # c, G and disk_surface_density in SI units
-    tau = ((disk_aspect_ratio ** 2.0) * scipy.constants.c / (3.0 * scipy.constants.G) * (smbh_mass/masses[migration_indices]) / disk_surface_density) / np.sqrt(new_orbs_a)
+    tau = ((disk_aspect_ratio ** 2.0) * const.c.value / (3.0 * const.G.value) * (smbh_mass/masses[migration_indices]) / disk_surface_density) / np.sqrt(new_orbs_a)
     # ratio of timestep to tau_mig (timestep in years so convert)
-    dt = timestep_duration_yr * scipy.constants.year / tau
+    year = (1 * u.yr).to(u.s).value # o.g. vers: (365 * u.day).to(u.s).value; julian yr: (1 * u.yr).to(u.s).value
+    dt = timestep_duration_yr * (1 * u.yr).to(u.s).value / tau
     # migration distance is original locations times fraction of tau_mig elapsed
     migration_distance = new_orbs_a.copy() * dt
 

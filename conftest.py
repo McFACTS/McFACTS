@@ -8,7 +8,7 @@ from enum import Enum
 import numpy as np
 import pytest
 import scipy
-from astropy import units as u
+import astropy.units as u
 
 from mcfacts.inputs.ReadInputs import load_disk_arrays, construct_disk_direct
 

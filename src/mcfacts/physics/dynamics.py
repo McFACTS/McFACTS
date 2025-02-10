@@ -8,8 +8,9 @@ move elsewhere.
 import numpy as np
 import scipy
 
-from astropy import units as astropy_units
-from astropy import constants as astropy_const
+import astropy.units as u
+import astropy.constants as const
+# from astropy import constants as astropy_const
 
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage
@@ -163,7 +164,7 @@ def circular_singles_encounters_prograde(
 
     # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
     #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
-    orbital_timescales_circ_pops = scipy.constants.pi*((disk_bh_pro_orbs_a[circ_prograde_population_indices])**(1.5))*(2.e30*smbh_mass*scipy.constants.G)/(scipy.constants.c**(3.0)*3.15e7) 
+    orbital_timescales_circ_pops = np.pi*((disk_bh_pro_orbs_a[circ_prograde_population_indices])**(1.5))*(2.e30*smbh_mass*const.G.value)/(const.c.value**(3.0)*3.15e7) 
     N_circ_orbs_per_timestep = timestep_duration_yr/orbital_timescales_circ_pops
     ecc_orb_min = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
     ecc_orb_max = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
@@ -178,7 +179,7 @@ def circular_singles_encounters_prograde(
                     temp_bin_mass = disk_bh_pro_masses[circ_idx] + disk_bh_pro_masses[ecc_idx]
                     bh_smbh_mass_ratio = temp_bin_mass/(3.0*smbh_mass)
                     mass_ratio_factor = (bh_smbh_mass_ratio)**(1./3.)
-                    prob_orbit_overlap = (1./scipy.constants.pi)*mass_ratio_factor
+                    prob_orbit_overlap = (1./np.pi)*mass_ratio_factor
                     prob_enc_per_timestep = prob_orbit_overlap * N_circ_orbs_per_timestep[i]
                     if prob_enc_per_timestep > 1:
                         prob_enc_per_timestep = 1
@@ -344,14 +345,14 @@ def circular_binaries_encounters_ecc_prograde(
     """
 
     # Set up constants
-    solar_mass = astropy_units.solMass.to("kg")
+    solar_mass = u.solMass.to("kg")
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
 
     # Set up other values we need
     bin_masses = blackholes_binary.mass_1 + blackholes_binary.mass_2
-    bin_velocities = scipy.constants.c / np.sqrt(blackholes_binary.bin_orb_a)
-    bin_binding_energy = scipy.constants.G * (solar_mass ** 2) * blackholes_binary.mass_1 * blackholes_binary.mass_2 / (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
+    bin_velocities = const.c.value / np.sqrt(blackholes_binary.bin_orb_a)
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * blackholes_binary.mass_1 * blackholes_binary.mass_2 / (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((blackholes_binary.bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr/bin_orbital_times
 
@@ -365,7 +366,7 @@ def circular_binaries_encounters_ecc_prograde(
     ecc_orb_min = ecc_prograde_population_locations * (1.0-ecc_prograde_population_eccentricities)
     ecc_orb_max = ecc_prograde_population_locations * (1.0+ecc_prograde_population_eccentricities)
     # Keplerian velocity of ecc prograde orbiter around SMBH (=c/sqrt(a/r_g))
-    ecc_velocities = scipy.constants.c / np.sqrt(ecc_prograde_population_locations)
+    ecc_velocities = const.c.value / np.sqrt(ecc_prograde_population_locations)
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon_orb_a = disk_radius_outer * ((ecc_prograde_population_masses / (3 * (ecc_prograde_population_masses + smbh_mass)))**(1. / 3.)) * rng.uniform(size=len(ecc_prograde_population_masses))
@@ -390,7 +391,7 @@ def circular_binaries_encounters_ecc_prograde(
                 temp_bin_mass = bin_masses[i] + ecc_prograde_population_masses[j]
                 bh_smbh_mass_ratio = temp_bin_mass / (3.0 * smbh_mass)
                 mass_ratio_factor = bh_smbh_mass_ratio ** (1./3.)
-                prob_orbit_overlap = (1. / scipy.constants.pi) * mass_ratio_factor
+                prob_orbit_overlap = (1. / np.pi) * mass_ratio_factor
                 prob_enc_per_timestep = prob_orbit_overlap * bin_orbits_per_timestep[i]
                 # Cap prob_enc_per_timestep at 1
                 if prob_enc_per_timestep > 1:
@@ -587,7 +588,7 @@ def circular_binaries_encounters_circ_prograde(
     """
 
     # Housekeeping
-    solar_mass = astropy_units.solMass.to("kg")
+    solar_mass = u.solMass.to("kg")
 
     # Magnitude of energy change to drive binary to merger in ~2 interactions in a strong encounter. Say de_strong=0.9
     # de_strong here refers to the perturbation of the binary around its center of mass
@@ -599,10 +600,10 @@ def circular_binaries_encounters_circ_prograde(
 
     # Set up arrays for later
     bin_masses = blackholes_binary.mass_1 + blackholes_binary.mass_2
-    bin_velocities = scipy.constants.c/np.sqrt(blackholes_binary.bin_orb_a)
+    bin_velocities = const.c.value/np.sqrt(blackholes_binary.bin_orb_a)
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((blackholes_binary.bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr / bin_orbital_times
-    bin_binding_energy = scipy.constants.G * (solar_mass ** 2.0) * blackholes_binary.mass_1 * blackholes_binary.mass_2 /  (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * blackholes_binary.mass_1 * blackholes_binary.mass_2 /  (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
 
     # Find the e< crit_ecc population. These are the interlopers w. low encounter vel that can harden the circularized population
     circ_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
@@ -614,7 +615,7 @@ def circular_binaries_encounters_circ_prograde(
     ecc_orb_min = disk_bh_pro_orbs_a[circ_prograde_population_indices]*(1.0-disk_bh_pro_orbs_ecc[circ_prograde_population_indices])
     ecc_orb_max = disk_bh_pro_orbs_a[circ_prograde_population_indices]*(1.0+disk_bh_pro_orbs_ecc[circ_prograde_population_indices])
     # Keplerian velocity of ecc prograde orbiter around SMBH (=c/sqrt(a/r_g))
-    circ_velocities = scipy.constants.c/np.sqrt(circ_prograde_population_locations)
+    circ_velocities = const.c.value/np.sqrt(circ_prograde_population_locations)
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon_orb_a = disk_radius_outer * ((circ_prograde_population_masses / (3 * (circ_prograde_population_masses + smbh_mass)))**(1. / 3.)) * rng.uniform(size=len(circ_prograde_population_masses))
@@ -635,7 +636,7 @@ def circular_binaries_encounters_circ_prograde(
                 temp_bin_mass = bin_masses[i] + circ_prograde_population_masses[j]
                 bh_smbh_mass_ratio = temp_bin_mass/(3.0 * smbh_mass)
                 mass_ratio_factor = (bh_smbh_mass_ratio ** (1./3.))
-                prob_orbit_overlap = (1. / scipy.constants.pi) * mass_ratio_factor
+                prob_orbit_overlap = (1. / np.pi) * mass_ratio_factor
                 prob_enc_per_timestep = prob_orbit_overlap * bin_orbits_per_timestep[i]
                 if prob_enc_per_timestep > 1:
                     prob_enc_per_timestep = 1
@@ -842,7 +843,7 @@ def bin_spheroid_encounter(
     # Critical disk radius (in units of r_g,SMBH) where after crit_time, all the spheroid orbits are captured.
     crit_radius = 1.e3
     # Solar mass in units of kg
-    solar_mass = astropy_units.solMass.to("kg")
+    solar_mass = u.solMass.to("kg")
     # Magnitude of energy change to drive binary to merger in ~2 interactions in a strong encounter. Say de_strong=0.9
     # de_strong here refers to the perturbation of the binary around its center of mass
     # The energy in the exchange is assumed to come from the binary binding energy around its c.o.m.
@@ -854,8 +855,8 @@ def bin_spheroid_encounter(
 
     # Set up binary properties we need for later
     bin_mass = blackholes_binary.mass_1 + blackholes_binary.mass_2
-    bin_velocities = scipy.constants.c / np.sqrt(blackholes_binary.bin_orb_a)
-    bin_binding_energy = scipy.constants.G * (solar_mass ** 2) * blackholes_binary.mass_1 * blackholes_binary.mass_2 / (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
+    bin_velocities = const.c.value / np.sqrt(blackholes_binary.bin_orb_a)
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * blackholes_binary.mass_1 * blackholes_binary.mass_2 / (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
 
     # Calculate encounter rate for each binary based on bin_orb_a, binary size, and time_passed
     # Set up array of encounter rates filled with -1
@@ -903,7 +904,7 @@ def bin_spheroid_encounter(
         radius_3 = bin_orb_a * (10 ** (-0.5 + rng.uniform(size=num_encounters)))
         # K.E_3 in Joules
         # Keplerian velocity of ecc prograde orbiter around SMBH (=c/sqrt(a/r_g))
-        velocity_3 = scipy.constants.c / np.sqrt(radius_3)
+        velocity_3 = const.c.value / np.sqrt(radius_3)
         relative_velocities = np.abs(bin_velocities[chances_of_encounter < enc_rate] - velocity_3)
         ke_3 = 0.5 * mass_3 * solar_mass * (relative_velocities ** 2.0)
 
@@ -1071,10 +1072,10 @@ def bh_near_smbh(
     ecc_factor_arr = (1.0 - (disk_bh_pro_orbs_ecc)**(2.0))**(7/2)
     # Estimate the orbital decay time of each bh
     decay_time_arr = time_of_orbital_shrinkage(
-        smbh_mass*astropy_units.solMass,
-        disk_bh_pro_masses*astropy_units.solMass,
-        si_from_r_g(smbh_mass*astropy_units.solMass, disk_bh_pro_orbs_a),
-        0*astropy_units.m,
+        smbh_mass*u.solMass,
+        disk_bh_pro_masses*u.solMass,
+        si_from_r_g(smbh_mass*u.solMass, disk_bh_pro_orbs_a),
+        0*u.m,
     )
     # Estimate the number of timesteps to decay
     decay_timesteps = decay_time_arr.to('yr').value / timestep_duration_yr

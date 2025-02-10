@@ -2,11 +2,9 @@
 Module for computing disk-orbiter interactions, which may lead to capture.
 """
 import numpy as np
-import scipy
-from mcfacts.mcfacts_random_state import rng
-
-from mcfacts import constants as mc_const
+import astropy.constants as const
 import astropy.units as u
+from mcfacts.mcfacts_random_state import rng
 
 
 def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
@@ -59,16 +57,16 @@ def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    semi_maj_axis = disk_bh_retro_orbs_a * scipy.constants.G * smbh_mass \
-                    / (scipy.constants.c ** 2)  # m
+    semi_maj_axis = disk_bh_retro_orbs_a * const.G * smbh_mass \
+                    / (const.c ** 2)  # m
     retro_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
-    timestep_duration_yr = timestep_duration_yr * scipy.constants.Julian_year  # sec
+    timestep_duration_yr = timestep_duration_yr * (1 * u.yr).to(u.s)  # sec
 
     # period in units of sec
-    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (scipy.constants.G * smbh_mass))
+    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (const.G * smbh_mass))
     # semi-latus rectum in units of meters
     semi_lat_rec = semi_maj_axis * (1.0 - (ecc ** 2))
     # WZL Eqn 7 (sigma+/-)
@@ -414,15 +412,15 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     SI_smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    SI_semi_maj_axis = disk_bh_retro_orbs_a * scipy.constants.G * smbh_mass \
-                       / (scipy.constants.c ** 2)  # m
+    SI_semi_maj_axis = disk_bh_retro_orbs_a * const.G * smbh_mass \
+                       / (const.c ** 2)  # m
     SI_orbiter_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
 
     # period in units of sec
-    period = 2.0 * np.pi * np.sqrt((SI_semi_maj_axis ** 3) / (scipy.constants.G * SI_smbh_mass))
+    period = 2.0 * np.pi * np.sqrt((SI_semi_maj_axis ** 3) / (const.G * SI_smbh_mass))
     # semi-latus rectum in units of meters
     semi_lat_rec = SI_semi_maj_axis * (1.0 - (ecc ** 2))
     # WZL Eqn 7 (sigma+/-)
@@ -489,15 +487,15 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    semi_maj_axis = retrograde_bh_locations * scipy.constants.G * smbh_mass \
-                    / (scipy.constants.c ** 2)  # m
+    semi_maj_axis = retrograde_bh_locations * const.G * smbh_mass \
+                    / (const.c ** 2)  # m
     retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
     omega = retro_arg_periapse  # radians
     ecc = retrograde_bh_orb_ecc  # unitless
     inc = retrograde_bh_orb_inc  # radians
 
     # period in units of sec
-    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (scipy.constants.G * smbh_mass))
+    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (const.G * smbh_mass))
     # semi-latus rectum in units of meters
     semi_lat_rec = semi_maj_axis * (1.0 - (ecc ** 2))
     # WZL Eqn 7 (sigma+/-)
