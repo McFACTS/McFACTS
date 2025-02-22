@@ -814,7 +814,9 @@ def main():
                         opts.disk_bh_pro_orb_ecc_crit,
                         opts.delta_energy_strong,
                         blackholes_binary,
-                        opts.disk_radius_outer
+                        opts.disk_radius_outer,
+                        opts.mean_harden_energy_delta,
+                        opts.var_harden_energy_delta
                     )
 
                     # Update filing cabinet with new bin_sep
@@ -908,6 +910,8 @@ def main():
                         opts.nsc_imf_bh_powerlaw_index,
                         opts.delta_energy_strong,
                         opts.nsc_spheroid_normalization,
+                        opts.mean_harden_energy_delta,
+                        opts.var_harden_energy_delta
                     )
                     # Update filing cabinet with new bin_sep
                     filing_cabinet.update(id_num=blackholes_binary.id_num,

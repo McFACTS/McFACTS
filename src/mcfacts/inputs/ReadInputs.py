@@ -193,6 +193,8 @@ INPUT_TYPES = {
     "disk_inner_stable_circ_orb"    : float,
     "mass_pile_up"                  : float,
     "save_snapshots"                : bool,
+    "mean_harden_energy_delta"      : float,
+    "var_harden_energy_delta"       : float
 }
 
 

@@ -44,6 +44,8 @@ def circular_singles_encounters_prograde(
         Critical orbital eccentricity [unitless] below which orbit is close enough to circularize
     delta_energy_strong : float
         Average energy change [units??] per strong encounter
+    disk_radius_outer : float
+        Outer radius of the inner disk (Rg)
 
     Returns
     -------
@@ -216,7 +218,7 @@ def circular_binaries_encounters_ecc_prograde(
         timestep_duration_yr,
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
-        blackholes_binary,
+        disk_bins_bhbh,
         disk_radius_outer
         ):
     """"Adjust orb eccentricities due to encounters between BBH and eccentric single BHs
@@ -245,8 +247,8 @@ def circular_binaries_encounters_ecc_prograde(
     disk_bins_bhbh : numpy.ndarray
         [21, bindex] mixed array containing properties of binary BBH, see add_to_binary_array function for
         complete description
-    bindex : int
-        Number of binaries at time of function call
+    disk_radius_outer : float
+        Outer radius of the inner disk (Rg)
 
     Returns
     -------
@@ -349,10 +351,10 @@ def circular_binaries_encounters_ecc_prograde(
     epsilon = 1e-8
 
     # Set up other values we need
-    bin_masses = blackholes_binary.mass_1 + blackholes_binary.mass_2
-    bin_velocities = scipy.constants.c / np.sqrt(blackholes_binary.bin_orb_a)
-    bin_binding_energy = scipy.constants.G * (solar_mass ** 2) * blackholes_binary.mass_1 * blackholes_binary.mass_2 / (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
-    bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((blackholes_binary.bin_orb_a / 1.e3) ** 1.5)
+    bin_masses = disk_bins_bhbh.mass_1 + disk_bins_bhbh.mass_2
+    bin_velocities = scipy.constants.c / np.sqrt(disk_bins_bhbh.bin_orb_a)
+    bin_binding_energy = scipy.constants.G * (solar_mass ** 2) * disk_bins_bhbh.mass_1 * disk_bins_bhbh.mass_2 / (si_from_r_g(smbh_mass, disk_bins_bhbh.bin_sep).to("meter")).value
+    bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((disk_bins_bhbh.bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr/bin_orbital_times
 
     # Find the e> crit_ecc population. These are the interlopers that can perturb the circularized population
@@ -370,19 +372,19 @@ def circular_binaries_encounters_ecc_prograde(
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon_orb_a = disk_radius_outer * ((ecc_prograde_population_masses / (3 * (ecc_prograde_population_masses + smbh_mass)))**(1. / 3.)) * rng.uniform(size=len(ecc_prograde_population_masses))
 
-    if blackholes_binary.num == 0:
-        return (blackholes_binary)
+    if disk_bins_bhbh.num == 0:
+        return (disk_bins_bhbh)
 
     # Create array of random numbers for the chances of encounters
-    chances = rng.uniform(size=(blackholes_binary.num, ecc_prograde_population_indices.size))
+    chances = rng.uniform(size=(disk_bins_bhbh.num, ecc_prograde_population_indices.size))
 
     # For each binary in blackholes_binary
-    for i in range(0, blackholes_binary.num):
+    for i in range(0, disk_bins_bhbh.num):
         # We compare each single BH to that binary
         for j in range(0, len(ecc_prograde_population_indices)):
             # If binary com orbit lies inside eccentric orbit [min,max] radius
             # i.e. if R_m3_minimum lie inside R_bin_maximum and does R_m3_max lie outside R_bin_minimum
-            if (1.0-blackholes_binary.bin_orb_ecc[i]) * blackholes_binary.bin_orb_a[i] < ecc_orb_max[j] and (1.0+blackholes_binary.bin_orb_ecc[i]) * blackholes_binary.bin_orb_a[i] > ecc_orb_min[j]:
+            if (1.0 - disk_bins_bhbh.bin_orb_ecc[i]) * disk_bins_bhbh.bin_orb_a[i] < ecc_orb_max[j] and (1.0 + disk_bins_bhbh.bin_orb_ecc[i]) * disk_bins_bhbh.bin_orb_a[i] > ecc_orb_min[j]:
 
                 # Make a temporary Hill sphere treating binary + ecc interloper as a 'binary' = M_1+M_2+M_3
                 # r_h = a_circ1(temp_bin_mass/3mass_smbh)^1/3 so prob_enc/orb = mass_ratio^1/3/pi
@@ -408,9 +410,9 @@ def circular_binaries_encounters_ecc_prograde(
                     if hard > 0:
                         # Binary is hard w.r.t interloper
                         # Change binary parameters; decr separation, incr ecc around bin_orb_a and orb_ecc
-                        blackholes_binary.bin_sep[i] = blackholes_binary.bin_sep[i] * (1 - delta_energy_strong)
-                        blackholes_binary.bin_ecc[i] = blackholes_binary.bin_ecc[i] * (1 + delta_energy_strong)
-                        blackholes_binary.bin_orb_ecc[i] = blackholes_binary.bin_orb_ecc[i] * (1 + delta_energy_strong)
+                        disk_bins_bhbh.bin_sep[i] = disk_bins_bhbh.bin_sep[i] * (1 - delta_energy_strong)
+                        disk_bins_bhbh.bin_ecc[i] = disk_bins_bhbh.bin_ecc[i] * (1 + delta_energy_strong)
+                        disk_bins_bhbh.bin_orb_ecc[i] = disk_bins_bhbh.bin_orb_ecc[i] * (1 + delta_energy_strong)
                         # Change interloper parameters; increase a_ecc, increase e_ecc
                         ecc_prograde_population_locations[j] = ecc_prograde_population_locations[j] * (1 + delta_energy_strong)
                         # Catch for if location > disk_radius_outer #
@@ -422,33 +424,33 @@ def circular_binaries_encounters_ecc_prograde(
                         # Binary is soft w.r.t. interloper
                         # Check to see if binary is ionized
                         # Change binary parameters; incr bin separation, decr ecc around com, incr orb_ecc
-                        blackholes_binary.bin_sep[i] = blackholes_binary.bin_sep[i] * (1 + delta_energy_strong)
-                        blackholes_binary.bin_ecc[i] = blackholes_binary.bin_ecc[i] * (1 - delta_energy_strong)
-                        blackholes_binary.bin_orb_ecc[i] = blackholes_binary.bin_orb_ecc[i] * (1 + delta_energy_strong)
+                        disk_bins_bhbh.bin_sep[i] = disk_bins_bhbh.bin_sep[i] * (1 + delta_energy_strong)
+                        disk_bins_bhbh.bin_ecc[i] = disk_bins_bhbh.bin_ecc[i] * (1 - delta_energy_strong)
+                        disk_bins_bhbh.bin_orb_ecc[i] = disk_bins_bhbh.bin_orb_ecc[i] * (1 + delta_energy_strong)
                         # Change interloper parameters; decrease a_ecc, decrease e_ecc
                         ecc_prograde_population_locations[j] = ecc_prograde_population_locations[j] * (1 - delta_energy_strong)
                         ecc_prograde_population_eccentricities[j] = ecc_prograde_population_eccentricities[j] * (1 - delta_energy_strong)
 
                     # Catch if bin_ecc or bin_orb_ecc >= 1
-                    if blackholes_binary.bin_ecc[i] >= 1:
-                        blackholes_binary.bin_ecc[i] = 1.0 - epsilon
-                    if blackholes_binary.bin_orb_ecc[i] >= 1:
-                        blackholes_binary.bin_orb_ecc[i] = 1.0 - epsilon
+                    if disk_bins_bhbh.bin_ecc[i] >= 1:
+                        disk_bins_bhbh.bin_ecc[i] = 1.0 - epsilon
+                    if disk_bins_bhbh.bin_orb_ecc[i] >= 1:
+                        disk_bins_bhbh.bin_orb_ecc[i] = 1.0 - epsilon
 
     # TODO: ALSO return new array of singletons with changed params.
     disk_bh_pro_orbs_a[ecc_prograde_population_indices] = ecc_prograde_population_locations
     disk_bh_pro_orbs_ecc[ecc_prograde_population_indices] = ecc_prograde_population_eccentricities
 
     # Check finite
-    assert np.isfinite(blackholes_binary.bin_sep).all(), \
+    assert np.isfinite(disk_bins_bhbh.bin_sep).all(), \
         "Finite check failure: bin_separations"
-    assert np.isfinite(blackholes_binary.bin_orb_ecc).all(), \
+    assert np.isfinite(disk_bins_bhbh.bin_orb_ecc).all(), \
         "Finite check failure: bin_orbital_eccentricities"
-    assert np.isfinite(blackholes_binary.bin_ecc).all(), \
+    assert np.isfinite(disk_bins_bhbh.bin_ecc).all(), \
         "Finite check failure: bin_eccentricities"
-    assert np.sum(blackholes_binary.bin_ecc > 1) == 0, "bin_ecc has values greater than 1"
+    assert np.sum(disk_bins_bhbh.bin_ecc > 1) == 0, "bin_ecc has values greater than 1"
 
-    return (blackholes_binary, disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
+    return (disk_bins_bhbh, disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
 
 
 def circular_binaries_encounters_circ_prograde(
@@ -459,13 +461,16 @@ def circular_binaries_encounters_circ_prograde(
         timestep_duration_yr,
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
-        blackholes_binary,
-        disk_radius_outer
+        disk_bins_bhbh,
+        disk_radius_outer,
+        mean_harden_energy_delta,
+        var_harden_energy_delta
         ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
     Parameters
     ----------
+
     smbh_mass : float
         Mass [M_sun] of supermassive black hole
     disk_bh_pro_orbs_a : numpy.ndarray
@@ -483,8 +488,12 @@ def circular_binaries_encounters_circ_prograde(
     disk_bins_bhbh : numpy.ndarray
         [21, bindex] mixed array containing properties of binary BBH, see add_to_binary_array function for
         complete description
-    bindex : int
-        Number of binaries at time of function call
+    disk_radius_outer : float
+        Outer radius of the inner disk (Rg)
+    var_harden_energy_delta : float
+        Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    mean_harden_energy_delta : float
+        Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
 
     Returns
     -------
@@ -592,17 +601,20 @@ def circular_binaries_encounters_circ_prograde(
     # Magnitude of energy change to drive binary to merger in ~2 interactions in a strong encounter. Say de_strong=0.9
     # de_strong here refers to the perturbation of the binary around its center of mass
     # The energy in the exchange is assumed to come from the binary binding energy around its c.o.m.
-    # delta_energy_strong (read into this module) refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation) 
-    de_strong = 0.9
+    # delta_energy_strong (read into this module) refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation)
+
+    # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
+    de_strong = max(0., min(1., rng.normal(mean_harden_energy_delta, var_harden_energy_delta)))
+
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
 
     # Set up arrays for later
-    bin_masses = blackholes_binary.mass_1 + blackholes_binary.mass_2
-    bin_velocities = scipy.constants.c/np.sqrt(blackholes_binary.bin_orb_a)
-    bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((blackholes_binary.bin_orb_a / 1.e3) ** 1.5)
+    bin_masses = disk_bins_bhbh.mass_1 + disk_bins_bhbh.mass_2
+    bin_velocities = scipy.constants.c/np.sqrt(disk_bins_bhbh.bin_orb_a)
+    bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((disk_bins_bhbh.bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr / bin_orbital_times
-    bin_binding_energy = scipy.constants.G * (solar_mass ** 2.0) * blackholes_binary.mass_1 * blackholes_binary.mass_2 /  (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
+    bin_binding_energy = scipy.constants.G * (solar_mass ** 2.0) * disk_bins_bhbh.mass_1 * disk_bins_bhbh.mass_2 / (si_from_r_g(smbh_mass, disk_bins_bhbh.bin_sep).to("meter")).value
 
     # Find the e< crit_ecc population. These are the interlopers w. low encounter vel that can harden the circularized population
     circ_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
@@ -619,17 +631,17 @@ def circular_binaries_encounters_circ_prograde(
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon_orb_a = disk_radius_outer * ((circ_prograde_population_masses / (3 * (circ_prograde_population_masses + smbh_mass)))**(1. / 3.)) * rng.uniform(size=len(circ_prograde_population_masses))
 
-    if (blackholes_binary.num == 0):
-        return (blackholes_binary)
+    if (disk_bins_bhbh.num == 0):
+        return (disk_bins_bhbh)
 
     # Set up random numbers
-    chances = rng.uniform(size=(blackholes_binary.num, len(circ_prograde_population_locations)))
+    chances = rng.uniform(size=(disk_bins_bhbh.num, len(circ_prograde_population_locations)))
 
-    for i in range(0, blackholes_binary.num):
+    for i in range(0, disk_bins_bhbh.num):
         for j in range(0, len(circ_prograde_population_locations)):
             # If binary com orbit lies inside circ orbit [min,max] radius
             # i.e. does R_m3_minimum lie inside R_bin_maximum and does R_m3_max lie outside R_bin_minimum
-            if (1.0-blackholes_binary.bin_orb_ecc[i]) * blackholes_binary.bin_orb_a[i] < ecc_orb_max[j] and (1.0+blackholes_binary.bin_orb_ecc[i]) * blackholes_binary.bin_orb_a[i] > ecc_orb_min[j]:
+            if (1.0 - disk_bins_bhbh.bin_orb_ecc[i]) * disk_bins_bhbh.bin_orb_a[i] < ecc_orb_max[j] and (1.0 + disk_bins_bhbh.bin_orb_ecc[i]) * disk_bins_bhbh.bin_orb_a[i] > ecc_orb_min[j]:
                 # Make a temporary Hill sphere treating binary + ecc interloper as a 'binary' = M_1+M_2+M_3
                 # r_h = a_circ1(temp_bin_mass/3smbh_mass)^1/3 so prob_enc/orb = mass_ratio^1/3/pi
                 temp_bin_mass = bin_masses[i] + circ_prograde_population_masses[j]
@@ -655,9 +667,9 @@ def circular_binaries_encounters_circ_prograde(
                         # de_strong here refers to the perturbation of the binary around its center of mass
                         # The energy in the exchange is assumed to come from the binary binding energy around its c.o.m.
                         # delta_energy_strong refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation) 
-                        blackholes_binary.bin_sep[i] = blackholes_binary.bin_sep[i] * (1 - de_strong)
-                        blackholes_binary.bin_ecc[i] = blackholes_binary.bin_ecc[i] * (1 + de_strong)
-                        blackholes_binary.bin_orb_ecc[i] = blackholes_binary.bin_orb_ecc[i]*(1 + delta_energy_strong)
+                        disk_bins_bhbh.bin_sep[i] = disk_bins_bhbh.bin_sep[i] * (1 - de_strong)
+                        disk_bins_bhbh.bin_ecc[i] = disk_bins_bhbh.bin_ecc[i] * (1 + de_strong)
+                        disk_bins_bhbh.bin_orb_ecc[i] = disk_bins_bhbh.bin_orb_ecc[i] * (1 + delta_energy_strong)
                         # Change interloper parameters; increase a_ecc, increase e_ecc
                         circ_prograde_population_locations[j] = circ_prograde_population_locations[j] * (1 + delta_energy_strong)
                         if (circ_prograde_population_locations[j] > disk_radius_outer):
@@ -668,9 +680,9 @@ def circular_binaries_encounters_circ_prograde(
                         # Binary is soft w.r.t. interloper
                         # Check to see if binary is ionized
                         # Change binary parameters; incr bin separation, decr ecc around com, incr orb_ecc
-                        blackholes_binary.bin_sep[i] = blackholes_binary.bin_sep[i] * (1 + delta_energy_strong)
-                        blackholes_binary.bin_ecc[i] = blackholes_binary.bin_ecc[i] * (1 - delta_energy_strong)
-                        blackholes_binary.bin_orb_ecc[i] = blackholes_binary.bin_orb_ecc[i] * (1 + delta_energy_strong)
+                        disk_bins_bhbh.bin_sep[i] = disk_bins_bhbh.bin_sep[i] * (1 + delta_energy_strong)
+                        disk_bins_bhbh.bin_ecc[i] = disk_bins_bhbh.bin_ecc[i] * (1 - delta_energy_strong)
+                        disk_bins_bhbh.bin_orb_ecc[i] = disk_bins_bhbh.bin_orb_ecc[i] * (1 + delta_energy_strong)
                         # Change interloper parameters; decrease a_ecc, decrease e_ecc
                         circ_prograde_population_locations[j] = circ_prograde_population_locations[j] * (1 - delta_energy_strong)
                         if (circ_prograde_population_locations[j] > disk_radius_outer):
@@ -678,25 +690,27 @@ def circular_binaries_encounters_circ_prograde(
                         circ_prograde_population_eccentricities[j] = circ_prograde_population_eccentricities[j] * (1 - delta_energy_strong)
 
                     # Catch where bin_orb_ecc and bin_ecc >= 1
-                    if (blackholes_binary.bin_ecc[i] >= 1):
-                        blackholes_binary.bin_ecc[i] = 1.0 - epsilon
-                    if (blackholes_binary.bin_orb_ecc[i] >= 1):
-                        blackholes_binary.bin_orb_ecc[i] = 1.0 - epsilon
+                    if (disk_bins_bhbh.bin_ecc[i] >= 1):
+                        disk_bins_bhbh.bin_ecc[i] = 1.0 - epsilon
+                    if (disk_bins_bhbh.bin_orb_ecc[i] >= 1):
+                        disk_bins_bhbh.bin_orb_ecc[i] = 1.0 - epsilon
 
     disk_bh_pro_orbs_a[circ_prograde_population_indices] = circ_prograde_population_locations
     disk_bh_pro_orbs_ecc[circ_prograde_population_indices] = circ_prograde_population_eccentricities
 
-    return (blackholes_binary, disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
+    return (disk_bins_bhbh, disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
 
 
 def bin_spheroid_encounter(
         smbh_mass,
         timestep_duration_yr,
-        blackholes_binary,
+        disk_bins_bhbh,
         time_passed,
         nsc_bh_imf_powerlaw_index,
         delta_energy_strong,
-        nsc_spheroid_normalization
+        nsc_spheroid_normalization,
+        mean_harden_energy_delta,
+        var_harden_energy_delta
         ):
     """Perturb orbits due to encounters with spheroid (NSC) objects
 
@@ -704,21 +718,27 @@ def bin_spheroid_encounter(
     ----------
     smbh_mass : float
         Mass [M_sun] of supermassive black hole
-    disk_bh_pro_orbs_a : numpy.ndarray
-        Orbital semi-major axes [r_{g,SMBH}] of prograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
-    disk_bh_pro_masses : numpy.ndarray
-        Masses [M_sun] of prograde singleton BH at start of timestep with :obj:`float` type
-    disk_bh_pro_orbs_ecc : numpy.ndarray
-        Orbital eccentricity [unitless] of singleton prograde BH with :obj:`float` type
+    disk_bins_bhbh : numpy.ndarray
+        [21, bindex] mixed array containing properties of binary BBH, see add_to_binary_array function for
+        complete description
+    time_passed : float
+        Current time set [yr]
+            nsc_bh_imf_powerlaw_index : float
+            Powerlaw index of nuclear star cluster BH IMF (e.g. M^-2) [unitless]. User set (default = 2).
     timestep_duration_yr : float
         Length of timestep [yr]
-    disk_bh_pro_orb_ecc_crit : float
-        Critical orbital eccentricity [unitless] below which orbit is close enough to circularize
+    nsc_bh_imf_powerlaw_index : float
+        Powerlaw index of nuclear star cluster BH IMF (e.g. M^-2) [unitless]. User set (default = 2).
     delta_energy_strong : float
         Average energy change [units??] per strong encounter
     nsc_spheroid_normalization : float
         Normalization factor [unitless] determines the departures from sphericity of
         the initial distribution of perturbers (1.0=spherical)
+    var_harden_energy_delta : float
+        Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    mean_harden_energy_delta : float
+        Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+
 
     Returns
     -------
@@ -843,54 +863,58 @@ def bin_spheroid_encounter(
     crit_radius = 1.e3
     # Solar mass in units of kg
     solar_mass = astropy_units.solMass.to("kg")
+
     # Magnitude of energy change to drive binary to merger in ~2 interactions in a strong encounter. Say de_strong=0.9
     # de_strong here refers to the perturbation of the binary around its center of mass
     # The energy in the exchange is assumed to come from the binary binding energy around its c.o.m.
     # delta_energy_strong refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation) 
-    de_strong = 0.9
+
+    # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
+    de_strong = max(0., min(1., rng.normal(mean_harden_energy_delta, var_harden_energy_delta)))
+
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
     # Spheroid normalization to allow for non-ideal NSC (cored/previous AGN episodes/disky population concentration/whatever)
 
     # Set up binary properties we need for later
-    bin_mass = blackholes_binary.mass_1 + blackholes_binary.mass_2
-    bin_velocities = scipy.constants.c / np.sqrt(blackholes_binary.bin_orb_a)
-    bin_binding_energy = scipy.constants.G * (solar_mass ** 2) * blackholes_binary.mass_1 * blackholes_binary.mass_2 / (si_from_r_g(smbh_mass, blackholes_binary.bin_sep).to("meter")).value
+    bin_mass = disk_bins_bhbh.mass_1 + disk_bins_bhbh.mass_2
+    bin_velocities = scipy.constants.c / np.sqrt(disk_bins_bhbh.bin_orb_a)
+    bin_binding_energy = scipy.constants.G * (solar_mass ** 2) * disk_bins_bhbh.mass_1 * disk_bins_bhbh.mass_2 / (si_from_r_g(smbh_mass, disk_bins_bhbh.bin_sep).to("meter")).value
 
     # Calculate encounter rate for each binary based on bin_orb_a, binary size, and time_passed
     # Set up array of encounter rates filled with -1
-    enc_rate = np.full(blackholes_binary.num, -1.5)
+    enc_rate = np.full(disk_bins_bhbh.num, -1.5)
 
     # Set encounter rate if bin_orb_a < crit_radius
-    enc_rate[(blackholes_binary.bin_orb_a < crit_radius) & (time_passed <= crit_time)] = 0.02 * (nsc_spheroid_normalization / 0.1) * (1.0 - (time_passed / 1.e6)) * ((blackholes_binary.bin_sep[(blackholes_binary.bin_orb_a < crit_radius) & (time_passed <= crit_time)] / dist_in_rg_m8) ** 2.0) / ((timestep_duration_yr / 1.e4) * (blackholes_binary.bin_orb_a[(blackholes_binary.bin_orb_a < crit_radius) & (time_passed <= crit_time)] / 1.e3))
-    enc_rate[(blackholes_binary.bin_orb_a < crit_radius) & (time_passed > crit_time)] = 0.0
+    enc_rate[(disk_bins_bhbh.bin_orb_a < crit_radius) & (time_passed <= crit_time)] = 0.02 * (nsc_spheroid_normalization / 0.1) * (1.0 - (time_passed / 1.e6)) * ((disk_bins_bhbh.bin_sep[(disk_bins_bhbh.bin_orb_a < crit_radius) & (time_passed <= crit_time)] / dist_in_rg_m8) ** 2.0) / ((timestep_duration_yr / 1.e4) * (disk_bins_bhbh.bin_orb_a[(disk_bins_bhbh.bin_orb_a < crit_radius) & (time_passed <= crit_time)] / 1.e3))
+    enc_rate[(disk_bins_bhbh.bin_orb_a < crit_radius) & (time_passed > crit_time)] = 0.0
 
     # Set encounter rate if bin_orb_a > crit_radius
-    enc_rate[(blackholes_binary.bin_orb_a > crit_radius)] = 0.002 * (nsc_spheroid_normalization / 0.1) * ((blackholes_binary.bin_sep[(blackholes_binary.bin_orb_a > crit_radius)] / dist_in_rg_m8) ** 2.0) / ((timestep_duration_yr / 1.e4) * (blackholes_binary.bin_orb_a[(blackholes_binary.bin_orb_a > crit_radius)] / 1.e4) * np.sqrt(time_passed / 1.e4))
+    enc_rate[(disk_bins_bhbh.bin_orb_a > crit_radius)] = 0.002 * (nsc_spheroid_normalization / 0.1) * ((disk_bins_bhbh.bin_sep[(disk_bins_bhbh.bin_orb_a > crit_radius)] / dist_in_rg_m8) ** 2.0) / ((timestep_duration_yr / 1.e4) * (disk_bins_bhbh.bin_orb_a[(disk_bins_bhbh.bin_orb_a > crit_radius)] / 1.e4) * np.sqrt(time_passed / 1.e4))
     # If enc_rate still has negative values throw error
     if (np.sum(enc_rate < 0) > 0):
         print("enc_rate",enc_rate)
         raise RuntimeError("enc_rate not being set in bin_spheroid_encounter")
 
     # If bin_orb_a == crit_radius throw error
-    if (np.sum(blackholes_binary.bin_orb_a == crit_radius) > 0):
+    if (np.sum(disk_bins_bhbh.bin_orb_a == crit_radius) > 0):
         print("SMBH mass:", smbh_mass)
-        print("bin_orb_a:", blackholes_binary.bin_orb_a[blackholes_binary.bin_orb_a == crit_radius])
+        print("bin_orb_a:", disk_bins_bhbh.bin_orb_a[disk_bins_bhbh.bin_orb_a == crit_radius])
         print("crit_radius:", crit_radius)
         raise RuntimeError("Unrecognized bin_orb_a")
 
     # Based on estimated encounter rate, calculate if binary actually has a spheroid encounter
-    chances_of_encounter = rng.uniform(size=blackholes_binary.num)
+    chances_of_encounter = rng.uniform(size=disk_bins_bhbh.num)
     num_encounters = np.sum(chances_of_encounter < enc_rate)
 
     if (num_encounters > 0):
 
         # Set up arrays for changed blackholes_binary parameters
-        bin_orb_a = blackholes_binary.bin_orb_a[chances_of_encounter < enc_rate].copy()
-        bin_sep = blackholes_binary.bin_sep[chances_of_encounter < enc_rate].copy()
-        bin_ecc = blackholes_binary.bin_ecc[chances_of_encounter < enc_rate].copy()
-        bin_orb_ecc = blackholes_binary.bin_orb_ecc[chances_of_encounter < enc_rate].copy()
-        bin_orb_inc = blackholes_binary.bin_orb_inc[chances_of_encounter < enc_rate].copy()
+        bin_orb_a = disk_bins_bhbh.bin_orb_a[chances_of_encounter < enc_rate].copy()
+        bin_sep = disk_bins_bhbh.bin_sep[chances_of_encounter < enc_rate].copy()
+        bin_ecc = disk_bins_bhbh.bin_ecc[chances_of_encounter < enc_rate].copy()
+        bin_orb_ecc = disk_bins_bhbh.bin_orb_ecc[chances_of_encounter < enc_rate].copy()
+        bin_orb_inc = disk_bins_bhbh.bin_orb_inc[chances_of_encounter < enc_rate].copy()
 
         # Have already generated spheroid interaction, so a_3 is not far off a_bbh (unless super high ecc). 
         # Assume a_3 is similar to a_bbh (within a factor of O(3), so allowing for modest relative eccentricity)    
@@ -949,7 +973,7 @@ def bin_spheroid_encounter(
 
         # If hard > 0 binary is hard wrt interloper
         # Change binary parameters: decrease separation, increase ecc around bin_orb_a and orb_ecc
-        bin_sep[mask_hard] = bin_sep[mask_hard] * (1-de_strong)
+        bin_sep[mask_hard] = bin_sep[mask_hard] * (1 - de_strong)
         bin_ecc[mask_hard] = bin_ecc[mask_hard] * (1 + de_strong)
         bin_orb_ecc[mask_hard] = bin_orb_ecc[mask_hard] * (1 + delta_energy_strong)
         # Ignore interloper parameters, since just drawing randomly from IMF population
@@ -968,12 +992,12 @@ def bin_spheroid_encounter(
         bin_orb_inc[(L_ratio < 1)] = bin_orb_inc[(L_ratio < 1)] + L_ratio[L_ratio < 1] * (i3_rad[L_ratio < 1]/2.0)
         bin_orb_inc[(L_ratio > 1)] = bin_orb_inc[(L_ratio > 1)] + (1./L_ratio[L_ratio > 1]) * (i3_rad[L_ratio > 1]/2.0)
 
-        blackholes_binary.bin_sep[chances_of_encounter < enc_rate] = bin_sep
-        blackholes_binary.bin_ecc[chances_of_encounter < enc_rate] = bin_ecc
-        blackholes_binary.bin_orb_ecc[chances_of_encounter < enc_rate] = bin_orb_ecc
-        blackholes_binary.bin_orb_inc[chances_of_encounter < enc_rate] = bin_orb_inc
+        disk_bins_bhbh.bin_sep[chances_of_encounter < enc_rate] = bin_sep
+        disk_bins_bhbh.bin_ecc[chances_of_encounter < enc_rate] = bin_ecc
+        disk_bins_bhbh.bin_orb_ecc[chances_of_encounter < enc_rate] = bin_orb_ecc
+        disk_bins_bhbh.bin_orb_inc[chances_of_encounter < enc_rate] = bin_orb_inc
 
-    return (blackholes_binary)
+    return (disk_bins_bhbh)
 
 
 def bin_recapture(blackholes_binary, timestep_duration_yr):
