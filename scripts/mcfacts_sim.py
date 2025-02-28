@@ -605,8 +605,6 @@ def main():
             if np.size(normalized_torque) > 0:
                 paardekooper_torque =  paardekooper_torque_coeff*normalized_torque
                 #print("paardekooper torque",paardekooper_torque_coeff*normalized_torque)
-            else: 
-                print()
             
             torque_mig_timescales = migration.torque_mig_timescale(
                 opts.smbh_mass,
