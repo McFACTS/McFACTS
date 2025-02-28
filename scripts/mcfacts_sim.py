@@ -868,6 +868,17 @@ def main():
                                       attr="size",
                                       new_info=blackholes_binary.bin_sep)
 
+                blackholes_binary = evolve.binary_merge_gw(
+                    blackholes_binary,
+                    opts.smbh_mass,
+                    opts.timestep_duration_yr,
+                    time_passed
+                )
+
+                filing_cabinet.update(id_num=blackholes_binary.id_num,
+                                      attr="size",
+                                      new_info=blackholes_binary.bin_sep)
+
                 # Check closeness of binary. Are black holes at merger condition separation
                 blackholes_binary = evolve.bin_contact_check(blackholes_binary, opts.smbh_mass)
 
@@ -1607,7 +1618,7 @@ def main():
             # Iterate the time step
             time_passed = time_passed + opts.timestep_duration_yr
             # Print time passed every 10 timesteps for now
-            time_galaxy_tracker = 10.0*opts.timestep_duration_yr
+            time_galaxy_tracker = 10.0 * opts.timestep_duration_yr
             if time_passed % time_galaxy_tracker == 0:
                 print("Time passed=", time_passed)
 

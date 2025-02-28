@@ -513,7 +513,9 @@ def bin_contact_check(blackholes_binary, smbh_mass):
     # We assume bh are not spinning when in contact. TODO: Consider spin in future.
     contact_condition = (point_masses.r_schwarzschild_of_m(blackholes_binary.mass_1) +
                          point_masses.r_schwarzschild_of_m(blackholes_binary.mass_2))
+
     contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition)
+
     mask_condition = (blackholes_binary.bin_sep <= contact_condition)
 
     # If binary separation <= contact condition, set binary separation to contact condition
@@ -600,6 +602,59 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
     # Set up variables
     mass_binary = blackholes_binary.mass_1[idx_non_mergers] + blackholes_binary.mass_2[idx_non_mergers]
     bin_sep = blackholes_binary.bin_sep[idx_non_mergers]
+
+    # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
+    # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
+    bin_period = 0.32 * np.power(bin_sep, 1.5) * np.power(smbh_mass / 1.e8, 1.5) * np.power(mass_binary / 10.0, -0.5)
+
+    # Find how many binary orbits in timestep. Binary separation is halved for every 10^3 orbits.
+    num_orbits_in_timestep = np.zeros(len(bin_period))
+    num_orbits_in_timestep[bin_period > 0] = timestep_duration_yr / bin_period[bin_period > 0]
+    scaled_num_orbits = num_orbits_in_timestep / 1000.0
+
+    # Create mask for binaries that are stalled
+    mask_stalled = bin_sep <= 2
+
+    # Binary will not merge in this timestep
+    # new bin_sep according to Baruteau+11 prescription
+    bin_sep[~mask_stalled] = bin_sep[~mask_stalled] * (0.5 ** scaled_num_orbits[~mask_stalled])
+    blackholes_binary.bin_sep[idx_non_mergers[~mask_stalled]] = bin_sep[~mask_stalled]
+
+    # Finite check
+    assert np.isfinite(blackholes_binary.bin_sep).all(),\
+        "Finite check failure: blackholes_binary.bin_sep"
+
+    return blackholes_binary
+
+def binary_merge_gw(blackholes_binary, smbh_mass, timestep_duration_yr, time_passed):
+    """Check if the binary will merge by GW over the current timestep.
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black hole parameters
+    smbh_mass : float
+        Mass [M_sun] of the SMBH
+    timestep_duration_yr : float
+        Length of timestep [yr]
+    time_passed : float
+        Time elapsed [yr] since beginning of simulation.
+
+    Returns
+    -------
+    blackholes_binary : AGNBinaryBlackHole
+        Black hole binaries with time_to_merger_gw, flag_merging, and time_merged updated
+
+    """
+    # Only interested in BH that have not merged
+    idx_non_mergers = np.where(blackholes_binary.flag_merging >= 0)[0]
+
+    # If all binaries have merged then nothing to do
+    if (idx_non_mergers.shape[0] == 0):
+        return blackholes_binary
+
+    # Set up variables
+    bin_sep = blackholes_binary.bin_sep[idx_non_mergers]
     bin_orb_ecc = blackholes_binary.bin_ecc[idx_non_mergers]
 
     # Find eccentricity factor (1-e_b^2)^7/2
@@ -609,18 +664,10 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
     # overall ecc factor = ecc_factor_1/ecc_factor_2
     ecc_factor = ecc_factor_1/ecc_factor_2
 
-    # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
-    # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
-    bin_period = 0.32 * np.power(bin_sep, 1.5) * np.power(smbh_mass/1.e8, 1.5) * np.power(mass_binary/10.0, -0.5)
-
-    # Find how many binary orbits in timestep. Binary separation is halved for every 10^3 orbits.
-    num_orbits_in_timestep = np.zeros(len(bin_period))
-    num_orbits_in_timestep[bin_period > 0] = timestep_duration_yr / bin_period[bin_period > 0]
-    scaled_num_orbits = num_orbits_in_timestep / 1000.0
-
     # Timescale for binary merger via GW emission alone in seconds, scaled to bin parameters
     sep_crit = (point_masses.r_schwarzschild_of_m(blackholes_binary.mass_1[idx_non_mergers]) +
                 point_masses.r_schwarzschild_of_m(blackholes_binary.mass_2[idx_non_mergers]))
+
     time_to_merger_gw = (point_masses.time_of_orbital_shrinkage(
         blackholes_binary.mass_1[idx_non_mergers] * u.Msun,
         blackholes_binary.mass_2[idx_non_mergers] * u.Msun,
@@ -628,9 +675,10 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
         sep_final=sep_crit
     ) * ecc_factor).value
 
-    # Finite check
+    # Finite check for time_to_merger_gw
     assert np.isfinite(time_to_merger_gw).all(),\
         "Finite check failure: time_to_merger_gw"
+
     blackholes_binary.time_to_merger_gw[idx_non_mergers] = time_to_merger_gw
 
     # Create mask for things that WILL merge in this timestep
@@ -638,23 +686,16 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
     timestep_duration_sec = (timestep_duration_yr * u.year).to("second").value
     merge_mask = time_to_merger_gw <= timestep_duration_sec
 
-    # Binary will not merge in this timestep
-    # new bin_sep according to Baruteau+11 prescription
-    bin_sep[~merge_mask] = bin_sep[~merge_mask] * (0.5 ** scaled_num_orbits[~merge_mask])
-    blackholes_binary.bin_sep[idx_non_mergers[~merge_mask]] = bin_sep[~merge_mask]
-    # Finite check
-    assert np.isfinite(blackholes_binary.bin_sep).all(),\
-        "Finite check failure: blackholes_binary.bin_sep"
-
-    # Otherwise binary will merge in this timestep
     # Update flag_merging to -2 and time_merged to current time
     blackholes_binary.flag_merging[idx_non_mergers[merge_mask]] = -2
     blackholes_binary.time_merged[idx_non_mergers[merge_mask]] = time_passed
-    # Finite check
-    assert np.isfinite(blackholes_binary.flag_merging).all(),\
+
+    # Finite checks for flag_merging, time_merged, and bin_sep
+
+    assert np.isfinite(blackholes_binary.flag_merging).all(), \
         "Finite check failure: blackholes_binary.flag_merging"
-    # Finite check
-    assert np.isfinite(blackholes_binary.time_merged).all(),\
+
+    assert np.isfinite(blackholes_binary.time_merged).all(), \
         "Finite check failure: blackholes_binary.time_merged"
 
-    return (blackholes_binary)
+    return blackholes_binary
