@@ -194,7 +194,8 @@ INPUT_TYPES = {
     "mass_pile_up"                  : float,
     "save_snapshots"                : bool,
     "mean_harden_energy_delta"      : float,
-    "var_harden_energy_delta"       : float
+    "var_harden_energy_delta"       : float,
+    "stalling_separation"           : float
 }
 
 

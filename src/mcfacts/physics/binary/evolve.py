@@ -558,8 +558,7 @@ def bin_reality_check(blackholes_binary):
         return (bh_bin_id_num_fakes)
 
 
-def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
-                        time_gw_normalization, time_passed):
+def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr, stalling_separation):
     """Harden black hole binaries using Baruteau+11 prescription
 
     Use Baruteau+11 prescription to harden a pre-existing binary.
@@ -574,13 +573,8 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
         Mass [M_sun] of the SMBH
     timestep_duration_yr : float
         Length of timestep [yr]
-    time_gw_normalization : float
-        A normalization for GW decay timescale [s], set by `smbh_mass` & normalized for
-        a binary total mass of 10 solar masses.
-    bin_index : int
-        Count of number of binaries
-    time_passed : float
-        Time elapsed [yr] since beginning of simulation.
+    stalling_separation : float
+        Distance between the binary in in units of graviational radii (R_g=GM_SMBH/c^2) to stop applying gas hardening
 
     Returns
     -------
@@ -613,7 +607,7 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr,
     scaled_num_orbits = num_orbits_in_timestep / 1000.0
 
     # Create mask for binaries that are stalled
-    mask_stalled = bin_sep <= 2
+    mask_stalled = bin_sep <= stalling_separation
 
     # Binary will not merge in this timestep
     # new bin_sep according to Baruteau+11 prescription

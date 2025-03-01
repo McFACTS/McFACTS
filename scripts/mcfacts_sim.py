@@ -857,8 +857,7 @@ def main():
                     blackholes_binary,
                     opts.smbh_mass,
                     opts.timestep_duration_yr,
-                    time_gw_normalization,
-                    time_passed,
+                    opts.stalling_separation
                 )
 
                 # Update filing cabinet with new bin_sep
