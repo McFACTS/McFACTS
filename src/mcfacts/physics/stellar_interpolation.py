@@ -3,9 +3,11 @@ Module for interpolating stellar radius, luminosity, and effective temperature f
 """
 
 import numpy as np
+import astropy.units as astropy_u
 import astropy.constants as const
 
 from mcfacts.inputs import data as mcfacts_input_data
+from mcfacts.physics import point_masses
 from importlib import resources as impresources
 
 # This is definitely the wrong and lazy way to go about things
@@ -116,3 +118,44 @@ def interp_star_params(disk_star_masses):
         raise ValueError("Interpolated values are not being set properly!")
 
     return (new_logR, new_logL, new_logTeff)
+
+
+def ratio_star_torques(disk_density_func, disk_pressure_grad_func, disk_aspect_ratio_func,
+                       disk_surf_density_func, disk_omega_func, disk_radius, smbh_mass):
+
+    disk_density = disk_density_func(disk_radius) * (astropy_u.kg / astropy_u.m ** 3)
+    disk_pressure_grad = disk_pressure_grad_func(disk_radius) * (astropy_u.kg / ((astropy_u.s ** 2) * (astropy_u.m ** 2)))
+    disk_aspect_ratio = disk_aspect_ratio_func(disk_radius)
+    disk_surface_density = disk_surf_density_func(disk_radius) * (astropy_u.kg / astropy_u.m ** 2)
+    disk_omega = disk_omega_func(disk_radius) * (1. / astropy_u.s)
+
+    star_mass = interpolation_data[-1][0] * astropy_u.Msun
+    star_radius = (10 ** (interpolation_data[-1][1])) * astropy_u.Rsun
+
+    smbh_mass_si = smbh_mass * astropy_u.Msun
+
+    disk_radius_si = point_masses.si_from_r_g(smbh_mass, disk_radius)
+
+    v_phi = (disk_radius_si * ((1./disk_density) * disk_pressure_grad + ((const.G * smbh_mass_si) / (disk_radius_si ** 2)))) ** 0.5
+    v_phi = v_phi.to("m/s")
+
+    v_kep = (const.G * smbh_mass_si / disk_radius_si) ** 0.5
+    v_kep = v_kep.to("m/s")
+
+    v_rel = np.abs(v_phi - v_kep)
+
+    c_d = 1.
+    drag_force = 0.5 * c_d * 4. * np.pi * (star_radius ** 2) * disk_density * (v_rel ** 2)
+    drag_force = drag_force.to("kg m / s^2")
+    drag_torque = (drag_force * disk_radius_si).to("kg m^2 / s^2")
+
+    mass_ratio = star_mass / smbh_mass_si
+
+    mig_torque = ((mass_ratio / disk_aspect_ratio) ** 2) * disk_surface_density * (disk_radius_si ** 4) * (disk_omega ** 2)
+    mig_torque = mig_torque.to("kg m^2 / s^2")
+
+    ratio_torques = drag_torque / mig_torque
+
+    temp_array = np.column_stack((tuple([drag_torque.value, mig_torque.value, ratio_torques.value, v_phi.value, v_kep.value, v_rel.value])))
+
+    return (temp_array)

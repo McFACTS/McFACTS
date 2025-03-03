@@ -18,6 +18,16 @@ attr_star = ["id_num", "orb_a", "mass",
              "gen", "galaxy", "time_passed",
              "star_X", "star_Y", "star_Z", "log_radius", "log_teff", "log_luminosity"]
 
+attr_merged_star = ["id_num", "galaxy", "orb_a_final", "mass_final", "gen_final",
+                    "mass_1", "mass_2",
+                    "gen_1", "gen_2",
+                    "log_radius_final", "orb_ecc",
+                    "time_merged"]
+
+attr_exploded_star = ["galaxy", "id_num_star", "id_num_bh", "orb_a_star", "orb_a_bh",
+                      "mass_star", "mass_bh", "gen_star", "gen_bh", "orb_inc_star", "orb_inc_bh",
+                      "orb_ecc_star", "orb_ecc_bh", "star_log_radius", "time_sn"]
+
 attr_binary_bh = ["id_num", "orb_a_1", "orb_a_2", "mass_1", "mass_2", #"mass_total",
                   "spin_1", "spin_2", "spin_angle_1", "spin_angle_2",
                   "bin_sep", "bin_orb_a", "time_to_merger_gw", "flag_merging",
@@ -32,7 +42,7 @@ attr_merged_bh = ["id_num", "galaxy", "bin_orb_a", "mass_final",
                   "gen_1", "gen_2",
                   "chi_eff", "chi_p", "time_merged"]
 
-attr_filing_cabinet = ["id_num", "category", "orb_a", "mass", "size",
+attr_filing_cabinet = ["id_num", "category", "orb_a", "mass", "orb_ecc", "size",
                        "direction", "disk_inner_outer"]
 
 
@@ -60,6 +70,10 @@ def get_attr_list(obj):
         return (attr_merged_bh)
     elif isinstance(obj, AGNBinaryBlackHole):
         return (attr_binary_bh)
+    elif isinstance(obj, AGNMergedStar):
+        return (attr_merged_star)
+    elif isinstance(obj, AGNExplodedStar):
+        return (attr_exploded_star)
     else:
         raise TypeError("obj is not an AGNObject subclass")
 
@@ -289,14 +303,27 @@ class AGNObject(object):
 
         if id_num_remove is None:
             return None
-
-        keep_mask = ~(np.isin(getattr(self, "id_num"), id_num_remove))
+        # Check if passed id_num is a numpy array, if not we make it one
+        if isinstance(id_num_remove, np.ndarray):
+            id_num_remove_arr = id_num_remove
+        elif isinstance(id_num_remove, list):
+            id_num_remove_arr = np.array(id_num_remove)
+        elif (isinstance(id_num_remove, float) | isinstance(id_num_remove, (int, np.integer))) & (not isinstance(id_num_remove, bool)):
+            id_num_remove_arr = np.array([id_num_remove])
+        else:
+            print(id_num_remove, type(id_num_remove))
+            raise AttributeError("Passed id_num is not a valid type.")
+        # Ensures that values are returned in the order of the original id_num array
+        a, b = np.where(getattr(self, "id_num") == id_num_remove_arr[:, None])
+        remove_idx = b[np.argsort(a)]
+        keep_idx = np.ones(self.num, dtype=bool)
+        keep_idx[remove_idx] = False
         attr_list = get_attr_list(self)
         #for attr in vars(self).keys():
         for attr in attr_list:
-            setattr(self, attr, getattr(self, attr)[keep_mask])
+            setattr(self, attr, getattr(self, attr)[keep_idx])
 
-        self.num -= np.sum(~keep_mask)
+        self.num -= len(remove_idx)
 
         self.check_consistency()
 
@@ -335,23 +362,33 @@ class AGNObject(object):
 
         if id_num_keep is None:
             return None
-
-        keep_mask = (np.isin(getattr(self, "id_num"), id_num_keep))
+        # Check if passed id_num is a numpy array, if not we make it one
+        if isinstance(id_num_keep, np.ndarray):
+            id_num_keep_arr = id_num_keep
+        elif isinstance(id_num_keep, list):
+            id_num_keep_arr = np.array(id_num_keep)
+        elif (isinstance(id_num_keep, float) | isinstance(id_num_keep, (int, np.integer))) & (not isinstance(id_num_keep, bool)):
+            id_num_keep_arr = np.array([id_num_keep])
+        else:
+            print(id_num_keep, type(id_num_keep))
+            raise AttributeError("Passed id_num is not a valid type.")
+        # Ensures that values are returned in the order of the original id_num array
+        a, b = np.where(getattr(self, "id_num") == id_num_keep_arr[:, None])
+        keep_idx = b[np.argsort(a)]
         attr_list = get_attr_list(self)
         for attr in attr_list:
-            setattr(self, attr, getattr(self, attr)[keep_mask])
+            setattr(self, attr, getattr(self, attr)[keep_idx])
 
-        self.num -= np.sum(~keep_mask)
+        self.num = len(keep_idx)
 
         self.check_consistency()
 
     def at_id_num(self, id_num, attr):
-        """
-        Returns the attribute at the specified ID numbers
+        """Returns the attribute at the specified ID numbers
 
         Parameters
         ----------
-        id_num : numpy array
+        id_num : numpy array or float
             ID numbers of objects to return
         attr : str
             attribute to return
@@ -361,7 +398,19 @@ class AGNObject(object):
         val : numpy array
             specified attribute at specified ID numbers
         """
-        id_mask = (np.isin(getattr(self, "id_num"), id_num))
+        # Check if passed id_num is a numpy array, if not we make it one
+        if isinstance(id_num, np.ndarray):
+            id_num_arr = id_num
+        elif isinstance(id_num, list):
+            id_num_arr = np.array(id_num)
+        elif (isinstance(id_num, float) | isinstance(id_num, (int, np.integer))) & (not isinstance(id_num, bool)):
+            id_num_arr = np.array([id_num])
+        else:
+            print(id_num, type(id_num))
+            raise AttributeError("Passed id_num is not a valid type.")
+        # Ensures that values are returned in the order of the original id_num array
+        a, b = np.where(getattr(self, "id_num") == id_num_arr[:, None])
+        id_mask = b[np.argsort(a)]
 
         try:
             val = getattr(self, attr)[id_mask]
@@ -410,7 +459,7 @@ class AGNObject(object):
         """
 
         # sorted indices of the array to sort by
-        sort_idx = np.argsort(sort_attr)
+        sort_idx = np.argsort(getattr(self, sort_attr))
 
         # Each attribute is then sorted to be in this order
         attr_list = get_attr_list(self)
@@ -1426,6 +1475,282 @@ class AGNMergedBlackHole(AGNObject):
         self.check_consistency()
 
 
+class AGNMergedStar(AGNObject):
+    """
+    Array of merged stars.
+    """
+    def __init__(self,
+                 id_num=empty_arr,
+                 galaxy=empty_arr,
+                 orb_a_final=empty_arr,
+                 mass_final=empty_arr,
+                 gen_final=empty_arr,
+                 mass_1=empty_arr,
+                 mass_2=empty_arr,
+                 gen_1=empty_arr,
+                 gen_2=empty_arr,
+                 log_radius_final=empty_arr,
+                 orb_ecc=empty_arr,
+                 time_merged=empty_arr,
+                 num_obj_merge=0):
+        """Creates an instance of AGNMergedBlackHole.
+
+        Parameters
+        ----------
+        galaxy : numpy array
+            galaxy (iteration)
+        orb_a_final : numpy array
+            orbital semi-major axis of merged star post-merger wrt SMBH in R_g
+        mass_final : numpy array
+            mass post-merger in Msun
+        gen_final : numpy array
+            final generation of merged star
+        mass_1 : numpy array
+            mass of the first component prior to merger in Msun
+        mass_2 : numpy array
+            mass of the second component prior to merger in Msun
+        gen_1 : numpy array
+            merger generation of the first component
+        gen_2 : numpy array
+            merger generation of the second component
+        log_radius_final : numpy array
+            log radius [Rsun] of the star post-merger
+        orb_ecc : numpy array
+            orbital eccentricity of the star post-merger wrt SMBH
+        time_merged : numpy array
+            the timestep of merger
+        num_obj_merge : int
+            number of objects
+        """
+
+        if (num_obj_merge == 0):
+            num_obj_merge = mass_final.shape[0]
+
+        self.id_num = id_num
+        self.galaxy = galaxy
+        self.orb_a_final = orb_a_final
+        self.mass_final = mass_final
+        self.gen_final = gen_final
+        self.mass_1 = mass_1
+        self.mass_2 = mass_2
+        self.gen_1 = gen_1
+        self.gen_2 = gen_2
+        self.log_radius_final = log_radius_final
+        self.orb_ecc = orb_ecc
+        self.time_merged = time_merged
+
+        self.num = num_obj_merge
+
+        self.check_consistency()
+
+    def add_stars(self, new_id_num=empty_arr, new_galaxy=empty_arr, new_orb_a_final=empty_arr, new_gen_final=empty_arr,
+                  new_mass_final=empty_arr,
+                  new_mass_1=empty_arr, new_mass_2=empty_arr,
+                  new_gen_1=empty_arr, new_gen_2=empty_arr,
+                  new_log_radius_final=empty_arr, new_orb_ecc=empty_arr,
+                  new_time_merged=empty_arr, num_obj_merge=0):
+        """
+        Add stars to the AGNMergedStar object
+
+        Parameters
+        ----------
+        new_galaxy : numpy array
+            galaxy (iteration)
+        new_orb_a_final : numpy array
+            orbital semi-major axis of merged star wrt SMBH post-merger in R_g
+        new_mass_final : numpy array
+            mass post-merger in Msun
+        new_gen_final : numpy array
+            final generation of merged star
+        new_mass_1 : numpy array
+            mass of the first component prior to merger in Msun
+        new_mass_2 : numpy array
+            mass of the second component prior to merger in Msun
+        new_gen_1 : numpy array
+            merger generation of the first component
+        new_gen_2 : numpy array
+            merger generation of the second component
+        new_log_radius_final : numpy array
+            log radius [Rsun] of the star post-merger
+        new_orb_ecc : numpy array
+            orbital eccentricity of the star post-merger wrt SMBH
+        new_time_merged : numpy array
+            the timestep of merger
+        num_obj_merge : int
+            number of objects to be added
+        """
+
+        self.id_num = np.concatenate([self.id_num, new_id_num])
+        self.galaxy = np.concatenate([self.galaxy, new_galaxy])
+        self.orb_a_final = np.concatenate([self.orb_a_final, new_orb_a_final])
+        self.mass_final = np.concatenate([self.mass_final, new_mass_final])
+        self.gen_final = np.concatenate([self.gen_final, new_gen_final])
+        self.mass_1 = np.concatenate([self.mass_1, new_mass_1])
+        self.mass_2 = np.concatenate([self.mass_2, new_mass_2])
+        self.gen_1 = np.concatenate([self.gen_1, new_gen_1])
+        self.gen_2 = np.concatenate([self.gen_2, new_gen_2])
+        self.log_radius_final = np.concatenate([self.log_radius_final, new_log_radius_final])
+        self.orb_ecc = np.concatenate([self.orb_ecc, new_orb_ecc])
+        self.time_merged = np.concatenate([self.time_merged, new_time_merged])
+
+        if (num_obj_merge == 0):
+            num_obj_merge = new_mass_final.shape[0]
+
+        self.num += num_obj_merge
+
+        self.check_consistency()
+
+
+class AGNExplodedStar(AGNObject):
+    """
+    Array of exploded stars with BH parameters.
+    """
+    def __init__(self,
+                 id_num_star=empty_arr,
+                 id_num_bh=empty_arr,
+                 galaxy=empty_arr,
+                 orb_a_star=empty_arr,
+                 orb_a_bh=empty_arr,
+                 mass_star=empty_arr,
+                 mass_bh=empty_arr,
+                 gen_star=empty_arr,
+                 gen_bh=empty_arr,
+                 orb_inc_star=empty_arr,
+                 orb_inc_bh=empty_arr,
+                 orb_ecc_star=empty_arr,
+                 orb_ecc_bh=empty_arr,
+                 star_log_radius=empty_arr,
+                 time_sn=empty_arr,
+                 num_obj_explode=0):
+        """Creates an instance of AGNExplodedStar.
+
+        Parameters
+        ----------
+        id_num_star : numpy array
+            ID number of exploded star
+        id_num_bh : numpy array
+            ID number of BH that interacted with star
+        galaxy : numpy array
+            galaxy (iteration)
+        orb_a_star : numpy array
+            orbital semi-major axis of star wrt SMBH in R_g
+        orb_a_bh : numpy array
+            orbital semi-major axis of BH wrt SMBH in R_g
+        mass_star : numpy array
+            mass of star in Msun
+        mass_bh : numpy array
+            mass of BH in Msun
+        gen_star : numpy array
+            generation of star
+        gen_bh : numpy array
+            generation of BH
+        orb_inc_star : numpy array
+            orbital inclination of star
+        orb_inc_bh : numpy array
+            orbital inclination of BH
+        orb_ecc_star : numpy array
+            orbital eccentricity of star wrt SMBH
+        orb_ecc_bh : numpy array
+            orbital eccentricity of BH wrt SMBH
+        star_log_radius : numpy array
+            Log radius of star in Rsun
+        time_sn : numpy array
+            the timestep of explosion
+        num_obj_explode : int
+            number of objects
+        """
+
+        if (num_obj_explode == 0):
+            num_obj_explode = id_num_star.shape[0]
+
+        self.id_num_star = id_num_star
+        self.id_num_bh = id_num_bh
+        self.galaxy = galaxy
+        self.orb_a_star = orb_a_star
+        self.orb_a_bh = orb_a_bh
+        self.mass_star = mass_star
+        self.mass_bh = mass_bh
+        self.gen_star = gen_star
+        self.gen_bh = gen_bh
+        self.orb_inc_star = orb_inc_star
+        self.orb_inc_bh = orb_inc_bh
+        self.orb_ecc_star = orb_ecc_star
+        self.orb_ecc_bh = orb_ecc_bh
+        self.star_log_radius = star_log_radius
+        self.time_sn = time_sn
+
+        self.num = num_obj_explode
+
+        self.check_consistency()
+
+    def add_stars(self, new_id_num_star=empty_arr, new_id_num_bh=empty_arr, new_galaxy=empty_arr,
+                  new_orb_a_star=empty_arr, new_orb_a_bh=empty_arr, new_mass_star=empty_arr, new_mass_bh=empty_arr,
+                  new_gen_star=empty_arr, new_gen_bh=empty_arr, new_orb_inc_star=empty_arr, new_orb_inc_bh=empty_arr,
+                  new_orb_ecc_star=empty_arr, new_orb_ecc_bh=empty_arr, new_star_log_radius=empty_arr, new_time_sn=empty_arr,
+                  num_obj_explode=0):
+        """
+        Add stars to the AGNMergedStar object
+
+        Parameters
+        ----------
+        new_galaxy : numpy array
+            galaxy (iteration)
+        new_id_num_star : numpy array
+            ID number of exploded star
+        new_id_num_bh : numpy array
+            ID number of BH that interacted with star
+        new_orb_a_star : numpy array
+            Semi-major axis of exploded star wrt SMBH in R_g
+        new_orb_a_bh : numpy array
+            Semi-major axis of BH wrt SMBH in R_g
+        new_mass_star : numpy array
+            Mass [M_sun] of exploded star
+        new_mass_bh : numpy array
+            Mass [M_sun] of BH
+        new_gen_star : numpy array
+            Generation of exploded star
+        new_gen_bh : numpy array
+            Generation of BH
+        new_orb_inc_star : numpy array
+            Orbital inclination of star wrt SMBH
+        new_orb_inc_bh : numpy array
+            Orbital inclination of BH wrt SMBH
+        new_orb_ecc_star : numpy array
+            Orbital eccentricity of star wrt SMBH
+        new_orb_ecc_bh : numpy array
+            Orbital eccentricity of BH wrt SMBH
+        new_star_log_radius : numpy array
+            Log radius [R_sun] of star
+        new_time_sn : numpy array
+            Time of explosion
+        num_obj_explode : int
+            Number of objects
+        """
+
+        self.galaxy = np.concatenate([self.galaxy, new_galaxy])
+        self.id_num_star = np.concatenate([self.id_num_star, new_id_num_star])
+        self.id_num_bh = np.concatenate([self.id_num_bh, new_id_num_bh])
+        self.orb_a_star = np.concatenate([self.orb_a_star, new_orb_a_star])
+        self.orb_a_bh = np.concatenate([self.orb_a_bh, new_orb_a_bh])
+        self.mass_star = np.concatenate([self.mass_star, new_mass_star])
+        self.mass_bh = np.concatenate([self.mass_bh, new_mass_bh])
+        self.gen_star = np.concatenate([self.gen_star, new_gen_star])
+        self.gen_bh = np.concatenate([self.gen_bh, new_gen_bh])
+        self.orb_inc_star = np.concatenate([self.orb_inc_star, new_orb_inc_star])
+        self.orb_inc_bh = np.concatenate([self.orb_inc_bh, new_orb_inc_bh])
+        self.orb_ecc_star = np.concatenate([self.orb_ecc_star, new_orb_ecc_star])
+        self.orb_ecc_bh = np.concatenate([self.orb_ecc_bh, new_orb_ecc_bh])
+        self.star_log_radius = np.concatenate([self.star_log_radius, new_star_log_radius])
+        self.time_sn = np.concatenate([self.time_sn, new_time_sn])
+
+        if (num_obj_explode == 0):
+            num_obj_explode = new_mass_star.shape[0]
+
+        self.num += num_obj_explode
+
+        self.check_consistency()
+
+
 obj_types = {0: "single black hole",
              1: "single star",
              2: "binary black hole",
@@ -1453,6 +1778,7 @@ class AGNFilingCabinet(AGNObject):
                  category,
                  orb_a,
                  mass,
+                 orb_ecc,
                  size,
                  direction=None,
                  disk_inner_outer=None,
@@ -1469,9 +1795,11 @@ class AGNFilingCabinet(AGNObject):
         category : numpy array of ints
             category (black hole, star, etc.) of the objects
         orb_a : numpy array
-            orbital semi-major axis with respect to the SMBH
+            orbital semi-major axis [r_{g,SMBH}] with respect to the SMBH
         mass : numpy array
-            masses of the objects (for binaries this is total mass)
+            masses [Msun] of the objects (for binaries this is total mass)
+        orb_ecc : numpy.ndarray
+            Orbital eccentricity with respect to the SMBH
         size : numpy array
             for BH this is set to -1.5, for stars this is set to the stellar radius in R_g,
             for binaries this is the binary's semi-major axis (aka separation) in R_g
@@ -1496,8 +1824,9 @@ class AGNFilingCabinet(AGNObject):
         self.category = category
         self.orb_a = orb_a
         self.mass = mass
-        # size is log radius for stars, -1 for BH, bin_a for binary BH
+        # size is radius for stars, -1 for BH, bin_sep for binary BH
         self.size = size
+        self.orb_ecc = orb_ecc
 
         # Set direction as 0 (undetermined) if not passed
         # Otherwise set as what is passed
@@ -1505,7 +1834,7 @@ class AGNFilingCabinet(AGNObject):
             self.direction = np.full(id_num.shape, 0)
         else:
             self.direction = direction
-        
+
         # Set disk_inner_outer as 0 (undetermined if not passed)
         # Otherwise set as what is passed
         if disk_inner_outer is None:
@@ -1575,11 +1904,23 @@ class AGNFilingCabinet(AGNObject):
             getattr(self, attr)
         except:
             raise AttributeError("{} is not an attribute of AGNFilingCabinet".format(attr))
-
-        getattr(self, attr)[np.isin(getattr(self, "id_num"), id_num)] = new_info
+        # Check if passed id_num is a numpy array, if not we make it one
+        if isinstance(id_num, np.ndarray):
+            id_num_arr = id_num
+        elif isinstance(id_num, list):
+            id_num_arr = np.array(id_num)
+        elif (isinstance(id_num, float) | isinstance(id_num, (int, np.integer))) & (not isinstance(id_num, bool)):
+            id_num_arr = np.array([id_num])
+        else:
+            print(id_num, type(id_num))
+            raise AttributeError("Passed id_num is not a valid type.")
+        # Ensures that values are returned in the order of the original id_num array
+        a, b = np.where(getattr(self, "id_num") == id_num_arr[:, None])
+        id_mask = b[np.argsort(a)]
+        getattr(self, attr)[id_mask] = new_info
 
     def add_objects(self, new_id_num, new_category, new_orb_a,
-                    new_mass, new_size, new_direction, new_disk_inner_outer, fc_num=0):
+                    new_mass, new_orb_ecc, new_size, new_direction, new_disk_inner_outer, fc_num=0):
         """
         Append objects to the AGNFilingCabinet.
 
@@ -1593,6 +1934,8 @@ class AGNFilingCabinet(AGNObject):
             orbital semi-major axes to be added
         new_mass : numpy array
             masses to be added
+        new_orb_ecc : numpy array
+            new orbital eccentricities to be added
         new_size : numpy array
             sizes to be added (BH: -1, stars: radii in Rsun,
             binaries: separation in R_g)
@@ -1611,6 +1954,7 @@ class AGNFilingCabinet(AGNObject):
         self.category = np.concatenate([self.category, new_category])
         self.orb_a = np.concatenate([self.orb_a, new_orb_a])
         self.mass = np.concatenate([self.mass, new_mass])
+        self.orb_ecc = np.concatenate([self.orb_ecc, new_orb_ecc])
         self.size = np.concatenate([self.size, new_size])
         self.direction = np.concatenate([self.direction, new_direction])
         self.disk_inner_outer = np.concatenate([self.disk_inner_outer, new_disk_inner_outer])

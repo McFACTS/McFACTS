@@ -8,15 +8,75 @@ import astropy.units as u
 from mcfacts.physics.point_masses import si_from_r_g
 
 
-def change_star_mass(disk_star_pro_masses,
-                     disk_star_pro_orbs_a,
-                     disk_star_pro_eccs,
-                     disk_star_luminosity_factor,
-                     disk_star_initial_mass_cutoff,
-                     smbh_mass,
-                     disk_sound_speed,
-                     disk_density,
-                     timestep_duration_yr):
+def star_wind_mass_loss(disk_star_pro_masses,
+                        disk_star_pro_log_radius,
+                        disk_star_pro_log_lum,
+                        disk_star_pro_orbs_a,
+                        disk_opacity_func,
+                        timestep_duration_yr):
+    """Removes mass according to the Cantiello+ 2021 prescription
+
+    Takes initial star masses at the start of the timestep and removes mass according
+    to Eqn. 16 in Cantiello+ 2021
+
+    Parameters
+    ----------
+    disk_star_pro_masses : numpy.ndarray
+        Initial masses [M_sun] of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_log_radius : numpy.ndarray
+        Radius (log R/R_sun) of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_log_lum : numpy.ndarray
+        Luminosity (log L/L_sun) of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_orbs_a : numpy.narray
+        Semi-major axes [R_{g,SMBH}] of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_opacity_func : function
+        Disk opacity function
+    timestep_duration_yr : float
+        Length of timestep [yr]
+
+    Returns
+    -------
+    star_new_masses : numpy.ndarray
+        New masses [M_sun] after removing mass for one timestep at specified mass loss rate with :obj:`float` type.
+    """
+
+    # Get opacity for orb_a values and add SI units
+    disk_opacity = disk_opacity_func(disk_star_pro_orbs_a) * (u.meter ** 2) / u.kg
+
+    # First convert quantities to SI units
+    star_radius = (10 ** disk_star_pro_log_radius) * u.Rsun
+    star_lum = (10 ** disk_star_pro_log_lum) * u.Lsun
+    star_mass = disk_star_pro_masses * u.Msun
+    timestep_duration_yr_si = timestep_duration_yr * u.year
+
+    # Calculate Eddington luminosity
+    L_Edd = (4. * np.pi * const.G * const.c * star_mass / disk_opacity).to("Lsun")
+
+    # Calculate escape speed
+    v_esc = ((2. * const.G * star_mass / star_radius) ** 0.5).to("km/s")
+
+    tanh_argument = (star_lum - L_Edd) / (0.1 * L_Edd)
+    assert u.dimensionless_unscaled == tanh_argument.unit, "Units do not cancel out, error in luminosity calculations"
+
+    mdot_Edd = (- (star_lum / (v_esc ** 2)) * (1 + np.tanh(tanh_argument.value))).to("Msun/yr")
+
+    # This is already a negative number
+    mass_lost = (mdot_Edd * timestep_duration_yr_si).to("Msun").value
+
+    star_new_masses = ((star_mass + (mdot_Edd * timestep_duration_yr_si)).to("Msun")).value
+
+    return (star_new_masses, mass_lost.sum())
+
+
+def accrete_star_mass(disk_star_pro_masses,
+                      disk_star_pro_orbs_a,
+                      disk_star_pro_eccs,
+                      disk_star_luminosity_factor,
+                      disk_star_initial_mass_cutoff,
+                      smbh_mass,
+                      disk_sound_speed,
+                      disk_density,
+                      timestep_duration_yr):
     """Adds mass according to Fabj+2024 accretion rate
 
     Takes initial star masses at start of timestep and adds mass according to Fabj+2024.
@@ -71,7 +131,10 @@ def change_star_mass(disk_star_pro_masses,
     # Stars can't accrete over disk_star_initial_mass_cutoff
     disk_star_pro_new_masses[disk_star_pro_new_masses > disk_star_initial_mass_cutoff] = disk_star_initial_mass_cutoff
 
-    return disk_star_pro_new_masses
+    # Mass gained does not include the cutoff
+    mass_gained = ((mdot * timestep_duration_yr_si).to("Msun")).value
+
+    return disk_star_pro_new_masses, mass_gained.sum()
 
 
 def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddington_mass_growth_rate, timestep_duration_yr):

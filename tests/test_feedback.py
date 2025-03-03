@@ -7,7 +7,7 @@ import conftest as provider
 from conftest import InputParameterSet
 import mcfacts.physics.feedback as feedback
 
-disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_surf_dens_func_log, temp_func, disk_model_properties, bonus_structures = construct_disk_pAGN("sirko_goodman", 1.e8, 50000, 0.01, 1.0)
+disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, disk_model_properties, bonus_structures = construct_disk_pAGN("sirko_goodman", 1.e8, 50000, 0.01, 1.0)
 
 def feedback_bh_hankla_param():
     """return input and expected values"""

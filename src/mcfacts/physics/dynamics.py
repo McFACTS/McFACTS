@@ -13,7 +13,7 @@ import astropy.constants as const
 
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage
-from mcfacts.physics.point_masses import si_from_r_g
+from mcfacts.physics.point_masses import si_from_r_g, r_g_from_units
 
 
 def circular_singles_encounters_prograde(
@@ -148,7 +148,7 @@ def circular_singles_encounters_prograde(
             If binary is soft ie GM_bin/a_bin <m3v_rel^2 then:
             soften binary 
                 a_bin -> a_bin + da_bin and
-            new binary eccentricity 
+            new binary eccentricity
                 e_bin -> e_bin + de
             and remove da_bin worth of binary energy from eccentricity of m3.
     """
@@ -208,6 +208,445 @@ def circular_singles_encounters_prograde(
     assert np.isfinite(disk_bh_pro_orbs_ecc).all(), \
         "Finite check failed for disk_bh_pro_orbs_ecc"
     return (disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
+
+
+def circular_singles_encounters_prograde_stars(
+        smbh_mass,
+        disk_star_pro_orbs_a,
+        disk_star_pro_masses,
+        disk_star_pro_radius,
+        disk_star_pro_orbs_ecc,
+        disk_star_pro_id_nums,
+        rstar_rhill_exponent,
+        timestep_duration_yr,
+        disk_bh_pro_orb_ecc_crit,
+        delta_energy_strong,
+        disk_radius_outer
+        ):
+    """"Adjust orb ecc due to encounters between 2 single circ pro stars
+
+    Parameters
+    ----------
+    smbh_mass : float
+        Mass [M_sun] of supermassive black hole
+    disk_bh_pro_orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] of prograde singleton star at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    disk_bh_pro_masses : numpy.ndarray
+        Masses [M_sun] of prograde singleton star at start of timestep with :obj:`float` type
+    disk_star_pro_radius : numpy.ndarray
+        Radii [Rsun] of prograde singleton star at start of timestep with :obj: `float` type
+    disk_bh_pro_orbs_ecc : numpy.ndarray
+        Orbital eccentricity [unitless] of singleton prograde star with :obj:`float` type
+    disk_star_pro_id_nums : numpy.ndarray
+        ID numbers of singleton prograde stars
+    rstar_rhill_exponent : float
+        Exponent for the ratio of R_star / R_Hill. Default is 2
+    timestep_duration_yr : float
+        Length of timestep [yr]
+    disk_bh_pro_orb_ecc_crit : float
+        Critical orbital eccentricity [unitless] below which orbit is close enough to circularize
+    delta_energy_strong : float
+        Average energy change [units??] per strong encounter
+
+    Returns
+    -------
+    disk_star_pro_orbs_a : numpy.ndarray
+        Updated BH semi-major axis [r_{g,SMBH}] perturbed by dynamics with :obj:`float` type
+    disk_star_pro_orbs_ecc : numpy.ndarray
+        Updated BH orbital eccentricities [unitless] perturbed by dynamics with :obj:`float` type
+    disk_star_pro_id_nums_touch : numpy.ndarray
+        ID numbers of stars that will touch each other
+
+    Notes
+    -----
+    Return array of modified singleton star orbital eccentricities perturbed
+    by encounters within :math:`f*R_{Hill}`, where f is some fraction/multiple of
+    Hill sphere radius R_H
+
+    Assume encounters between damped star (e<e_crit) and undamped star
+    (e>e_crit) are the only important ones for now.
+    Since the e<e_crit population is the most likely BBH merger source.
+
+    1, find those orbiters with e<e_crit and their
+        associated semi-major axes a_circ =[a_circ1, a_circ2, ..] and masses m_circ =[m_circ1,m_circ2, ..].
+
+    2, calculate orbital timescales for a_circ1 and a_i and N_orbits/timestep. 
+        For example, since
+        :math:`T_orb =2\\pi \sqrt(a^3/GM_{smbh})`
+        and
+        .. math::
+        a^3/GM_{smbh} = (10^3r_g)^3/GM_{smbh} = 10^9 (a/10^3r_g)^3 (GM_{smbh}/c^2)^3/GM_{smbh} \\
+                    = 10^9 (a/10^3r_g)^3 (G M_{smbh}/c^3)^2 
+
+        So
+        .. math::
+            T_orb   = 2\\pi 10^{4.5} (a/10^3r_g)^{3/2} GM_{smbh}/c^3 \\
+                    = 2\\pi 10^{4.5} (a/10^3r_g)^{3/2} (6.7e-11*2e38/(3e8)^3) \\
+                    = 2\\pi 10^{4.5} (a/10^3r_g)^{3/2} (13.6e27/27e24) \\
+                    = \\pi 10^{7.5}  (a/10^3r_g)^{3/2} \\
+                    ~ 3yr (a/10^3r_g)^3/2 (M_{smbh}/10^8M_{sun}) \\
+        i.e. Orbit~3yr at 10^3r_g around a 10^8M_{sun} SMBH.
+        Therefore in a timestep=1.e4yr, a BH at 10^3r_g orbits the SMBH N_orbit/timestep =3,000 times.
+
+    3, among population of orbiters with e>e_crit,
+        find those orbiters (a_i,e_i) where a_i*(1-e_i)< a_circ1,j <a_i*(1-e_i) for all members a_circ1,j of the circularized population 
+        so we can test for possible interactions.
+
+    4, calculate mutual Hill sphere R_H of candidate binary (a_circ1,j ,a_i).
+
+    5, calculate ratio of 2R_H of binary to size of circular orbit, or (2R_H/2pi a_circ1,j)
+        Hill sphere possible on both crossing inwards and outwards once per orbit, 
+        so 2xHill sphere =4R_H worth of circular orbit will have possible encounter. 
+        Thus, (4R_H/2pi a_circ1)= odds that a_circ1 is in the region of cross-over per orbit.
+        For example, for BH at a_circ1 = 1e3r_g, 
+            .. math:: R_h = a_{circ1}*(m_{circ1} + m_i/3M_{smbh})^1/3
+            .. math:: = 0.004a_{circ1} (m_{circ1}/10M_{sun})^1/3 (m_i/10M_{sun})^1/3 (M_{smbh}/1e8M_{sun})^-1/3
+        then
+            ratio (4R_H/2pi a_circ1) = 0.008/pi ~ 0.0026 
+            (ie around 1/400 odds that BH at a_circ1 is in either area of crossing)         
+
+    6, calculate number of orbits of a_i in 1 timestep. 
+        If e.g. N_orb(a_i)/timestep = 200 orbits per timestep of 10kyr, then 
+        probability of encounter = (200orbits/timestep)*(4R_H/2pi a_circ1) ~ 0.5, 
+                                or 50% odds of an encounter on this timestep between (a_circ1,j , a_i).
+        If probability > 1, set probability = 1.
+    7, draw a random number from the uniform [0,1] distribution and 
+        if rng < probability of encounter, there is an encounter during the timestep
+        if rng > probability of encounter, there is no encounter during the timestep
+
+    8, if encounter:
+        Take energy (de) from high ecc. a_i and give energy (de) to a_circ1,j
+        de is average fractional energy change per encounter.
+            So, a_circ1,j ->(1+de)a_circ1,j.    
+                e_circ1,j ->(crit_ecc + de)
+            and
+                a_i       ->(1-de)a_i
+                e_i       ->(1-de)e_i              
+        Could be that average energy in gas-free cluster case is  
+        assume average energy transfer = 20% perturbation (from Sigurdsson & Phinney 1993). 
+
+        Further notes for self:
+        sigma_ecc = sqrt(ecc^2 + incl^2)v_kep so if incl=0 deg (for now)
+        En of ecc. interloper = 1/2 m_i sigma_ecc^2.
+            Note: Can also use above logic for binary encounters except use binary binding energy instead.
+
+        or later could try 
+            Deflection angle defl = tan (defl) = dV_perp/V = 2GM/bV^2 kg^-1 m^3 s^-2 kg / m (m s^-1)^2
+        so :math:`de/e =2GM/bV^2 = 2 G M_{bin}/0.5R_{hill}*\sigma^2`
+        and :math:`R_hill = a_{circ1}*(M_{bin}/3M_{smbh})^1/3 and \sigma^2 =ecc^2*v_{kep}^2`
+        So :math:`de/e = 4GM_{bin}/a_{circ1}(M_{bin}/3M_{smbh})^1/3 ecc^2 v_{kep}^2`
+        and :math:`v_{kep} = \sqrt(GM_{smbh}/a_i)`
+        So :math:`de/e = 4GM_{bin}^{2/3}M_{smbh}^1/3 a_i/a_{circ1} ecc^2 GM_{smbh} = 4(M_{bin}/M_{smbh})^{2/3} (a_i/a_{circ1})(1/ecc^2)
+        where :math:`V_{rel} = \sigma` say and :math:`b=R_H = a_{circ1} (q/3)^{1/3}`
+        So :math:`defl = 2GM/ a_{circ1}(q/3)^2/3 ecc^2 10^14 (m/s)^2 (R/10^3r_g)^-1`
+            :math:`= 2 6.7e-11 2.e31/`
+        !!Note: when doing this for binaries. 
+            Calculate velocity of encounter compared to a_bin.
+            If binary is hard ie GM_bin/a_bin > m3v_rel^2 then:
+            harden binary 
+                a_bin -> a_bin -da_bin and
+            new binary eccentricity 
+                e_bin -> e_bin + de  
+            and give  da_bin worth of binding energy to extra eccentricity of m3.
+            If binary is soft ie GM_bin/a_bin <m3v_rel^2 then:
+            soften binary 
+                a_bin -> a_bin + da_bin and
+            new binary eccentricity
+                e_bin -> e_bin + de
+            and remove da_bin worth of binary energy from eccentricity of m3.
+    """
+    # Find the e< crit_ecc. population. These are the (circularized) population that can form binaries.
+    circ_prograde_population_indices = np.asarray(disk_star_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
+    # Find the e> crit_ecc population. These are the interlopers that can perturb the circularized population
+    ecc_prograde_population_indices = np.asarray(disk_star_pro_orbs_ecc > disk_bh_pro_orb_ecc_crit).nonzero()[0]
+
+    # Get locations for circ population
+    circ_prograde_population_locations = disk_star_pro_orbs_a[circ_prograde_population_indices]
+
+    # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
+    epsilon = disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)) * rng.uniform(size=circ_prograde_population_indices.size)
+
+    # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
+    #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
+    orbital_timescales_circ_pops = scipy.constants.pi*((disk_star_pro_orbs_a[circ_prograde_population_indices])**(1.5))*(2.e30*smbh_mass*scipy.constants.G)/(scipy.constants.c**(3.0)*3.15e7) 
+    N_circ_orbs_per_timestep = timestep_duration_yr/orbital_timescales_circ_pops
+    ecc_orb_min = disk_star_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_star_pro_orbs_ecc[ecc_prograde_population_indices])
+    ecc_orb_max = disk_star_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_star_pro_orbs_ecc[ecc_prograde_population_indices])
+    num_poss_ints = 0
+    num_encounters = 0
+    id_nums_touch = []
+    if len(circ_prograde_population_indices) > 0:
+        for i, circ_idx in enumerate(circ_prograde_population_indices):
+            for j, ecc_idx in enumerate(ecc_prograde_population_indices):
+                if (circ_prograde_population_locations[i] < ecc_orb_max[j] and circ_prograde_population_locations[i] > ecc_orb_min[j]):
+                    # prob_encounter/orbit =hill sphere size/circumference of circ orbit =2RH/2pi a_circ1
+                    # r_h = a_circ1(temp_bin_mass/3smbh_mass)^1/3 so prob_enc/orb = mass_ratio^1/3/pi
+                    temp_bin_mass = disk_star_pro_masses[circ_idx] + disk_star_pro_masses[ecc_idx]
+                    star_smbh_mass_ratio = temp_bin_mass/(3.0*smbh_mass)
+                    mass_ratio_factor = (star_smbh_mass_ratio)**(1./3.)
+                    prob_orbit_overlap = (1./scipy.constants.pi)*mass_ratio_factor
+                    prob_enc_per_timestep = prob_orbit_overlap * N_circ_orbs_per_timestep[i]
+                    if prob_enc_per_timestep > 1:
+                        prob_enc_per_timestep = 1
+                    random_uniform_number = rng.uniform(size=1)
+                    if random_uniform_number < prob_enc_per_timestep:
+                        num_encounters = num_encounters + 1
+                        # if close encounter, pump ecc of circ orbiter to e=0.1 from near circular, and incr a_circ1 by 10%
+                        # drop ecc of a_i by 10% and drop a_i by 10% (P.E. = -GMm/a)
+                        # if already pumped in eccentricity, no longer circular, so don't need to follow other interactions
+                        if disk_star_pro_orbs_ecc[circ_idx] <= disk_bh_pro_orb_ecc_crit:
+                            disk_star_pro_orbs_ecc[circ_idx] = delta_energy_strong
+                            disk_star_pro_orbs_a[circ_idx] = disk_star_pro_orbs_a[circ_idx]*(1.0 + delta_energy_strong)
+                            # Catch for if orb_a > disk_radius_outer
+                            if (disk_star_pro_orbs_a[circ_idx] > disk_radius_outer):
+                                disk_star_pro_orbs_a[circ_idx] = disk_radius_outer - epsilon[i]
+                            disk_star_pro_orbs_ecc[ecc_idx] = disk_star_pro_orbs_ecc[ecc_idx]*(1 - delta_energy_strong)
+                            disk_star_pro_orbs_a[ecc_idx] = disk_star_pro_orbs_a[ecc_idx]*(1 - delta_energy_strong)
+                            # Look for stars that are inside each other's Hill spheres and if so return them as mergers
+                            separation = np.abs(disk_star_pro_orbs_a[circ_idx] - disk_star_pro_orbs_a[ecc_idx])
+                            center_of_mass = np.average([disk_star_pro_orbs_a[circ_idx], disk_star_pro_orbs_a[ecc_idx]],
+                                                        weights=[disk_star_pro_masses[circ_idx], disk_star_pro_masses[ecc_idx]])
+                            rhill_poss_encounter = center_of_mass * ((disk_star_pro_masses[circ_idx] + disk_star_pro_masses[ecc_idx]) / (3. * smbh_mass)) ** (1./3.)
+                            if (separation - rhill_poss_encounter < 0):
+                                id_nums_touch.append(np.array([disk_star_pro_id_nums[circ_idx], disk_star_pro_id_nums[ecc_idx]]))
+                    num_poss_ints = num_poss_ints + 1
+            num_poss_ints = 0
+            num_encounters = 0
+
+    # Check finite
+    assert np.isfinite(disk_star_pro_orbs_a).all(), \
+        "Finite check failed for disk_star_pro_orbs_a"
+    assert np.isfinite(disk_star_pro_orbs_ecc).all(), \
+        "Finite check failed for disk_star_pro_orbs_ecc"
+
+    # Put ID nums array into correct shape
+    id_nums_touch = np.array(id_nums_touch)
+    id_nums_touch = id_nums_touch.T
+    return (disk_star_pro_orbs_a, disk_star_pro_orbs_ecc, id_nums_touch)
+
+
+def circular_singles_encounters_prograde_star_bh(
+        smbh_mass,
+        disk_star_pro_orbs_a,
+        disk_star_pro_masses,
+        disk_star_pro_radius,
+        disk_star_pro_orbs_ecc,
+        disk_star_pro_id_nums,
+        rstar_rhill_exponent,
+        disk_bh_pro_orbs_a,
+        disk_bh_pro_masses,
+        disk_bh_pro_orbs_ecc,
+        disk_bh_pro_id_nums,
+        timestep_duration_yr,
+        disk_bh_pro_orb_ecc_crit,
+        delta_energy_strong,
+        disk_radius_outer
+        ):
+    """"Adjust orb ecc due to encounters between 2 single circ pro stars
+
+    Parameters
+    ----------
+    smbh_mass : float
+        Mass [M_sun] of supermassive black hole
+    disk_bh_pro_orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] of prograde singleton star at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    disk_bh_pro_masses : numpy.ndarray
+        Masses [M_sun] of prograde singleton star at start of timestep with :obj:`float` type
+    disk_star_pro_radius : numpy.ndarray
+        Radii [Rsun] of prograde singleton star at start of timestep with :obj: `float` type
+    disk_bh_pro_orbs_ecc : numpy.ndarray
+        Orbital eccentricity [unitless] of singleton prograde star with :obj:`float` type
+    disk_star_pro_id_nums : numpy.ndarray
+        ID numbers of singleton prograde stars
+    rstar_rhill_exponent : float
+        Exponent for the ratio of R_star / R_Hill. Default is 2
+    timestep_duration_yr : float
+        Length of timestep [yr]
+    disk_bh_pro_orb_ecc_crit : float
+        Critical orbital eccentricity [unitless] below which orbit is close enough to circularize
+    delta_energy_strong : float
+        Average energy change [units??] per strong encounter
+
+    Returns
+    -------
+    disk_star_pro_orbs_a : numpy.ndarray
+        Updated BH semi-major axis [r_{g,SMBH}] perturbed by dynamics with :obj:`float` type
+    disk_star_pro_orbs_ecc : numpy.ndarray
+        Updated BH orbital eccentricities [unitless] perturbed by dynamics with :obj:`float` type
+    disk_star_pro_id_nums_touch : numpy.ndarray
+        ID numbers of stars that will touch each other
+
+    Notes
+    -----
+    Return array of modified singleton star orbital eccentricities perturbed
+    by encounters within :math:`f*R_{Hill}`, where f is some fraction/multiple of
+    Hill sphere radius R_H
+
+    Assume encounters between damped star (e<e_crit) and undamped star
+    (e>e_crit) are the only important ones for now.
+    Since the e<e_crit population is the most likely BBH merger source.
+
+    1, find those orbiters with e<e_crit and their
+        associated semi-major axes a_circ =[a_circ1, a_circ2, ..] and masses m_circ =[m_circ1,m_circ2, ..].
+
+    2, calculate orbital timescales for a_circ1 and a_i and N_orbits/timestep. 
+        For example, since
+        :math:`T_orb =2\\pi \sqrt(a^3/GM_{smbh})`
+        and
+        .. math::
+        a^3/GM_{smbh} = (10^3r_g)^3/GM_{smbh} = 10^9 (a/10^3r_g)^3 (GM_{smbh}/c^2)^3/GM_{smbh} \\
+                    = 10^9 (a/10^3r_g)^3 (G M_{smbh}/c^3)^2 
+
+        So
+        .. math::
+            T_orb   = 2\\pi 10^{4.5} (a/10^3r_g)^{3/2} GM_{smbh}/c^3 \\
+                    = 2\\pi 10^{4.5} (a/10^3r_g)^{3/2} (6.7e-11*2e38/(3e8)^3) \\
+                    = 2\\pi 10^{4.5} (a/10^3r_g)^{3/2} (13.6e27/27e24) \\
+                    = \\pi 10^{7.5}  (a/10^3r_g)^{3/2} \\
+                    ~ 3yr (a/10^3r_g)^3/2 (M_{smbh}/10^8M_{sun}) \\
+        i.e. Orbit~3yr at 10^3r_g around a 10^8M_{sun} SMBH.
+        Therefore in a timestep=1.e4yr, a BH at 10^3r_g orbits the SMBH N_orbit/timestep =3,000 times.
+
+    3, among population of orbiters with e>e_crit,
+        find those orbiters (a_i,e_i) where a_i*(1-e_i)< a_circ1,j <a_i*(1-e_i) for all members a_circ1,j of the circularized population 
+        so we can test for possible interactions.
+
+    4, calculate mutual Hill sphere R_H of candidate binary (a_circ1,j ,a_i).
+
+    5, calculate ratio of 2R_H of binary to size of circular orbit, or (2R_H/2pi a_circ1,j)
+        Hill sphere possible on both crossing inwards and outwards once per orbit, 
+        so 2xHill sphere =4R_H worth of circular orbit will have possible encounter. 
+        Thus, (4R_H/2pi a_circ1)= odds that a_circ1 is in the region of cross-over per orbit.
+        For example, for BH at a_circ1 = 1e3r_g, 
+            .. math:: R_h = a_{circ1}*(m_{circ1} + m_i/3M_{smbh})^1/3
+            .. math:: = 0.004a_{circ1} (m_{circ1}/10M_{sun})^1/3 (m_i/10M_{sun})^1/3 (M_{smbh}/1e8M_{sun})^-1/3
+        then
+            ratio (4R_H/2pi a_circ1) = 0.008/pi ~ 0.0026 
+            (ie around 1/400 odds that BH at a_circ1 is in either area of crossing)         
+
+    6, calculate number of orbits of a_i in 1 timestep. 
+        If e.g. N_orb(a_i)/timestep = 200 orbits per timestep of 10kyr, then 
+        probability of encounter = (200orbits/timestep)*(4R_H/2pi a_circ1) ~ 0.5, 
+                                or 50% odds of an encounter on this timestep between (a_circ1,j , a_i).
+        If probability > 1, set probability = 1.
+    7, draw a random number from the uniform [0,1] distribution and 
+        if rng < probability of encounter, there is an encounter during the timestep
+        if rng > probability of encounter, there is no encounter during the timestep
+
+    8, if encounter:
+        Take energy (de) from high ecc. a_i and give energy (de) to a_circ1,j
+        de is average fractional energy change per encounter.
+            So, a_circ1,j ->(1+de)a_circ1,j.    
+                e_circ1,j ->(crit_ecc + de)
+            and
+                a_i       ->(1-de)a_i
+                e_i       ->(1-de)e_i              
+        Could be that average energy in gas-free cluster case is  
+        assume average energy transfer = 20% perturbation (from Sigurdsson & Phinney 1993). 
+
+        Further notes for self:
+        sigma_ecc = sqrt(ecc^2 + incl^2)v_kep so if incl=0 deg (for now)
+        En of ecc. interloper = 1/2 m_i sigma_ecc^2.
+            Note: Can also use above logic for binary encounters except use binary binding energy instead.
+
+        or later could try 
+            Deflection angle defl = tan (defl) = dV_perp/V = 2GM/bV^2 kg^-1 m^3 s^-2 kg / m (m s^-1)^2
+        so :math:`de/e =2GM/bV^2 = 2 G M_{bin}/0.5R_{hill}*\sigma^2`
+        and :math:`R_hill = a_{circ1}*(M_{bin}/3M_{smbh})^1/3 and \sigma^2 =ecc^2*v_{kep}^2`
+        So :math:`de/e = 4GM_{bin}/a_{circ1}(M_{bin}/3M_{smbh})^1/3 ecc^2 v_{kep}^2`
+        and :math:`v_{kep} = \sqrt(GM_{smbh}/a_i)`
+        So :math:`de/e = 4GM_{bin}^{2/3}M_{smbh}^1/3 a_i/a_{circ1} ecc^2 GM_{smbh} = 4(M_{bin}/M_{smbh})^{2/3} (a_i/a_{circ1})(1/ecc^2)
+        where :math:`V_{rel} = \sigma` say and :math:`b=R_H = a_{circ1} (q/3)^{1/3}`
+        So :math:`defl = 2GM/ a_{circ1}(q/3)^2/3 ecc^2 10^14 (m/s)^2 (R/10^3r_g)^-1`
+            :math:`= 2 6.7e-11 2.e31/`
+        !!Note: when doing this for binaries. 
+            Calculate velocity of encounter compared to a_bin.
+            If binary is hard ie GM_bin/a_bin > m3v_rel^2 then:
+            harden binary 
+                a_bin -> a_bin -da_bin and
+            new binary eccentricity 
+                e_bin -> e_bin + de  
+            and give  da_bin worth of binding energy to extra eccentricity of m3.
+            If binary is soft ie GM_bin/a_bin <m3v_rel^2 then:
+            soften binary 
+                a_bin -> a_bin + da_bin and
+            new binary eccentricity
+                e_bin -> e_bin + de
+            and remove da_bin worth of binary energy from eccentricity of m3.
+    """
+    # We are comparing the CIRCULARIZED stars and the ECCENTRIC black holes
+    # Find the e< crit_ecc. population. These are the (circularized) population that can form binaries.
+    circ_prograde_population_indices = np.asarray(disk_star_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
+    # Find the e> crit_ecc population. These are the interlopers that can perturb the circularized population
+    ecc_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orb_ecc_crit).nonzero()[0]
+
+    # Get locations for circ population
+    circ_prograde_population_locations = disk_star_pro_orbs_a[circ_prograde_population_indices]
+
+    # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
+    epsilon_star = disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)) * rng.uniform(size=circ_prograde_population_indices.size)
+
+    # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
+    #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
+    orbital_timescales_circ_pops = scipy.constants.pi*((disk_star_pro_orbs_a[circ_prograde_population_indices])**(1.5))*(2.e30*smbh_mass*scipy.constants.G)/(scipy.constants.c**(3.0)*3.15e7) 
+    N_circ_orbs_per_timestep = timestep_duration_yr/orbital_timescales_circ_pops
+    ecc_orb_min = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_bh_pro_orbs_a[ecc_prograde_population_indices])
+    ecc_orb_max = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_bh_pro_orbs_a[ecc_prograde_population_indices])
+    num_poss_ints = 0
+    num_encounters = 0
+    id_nums_touch = []
+    if len(circ_prograde_population_indices) > 0:
+        for i, circ_idx in enumerate(circ_prograde_population_indices):
+            for j, ecc_idx in enumerate(ecc_prograde_population_indices):
+                if (circ_prograde_population_locations[i] < ecc_orb_max[j] and circ_prograde_population_locations[i] > ecc_orb_min[j]):
+                    # prob_encounter/orbit =hill sphere size/circumference of circ orbit =2RH/2pi a_circ1
+                    # r_h = a_circ1(temp_bin_mass/3smbh_mass)^1/3 so prob_enc/orb = mass_ratio^1/3/pi
+                    temp_bin_mass = disk_star_pro_masses[circ_idx] + disk_bh_pro_masses[ecc_idx]
+                    star_smbh_mass_ratio = temp_bin_mass/(3.0*smbh_mass)
+                    mass_ratio_factor = (star_smbh_mass_ratio)**(1./3.)
+                    prob_orbit_overlap = (1./scipy.constants.pi)*mass_ratio_factor
+                    prob_enc_per_timestep = prob_orbit_overlap * N_circ_orbs_per_timestep[i]
+                    if prob_enc_per_timestep > 1:
+                        prob_enc_per_timestep = 1
+                    random_uniform_number = rng.uniform(size=1)
+                    if random_uniform_number < prob_enc_per_timestep:
+                        num_encounters = num_encounters + 1
+                        # if close encounter, pump ecc of circ orbiter to e=0.1 from near circular, and incr a_circ1 by 10%
+                        # drop ecc of a_i by 10% and drop a_i by 10% (P.E. = -GMm/a)
+                        # if already pumped in eccentricity, no longer circular, so don't need to follow other interactions
+                        if disk_star_pro_orbs_ecc[circ_idx] <= disk_bh_pro_orb_ecc_crit:
+                            disk_star_pro_orbs_ecc[circ_idx] = delta_energy_strong
+                            disk_star_pro_orbs_a[circ_idx] = disk_star_pro_orbs_a[circ_idx]*(1.0 + delta_energy_strong)
+                            # Catch for if orb_a > disk_radius_outer
+                            if (disk_star_pro_orbs_a[circ_idx] > disk_radius_outer):
+                                disk_star_pro_orbs_a[circ_idx] = disk_radius_outer - epsilon_star[i]
+                            disk_bh_pro_orbs_ecc[ecc_idx] = disk_bh_pro_orbs_ecc[ecc_idx]*(1 - delta_energy_strong)
+                            disk_bh_pro_orbs_a[ecc_idx] = disk_bh_pro_orbs_a[ecc_idx]*(1 - delta_energy_strong)
+                            # Look for stars that are inside each other's Hill spheres and if so return them as mergers
+                            separation = np.abs(disk_star_pro_orbs_a[circ_idx] - disk_bh_pro_orbs_a[ecc_idx])
+                            center_of_mass = np.average([disk_star_pro_orbs_a[circ_idx], disk_bh_pro_orbs_a[ecc_idx]],
+                                                        weights=[disk_star_pro_masses[circ_idx], disk_bh_pro_masses[ecc_idx]])
+                            rhill_poss_encounter = center_of_mass * ((disk_star_pro_masses[circ_idx] + disk_bh_pro_masses[ecc_idx]) / (3. * smbh_mass)) ** (1./3.)
+                            if (separation - rhill_poss_encounter < 0):
+                                id_nums_touch.append(np.array([disk_star_pro_id_nums[circ_idx], disk_bh_pro_id_nums[ecc_idx]]))
+                    num_poss_ints = num_poss_ints + 1
+            num_poss_ints = 0
+            num_encounters = 0
+
+    # Check finite
+    assert np.isfinite(disk_star_pro_orbs_a).all(), \
+        "Finite check failed for disk_star_pro_orbs_a"
+    assert np.isfinite(disk_star_pro_orbs_ecc).all(), \
+        "Finite check failed for disk_star_pro_orbs_ecc"
+    assert np.isfinite(disk_bh_pro_orbs_a).all(), \
+        "Finite check failed for disk_bh_pro_orbs_a"
+    assert np.isfinite(disk_bh_pro_orbs_ecc).all(), \
+        "Finite check failed for disk_bh_pro_orbs_ecc"
+
+    # Put ID nums array into correct shape
+    id_nums_touch = np.array(id_nums_touch)
+    id_nums_touch = id_nums_touch.T
+    return (disk_star_pro_orbs_a, disk_star_pro_orbs_ecc, disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc, id_nums_touch)
 
 
 def circular_binaries_encounters_ecc_prograde(

@@ -25,6 +25,8 @@ VERA_PLOTS_EXE = ${HERE}/scripts/vera_plots.py
 MSTAR_RUNS_EXE = ${HERE}/scripts/vera_mstar_bins.py
 MSTAR_PLOT_EXE = ${HERE}/src/mcfacts/outputs/plot_mcfacts_handler_quantities.py
 STARS_PLOTS = ${HERE}/scripts/stars_plots.py
+DISK_MASS_PLOTS = ${HERE}/scripts/disk_mass_plots.py
+ORBA_MASS_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
 EMILY_PLOTS = ${HERE}/scripts/emily_plots.py
 
 #### Setup ####
@@ -131,8 +133,45 @@ kaila_stars: plots
 	cd runs; \
 	python ../${STARS_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-stars ${wd}/output_mergers_stars.dat \
+	--fname-stars ${wd}/output_mergers_stars_population.dat \
+	--fname-stars-merge ${wd}/output_mergers_stars_merged.dat \
+	--fname-stars_explode ${wd}/output_mergers_stars_exploded.dat \
 	--plots-directory ${wd}
+
+kaila_stars_movie: clean
+	mkdir -p runs
+	cd runs; \
+		python ../${MCFACTS_SIM_EXE} \
+		--galaxy_num 100 \
+		--fname-ini ../${FNAME_INI} \
+		--fname-log out.log \
+		--seed ${SEED} \
+		--save-snapshots
+
+kaila_stars_make_movie: kaila_stars_plots
+	cd runs; \
+	python ../${ORBA_MASS_FRAMES} \
+	--fpath-snapshots ${wd}/gal000/ \
+	--num-timesteps 50 \
+	--plots-directory ${wd}/gal000
+	rm -fv ${wd}/runs/orba_mass_movie.mp4
+	ffmpeg -f image2 -framerate 5 -i ${wd}/runs/gal000/orba_mass_movie_timestep_%02d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/runs/orba_mass_movie.mp4
+
+kaila_stars_plots: just_plots
+	cd runs; \
+	python ../${STARS_PLOTS} \
+	--runs-directory ${wd} \
+	--fname-stars ${wd}/output_mergers_stars_population.dat \
+	--fname-stars-merge ${wd}/output_mergers_stars_merged.dat \
+	--fname-stars-explode ${wd}/output_mergers_stars_exploded.dat \
+	--plots-directory ${wd}
+
+disk_mass_plots:
+	cd runs; \
+	python ../${DISK_MASS_PLOTS} \
+	--runs-directory ${wd} \
+	--fname-disk ${wd}/output_diskmasscycled.dat \
+	--plots-directory ${wd}		
 		
 emily_plots: plots
 	cd runs; \
