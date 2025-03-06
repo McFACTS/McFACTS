@@ -586,16 +586,19 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr, stal
     # 2. Find number of binary orbits around its center of mass within the timestep
     # 3. For every 10^3 orbits, halve the binary separation.
 
-    # Only interested in BH that have not merged
-    idx_non_mergers = np.where(blackholes_binary.flag_merging >= 0)[0]
+    # Only interested in BBH that are not flag for merging or <= the stalling separation
+    # np.where(blackholes_binary.flag_merging >= 0 and blackholes_binary.bin_sep > stalling_separation)[0]
+    flag_not_merging_stalling = np.zeros(len(blackholes_binary.id_num), dtype=bool)
+    for x in range(len(blackholes_binary.id_num)):
+        flag_not_merging_stalling[x] = blackholes_binary.flag_merging[x] >= 0 and blackholes_binary.bin_sep[x] > stalling_separation
 
-    # If all binaries have merged then nothing to do
-    if (idx_non_mergers.shape[0] == 0):
+    # If all binaries have merged or are below the stalling separation, then there is nothing to do
+    if flag_not_merging_stalling.shape[0] == 0:
         return blackholes_binary
 
     # Set up variables
-    mass_binary = blackholes_binary.mass_1[idx_non_mergers] + blackholes_binary.mass_2[idx_non_mergers]
-    bin_sep = blackholes_binary.bin_sep[idx_non_mergers]
+    mass_binary = blackholes_binary.mass_1[flag_not_merging_stalling] + blackholes_binary.mass_2[flag_not_merging_stalling]
+    bin_sep = blackholes_binary.bin_sep[flag_not_merging_stalling]
 
     # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
     # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
@@ -606,13 +609,14 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr, stal
     num_orbits_in_timestep[bin_period > 0] = timestep_duration_yr / bin_period[bin_period > 0]
     scaled_num_orbits = num_orbits_in_timestep / 1000.0
 
-    # Create mask for binaries that are stalled
-    mask_stalled = bin_sep <= stalling_separation
+    # Scale binary separations according to Baruteau+11 prescription
+    # Prevent overshooting of separations smaller than the stalling separation
+    new_bin_sep = np.maximum(bin_sep * (0.5 ** scaled_num_orbits), stalling_separation)
 
-    # Binary will not merge in this timestep
-    # new bin_sep according to Baruteau+11 prescription
-    bin_sep[~mask_stalled] = bin_sep[~mask_stalled] * (0.5 ** scaled_num_orbits[~mask_stalled])
-    blackholes_binary.bin_sep[idx_non_mergers[~mask_stalled]] = bin_sep[~mask_stalled]
+    assert all([x >= stalling_separation for x in new_bin_sep]), \
+        f"Value out of range: bin_sep for non stalled BBH are smaller than stalling_separation {new_bin_sep[new_bin_sep < stalling_separation]}"
+
+    blackholes_binary.bin_sep[flag_not_merging_stalling] = new_bin_sep
 
     # Finite check
     assert np.isfinite(blackholes_binary.bin_sep).all(),\

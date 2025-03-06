@@ -8,6 +8,7 @@ import time
 
 import numpy as np
 from astropy import units as u
+from astropy import constants as const
 
 from mcfacts.physics.binary import evolve
 from mcfacts.physics.binary import formation
@@ -1249,7 +1250,7 @@ def main():
                 # Minimum BBH separation (in units of r_g)
                 min_bbh_gw_separation = 2.0
                 # If there are binaries AND if any separations are < min_bbh_gw_separation
-                bh_binary_id_num_gw = blackholes_binary.id_num[(blackholes_binary.bin_sep < min_bbh_gw_separation) & (blackholes_binary.bin_sep > 0)]
+                bh_binary_id_num_gw = blackholes_binary.id_num[(blackholes_binary.bin_sep <= min_bbh_gw_separation) & (blackholes_binary.bin_sep > 0)]
                 if (bh_binary_id_num_gw.size > 0):
                     # 1st time around.
                     if num_bbh_gw_tracked == 0:
@@ -1489,6 +1490,41 @@ def main():
                         filing_cabinet.update(id_num=bh_binary_id_num_merger,
                                               attr="size",
                                               new_info=np.full(bh_binary_id_num_merger.size, -1.5))
+
+                        bh_bin_m_1 = blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1")
+                        bh_bin_m_2 = blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2")
+                        bh_bin_sep_final = (bh_bin_m_1 + bh_bin_m_2) / opts.smbh_mass
+                        bh_bin_final = blackholes_binary.copy()
+                        bh_bin_final.keep_id_num(bh_binary_id_num_merger)
+                        bh_bin_final.bin_sep = bh_bin_sep_final
+                        bh_bin_final = gw.evolve_gw(bh_bin_final, opts.smbh_mass, agn_redshift)
+
+                        blackholes_binary_gw.add_binaries(
+                            new_id_num=bh_binary_id_num_merger,
+                            new_mass_1=bh_bin_final.mass_1,
+                            new_mass_2=bh_bin_final.mass_2,
+                            new_orb_a_1=bh_bin_final.orb_a_1,
+                            new_orb_a_2=bh_bin_final.orb_a_2,
+                            new_spin_1=bh_bin_final.spin_1,
+                            new_spin_2=bh_bin_final.spin_2,
+                            new_spin_angle_1=bh_bin_final.spin_angle_1,
+                            new_spin_angle_2=bh_bin_final.spin_angle_2,
+                            new_bin_sep=bh_bin_final.bin_sep,
+                            new_bin_orb_a=bh_bin_final.bin_orb_a,
+                            new_time_to_merger_gw=bh_bin_final.time_to_merger_gw,
+                            new_flag_merging=bh_bin_final.flag_merging,
+                            new_time_merged=np.full(bh_binary_id_num_merger.size, time_passed),
+                            new_bin_ecc=bh_bin_final.bin_ecc,
+                            new_gen_1=bh_bin_final.gen_1,
+                            new_gen_2=bh_bin_final.gen_2,
+                            new_bin_orb_ang_mom=bh_bin_final.bin_orb_ang_mom,
+                            new_bin_orb_inc=bh_bin_final.bin_orb_inc,
+                            new_bin_orb_ecc=bh_bin_final.bin_orb_ecc,
+                            new_gw_freq=bh_bin_final.gw_freq,
+                            new_gw_strain=bh_bin_final.gw_strain,
+                            new_galaxy=np.full(bh_binary_id_num_merger.size, galaxy),
+                        )
+
                         blackholes_binary.remove_id_num(bh_binary_id_num_merger)
 
                     if opts.verbose:
