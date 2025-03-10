@@ -3,6 +3,8 @@ Module for calculating the final variables of a merging binary.
 """
 import numpy as np
 from astropy import units as u
+from astropy import constants as const
+from mcfacts.mcfacts_random_state import rng
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
@@ -256,3 +258,30 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2):
     merged_spins = 0.686 * ((5.04 * nu) - (4.16 * nu_squared)) + (0.4 * ((spins_1 / spin_factors_1) + (spins_2 / spin_factors_2)))
 
     return (merged_spins)
+
+
+def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
+    """Calculates orbital eccentricity of a merged binary.
+
+    Parameters
+    ----------
+    bin_orbs_a : numpy.ndarray
+        Location of binary [r_{g,SMBH}] wrt to the SMBH with :obj:`float` type
+    v_kicks : numpy.ndarray
+        Kick velocity [km/s] with :obj:`float` type
+    smbh_mass : float
+        Mass [Msun] of the SMBH
+
+    Returns
+    -------
+    merged_ecc : numpy.ndarray
+        Orbital eccentricity of merged binary with :obj:`float` type
+    """
+    smbh_mass_units = smbh_mass * u.solMass
+    orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+
+    v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
+
+    merged_ecc = v_kicks/v_kep
+
+    return (merged_ecc)

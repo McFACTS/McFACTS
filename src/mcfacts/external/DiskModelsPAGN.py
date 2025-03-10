@@ -8,6 +8,9 @@ from pagn import Thompson
 from pagn import Sirko
 import scipy.interpolate
 
+from mcfacts.physics import point_masses
+
+from astropy import units as astropy_units
 
 class AGNGasDiskModel(object):
     def __init__(self, disk_type="Sirko", **kwargs):
@@ -27,11 +30,13 @@ class AGNGasDiskModel(object):
         Python object representing a solved AGN disk either from the Sirko & Goodman model
         or from the Thompson model
 
+
         """
-        pgas = self.disk_model.rho * self.disk_model.T * ct.Kb / ct.massU
-        prad = 4 * ct.sigmaSB * (self.disk_model.T ** 4) / (3 * ct.c)
-        cs = np.sqrt((pgas + prad) / (self.disk_model.rho))
-        omega = self.disk_model.Omega
+        #pgas = self.disk_model.rho * self.disk_model.T * ct.Kb / ct.massU
+        #prad = 4 * ct.sigmaSB * (self.disk_model.T ** 4) / (3 * ct.c)
+        #cs = np.sqrt((pgas + prad) / (self.disk_model.rho))
+        cs = self.disk_model.h * self.disk_model.Omega
+        Omega = self.disk_model.Omega
         rho = self.disk_model.rho
         h = self.disk.model.h
         T = self.disk_model.T
@@ -39,9 +44,9 @@ class AGNGasDiskModel(object):
         Q = self.disk_model.Q
         R = self.disk_model.R
         if hasattr(self.disk_model, "eta"):
-            np.savetxt(filename, np.vstack((R/ct.pc, omega, T, rho, h, self.disk_model.eta, cs, tauV, Q)).T)
+            np.savetxt(filename, np.vstack((R/ct.pc, Omega, T, rho, h, self.disk_model.eta, cs, tauV, Q)).T)
         else:
-            np.savetxt(filename, np.vstack((R/ct.pc, omega, T, rho, h, cs, tauV, Q)).T)
+            np.savetxt(filename, np.vstack((R/ct.pc, Omega, T, rho, h, cs, tauV, Q)).T)
 
     def return_disk_surf_model(self, flag_truncate_disk=False):
         """Generate disk surface model functions
@@ -78,11 +83,23 @@ class AGNGasDiskModel(object):
         R_agn = self.disk_model.R_AGN / (self.disk_model.Rs / 2)
         Sigma = 2 * self.disk_model.h * self.disk_model.rho  # SI density
         kappa = 2 * self.disk_model.tauV / Sigma  # Opacity = 2*tau/Sigma
+        cs = self.disk_model.h * self.disk_model.Omega
+        temp_midplane = self.disk_model.T # Disk midplane temp (K)
+        
 
         if flag_truncate_disk: # truncate to gas part of disk (no SFR)
             R = R[:self.disk_model.isf]
             Sigma = Sigma[:self.disk_model.isf]
             kappa = kappa[:self.disk_model.isf]
+            cs = cs[:self.disk_model.isf]
+        #Temp interpolator function
+        ln_temp_midplane = np.log(temp_midplane) # ln midplane temp.
+        temp_func_log = scipy.interpolate.CubicSpline(
+                                                            np.log(R),
+                                                            ln_temp_midplane,
+                                                            extrapolate=False
+                                                            )
+        temp_func = lambda x, f=temp_func_log: np.exp(f(np.log(x)))
 
         # Generate surface density (Sigma) interpolator function
         ln_Sigma = np.log(Sigma)  # log of SI density
@@ -91,6 +108,7 @@ class AGNGasDiskModel(object):
                                                            ln_Sigma,
                                                            extrapolate=False
                                                            )
+        
         surf_dens_func = lambda x, f=surf_dens_func_log: np.exp(f(np.log(x)))
 
         # Generate aspect ratio (h/r) interpolator function
@@ -113,6 +131,43 @@ class AGNGasDiskModel(object):
                                                          )
         opacity_func = lambda x, f=opacity_func_log: np.exp(f(np.log(x)))
 
+        # Generate sound speed (cs) interpolator function
+        ln_cs = np.log(cs)
+        sound_speed_func_log = scipy.interpolate.CubicSpline(
+                                                           np.log(R),
+                                                           ln_cs,
+                                                           extrapolate=False
+                                                           )
+        sound_speed_func = lambda x, f=sound_speed_func_log: np.exp(f(np.log(x)))
+
+        # Generate disk density (rho) interpolator function
+        ln_rho = np.log(self.disk_model.rho)
+        disk_density_func_log = scipy.interpolate.CubicSpline(
+                                                    np.log(R),
+                                                    ln_rho,
+                                                    extrapolate=False
+                                                    )
+        disk_density_func = lambda x, f=disk_density_func_log: np.exp(f(np.log(x)))
+
+        # Generate disk pressure gradient (dP/dR) interpolator function
+        pgas = self.disk_model.rho * self.disk_model.T * ct.Kb / ct.massU
+        prad = self.disk_model.tauV * ct.sigmaSB * self.disk_model.Teff4 / (2 * ct.c)
+        ptot = pgas + prad
+        disk_pressure_grad_func_interp = scipy.interpolate.CubicSpline(
+                                                                self.disk_model.R,
+                                                                np.gradient(ptot/self.disk_model.R),
+                                                                extrapolate=False)
+        disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(point_masses.si_from_r_g(self.disk_model.Mbh * astropy_units.kg, x).value)
+
+        # Generate disk Omega interpolator function
+        ln_omega = np.log(self.disk_model.Omega)
+        disk_omega_func_log = scipy.interpolate.CubicSpline(
+                                                          np.log(R),
+                                                          ln_omega,
+                                                          extrapolate=False
+                                                          )
+        disk_omega_func = lambda x, f=disk_omega_func_log: np.exp(f(np.log(x)))
+
         bonus_structures = {}
         bonus_structures['R_agn'] = R_agn
         bonus_structures['R'] = R
@@ -123,7 +178,7 @@ class AGNGasDiskModel(object):
         bonus_structures["T"] = self.disk_model.T
         bonus_structures["tauV"] = self.disk_model.tauV
 
-        return surf_dens_func, aspect_func, opacity_func, bonus_structures
+        return surf_dens_func, aspect_func, opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, surf_dens_func_log, temp_func, bonus_structures
 
 
 

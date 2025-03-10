@@ -95,7 +95,7 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
         strain_factor[nu_gw > (1e-6) * u.Hz] = np.sqrt((nu_squared[nu_gw > (1e-6) * u.Hz] / delta_nu_delta_timestep[nu_gw > (1e-6) * u.Hz]) / 8.)
     # Condition from evolve_gw
     elif (flag_include_old_gw_freq == 0):
-        strain_factor[nu_gw > (1e-6) * u.Hz] = np.full(np.sum(nu_gw > (1e-6) * u.Hz), 4.e3)
+        strain_factor[nu_gw > (1e-6) * u.Hz] = 4.e3
     char_strain = strain_factor*strain
 
     return (char_strain.value, nu_gw.value)
@@ -143,7 +143,7 @@ def bbh_gw_params(blackholes_binary, bh_binary_id_num_gw, smbh_mass, timestep_du
     blackholes_binary : AGNBinaryBlackHole
         Binary black hole parameters
     bh_binary_id_num_gw : numpy.ndarray
-        ID numbers of binaries with separations below :math:`\\mathtt{min_bbh_gw_separation}` with :obj:`float` type
+        ID numbers of binaries with separations below :math:`mathtt_{min_bbh_gw_separation}` with :obj:`float` type
     smbh_mass : float
         Mass [M_sun] of the SMBH
     timestep_duration_yr : float

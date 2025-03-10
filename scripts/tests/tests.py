@@ -1,7 +1,7 @@
 import numpy as np
 
 import mcfacts.physics.binary.merge
-from mcfacts.physics.binary.merge import tichy08, chieff, tgw
+#from mcfacts.physics.binary.merge import tichy08, chieff, tgw
 
 def test_merger():
     #This is a test of the merger 

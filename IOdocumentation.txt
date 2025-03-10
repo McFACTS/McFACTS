@@ -200,8 +200,6 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     nsc_star_metallicity_x_init
     nsc_star_metallicity_y_init
     nsc_star_metallicity_z_init
-    nsc_star_spin_dist_mu
-    nsc_star_spin_dist_sigma
     nsc_imf_star_mass_mode
     nsc_imf_star_powerlaw_index
     

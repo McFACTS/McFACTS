@@ -11,7 +11,7 @@ tests: mcfacts_sim
 # Alpha begins at 0.1.0
 # Feature-complete Alpha begins at 0.2.0
 # Beta begins at 0.3.0
-VERSION=0.1.0
+VERSION=0.2.1
 
 ### Should work for everyone ###
 # Current directory
@@ -24,14 +24,20 @@ POPULATION_PLOTS_EXE = ${HERE}/scripts/population_plots.py
 VERA_PLOTS_EXE = ${HERE}/scripts/vera_plots.py
 MSTAR_RUNS_EXE = ${HERE}/scripts/vera_mstar_bins.py
 MSTAR_PLOT_EXE = ${HERE}/src/mcfacts/outputs/plot_mcfacts_handler_quantities.py
+STARS_PLOTS = ${HERE}/scripts/stars_plots.py
+DISK_MASS_PLOTS = ${HERE}/scripts/disk_mass_plots.py
+ORBA_MASS_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
+EMILY_PLOTS = ${HERE}/scripts/emily_plots.py
 
 #### Setup ####
 SEED=3456789108
 #SEED=29
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
-FNAME_INI= ${HERE}/recipes/model_choice.ini
-FNAME_INI_MSTAR= ${HERE}/recipes/p3_pAGN_on.ini
-MSTAR_RUNS_WKDIR = ${HERE}/runs_mstar_bins_pAGN
+FNAME_INI= ${HERE}/recipes/model_choice_old.ini
+FNAME_INI_MSTAR_PAGN= ${HERE}/recipes/p3_pAGN_on.ini
+FNAME_INI_MSTAR_FIXED= ${HERE}/recipes/p3_pAGN_off.ini
+MSTAR_RUNS_WKDIR_PAGN = ${HERE}/runs_mstar_bins_pAGN
+MSTAR_RUNS_WKDIR_FIXED = ${HERE}/runs_mstar_bins_fixed
 # NAL files might not exist unless you download them from
 # https://gitlab.com/xevra/nal-data
 # scripts that use NAL files might not work unless you install
@@ -54,9 +60,15 @@ setup: clean version
 	source ~/.bash_profile && \
 	conda activate base && \
 	conda remove -n mcfacts-dev --all -y && \
-	conda create --name mcfacts-dev "python>=3.10.4<=3.13" pip "pytest" -c conda-forge -c defaults -y && \
+	conda create --name mcfacts-dev "python>=3.10.4,<3.13" pip "pytest" -c conda-forge -c defaults -y && \
 	conda activate mcfacts-dev && \
 	python -m pip install --editable .
+	@echo "\n"
+	@echo "Run 'conda activate mcfacts-dev' to switch to the correct conda environment."
+	@echo "\n"
+	@echo "Want to keep up-to-date with future McUpdates and announcements? Sign up for our mailing list!"
+	@echo "https://docs.google.com/forms/d/e/1FAIpQLSeupzj8ledPslYc0bHbnJHKB7_LKlr8SY3SfbEVyL5AfeFlVg/viewform"
+	@echo "\n"
 
 unit_test: clean version
 	source ~/.bash_profile && \
@@ -101,19 +113,86 @@ vera_plots: mcfacts_sim
 		--cdf-fields chi_eff chi_p final_mass gen1 gen2 time_merge \
 		--verbose
 
-mstar_runs:
+mstar_runs_pagn:
 	python ${MSTAR_RUNS_EXE} \
-		--fname-ini ${FNAME_INI_MSTAR} \
+		--fname-ini ${FNAME_INI_MSTAR_PAGN} \
 		--timestep_num 1000 \
 		--bin_num_max 10000 \
 		--nbins 33 \
-		--galaxy_num 100 \
+		--galaxy_num 5 \
 		--mstar-min 1e9 \
 		--mstar-max 1e13 \
 		--scrub \
 		--fname-nal ${FNAME_GWTC2_NAL} \
-		--wkdir ${MSTAR_RUNS_WKDIR} \
+		--wkdir ${MSTAR_RUNS_WKDIR_PAGN} \
 		--truncate-opacity
+		#--nbins 33 
+		#--timestep_num 1000 \
+	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
+
+kaila_stars: plots
+	cd runs; \
+	python ../${STARS_PLOTS} \
+	--runs-directory ${wd} \
+	--fname-stars ${wd}/output_mergers_stars_population.dat \
+	--fname-stars-merge ${wd}/output_mergers_stars_merged.dat \
+	--fname-stars_explode ${wd}/output_mergers_stars_exploded.dat \
+	--plots-directory ${wd}
+
+kaila_stars_movie: clean
+	mkdir -p runs
+	cd runs; \
+		python ../${MCFACTS_SIM_EXE} \
+		--galaxy_num 100 \
+		--fname-ini ../${FNAME_INI} \
+		--fname-log out.log \
+		--seed ${SEED} \
+		--save-snapshots
+
+kaila_stars_make_movie: kaila_stars_plots
+	cd runs; \
+	python ../${ORBA_MASS_FRAMES} \
+	--fpath-snapshots ${wd}/gal000/ \
+	--num-timesteps 50 \
+	--plots-directory ${wd}/gal000
+	rm -fv ${wd}/runs/orba_mass_movie.mp4
+	ffmpeg -f image2 -framerate 5 -i ${wd}/runs/gal000/orba_mass_movie_timestep_%02d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/runs/orba_mass_movie.mp4
+
+kaila_stars_plots: just_plots
+	cd runs; \
+	python ../${STARS_PLOTS} \
+	--runs-directory ${wd} \
+	--fname-stars ${wd}/output_mergers_stars_population.dat \
+	--fname-stars-merge ${wd}/output_mergers_stars_merged.dat \
+	--fname-stars-explode ${wd}/output_mergers_stars_exploded.dat \
+	--plots-directory ${wd}
+
+disk_mass_plots:
+	cd runs; \
+	python ../${DISK_MASS_PLOTS} \
+	--runs-directory ${wd} \
+	--fname-disk ${wd}/output_diskmasscycled.dat \
+	--plots-directory ${wd}		
+		
+emily_plots: plots
+	cd runs; \
+	python ../${EMILY_PLOTS} \
+	--runs-directory ${wd} \
+	--fname-mergers ${wd}/output_mergers_population.dat \
+	--plots-directory ${wd}
+
+mstar_runs_fixed:
+	python ${MSTAR_RUNS_EXE} \
+		--fname-ini ${FNAME_INI_MSTAR_FIXED} \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--nbins 33 \
+		--galaxy_num 5 \
+		--mstar-min 1e9 \
+		--mstar-max 1e13 \
+		--scrub \
+		--fname-nal ${FNAME_GWTC2_NAL} \
+		--wkdir ${MSTAR_RUNS_WKDIR_FIXED}
 		#--nbins 33 
 		#--timestep_num 1000 \
 	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
