@@ -27,8 +27,9 @@ MSTAR_PLOT_EXE = ${HERE}/src/mcfacts/outputs/plot_mcfacts_handler_quantities.py
 
 #### Setup ####
 SEED=3456789108
+#SEED=29
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
-FNAME_INI= ${HERE}/recipes/model_choice_old.ini
+FNAME_INI= ${HERE}/recipes/model_choice.ini
 FNAME_INI_MSTAR= ${HERE}/recipes/p3_pAGN_on.ini
 MSTAR_RUNS_WKDIR = ${HERE}/runs_mstar_bins_pAGN
 # NAL files might not exist unless you download them from
