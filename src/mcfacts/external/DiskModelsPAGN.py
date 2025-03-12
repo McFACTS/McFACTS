@@ -155,9 +155,10 @@ class AGNGasDiskModel(object):
         ptot = pgas + prad
         disk_pressure_grad_func_interp = scipy.interpolate.CubicSpline(
                                                                 self.disk_model.R,
-                                                                np.gradient(ptot/self.disk_model.R),
+                                                                np.gradient(ptot)/np.gradient(self.disk_model.R),
                                                                 extrapolate=False)
-        disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(point_masses.si_from_r_g(self.disk_model.Mbh * astropy_units.kg, x).value)
+        disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(point_masses.si_from_r_g(
+            self.disk_model.Mbh * astropy_units.kg, x).value)
 
         # Generate disk Omega interpolator function
         ln_omega = np.log(self.disk_model.Omega)

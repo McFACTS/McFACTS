@@ -325,20 +325,20 @@ def load_disk_arrays(
     """
 
     # Get density filename
-    fname_disk_density = disk_model_name + '_surface_density.txt'
+    fname_disk_surf_density = disk_model_name + '_surface_density.txt'
     # Look in the source data
-    fname_disk_density = impresources.files(mcfacts_input_data) / fname_disk_density
+    fname_disk_surf_density = impresources.files(mcfacts_input_data) / fname_disk_surf_density
     # Load data from the surface density file
-    disk_density_data = np.loadtxt(fname_disk_density)
+    disk_surf_density_data = np.loadtxt(fname_disk_surf_density)
 
     # Get the radii from the data (second column)
-    disk_model_radii = disk_density_data[:,1]
+    disk_model_radii = disk_surf_density_data[:,1]
     if verbose:
         print("disk_radius_outer", disk_radius_outer)
         print("disk_model_radii", disk_model_radii)
 
     # Get the surface densities from the data (first column)
-    disk_surface_densities = disk_density_data[:,0]
+    disk_surface_densities = disk_surf_density_data[:,0]
     # truncate disk at outer radius
     truncated_disk_radii = np.extract(
         np.where(disk_model_radii < disk_radius_outer),
@@ -384,7 +384,7 @@ def load_disk_arrays(
     truncated_sound_speeds = disk_sound_speeds[0:len(truncated_disk_radii)]
 
     # Get density filename
-    fname_disk_density = disk_model_name + '_disk_density.txt'
+    fname_disk_density = disk_model_name + '_density.txt'
     # Look in the source data
     fname_disk_density = impresources.files(mcfacts_input_data) / fname_disk_density
     # Load data from opacity file
@@ -394,8 +394,41 @@ def load_disk_arrays(
     # Truncate disk at outer radius
     truncated_densities = disk_densities[0:len(truncated_disk_radii)]
 
+    # Get omega filename
+    fname_disk_omega = disk_model_name + '_omega.txt'
+    # Look in the source data
+    fname_disk_omega = impresources.files(mcfacts_input_data) / fname_disk_omega
+    # Load data from opacity file
+    disk_omega_data = np.loadtxt(fname_disk_omega)
+    # Get the opacities from the data (first column)
+    disk_omegas = disk_omega_data[:, 0]
+    # Truncate disk at outer radius
+    truncated_omegas = disk_omegas[0:len(truncated_disk_radii)]
+
+    # Get pressure grad filename
+    fname_disk_pressure_gradient = disk_model_name + '_pressure_gradient.txt'
+    # Look in the source data
+    fname_disk_pressure_gradient = impresources.files(mcfacts_input_data) / fname_disk_pressure_gradient
+    # Load data from opacity file
+    disk_pressure_gradient_data = np.loadtxt(fname_disk_pressure_gradient)
+    # Get the opacities from the data (first column)
+    disk_pressure_gradients = disk_pressure_gradient_data[:, 0]
+    # Truncate disk at outer radius
+    truncated_pressure_gradients = disk_pressure_gradients[0:len(truncated_disk_radii)]
+
+    # Get temp filename
+    fname_disk_temperature = disk_model_name + '_temperature.txt'
+    # Look in the source data
+    fname_disk_temperature = impresources.files(mcfacts_input_data) / fname_disk_temperature
+    # Load data from opacity file
+    disk_temperature_data = np.loadtxt(fname_disk_temperature)
+    # Get the opacities from the data (first column)
+    disk_temperatures = disk_temperature_data[:, 0]
+    # Truncate disk at outer radius
+    truncated_temperatures = disk_temperatures[0:len(truncated_disk_radii)]
+
     # Now redefine arrays used to generate interpolating functions in terms of truncated arrays
-    return truncated_disk_radii, truncated_surface_densities, truncated_aspect_ratios, truncated_opacities, truncated_sound_speeds, truncated_densities
+    return truncated_disk_radii, truncated_surface_densities, truncated_aspect_ratios, truncated_opacities, truncated_sound_speeds, truncated_densities, truncated_omegas, truncated_pressure_gradients, truncated_temperatures
 
 
 def construct_disk_direct(
@@ -431,7 +464,7 @@ def construct_disk_direct(
         Other disk model things we may want
     """
     # Call the load_disk_arrays function
-    disk_model_radii, surface_densities, aspect_ratios, opacities, sound_speeds, densities = \
+    disk_model_radii, surface_densities, aspect_ratios, opacities, sound_speeds, densities, omegas, pressure_gradients, temperatures = \
         load_disk_arrays(
         disk_model_name,
         disk_radius_outer,
@@ -464,13 +497,30 @@ def construct_disk_direct(
         np.log(disk_model_radii), np.log(densities))
     disk_density_func = lambda x, f=disk_densities_func_log: np.exp(f(np.log(x)))
 
+    # Create omegas function from input arrays
+    disk_omegas_func_log = scipy.interpolate.CubicSpline(
+        np.log(disk_model_radii), np.log(omegas))
+    disk_omega_func = lambda x, f=disk_omegas_func_log: np.exp(f(np.log(x)))
+
+    # Create pressure gradients function from input arrays
+    # Need to preserve signs, since log only takes positive values
+    # Multiply final value by the correct sign
+    disk_pressure_gradient_func = scipy.interpolate.CubicSpline(
+        disk_model_radii, pressure_gradients)
+    #disk_pressure_gradient_func = lambda x, f=disk_pressure_gradients_func_raw: np.exp(f(np.log(x)))
+
+    # Create temperatures function from input arrays
+    disk_temperatures_func_log = scipy.interpolate.CubicSpline(
+        np.log(disk_model_radii), np.log(temperatures))
+    disk_temperature_func = lambda x, f=disk_temperatures_func_log: np.exp(f(np.log(x)))
+
     # Define properties we want to return
     disk_model_properties ={}
     disk_model_properties['Sigma'] = disk_surf_dens_func
     disk_model_properties['h_over_r'] = disk_aspect_ratio_func
     disk_model_properties['kappa'] = disk_opacity_func
 
-    return disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, disk_sound_speed_func, disk_density_func, disk_model_properties
+    return disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, disk_sound_speed_func, disk_density_func, disk_pressure_gradient_func, disk_omega_func, disk_surf_dens_func_log, disk_temperature_func, disk_model_properties
 
 
 def construct_disk_pAGN(
@@ -611,7 +661,7 @@ def construct_disk_interp(
     #   infile = model_surface_density.txt, where model is user choice
     if not(flag_use_pagn):
         # Load interpolators
-        disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, temp_func, disk_model_properties = \
+        disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, disk_model_properties = \
             construct_disk_direct(
                 disk_model_name,
                 disk_radius_outer,
