@@ -97,7 +97,6 @@ def main():
     # Ensure no elements are missed
     assert all(merger_g1_mask | merger_g2_mask | merger_gX_mask) == 1
 
-
     # ========================================
     # Number of Mergers vs Mass
     # ========================================
@@ -112,23 +111,24 @@ def main():
     hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
     hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
 
-    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label,
+             stacked=True)
 
     plt.ylabel('Number of Mergers')
     plt.xlabel(r'Remnant Mass [$M_\odot$]')
     plt.xscale('log')
     # plt.ylim(-5,max(counts))
-    svf_ax = plt.gca()
-    svf_ax.set_axisbelow(True)
-    svf_ax.tick_params(axis='x', direction='out', which='both')
-    #plt.grid(True, color='gray', ls='dashed')
-    svf_ax.yaxis.grid(True, color='gray', ls='dashed')
+    lisa_axs = plt.gca()
+    lisa_axs.set_axisbelow(True)
+    lisa_axs.tick_params(axis='x', direction='out', which='both')
+    # plt.grid(True, color='gray', ls='dashed')
+    lisa_axs.yaxis.grid(True, color='gray', ls='dashed')
 
-    plt.xticks(np.geomspace(int(mergers[:, 2].min()), int( mergers[:, 2].max()), 5).astype(int))
-    #plt.xticks(np.geomspace(20, 200, 5).astype(int))
+    plt.xticks(np.geomspace(int(mergers[:, 2].min()), int(mergers[:, 2].max()), 5).astype(int))
+    # plt.xticks(np.geomspace(20, 200, 5).astype(int))
 
-    svf_ax.xaxis.set_major_formatter(mticker.StrMethodFormatter('{x:.0f}'))
-    svf_ax.xaxis.set_minor_formatter(mticker.NullFormatter())
+    lisa_axs.xaxis.set_major_formatter(mticker.StrMethodFormatter('{x:.0f}'))
+    lisa_axs.xaxis.set_minor_formatter(mticker.NullFormatter())
 
     if figsize == 'apj_col':
         plt.legend(fontsize=6)
@@ -138,7 +138,6 @@ def main():
     plt.savefig(opts.plots_directory + r"/merger_remnant_mass.png", format='png')
 
     plt.close()
-
 
     # ========================================
     # Merger Mass vs Radius
@@ -205,12 +204,11 @@ def main():
 
     plt.ylim(18, 1000)
 
-    svf_ax = plt.gca()
-    svf_ax.set_axisbelow(True)
+    lisa_axs = plt.gca()
+    lisa_axs.set_axisbelow(True)
     plt.grid(True, color='gray', ls='dashed')
     plt.savefig(opts.plots_directory + "/merger_mass_v_radius.png", format='png')
     plt.close()
-
 
     # ========================================
     # q vs Chi Effective
@@ -333,7 +331,6 @@ def main():
     plt.savefig(opts.plots_directory + "./q_chi_eff.png", format='png')  # ,dpi=600)
     plt.close()
 
-
     # ========================================
     # Disk Radius vs Chi_p
     # ========================================
@@ -404,7 +401,6 @@ def main():
     # plt.xlim(0,100)
     # plt.show()
 
-
     # ========================================
     # Mass 2 vs Mass 1
     # ========================================
@@ -464,7 +460,6 @@ def main():
 
     plt.savefig(opts.plots_directory + '/time_of_merger.png', format='png')
     plt.close()
-
 
     # ========================================
     # Number of Mergers vs Mass
@@ -552,22 +547,21 @@ def main():
     plt.savefig(opts.plots_directory + '/m1m2.png', format='png')
     plt.close()
 
-
     # ========================================
     # LVK and LISA Strain vs Freq
     # ========================================
 
     # Read LIGO O3 sensitivity data (https://git.ligo.org/sensitivity-curves/o3-sensitivity-curves)
     H1 = impresources.files(data) / 'O3-H1-C01_CLEAN_SUB60HZ-1262197260.0_sensitivity_strain_asd.txt'
-    L1 = impresources.files(data) / 'O3-L1-C01_CLEAN_SUB60HZ-1262141640.0_sensitivity_strain_asd.txt'
+    L1 = impresources.files(data) / 'O3-L1-C01_CLEAN_SUB60HZ-1240573680.0_sensitivity_strain_asd.txt'
 
     # Adjust sep according to your delimiter (e.g., '\t' for tab-delimited files)
     dfh1 = pd.read_csv(H1, sep='\t', header=None)  # Use header=None if the file doesn't contain header row
     dfl1 = pd.read_csv(L1, sep='\t', header=None)
 
     # Access columns as df[0], df[1], ...
-    f_H1 = dfh1[0]
-    h_H1 = dfh1[1]
+    # f_H1 = dfh1[0]
+    # h_H1 = dfh1[1]
 
     # H - hanford
     # L - Ligvston
@@ -581,15 +575,19 @@ def main():
     lisa_freq = np.logspace(np.log10(1.0e-5), np.log10(1.0e0), 1000)
     lisa_sn = lisa.Sn(lisa_freq)
 
-    # Create figure and ax
-    fig, svf_ax = plt.subplots(1, figsize=(plotting.set_size(figsize)[0], 2.9))
+    fig, axs = plt.subplots(1, 2, figsize=(plotting.set_size(figsize)[0] * 2, 2.9))
 
-    svf_ax.set_xlabel(r'f [Hz]')  # , fontsize=20, labelpad=10)
-    svf_ax.set_ylabel(r'${\rm h}_{\rm char}$')  # , fontsize=20, labelpad=10)
+    # Create figure and ax
+    # fig, lisa_axs = plt.subplots(1, figsize=(plotting.set_size(figsize)[0], 2.9))
+
+    lisa_axs = axs[0]
+
+    # lisa_axs.set_xlabel(r'f [Hz]')  # , fontsize=20, labelpad=10)
+    # lisa_axs.set_ylabel(r'${\rm h}_{\rm char}$')  # , fontsize=20, labelpad=10)
     # ax.tick_params(axis='both', which='major', labelsize=20)
 
-    svf_ax.set_xlim(0.5e-7, 1.0e+4)
-    svf_ax.set_ylim(1.0e-28, 1.0e-15)
+    lisa_axs.set_xlim(0.5e-7, 1.0e+1)
+    lisa_axs.set_ylim(1.0e-26, 1.0e-15)
 
     # ----------Finding the rows in which EMRIs signals are either identical or zeroes and removing them----------
     identical_rows_emris = np.where(emris[:, 5] == emris[:, 6])
@@ -631,61 +629,122 @@ def main():
     strain_per_freq_lvk_gX = lvk_gX[:, 5] * (1 / lvk_gX[:, 6]) / timestep
 
     # plot the characteristic detector strains
-    svf_ax.loglog(lisa_freq, np.sqrt(lisa_freq * lisa_sn),
-              label='LISA Sensitivity',
-              #   color='darkred',
-              zorder=0)
+    lisa_axs.loglog(lisa_freq, np.sqrt(lisa_freq * lisa_sn),
+                    label='LISA Sensitivity',
+                    linewidth=1,
+                    color='tab:orange',
+                    zorder=0)
 
-    svf_ax.loglog(f_H1, h_H1,
-              label='LIGO O3, H1 Sensitivity',
-              #   color='darkblue',
-              zorder=0)
+    # svf_ax.loglog(f_H1, h_H1,
+    #           label='LIGO O3, H1 Sensitivity',
+    #           #   color='darkblue',
+    #           zorder=0)
 
-    svf_ax.scatter(emris[:, 6], strain_per_freq_emris,
-               s=0.4 * styles.markersize_gen1,
-               alpha=styles.markeralpha_gen1
-               )
+    lisa_axs.scatter(emris[:, 6], strain_per_freq_emris,
+                     s=0.4 * styles.markersize_gen1,
+                     alpha=styles.markeralpha_gen1
+                     )
 
-    svf_ax.scatter(lvk_g1[:, 6], strain_per_freq_lvk_g1,
-                   s=0.4 * styles.markersize_gen1,
-                   marker=styles.marker_gen1,
-                   edgecolor=styles.color_gen1,
-                   facecolor='none',
-                   alpha=styles.markeralpha_gen1,
-                   label='1g-1g'
-                   )
+    lisa_axs.scatter(lvk_g1[:, 6], strain_per_freq_lvk_g1,
+                     s=0.4 * styles.markersize_gen1,
+                     marker=styles.marker_gen1,
+                     edgecolor=styles.color_gen1,
+                     facecolor='none',
+                     alpha=styles.markeralpha_gen1,
+                     label='1g-1g'
+                     )
 
-    svf_ax.scatter(lvk_g2[:, 6], strain_per_freq_lvk_g2,
-                   s=0.4 * styles.markersize_gen2,
-                   marker=styles.marker_gen2,
-                   edgecolor=styles.color_gen2,
-                   facecolor='none',
-                   alpha=styles.markeralpha_gen2,
-                   label='2g-1g or 2g-2g'
-                   )
+    lisa_axs.scatter(lvk_g2[:, 6], strain_per_freq_lvk_g2,
+                     s=0.4 * styles.markersize_gen2,
+                     marker=styles.marker_gen2,
+                     edgecolor=styles.color_gen2,
+                     facecolor='none',
+                     alpha=styles.markeralpha_gen2,
+                     label='2g-1g or 2g-2g'
+                     )
 
-    svf_ax.scatter(lvk_gX[:, 6], strain_per_freq_lvk_gX,
-                   s=0.4 * styles.markersize_genX,
-                   marker=styles.marker_genX,
-                   edgecolor=styles.color_genX,
-                   facecolor='none',
-                   alpha=styles.markeralpha_genX,
-                   label=r'$\geq$3g-Ng'
-                   )
+    lisa_axs.scatter(lvk_gX[:, 6], strain_per_freq_lvk_gX,
+                     s=0.4 * styles.markersize_genX,
+                     marker=styles.marker_genX,
+                     edgecolor=styles.color_genX,
+                     facecolor='none',
+                     alpha=styles.markeralpha_genX,
+                     label=r'$\geq$3g-Ng'
+                     )
 
-    svf_ax.set_yscale('log')
-    svf_ax.set_xscale('log')
+    lisa_axs.loglog()
 
     # ax.loglog(f_L1, h_L1,label = 'LIGO O3, L1 Sensitivity') # plot the characteristic strain
     # ax.loglog(f_gw,h,color ='black', label='GW150914')
 
     if figsize == 'apj_col':
-        plt.legend(fontsize=7, loc="upper right")
+        lisa_axs.legend(fontsize=7, loc="upper right")
     elif figsize == 'apj_page':
-        plt.legend(loc="upper right")
+        lisa_axs.legend(loc="upper right")
 
-    svf_ax.set_xlabel(r'$\nu_{\rm GW}$ [Hz]')  # , fontsize=20, labelpad=10)
-    svf_ax.set_ylabel(r'$h_{\rm char}/\nu_{\rm GW}$')  # , fontsize=20, labelpad=10)
+    lisa_axs.set_xlabel(r'$\nu_{\rm GW}$ [Hz]')  # , fontsize=20, labelpad=10)
+    lisa_axs.set_ylabel(r'$h_{\rm char}/\nu_{\rm GW}$')  # , fontsize=20, labelpad=10)
+
+    # plt.savefig(opts.plots_directory + './lisa_gw_strain.png', format='png')
+    # plt.close()
+
+    # ====================
+
+    # fig, lvk_axs = plt.subplots(1, figsize=(plotting.set_size(figsize)[0], 2.9))
+
+    lvk_axs = axs[1]
+
+    lvk_axs.set_xlim(5e0, 1e4)
+    lvk_axs.set_ylim(2.0e-24, 1.0e-19)
+
+    lvk_axs.loglog(dfh1[0], dfh1[1],
+                   label='LIGO O3, H1 Sens.',
+                   color='tab:blue',
+                   linewidth=1,
+                   zorder=0)
+
+    lvk_axs.loglog(dfl1[0], dfl1[1],
+                   label='LIGO O3, L1 Sens.',
+                   color='tab:orange',
+                   linewidth=1,
+                   zorder=0)
+
+    lvk_axs.scatter(lvk_g1[:, 6], lvk_g1[:, 5],
+                    s=0.4 * styles.markersize_gen1,
+                    marker=styles.marker_gen1,
+                    edgecolor=styles.color_gen1,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen1,
+                    )
+
+    lvk_axs.scatter(lvk_g2[:, 6], lvk_g2[:, 5],
+                    s=0.4 * styles.markersize_gen2,
+                    marker=styles.marker_gen2,
+                    edgecolor=styles.color_gen2,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen2,
+                    )
+
+    lvk_axs.scatter(lvk_gX[:, 6], lvk_gX[:, 5],
+                    s=0.4 * styles.markersize_genX,
+                    marker=styles.marker_genX,
+                    edgecolor=styles.color_genX,
+                    facecolor='none',
+                    alpha=styles.markeralpha_genX,
+                    )
+
+    if figsize == 'apj_col':
+        lvk_axs.legend(fontsize=7, loc="upper left")
+    elif figsize == 'apj_page':
+        lvk_axs.legend(loc="upper left")
+
+    lvk_axs.set_xlabel(r'$\nu_{\rm GW}$ [Hz]')
+    lvk_axs.yaxis.tick_right()  # , fontsize=20, labelpad=10)
+    lvk_axs.yaxis.set_label_position("right")
+    lvk_axs.set_ylabel(r'$h_{\rm 0}$', rotation=-90, labelpad=15)  # , fontsize=20, labelpad=10)
+
+    # plt.savefig(opts.plots_directory + './lvk_gw_strain.png', format='png')
+    # plt.close()
 
     plt.savefig(opts.plots_directory + './gw_strain.png', format='png')
     plt.close()

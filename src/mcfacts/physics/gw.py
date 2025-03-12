@@ -37,6 +37,8 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
     -------
     char_strain : numpy.ndarray
         Characteristic strain [unitless] with :obj:`float` type
+    strain: numpy.ndarray
+        h_0 strain [unitless] with :obj:`float` type
     nu_gw : numpy.ndarray
         GW frequency [Hz] with :obj:`float` type
 
@@ -57,10 +59,11 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
 
     # 1rg =1AU=1.5e11m for 1e8Msun
     rg = 1.5e11 * (smbh_mass/1.e8) * u.meter
+    bin_sep = obj_sep * rg
+
     mass_1 = (mass_1 * cds.Msun).to(u.kg)
     mass_2 = (mass_2 * cds.Msun).to(u.kg)
     mass_total = mass_1 + mass_2
-    bin_sep = obj_sep * rg
 
     mass_chirp = ((mass_1 * mass_2) ** (3./5.)) / (mass_total ** (1./5.))
     rg_chirp = ((const.G * mass_chirp) / (const.c ** 2.0)).to(u.meter)
@@ -98,10 +101,10 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
         strain_factor[nu_gw > (1e-6) * u.Hz] = 4.e3
     char_strain = strain_factor*strain
 
-    return (char_strain.value, nu_gw.value)
+    return char_strain.value, strain.value, nu_gw.value
 
 
-def evolve_gw(blackholes_binary, smbh_mass, agn_redshift):
+def evolve_gw(blackholes_binary, smbh_mass, agn_redshift, final_lvk=False):
     """Wrapper function to calculate GW strain [unitless] and frequency [Hz] for BBH with no previous GW frequency
 
     Parameters
@@ -112,6 +115,8 @@ def evolve_gw(blackholes_binary, smbh_mass, agn_redshift):
         Mass [M_sun] of the SMBH
     agn_redshift : float
         Redshift [unitless] of the SMBH
+    final_lvk : boolean
+        Hacky flag allowing strains (h_0) for final lvk mergers to be stored in gw_strain instead of the char_strain
 
     Returns
     -------
@@ -119,7 +124,7 @@ def evolve_gw(blackholes_binary, smbh_mass, agn_redshift):
         BBH with GW strain [unitless] and frequency [Hz] updated
     """
 
-    char_strain, nu_gw = gw_strain_freq(mass_1=blackholes_binary.mass_1,
+    char_strain, strain, nu_gw = gw_strain_freq(mass_1=blackholes_binary.mass_1,
                                         mass_2=blackholes_binary.mass_2,
                                         obj_sep=blackholes_binary.bin_sep,
                                         timestep_duration_yr=-1,
@@ -130,7 +135,10 @@ def evolve_gw(blackholes_binary, smbh_mass, agn_redshift):
 
     # Update binaries
     blackholes_binary.gw_freq = nu_gw
-    blackholes_binary.gw_strain = char_strain
+
+    # This hack is only for the gw_strain plot for mergers that we force into the lvk band.
+    # TODO: Track both strain and characteristic strain on the AGNObjectArray
+    blackholes_binary.gw_strain = strain if final_lvk else char_strain
 
     return (blackholes_binary)
 
@@ -171,7 +179,7 @@ def bbh_gw_params(blackholes_binary, bh_binary_id_num_gw, smbh_mass, timestep_du
     while (num_tracked < len(old_bbh_freq)):
         old_bbh_freq = np.delete(old_bbh_freq, 0)
 
-    char_strain, nu_gw = gw_strain_freq(mass_1=blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_1"),
+    char_strain, strain, nu_gw = gw_strain_freq(mass_1=blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_1"),
                                         mass_2=blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_2"),
                                         obj_sep=blackholes_binary.at_id_num(bh_binary_id_num_gw, "bin_sep"),
                                         timestep_duration_yr=timestep_duration_yr,

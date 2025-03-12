@@ -1493,11 +1493,11 @@ def main():
 
                         bh_bin_m_1 = blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1")
                         bh_bin_m_2 = blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2")
-                        bh_bin_sep_final = (bh_bin_m_1 + bh_bin_m_2) / opts.smbh_mass
+                        bh_bin_sep_final = 2 * (bh_bin_m_1 + bh_bin_m_2) / opts.smbh_mass
                         bh_bin_final = blackholes_binary.copy()
                         bh_bin_final.keep_id_num(bh_binary_id_num_merger)
                         bh_bin_final.bin_sep = bh_bin_sep_final
-                        bh_bin_final = gw.evolve_gw(bh_bin_final, opts.smbh_mass, agn_redshift)
+                        bh_bin_final = gw.evolve_gw(bh_bin_final, opts.smbh_mass, agn_redshift, final_lvk=True)
 
                         blackholes_binary_gw.add_binaries(
                             new_id_num=bh_binary_id_num_merger,

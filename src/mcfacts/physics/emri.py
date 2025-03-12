@@ -32,7 +32,7 @@ def evolve_emri_gw(blackholes_inner_disk, timestep_duration_yr, old_gw_freq, smb
     while blackholes_inner_disk.num > len(old_gw_freq):
         old_gw_freq = np.append(old_gw_freq, (9.e-7) * u.Hz)
 
-    char_strain, nu_gw = gw_strain_freq(mass_1=smbh_mass,
+    char_strain, strain, nu_gw = gw_strain_freq(mass_1=smbh_mass,
                                         mass_2=blackholes_inner_disk.mass,
                                         obj_sep=blackholes_inner_disk.orb_a,
                                         timestep_duration_yr=timestep_duration_yr,
