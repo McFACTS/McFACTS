@@ -684,14 +684,6 @@ def main():
             # Mass lost from stars is gained by the disk
             disk_mass_gained.append(np.abs(star_mass_lost))
 
-            # Accrete
-            blackholes_pro.mass = accretion.change_bh_mass(
-                blackholes_pro.mass,
-                opts.disk_bh_eddington_ratio,
-                disk_bh_eddington_mass_growth_rate,
-                opts.timestep_duration_yr
-            )
-
             disk_star_luminosity_factor = 4.  # Hardcoded from Cantiello+2021 and Fabj+2024
             stars_pro.mass, star_mass_gained, star_immortal_mass_lost = accretion.accrete_star_mass(
                 stars_pro.mass,
@@ -724,26 +716,74 @@ def main():
                                   attr="size",
                                   new_info=point_masses.r_g_from_units(opts.smbh_mass, (10 ** stars_pro.log_radius) * u.Rsun).value)
 
-            # Spin up
-            blackholes_pro.spin = accretion.change_bh_spin_magnitudes(
-                blackholes_pro.spin,
-                opts.disk_bh_eddington_ratio,
-                opts.disk_bh_torque_condition,
-                opts.timestep_duration_yr,
-                blackholes_pro.orb_ecc,
-                opts.disk_bh_pro_orb_ecc_crit,
-            )
 
-            # Torque spin angle
-            blackholes_pro.spin_angle = accretion.change_bh_spin_angles(
-                blackholes_pro.spin_angle,
-                opts.disk_bh_eddington_ratio,
-                opts.disk_bh_torque_condition,
-                disk_bh_spin_resolution_min,
-                opts.timestep_duration_yr,
-                blackholes_pro.orb_ecc,
-                opts.disk_bh_pro_orb_ecc_crit
-            )
+            if opts.bondi_accretion:
+                blackholes_pro.mass = accretion.change_bh_mass_bondi(
+                    blackholes_pro.mass,
+                    blackholes_pro.orb_a,
+                    disk_density,
+                    disk_sound_speed,
+                    opts.timestep_duration_yr
+                )
+
+                # Spin up
+                blackholes_pro.spin = accretion.change_bh_spin_magnitudes_bondi(
+                    blackholes_pro.spin,
+                    blackholes_pro.mass,
+                    blackholes_pro.orb_a,
+                    disk_density,
+                    disk_sound_speed,
+                    opts.disk_bh_torque_condition,
+                    opts.timestep_duration_yr,
+                    blackholes_pro.orb_ecc,
+                    opts.disk_bh_pro_orb_ecc_crit,
+                )
+
+                # Torque spin angle
+                blackholes_pro.spin_angle = accretion.change_bh_spin_angles_bondi(
+                    blackholes_pro.spin_angle,
+                    blackholes_pro.mass,
+                    blackholes_pro.orb_a,
+                    disk_density,
+                    disk_sound_speed,
+                    opts.disk_bh_torque_condition,
+                    disk_bh_spin_resolution_min,
+                    opts.timestep_duration_yr,
+                    blackholes_pro.orb_ecc,
+                    opts.disk_bh_pro_orb_ecc_crit
+                )
+
+            else:
+                # Accretion
+                blackholes_pro.mass = accretion.change_bh_mass(
+                    blackholes_pro.mass,
+                    opts.disk_bh_eddington_ratio,
+                    disk_bh_eddington_mass_growth_rate,
+                    opts.timestep_duration_yr
+                )
+
+                # Spin up
+                blackholes_pro.spin = accretion.change_bh_spin_magnitudes(
+                    blackholes_pro.spin,
+                    opts.disk_bh_eddington_ratio,
+                    opts.disk_bh_torque_condition,
+                    opts.timestep_duration_yr,
+                    blackholes_pro.orb_ecc,
+                    opts.disk_bh_pro_orb_ecc_crit,
+                )
+
+                # Torque spin angle
+                blackholes_pro.spin_angle = accretion.change_bh_spin_angles(
+                    blackholes_pro.spin_angle,
+                    opts.disk_bh_eddington_ratio,
+                    opts.disk_bh_torque_condition,
+                    disk_bh_spin_resolution_min,
+                    opts.timestep_duration_yr,
+                    blackholes_pro.orb_ecc,
+                    opts.disk_bh_pro_orb_ecc_crit
+                )
+
+
 
             # Damp orbital eccentricity
             blackholes_pro.orb_ecc = eccentricity.orbital_ecc_damping(
@@ -975,6 +1015,9 @@ def main():
                     # BHs accrete mass and spin up
                     a, b = np.where(blackholes_pro.id_num == bh_id_nums[:, None])
                     bh_id_mask = b[np.argsort(a)]
+
+                    # TODO: Consider bondi accretion for BH Star encounter
+
                     blackholes_pro.mass[bh_id_mask] = accretion.change_bh_mass(
                         blackholes_pro.mass[bh_id_mask],
                         opts.disk_bh_eddington_ratio,
