@@ -211,6 +211,7 @@ def main():
     blackholes_merged_pop = AGNMergedBlackHole()
     emris_pop = AGNBlackHole()
     blackholes_binary_gw_pop = AGNBinaryBlackHole()
+    blackholes_survivors_pop = AGNBlackHole()
     stars_pop = AGNStar()
     tdes_pop = AGNStar()
     stars_explode_pop = AGNExplodedStar()
@@ -2097,6 +2098,47 @@ def main():
         blackholes_binary.remove_id_num(blackholes_binary.id_num)
         filing_cabinet.remove_id_num(blackholes_binary.id_num)
 
+        # Add pro BHs and broken apart BBH to population level survivors object
+        blackholes_survivors_pop.add_blackholes(new_id_num=blackholes_pro.id_num,
+                                          new_spin=blackholes_pro.spin,
+                                          new_spin_angle=blackholes_pro.spin_angle,
+                                          new_orb_a=blackholes_pro.orb_a,
+                                          new_orb_inc=blackholes_pro.orb_inc,
+                                          new_orb_ang_mom=blackholes_pro.orb_ang_mom,
+                                          new_orb_ecc=blackholes_pro.orb_ecc,
+                                          new_orb_arg_periapse=blackholes_pro.orb_arg_periapse,
+                                          new_galaxy=blackholes_pro.galaxy,
+                                          new_time_passed=blackholes_pro.time_passed,
+                                          new_gen=blackholes_pro.gen)
+
+        # Add inner disk BH to the population level survivors object
+        blackholes_survivors_pop.add_blackholes(new_id_num=blackholes_inner_disk.id_num,
+                                                 new_mass=blackholes_inner_disk.mass,
+                                                 new_spin=blackholes_inner_disk.spin,
+                                                 new_spin_angle=blackholes_inner_disk.spin_angle,
+                                                 new_orb_a=blackholes_inner_disk.orb_a,
+                                                 new_orb_inc=blackholes_inner_disk.orb_inc,
+                                                 new_orb_ang_mom=blackholes_inner_disk.orb_ang_mom,
+                                                 new_orb_ecc=blackholes_inner_disk.orb_ecc,
+                                                 new_orb_arg_periapse=blackholes_inner_disk.orb_arg_periapse,
+                                                 new_galaxy=blackholes_inner_disk.galaxy,
+                                                 new_time_passed=blackholes_inner_disk.time_passed,
+                                                 new_gen=blackholes_inner_disk.gen)
+        
+        # Add retro BH to the population level survivors object
+        blackholes_survivors_pop.add_blackholes(new_id_num=blackholes_retro.id_num,
+                                            new_mass=blackholes_retro.mass,
+                                            new_spin=blackholes_retro.spin,
+                                            new_spin_angle=blackholes_retro.spin_angle,
+                                            new_orb_a=blackholes_retro.orb_a,
+                                            new_orb_inc=blackholes_retro.orb_inc,
+                                            new_orb_ang_mom=blackholes_retro.orb_ang_mom,
+                                            new_orb_ecc=blackholes_retro.orb_ecc,
+                                            new_orb_arg_periapse=blackholes_retro.orb_arg_periapse,
+                                            new_galaxy=blackholes_retro.galaxy,
+                                            new_time_passed=blackholes_retro.time_passed,
+                                            new_gen=blackholes_retro.gen)
+
         # Add merged BH to the population level object
         blackholes_merged_pop.add_blackholes(new_id_num=blackholes_merged.id_num,
                                              new_galaxy=blackholes_merged.galaxy,
@@ -2198,7 +2240,7 @@ def main():
                             new_galaxy=stars_pro.galaxy,
                             new_gen=stars_pro.gen,
                             new_time_passed=stars_pro.time_passed)
-        
+
         stars_explode_pop.add_stars(new_id_num_star=stars_explode.id_num_star,
                                     new_id_num_bh=stars_explode.id_num_bh,
                                     new_mass_star=stars_explode.mass_star,
@@ -2266,7 +2308,7 @@ def main():
     emris_pop.to_txt(os.path.join(opts.work_directory, emris_save_name),
                      cols=emri_cols)        
 
-    blackholes_pro.to_txt(os.path.join(opts.work_directory, survivors_save_name),
+    blackholes_survivors_pop.to_txt(os.path.join(opts.work_directory, survivors_save_name),
                           cols=bh_surviving_cols)
     
     blackholes_binary_gw_pop.to_txt(os.path.join(opts.work_directory, gws_save_name),
