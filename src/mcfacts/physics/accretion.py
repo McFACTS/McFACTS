@@ -307,6 +307,41 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
 
     return disk_bh_spin_angles_new
 
+def change_bh_mass_bondi_agn(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_density, disk_sound_speed, disk_aspect_ratio, smbh_mass, migration_velocity, timestep_duration_yr):
+
+    sound_speed = disk_sound_speed(disk_bh_pro_orb_a) * (u.m / u.s)
+    density = disk_density(disk_bh_pro_orb_a) * (u.kg / u.m**3)
+
+    M_smbh = smbh_mass * u.kg
+    pro_orb_a = (disk_bh_pro_orb_a * const.G * M_smbh) / (const.c ** 2)
+    pro_orb_mass = disk_bh_pro_masses * u.kg
+
+    # Only using sound speed in this bondi radii approximation
+    radii_bondi = (2 * const.G * pro_orb_mass) / (sound_speed ** 2)
+
+    shear_velocity = radii_bondi * np.sqrt(const.G * M_smbh / pro_orb_a ** 3)
+    mig_velocity = ((migration_velocity * const.G * M_smbh) / (const.c ** 2 * 3.154e+7)) * (1 / u.s)
+
+    radii_hill = pro_orb_a * (pro_orb_mass / (3 * M_smbh)) ** (1/3)
+
+    f_c = 10
+
+    radii_c = np.minimum(radii_hill, radii_bondi)
+
+    disk_height = disk_aspect_ratio(disk_bh_pro_orb_a) * pro_orb_a
+    #
+    # print("Sound Speed", sound_speed)
+    # print("Shear Velocity", shear_velocity)
+    # print("Mig Velocity", mig_velocity)
+
+    delta_mass = f_c * radii_c * disk_height * density * ((sound_speed ** 2 + shear_velocity ** 2 + mig_velocity ** 2) ** (1/2)) * (timestep_duration_yr * 3.154e+7)
+
+    # print(delta_mass)
+
+    final_mass = disk_bh_pro_masses + delta_mass.value
+
+    return final_mass
+
 def change_bh_mass_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_density, disk_sound_speed, timestep_duration_yr):
 
     """

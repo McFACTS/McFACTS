@@ -595,6 +595,7 @@ def main():
                 ratio_heat_mig_stars_torques = np.ones(stars_pro.num)
 
             # Migration, choose your torque_prescription
+            old_orbs = blackholes_pro.orb_a.copy()
             new_orbs = None  # Set empty variable, we'll fill it based on torque_prescription
 
             # Old is the original approximation used in v.0.1.0, based off (but not identical to Paardekooper 2010)-usually within factor [0.5-2]
@@ -732,9 +733,12 @@ def main():
                         opts.torque_prescription
                     )
 
+            migration_velocity = np.zeros(len(old_orbs))
+
             if new_orbs is not None:
                 # print("new_bh_orbs",new_orbs)
                 blackholes_pro.orb_a = new_orbs
+                migration_velocity = np.abs(new_orbs - old_orbs) / opts.timestep_duration_yr
 
             stars_pro.orb_a = migration.type1_migration_single(
                 opts.smbh_mass,
@@ -757,6 +761,7 @@ def main():
             filing_cabinet.update(id_num=stars_pro.id_num,
                                   attr="orb_a",
                                   new_info=stars_pro.orb_a)
+
             # Check for orb_a unphysical
             bh_pro_id_num_unphysical = blackholes_pro.id_num[blackholes_pro.orb_a == 0.]
             if bh_pro_id_num_unphysical.size > 0:
@@ -817,11 +822,14 @@ def main():
 
 
             if opts.bondi_accretion:
-                blackholes_pro.mass = accretion.change_bh_mass_bondi(
+                blackholes_pro.mass = accretion.change_bh_mass_bondi_agn(
                     blackholes_pro.mass,
                     blackholes_pro.orb_a,
                     disk_density,
                     disk_sound_speed,
+                    disk_aspect_ratio,
+                    opts.smbh_mass,
+                    migration_velocity,
                     opts.timestep_duration_yr
                 )
 
