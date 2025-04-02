@@ -30,7 +30,7 @@ ORBA_MASS_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
 EMILY_PLOTS = ${HERE}/scripts/emily_plots.py
 
 #### Setup ####
-SEED=3456789108
+SEED=3456789108 # put an 8 here
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
 FNAME_INI= ${HERE}/recipes/model_choice_old.ini
 FNAME_INI_MSTAR_PAGN= ${HERE}/recipes/p3_pAGN_on.ini
@@ -95,7 +95,7 @@ mcfacts_sim: clean
 		python ../${MCFACTS_SIM_EXE} \
 		--galaxy_num 10 \
 		--fname-ini ../${FNAME_INI} \
-		--fname-log out.log \
+		--fname-log mcfacts.log \
 		--seed ${SEED}
 
 
@@ -118,7 +118,7 @@ mstar_runs_pagn:
 		--timestep_num 1000 \
 		--bin_num_max 10000 \
 		--nbins 33 \
-		--galaxy_num 5 \
+		--galaxy_num 100 \
 		--mstar-min 1e9 \
 		--mstar-max 1e13 \
 		--scrub \
@@ -144,7 +144,7 @@ kaila_stars_movie: clean
 		python ../${MCFACTS_SIM_EXE} \
 		--galaxy_num 100 \
 		--fname-ini ../${FNAME_INI} \
-		--fname-log out.log \
+		--fname-log mcfacts.log \
 		--seed ${SEED} \
 		--save-snapshots
 
@@ -173,7 +173,7 @@ disk_mass_plots:
 	--fname-disk ${wd}/output_diskmasscycled.dat \
 	--plots-directory ${wd}		
 		
-emily_plots: plots
+emily_plots: 
 	cd runs; \
 	python ../${EMILY_PLOTS} \
 	--runs-directory ${wd} \
@@ -186,7 +186,7 @@ mstar_runs_fixed:
 		--timestep_num 1000 \
 		--bin_num_max 10000 \
 		--nbins 33 \
-		--galaxy_num 5 \
+		--galaxy_num 100 \
 		--mstar-min 1e9 \
 		--mstar-max 1e13 \
 		--scrub \
@@ -213,7 +213,7 @@ clean:
 	rm -rf ${wd}/time_of_merger.png
 	rm -rf ${wd}/merger_remnant_mass.png
 	rm -rf ${wd}/gw_strain.png
-	rm -rf ${wd}/out.log
+	rm -rf ${wd}/mcfacts.log
 	rm -rf ${wd}/mergers_cdf*.png
 	rm -rf ${wd}/mergers_nal*.png
 	rm -rf ${wd}/r_chi_p.png
@@ -229,7 +229,7 @@ clean_win:
 	del /q .\time_of_merger.png
 	del /q .\merger_remnant_mass.png
 	del /q .\gw_strain.png
-	del /q .\out.log
+	del /q .\mcfacts.log
 	for /d %%i in (.\mergers_cdf*.png) do rd /s /q "%%i"
 	for /d %%i in (.\mergers_nal*.png) do rd /s /q "%%i"
 	del /q .\r_chi_p.png

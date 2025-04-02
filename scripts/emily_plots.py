@@ -15,6 +15,8 @@ from importlib import resources as impresources
 from mcfacts.vis import data
 from mcfacts.vis import plotting
 from mcfacts.vis import styles
+import matplotlib.colors as mcolors
+from matplotlib.gridspec import GridSpec
 
 # Use the McFACTS plot style
 plt.style.use("mcfacts.vis.mcfacts_figures")
@@ -62,42 +64,15 @@ def main():
 
     mergers = np.loadtxt(opts.fname_mergers, skiprows=2)
 
-    # folders = (g.glob(opts.runs_directory + "gal*"))
+# ===============================
+### shock luminosity distribution histogram ###
+# ===============================
 
-    # data = np.loadtxt(folders[0] + "/initial_params_star.dat",skiprows=2)
-
-
-    # ========================================
-    # Stars initial mass
-    # ========================================
-
-    # fig = plt.figure(figsize=plotting.set_size(figsize))
-    # bins = np.linspace(np.log10(data[:,2]).min(), np.log10(data[:,2]).max(),20)
-
-    # plt.hist(np.log10(data[:,2]), bins=bins)
-    # plt.xlabel('log initial mass [$M_\odot$]')
-
-    # if figsize == 'apj_col':
-    #     plt.legend(fontsize=6)
-    # elif figsize == 'apj_page':
-    #     plt.legend()
-
-    # plt.savefig(opts.plots_directory + r"/stars_initial_mass.png",format="png")
-
-
-    # ========================================
-    # Merger Mass vs Radius
-    # ========================================
-
-    # TQM has a trap at 500r_g, SG has a trap radius at 700r_g.
-    # trap_radius = 500
-
-    #shock plot
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    shock_bins = np.logspace(np.log10(mergers[:, 16].min()), np.log10(mergers[:, 16].max()), 50)
+    shock_bins = np.logspace(np.log10(mergers[:, 17].min()), np.log10(mergers[:, 17].max()), 50)
 
-    plt.hist(mergers[:, 16], bins = shock_bins)
+    plt.hist(mergers[:, 17], bins = shock_bins)
 
     plt.ylabel(r'n')
     plt.xlabel(r'Shock Luminsoity (erg/s)')
@@ -117,12 +92,15 @@ def main():
     plt.savefig(opts.plots_directory + "/luminosity_shock.png", format='png')
     plt.close()
 
-    ### jet plot
+# ===============================
+### jet luminosity distribution histogram ###
+# ===============================
+
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    jet_bins = np.logspace(np.log10(mergers[:, 17].min()), np.log10(mergers[:, 17].max()), 50)
+    jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
 
-    plt.hist(mergers[:, 17], bins = jet_bins)
+    plt.hist(mergers[:, 18], bins = jet_bins)
 
     plt.ylabel(r'n')
     plt.xlabel(r'Jet Luminsoity (erg/s)')
@@ -142,17 +120,18 @@ def main():
     plt.savefig(opts.plots_directory + "/luminosity_jet.png", format='png')
     plt.close()
 
+# ===============================
+### comparison plot ###
+# ===============================
 
-    ### comparison plot
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    plt.hist(mergers[:, 16], bins = shock_bins, label = 'shock')
-    plt.hist(mergers[:, 17], bins = jet_bins, label = 'jet')
+    plt.hist(mergers[:, 17], bins = shock_bins, label = 'Shock')
+    plt.hist(mergers[:, 18], bins = jet_bins, label = 'Jet', alpha = 0.8)
+    plt.axvline(10**44, linewidth = 1, linestyle = 'dashed', color = 'red', label = r"~Seyfert I AGN")
 
-    plt.scatter(mergers[:, 16], mergers[:, 17])
-
-    plt.ylabel(r'jet [erg/s]')
-    plt.xlabel(r'shock lum [erg/s]')
+    plt.ylabel(r'N')
+    plt.xlabel(r'Luminosity [erg/s]')
     plt.xscale('log')
     #plt.yscale('log')
 
@@ -169,7 +148,10 @@ def main():
     plt.savefig(opts.plots_directory + "/luminosity_comp.png", format='png')
     plt.close()
 
-    # shocks vs time
+# ===============================
+### shocks vs time ###
+# ===============================
+
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
     merger_g1_mask, merger_g2_mask, merger_gX_mask = make_gen_masks(mergers, 12, 13)
@@ -179,9 +161,10 @@ def main():
     assert all(merger_g2_mask & merger_gX_mask) == 0
     assert all(merger_g1_mask | merger_g2_mask | merger_gX_mask) == 1
 
-    gen1_shock = mergers[:, 16][merger_g1_mask]
-    gen2_shock = mergers[:, 16][merger_g2_mask]
-    genX_shock = mergers[:, 16][merger_gX_mask]
+    all_shocks = mergers[:, 17]
+    gen1_shock = all_shocks[merger_g1_mask]
+    gen2_shock = all_shocks[merger_g2_mask]
+    genX_shock = all_shocks[merger_gX_mask]
 
     all_time = mergers[:, 14]
     gen1_time = all_time[merger_g1_mask]
@@ -239,13 +222,13 @@ def main():
     plt.savefig(opts.plots_directory + '/time_vs_shock_lum.png', format='png')
     plt.close()
 
-    # jet lum vs time
+# ===============================
+### jet lum vs time ###
+# ===============================
 
-    fig = plt.figure(figsize=plotting.set_size(figsize))
-
-    gen1_jet = mergers[:, 17][merger_g1_mask]
-    gen2_jet = mergers[:, 17][merger_g2_mask]
-    genX_jet= mergers[:, 17][merger_gX_mask]
+    gen1_jet = mergers[:, 18][merger_g1_mask]
+    gen2_jet = mergers[:, 18][merger_g2_mask]
+    genX_jet= mergers[:, 18][merger_gX_mask]
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
     ax3 = fig.add_subplot(111)
@@ -298,27 +281,260 @@ def main():
     plt.savefig(opts.plots_directory + '/time_vs_jet_lum.png', format='png')
     plt.close()
 
+# ===============================
+### shock luminosity vs. a_bin ###
+# ===============================
 
-    #plt.plot(mergers[:, ], mergers[:, 16])
-    #plt.plot(mergers[:, ], mergers[:, 17])
+    all_orb_a = mergers[:, 1]
+    gen1_orb_a = all_orb_a[merger_g1_mask]
+    gen2_orb_a = all_orb_a[merger_g2_mask]
+    genX_orb_a = all_orb_a[merger_gX_mask]
 
-    # plt.ylabel(r'n')
-    # plt.xlabel(r'Shock Luminsoity (erg/s)')
-    # plt.xscale('log')
-    # #plt.yscale('log')
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+    ax3.scatter(gen1_orb_a, gen1_shock,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    ax3.scatter(gen2_orb_a, gen2_shock,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    ax3.scatter(genX_orb_a, genX_shock,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+    trap_radius = 700
+    ax3.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Shock Lum [erg/s]')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.grid(True, color='gray', ls='dashed')
 
     # if figsize == 'apj_col':
-    #     plt.legend(fontsize=6)
+    #     ax3.legend(fontsize=6)
     # elif figsize == 'apj_page':
-    #     plt.legend()
+    #     ax3.legend()
 
-    # #plt.ylim(0.4, 325)
+    plt.savefig(opts.plots_directory + '/radius_vs_shock_lum.png', format='png')
+    plt.close()
 
-    # svf_ax = plt.gca()
-    # svf_ax.set_axisbelow(True)
-    # plt.grid(True, color='gray', ls='dashed')
-    # plt.savefig(opts.plots_directory + "/luminosity_shock.png", format='png')
-    # plt.close()
+# ===============================
+### jet luminosity vs. a_bin ###
+# ===============================
+
+    all_orb_a = mergers[:, 1]
+    gen1_orb_a = all_orb_a[merger_g1_mask]
+    gen2_orb_a = all_orb_a[merger_g2_mask]
+    genX_orb_a = all_orb_a[merger_gX_mask]
+
+    fig = plt.figure()
+    ax3 = fig.add_subplot(111)
+    ax3.scatter(gen1_orb_a, gen1_jet,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    ax3.scatter(gen2_orb_a, gen2_jet,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    ax3.scatter(genX_orb_a, genX_jet,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+    trap_radius = 700
+    ax3.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+    
+    # if figsize == 'apj_col':
+    #     ax3.legend(fontsize=6)
+    # elif figsize == 'apj_page':
+    #     ax3.legend()
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Jet Lum [erg/s]')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.grid(True, color='gray', ls='dashed')
+
+    #plt.legend(loc ='best')
+    plt.savefig(opts.plots_directory + '/radius_vs_jet_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### shock luminosity vs. mass ###
+# ===============================
+
+    all_mass = mergers[:, 2]
+    gen1_mass = all_mass[merger_g1_mask]
+    gen2_mass = all_mass[merger_g2_mask]
+    genX_mass = all_mass[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+    ax3.scatter(gen1_mass, gen1_shock,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    ax3.scatter(gen2_mass, gen2_shock,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    ax3.scatter(genX_mass, genX_shock,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+    
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Shock Lum [erg/s]')
+    plt.xlabel(r'Mass [$M_\odot$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.grid(True, color='gray', ls='dashed')
+    if figsize == 'apj_col':
+        ax3.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        ax3.legend()
+
+    plt.savefig(opts.plots_directory + '/remnant_mass_vs_shock_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### jet luminosity vs. mass ###
+# ===============================
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_mass, gen1_jet,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_mass, gen2_jet,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_mass, genX_jet,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+    
+    plt.ylabel(r'Jet Lum [erg/s]')
+    plt.xlabel(r'Mass [$M_\odot$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.grid(True, color='gray', ls='dashed')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+    plt.legend(loc ='best')
+    plt.savefig(opts.plots_directory + '/remnant_mass_vs_jet_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### testing corr for jets ###
+# ===============================
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(mergers[:,2], mergers[:,16], c=np.log10(mergers[:,18]), cmap="viridis", marker="+", s=1)
+    plt.colorbar(label='Jet Lum')
+        
+    plt.xlabel(r'Remnant Mass [$M_\odot$]')
+    plt.ylabel(r'Kick Velocity [km/s]')
+    plt.xscale('log')
+    #plt.yscale('log')
+    plt.grid(True, color='gray', ls='dashed')
+
+    plt.savefig(opts.plots_directory + '/mass_vs_vel_vs_jet_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### testing corr for shocks ###
+# ===============================
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(mergers[:,2], mergers[:,16], c=np.log10(mergers[:,17]), cmap="viridis", marker="+", s=1)
+    plt.colorbar(label='Shock Lum')
+    
+    plt.xlabel(r'Remnant Mass [$M_\odot$]')
+    plt.ylabel(r'Kick Velocity [km/s]')
+    plt.xscale('log')
+    #plt.yscale('log')
+    plt.grid(True, color='gray', ls='dashed')
+
+    plt.savefig(opts.plots_directory + '/mass_vs_vel_vs_shock_lum.png', format='png')
+    plt.close()
+
+
+
+
+
+
 
 
 

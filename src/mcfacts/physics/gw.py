@@ -28,7 +28,7 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
         Mass [M_sun] of the SMBH
     agn_redshift : float
         Redshift [unitless] of the SMBH
-    flag_include_old_gw_freq : boolean
+    flag_include_old_gw_freq : int
         Flag indicating if old_gw_freq should be included in calculations
         if not, we use the hardcoded value (see note below)
         0 if no, 1 if yes

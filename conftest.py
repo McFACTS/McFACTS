@@ -24,12 +24,35 @@ class InputParameterSet(Enum):
 
 INPUT_PARAMETERS = {
     "smbh_mass": {
-        InputParameterSet.BASE: [10E5, 10E6, 10E7, 10E8, 10E9, 3E7],
+        InputParameterSet.BASE: [1E5, 1E6, 1E7, 3E7, 1E8, 1E9],
         InputParameterSet.SINGLETON: [],
         InputParameterSet.BINARY: [],
         InputParameterSet.DYNAMICS: []
     },
-
+    "disk_radius_outer": {
+        InputParameterSet.BASE: [50000],
+        InputParameterSet.SINGLETON: [],
+        InputParameterSet.BINARY: [],
+        InputParameterSet.DYNAMICS: []
+    },
+    "nsc_radius_crit": {
+        InputParameterSet.BASE: [0.25],
+        InputParameterSet.SINGLETON: [],
+        InputParameterSet.BINARY: [],
+        InputParameterSet.DYNAMICS: []
+    },
+    "nsc_density_index_inner": {
+        InputParameterSet.BASE: [1.75],
+        InputParameterSet.SINGLETON: [],
+        InputParameterSet.BINARY: [],
+        InputParameterSet.DYNAMICS: []
+    },
+    "nsc_density_index_outer": {
+        InputParameterSet.BASE: [2.5],
+        InputParameterSet.SINGLETON: [],
+        InputParameterSet.BINARY: [],
+        InputParameterSet.DYNAMICS: []
+    },
     "bh_masses": {
         InputParameterSet.BASE: [],
         InputParameterSet.SINGLETON: [3., 5., 10., 20., 35., 40., 50., 70., 100.],

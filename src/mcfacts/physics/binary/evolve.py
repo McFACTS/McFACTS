@@ -234,6 +234,7 @@ def bin_com_feedback_hankla(blackholes_binary, disk_surface_density, disk_opacit
 
     ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity, -1.5) * disk_bh_eddington_ratio * np.sqrt(blackholes_binary.bin_orb_a) / disk_surface_density_at_location
 
+    # set ratio = 1 (no migration) for binaries at or beyond the disk outer radius
     ratio_heat_mig_torques_bin_com[blackholes_binary.bin_orb_a > disk_radius_outer] = 1.0
 
     return (ratio_heat_mig_torques_bin_com)

@@ -1,24 +1,26 @@
+"""Defines functions to set up initial conditions for black holes in the AGN disk."""
+
 import numpy as np
 from mcfacts.mcfacts_random_state import rng
 
 
-def setup_disk_blackholes_location(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb):
-    """Generates initial single BH orbital semi-major axes [r_{g,SMBH}]
+def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb):
+    """Generates initial single BH orbital semi-major axes :math:`r_{g,SMBH}'
 
-    BH semi-major axes are distributed randomly uniformly through disk of radial size :math:`\mathtt{disk_outer_radius}`
+    BH semi-major axes are distributed randomly uniformly through disk of radial size :obj:`disk_outer_radius`
 
     Parameters
     ----------
     disk_bh_num : int
         Integer number of BH initially embedded in disk
     disk_outer_radius : float
-        Outer radius of disk [r_{g,SMBH}]
+        Outer radius of disk :math:`r_{g,SMBH}`
     disk_inner_stable_circ_orb : float
-        Inner radius of disk [r_{g,SMBH}]
+        Inner radius of disk :math:`r_{g,SMBH}`
     Returns
     -------
     bh_initial_locations : numpy.ndarray
-        Initial BH locations in disk [r_{g,SMBH}] with :obj:`float` type
+        Initial BH locations in disk :math:`r_{g,SMBH}` with :obj:`float` type
     """
     #bh_initial_locations = disk_outer_radius * rng.uniform(size=disk_bh_num)
     #sma_too_small = np.where(bh_initial_locations < disk_inner_stable_circ_orb)
@@ -29,6 +31,106 @@ def setup_disk_blackholes_location(disk_bh_num, disk_outer_radius, disk_inner_st
                                        )
     return bh_initial_locations
 
+def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,
+                                  disk_radius_outer,
+                                  disk_inner_stable_circ_orb,
+                                  smbh_mass,
+                                  nsc_radius_crit,
+                                  nsc_density_index_inner,
+                                  nsc_density_index_outer,
+                                  volume_scaling=True):
+    """Draw initial single black hole orbital semi-major axes :math:`r_{g,SMBH}`
+    from a nuclear star cluster with a broken powerlaw density distribution
+    (i.e. two slopes).
+
+    Algorithm:
+    1. convert all parsec units to gravitational radii
+    2. create a radius array r with the bounds
+        minimum = disk_inner_stable_circ_orb
+        maximum = disk_radius_outer
+    3. create y = f(r) using power law indices
+            for r < nsc_radius_crit
+            for r > nsc_radius_crit
+    4. Optional: scale y by each radial shell's volume
+    5. calculate pdf: p(r) = y / sum(y)
+    6. draw locations from the pdf:
+            `rng.choice(r, size=disk_bh_num, p=y_pdf)`
+
+    Parameters
+    ----------
+    disk_bh_num : int
+        Integer number of black holes in the disk that need locations
+    disk_radius_outer : float
+        Outer radius of disk :math:`r_{g,SMBH}` in gravitational radii
+    disk_inner_stable_circ_orb :
+        Inner radius of disk :math:`r_{g,SMBH}` in gravitational radii
+    smbh_mass : float
+        Mass of the supermassive black hole in solar masses
+    nsc_radius_crit : float
+        Radius at which the powerlaw index changes in parsecs
+    nsc_density_index_inner : int
+        Powerlaw index of the nuclear star cluster interior to `nsc_radius_crit`
+    nsc_density_index_outer : ing
+        Powerlaw index of the nuclear star cluster exterior to `nsc_radius_crit`
+    volume_scaling=True : bool
+        A switch to normalize by each radial shell's volume such that the total
+        probability over the range is 1. When :obj`True`, each radial bin of the
+        powerlaw function is multiplied by :math:`\pi r^2 dr`. Default :obj:`True`.
+
+    Returns
+    -------
+    bh_initial_locations : numpy.ndarray
+        Initial BH locations in disk :math:`r_{g,SMBH}` with :obj:`float` type
+    """
+
+    def continuous_broken_powerlaw(radius, crit_radius, index):
+        """Construct each portion of a broken powerlaw function
+        such that they're equal at the :obj:`crit_radius`"""
+        return (radius / crit_radius) ** -index
+
+    # Unit conversions from Parsec to Gravitational radii
+    convert_1pc_to_rg_SMBH = 2.e5 * (smbh_mass / 1.e8)**(-1.0)
+    # nsc_radius_outer_rg = nsc_radius_outer * convert_1pc_to_rg_SMBH
+    nsc_radius_crit_rg = nsc_radius_crit * convert_1pc_to_rg_SMBH
+
+    # Construct radial array and copy for building the probability distributions
+    r = np.linspace(disk_inner_stable_circ_orb, disk_radius_outer, 1000000)
+    y_unscaled = np.zeros_like(r)
+
+    # Build NSC radial piece-wise function f(r) around the critical radius
+    inner_bool = r <= nsc_radius_crit_rg
+    y_unscaled[inner_bool] = continuous_broken_powerlaw(r[inner_bool], nsc_radius_crit_rg,
+                                                     nsc_density_index_inner)
+    outer_bool = r > nsc_radius_crit_rg
+    y_unscaled[outer_bool] = continuous_broken_powerlaw(r[outer_bool], nsc_radius_crit_rg,
+                                                     nsc_density_index_outer)
+
+    # Scale y at each radius by the volume of the local spherical shell
+    if volume_scaling:
+        dr = np.gradient(r) # shell thickness
+        shell_volume = np.pi * r**2 * dr
+        y = y_unscaled * shell_volume
+    else:
+        y = y_unscaled
+
+    # We neet to normalize y. That's done by dividing each point in y by the sum of
+    # all the points. We can't divide by zero, so let's check that first.
+    y_sum = y.sum()
+    if y_sum == 0:
+        raise ValueError(f"[Setup BH Locs] sum(y) = {y_sum}." +
+                         "Must be non-zero for use as denominator during pdf normalization.")
+
+    # Create the probability distribution: p(r) = f(r) / sum(f(r))
+    r_pdf = y / y_sum
+
+    # Ensure the total probabiliy is 1.0 accounting for deviations at machine precision
+    if not np.isclose(r_pdf.sum(), 1.0):
+        raise ValueError(f"[Setup BH Locs] Sum of p(r) must be less than 1 but is {r_pdf.sum()}.")
+
+    # Draw locations for all the black holes from the r array with the associated probabilities.
+    bh_initial_locations = rng.choice(r, size=disk_bh_num, p=r_pdf)
+
+    return bh_initial_locations
 
 def setup_prior_blackholes_indices(prograde_n_bh, prior_bh_locations):
     """Generates indices which allow us to read prior BH properties & replace prograde BH with these.
@@ -64,7 +166,7 @@ def setup_disk_blackholes_masses(disk_bh_num, nsc_bh_imf_mode, nsc_bh_imf_max_ma
         nsc_bh_imf_powerlaw_index : float
             Powerlaw index of nuclear star cluster BH IMF (e.g. M^-2) [unitless]. User set (default = 2).
         mass_pile_up : float
-            Mass pile up term < nsc_bh_inf_max_mass [M_sun]. User set (default = 35.). 
+            Mass pile up term < nsc_bh_inf_max_mass [M_sun]. User set (default = 35.).
             Used to make a uniform pile up in mass between [mass_pile_up, nsc_bh_inf_max_mass] for masses selected
             from nsc_bh_imf_powerlaw_index beyond nsc_bh_inf_max_mass. E.g default [35,40] pile up of masses.
 
@@ -158,7 +260,7 @@ def setup_disk_blackholes_orb_ang_mom(disk_bh_num):
 def setup_disk_blackholes_eccentricity_thermal(disk_bh_num):
     """Generates disk BH initial orbital eccentricities with a thermal distribution [unitless]
 
-    Assumes a thermal distribution (uniform in e^2, i.e. e^2=[0,1] so median(e^2)=0.5 and so median(e)~0.7. 
+    Assumes a thermal distribution (uniform in e^2, i.e. e^2=[0,1] so median(e^2)=0.5 and so median(e)~0.7.
     This might be appropriate for e.g. a galactic nucleus that is very relaxed
     and has not had any nuclear activity for a long time.
 
@@ -181,12 +283,12 @@ def setup_disk_blackholes_eccentricity_thermal(disk_bh_num):
 def setup_disk_blackholes_eccentricity_uniform(disk_bh_num, disk_bh_orb_ecc_max_init):
     """Generates disk BH initial orbital eccentrities with a uniform distribution [unitless]
 
-    Assumes a uniform distribution in orb_ecc, up to disk_bh_orb_ecc_max_init 
-    i.e. e=[0,disk_bh_orb_ecc_max_init] so median(e)=disk_bh_orb_ecc_max_init/2. 
-    This might be appropriate for e.g. a galactic nucleus that is recently post-AGN 
+    Assumes a uniform distribution in orb_ecc, up to disk_bh_orb_ecc_max_init
+    i.e. e=[0,disk_bh_orb_ecc_max_init] so median(e)=disk_bh_orb_ecc_max_init/2.
+    This might be appropriate for e.g. a galactic nucleus that is recently post-AGN
     so not had much time to relax. Most real clusters/binaries lie between thermal & uniform
     (e.g. Geller et al. 2019, ApJ, 872, 165)
-    Cap of max_initial_eccentricity allows for previous recent episode of AGN 
+    Cap of max_initial_eccentricity allows for previous recent episode of AGN
     where the population is relaxating from previously circularized.
 
     Parameters
@@ -210,7 +312,7 @@ def setup_disk_blackholes_incl(disk_bh_num, disk_bh_locations, disk_bh_orb_ang_m
     """Generates disk BH initial orbital inclinations [radian]
 
     Initializes inclinations with random draw with i < disk_aspect_ratio and then damp inclination.
-    To do: calculate v_kick for each merger and then the (i,e) orbital elements for the newly merged BH. 
+    To do: calculate v_kick for each merger and then the (i,e) orbital elements for the newly merged BH.
     Then damp (i,e) as appropriate. Return an initial distribution of inclination angles that are 0 deg.
 
     Parameters
@@ -306,7 +408,7 @@ def setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_
         nsc_radius_outer : float
             Outer radius of NSC [pc]. Set by user. Default is 5pc.
         nsc_density_index_outer : float
-            NSC density powerlaw index in outer regions. Set by user. 
+            NSC density powerlaw index in outer regions. Set by user.
             NSC density n(r) is assumed to consist of a broken powerlaw distribution,
             with one powerlaw in inner regions (Bahcall-Wolf, r^{-7/4} usually) and one in the outer regions.
             This is the outer region NSC powerlaw density index. Default is :math:`n(r) \propto r^{-5/2}`
@@ -329,8 +431,8 @@ def setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_
             Number of BH in the AGN disk
     """
 
-    # Convert outer disk radius in r_g to units of pc. 
-    # 1r_g =1AU (M_smbh/10^8Msun) and 
+    # Convert outer disk radius in r_g to units of pc.
+    # 1r_g =1AU (M_smbh/10^8Msun) and
     # 1pc =2e5AU =2e5 r_g(M/10^8Msun)^-1
     convert_1pc_to_rg_SMBH = 2.e5*((smbh_mass/1.e8)**(-1.0))
     # Convert user defined outer disk radius to pc.
@@ -355,7 +457,7 @@ def setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_
     # Calculate Total number of BH in volume R < disk_outer_radius, assuming disk_outer_radius<=1pc.
     if disk_radius_outer_pc >= nsc_radius_crit:
         relative_volumes_at_disk_outer_radius = (disk_radius_outer_pc/1.0)**(3.0)
-        nsc_bh_vol_disk_radius_outer = nsc_bh_num_inside_pc * relative_volumes_at_disk_outer_radius * ((disk_radius_outer_pc/1.0)**(-nsc_density_index_outer))          
+        nsc_bh_vol_disk_radius_outer = nsc_bh_num_inside_pc * relative_volumes_at_disk_outer_radius * ((disk_radius_outer_pc/1.0)**(-nsc_density_index_outer))
     else:
         relative_volumes_at_disk_outer_radius = (disk_radius_outer_pc/nsc_radius_crit)**(3.0)
         nsc_bh_vol_disk_radius_outer = nsc_bh_num_inside_radius_crit * relative_volumes_at_disk_outer_radius * ((disk_radius_outer_pc/nsc_radius_crit)**(-nsc_density_index_inner))

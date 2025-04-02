@@ -119,8 +119,18 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
     # timescale for large ecc damping from eqn. 2 above
     t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio ** 2.0)) + (0.06 * (e_h_ratio ** 3.0)))
     large_timescale_ratio = timestep_duration_yr / t_ecc
-    # print("t_damp",timestep_duration_yr/t_damp)
-    # print("t_ecc",timestep_duration_yr/t_ecc)
+
+    # Check if nan's exist
+    index_nan = np.argwhere(np.isnan(t_damp))
+    if index_nan:
+        print("Nan found at:")
+        print("t_damp:", np.argwhere(np.isnan(t_damp)))
+        print("t_ecc:", np.argwhere(np.isnan(t_ecc)))
+        print("e_h_ratio:", e_h_ratio[index_nan])
+        print("orb_a:", disk_bh_pro_orbs_a[index_nan])
+        print("h/r:", disk_aspect_ratio[index_nan])
+        raise TypeError("Encountered a nan in `t_damp`")
+
 
     # print("timescale_ratio",timescale_ratio)
     new_disk_bh_pro_orbs_ecc[modest_ecc_prograde_indices] = disk_bh_pro_orbs_ecc[modest_ecc_prograde_indices] * np.exp(

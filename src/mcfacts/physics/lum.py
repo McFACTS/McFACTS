@@ -57,8 +57,10 @@ def shock_luminosity(smbh_mass, mass_final, bin_orb_a, disk_aspect_ratio, disk_d
 
     r_hill_mass = (disk_density_cgs * v_hill_gas) / msolar
 
-    E = 10**46 * (r_hill_mass / 1) * (vk / 200)**2  # Energy of the shock
-    time = 31556952.0 * ((r_hill_rg / 3) / (vk / 200))  # Timescale for energy dissipation
+    v_kick_scale = 200. * (u.km / u.s)
+    v_kick_scale = v_kick_scale.value
+    E = 10**46 * (r_hill_mass / 1) * (vk / v_kick_scale)**2  # Energy of the shock
+    time = 31556952.0 * ((r_hill_rg / 3) / (vk / v_kick_scale))  # Timescale for energy dissipation
     Lshock = E / time  # Shock luminosity
     
     return Lshock
@@ -86,5 +88,33 @@ https://file+.vscode-resource.vscode-cdn.net/Users/emilymcpike/McFACTS/runs/time
     # eta depends on spin t.f. isco, assuming eddington accretion... .06-.42 and so 0.1 is a good O approx.
     # but.. bondi is greater mass accretion rate, t.f. L per mass acrreted will be less becayse so much shit 
     # is trying to get in in so little space for light to escape
-    LBHL = 2.5e45 * (0.1 / 0.1) * (mass_final / 100)**2 * (vk / 200)**-3 * (disk_density_cgs / 10e-10)  # Jet luminosity
+    v_kick_scale = 200. * (u.km / u.s)
+    v_kick_scale = v_kick_scale.value
+    LBHL = 2.5e45 * (0.1 / 0.1) * (mass_final / 100)**2 * (vk / v_kick_scale)**-3 * (disk_density_cgs / 10e-10)  # Jet luminosity
     return LBHL
+
+
+def AGN_lum(temp_func, smbh_mass, bin_orb_a):
+    T = temp_func(bin_orb_a)
+    
+    r = [1]  # r_isco
+    sorted_bin_orb_a = np.sort(bin_orb_a)  
+    r.extend(sorted_bin_orb_a)  
+    r.append(2)  # r_outer
+
+    lum_agn = []
+    
+    for i in range(len(r) - 1):  # Loop up to the second-to-last element
+        dr = r[i + 1] - r[i]  # Compute radial difference
+        area = 2 * np.pi * r[i] * dr  # Compute area of annulus
+        L_i = area * (const.sigma_sb.value * T[i]**4)  # Compute luminosity for each annulus
+        lum_agn.append(L_i)  # Append to the luminosity list
+    
+    return lum_agn
+    
+    #* emitting area, annulus, 2pir*dr... add up whole disk from isco -> outer edge. div 
+    # area = 2pir*dr
+    # array from isco to outer edge. divide into sensible chunks, at interior edge its x1, emission from 0th component to 1
+    # component is dr, do 2pirdr
+    #print(L)
+

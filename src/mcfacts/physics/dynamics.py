@@ -202,6 +202,9 @@ def circular_singles_encounters_prograde(
             num_poss_ints = 0
             num_encounters = 0
 
+    # Reset semi-major axis to outer disk radius if an encounter pushed one outside it
+    disk_bh_pro_orbs_a[disk_bh_pro_orbs_a > disk_radius_outer] = disk_radius_outer
+
     # Check finite
     assert np.isfinite(disk_bh_pro_orbs_a).all(), \
         "Finite check failed for disk_bh_pro_orbs_a"
@@ -470,11 +473,15 @@ def circular_singles_encounters_prograde_star_bh(
     Returns
     -------
     disk_star_pro_orbs_a : numpy.ndarray
-        Updated BH semi-major axis [r_{g,SMBH}] perturbed by dynamics with :obj:`float` type
+        Updated stars semi-major axis [r_{g,SMBH}] perturbed by dynamics with :obj:`float` type
     disk_star_pro_orbs_ecc : numpy.ndarray
-        Updated BH orbital eccentricities [unitless] perturbed by dynamics with :obj:`float` type
+        Updated stars orbital eccentricities [unitless] perturbed by dynamics with :obj:`float` type
     disk_star_pro_id_nums_touch : numpy.ndarray
         ID numbers of stars that will touch each other
+    disk_bh_pro_orbs_a : numpy.ndarray
+        Updated BH semi-major axis [r_{g,SMBH}] perturbed by dynamics with :obj:`float` type
+    disk_bh_pro_orbs_ecc : numpy.ndarray
+        Updated BH orbital eccentricities [unitless] perturbed by dynamics with :obj:`float` type
 
     Notes
     -----

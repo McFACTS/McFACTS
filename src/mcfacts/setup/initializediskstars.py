@@ -6,7 +6,7 @@ import numpy as np
 from mcfacts.mcfacts_random_state import rng
 
 
-def init_single_stars(opts, disk_aspect_ratio, id_start_val=None):
+def init_single_stars(opts, disk_aspect_ratio, galaxy, id_start_val=None):
 
     # Generate initial number of stars
     star_num_initial = setupdiskstars.setup_disk_stars_num(
@@ -75,7 +75,7 @@ def init_single_stars(opts, disk_aspect_ratio, id_start_val=None):
                     star_X=star_X,
                     star_Y=star_Y,
                     star_Z=star_Z,
-                    galaxy=np.zeros(star_num),
+                    galaxy=np.full(star_num, galaxy),
                     time_passed=np.zeros(star_num),
                     id_start_val=id_start_val,
                     star_num=star_num)

@@ -48,7 +48,7 @@ class AGNGasDiskModel(object):
         else:
             np.savetxt(filename, np.vstack((R/ct.pc, Omega, T, rho, h, cs, tauV, Q)).T)
 
-    def return_disk_surf_model(self, flag_truncate_disk=False):
+    def return_disk_surf_model(self, flag_truncate_disk=0):
         """Generate disk surface model functions
 
         Interpolate and return disk surface model functions as a function of the disk radius.
@@ -60,9 +60,9 @@ class AGNGasDiskModel(object):
 
         Parameters
         ----------
-        flag_truncate_disk : bool, optional
-            If `True`, truncate these functions at the radius where star formation starts
-            in the gas disk. If `False`, do not truncate. By default `False`.
+        flag_truncate_disk : int, optional
+            If 1, truncate these functions at the radius where star formation starts
+            in the gas disk. If 0, do not truncate. By default 0.
 
         Returns
         -------
