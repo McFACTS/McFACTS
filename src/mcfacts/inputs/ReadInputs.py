@@ -205,6 +205,7 @@ INPUT_TYPES = {
     "flag_phenom_turb"              : int,
     "phenom_turb_centroid"          : float,
     "phenom_turb_std_dev"           : float,
+    "flag_use_surrogate"            : int,
     "bondi_accretion"               : int
 }
 # Ensure none of the data types are bool to avoid issues casting ascii to boolean
