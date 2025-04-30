@@ -97,7 +97,7 @@ INPUT_PARAMETERS = {
     },
     "bh_orbital_semi_major_axis_inner": { # 0 - 50 Rg
         InputParameterSet.BASE: [],
-        InputParameterSet.SINGLETON: np.linspace(2, 50, 10),
+        InputParameterSet.SINGLETON: np.linspace(19, 50, 10),
         InputParameterSet.BINARY: [],
         InputParameterSet.DYNAMICS: []
     },

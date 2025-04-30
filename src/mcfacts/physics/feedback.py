@@ -69,6 +69,9 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
     # set ratio = 1 (no migration) for black holes at or beyond the disk outer radius
     ratio_feedback_migration_torque[np.where(disk_bh_pro_orbs_a >= disk_radius_outer)] = 1.
 
+    assert np.isfinite(ratio_feedback_migration_torque).all(), \
+        "Finite check failure: ratio_feedback_migration_torque"
+
     return ratio_feedback_migration_torque
 
 
@@ -140,5 +143,8 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
 
     # set ratio = 1 (no migration) for stars beyond the disk outer radius
     ratio_feedback_migration_torque[np.where(disk_stars_pro_orbs_a > disk_radius_outer)] = 1
+    
+    assert np.isfinite(ratio_feedback_migration_torque).all(), \
+        "Finite check failure: ratio_feedback_migration_torque"
 
     return ratio_feedback_migration_torque

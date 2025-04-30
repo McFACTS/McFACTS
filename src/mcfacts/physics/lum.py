@@ -7,6 +7,7 @@ from astropy import units as u
 from astropy import constants as const
 from mcfacts.physics.point_masses import si_from_r_g
 
+
 def shock_luminosity(smbh_mass, mass_final, bin_orb_a, disk_aspect_ratio, disk_density, vk):
     """
     Calculate the gas volume, Hill sphere volume, and Hill radius. McKernan et al. 2019
@@ -62,8 +63,12 @@ def shock_luminosity(smbh_mass, mass_final, bin_orb_a, disk_aspect_ratio, disk_d
     E = 10**46 * (r_hill_mass / 1) * (vk / v_kick_scale)**2  # Energy of the shock
     time = 31556952.0 * ((r_hill_rg / 3) / (vk / v_kick_scale))  # Timescale for energy dissipation
     Lshock = E / time  # Shock luminosity
-    
+
+    assert np.all(Lshock > 0), \
+        "Lshock has values <= 0"
+
     return Lshock
+
 
 def jet_luminosity(mass_final, bin_orb_a, disk_density, vk):
     """
@@ -91,27 +96,36 @@ https://file+.vscode-resource.vscode-cdn.net/Users/emilymcpike/McFACTS/runs/time
     v_kick_scale = 200. * (u.km / u.s)
     v_kick_scale = v_kick_scale.value
     LBHL = 2.5e45 * (0.1 / 0.1) * (mass_final / 100)**2 * (vk / v_kick_scale)**-3 * (disk_density_cgs / 10e-10)  # Jet luminosity
+
+    assert np.all(LBHL > 0), \
+        "LBHL has values <= 0"
+
     return LBHL
 
 
 def AGN_lum(temp_func, smbh_mass, bin_orb_a):
     T = temp_func(bin_orb_a)
-    
+
     r = [1]  # r_isco
     sorted_bin_orb_a = np.sort(bin_orb_a)  
     r.extend(sorted_bin_orb_a)  
     r.append(2)  # r_outer
 
     lum_agn = []
-    
+
     for i in range(len(r) - 1):  # Loop up to the second-to-last element
         dr = r[i + 1] - r[i]  # Compute radial difference
         area = 2 * np.pi * r[i] * dr  # Compute area of annulus
         L_i = area * (const.sigma_sb.value * T[i]**4)  # Compute luminosity for each annulus
         lum_agn.append(L_i)  # Append to the luminosity list
-    
+
+    lum_agn = np.array(lum_agn)
+
+    assert np.all(lum_agn > 0), \
+        "lum_agn has values <= 0"
+
     return lum_agn
-    
+
     #* emitting area, annulus, 2pir*dr... add up whole disk from isco -> outer edge. div 
     # area = 2pir*dr
     # array from isco to outer edge. divide into sensible chunks, at interior edge its x1, emission from 0th component to 1

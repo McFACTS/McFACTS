@@ -65,6 +65,9 @@ def star_wind_mass_loss(disk_star_pro_masses,
 
     star_new_masses = ((star_mass + (mdot_Edd * timestep_duration_yr_si)).to("Msun")).value
 
+    assert np.all(star_new_masses > 0), \
+        "star_new_masses has values <= 0"
+
     return (star_new_masses, mass_lost.sum())
 
 
@@ -139,6 +142,9 @@ def accrete_star_mass(disk_star_pro_masses,
     immortal_mass_diff = disk_star_pro_new_masses[disk_star_pro_new_masses == disk_star_initial_mass_cutoff] - disk_star_pro_masses[disk_star_pro_new_masses == disk_star_initial_mass_cutoff]
     # Any extra mass over the immortal cutoff is blown off the star and back into the disk
     immortal_mass_lost = mass_gained[disk_star_pro_new_masses == disk_star_initial_mass_cutoff] - immortal_mass_diff
+
+    assert np.all(disk_star_pro_new_masses > 0), \
+        "disk_star_pro_new_masses has values <= 0"
 
     return disk_star_pro_new_masses, mass_gained.sum(), immortal_mass_lost.sum()
 
@@ -218,6 +224,9 @@ def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddingto
     # Mass grows exponentially for length of timestep:
     disk_bh_pro_new_masses = disk_bh_pro_masses*np.exp(disk_bh_eddington_mass_growth_rate*disk_bh_eddington_ratio*timestep_duration_yr)
 
+    assert np.all(disk_bh_pro_new_masses > 0), \
+        "disk_bh_pro_new_masses has values <= 0"
+
     return disk_bh_pro_new_masses
 
 
@@ -284,6 +293,9 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
     disk_bh_pro_spins_new[disk_bh_pro_spins_new < disk_bh_pro_spin_min] = disk_bh_pro_spin_min
     disk_bh_pro_spins_new[disk_bh_pro_spins_new > disk_bh_pro_spin_max] = disk_bh_pro_spin_max
 
+    assert np.isfinite(disk_bh_pro_spins_new).all(), \
+        "Finite check failure: disk_bh_pro_spins_new"
+
     return disk_bh_pro_spins_new
 
 
@@ -339,7 +351,6 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
     # Singleton BH with orb ecc < disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
     indices_bh_spin_up = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orbs_ecc_crit).nonzero()[0]
 
-
     # Spin up BH are torqued towards zero (ie alignment with disk, so decrease mag of spin angle)
     disk_bh_spin_angles_new[indices_bh_spin_up] = disk_bh_pro_spin_angles[indices_bh_spin_up] - spin_torque_iteration
     # Spin down BH with orb ecc > disk_bh_pro_orbs_ecc_crit are torqued toward anti-alignment with disk, incr mag of spin angle.
@@ -351,6 +362,9 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
     bh_max_spin_angle = 3.10
     disk_bh_spin_angles_new[disk_bh_spin_angles_new < disk_bh_spin_minimum_resolution] = 0.0
     disk_bh_spin_angles_new[disk_bh_spin_angles_new > bh_max_spin_angle] = bh_max_spin_angle
+
+    assert np.isfinite(disk_bh_spin_angles_new).all(), \
+        "Finite check failure: disk_bh_spin_angles_new"
 
     return disk_bh_spin_angles_new
 

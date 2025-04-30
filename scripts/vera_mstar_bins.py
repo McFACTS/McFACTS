@@ -26,7 +26,7 @@ def arg():
         help="Minimum galactic stellar mass")
     parser.add_argument("--mstar-max", default=1e13, type=float,
         help="Maximum galactic stellar mass")
-    parser.add_argument("--nbins", default=9, type=int, help="Number of stellar mass bins")
+    parser.add_argument("--mbins", nargs="+",help="Stellar mass bin labels")
     parser.add_argument("--bin_num_max", default=1000, help="Number of binaries allowed at once")
     parser.add_argument("--wkdir", default='./run_many', help="top level working directory")
     parser.add_argument("--mcfacts-exe", default="./scripts/mcfacts_sim.py", help="Path to mcfacts exe")
@@ -57,6 +57,8 @@ def arg():
     opts.wkdir=os.path.abspath(opts.wkdir)
     # Check exe
     assert isfile(opts.mcfacts_exe)
+    # Check nbins
+    opts.nbins = np.size(opts.mbins)
     return opts
 
 ######## Batch ########
@@ -148,7 +150,10 @@ def make_batch(opts, wkdir, smbh_mass, nsc_mass):
         if not mcfacts_input_variables["flag_use_pagn"]:
             raise NotImplementedError
         # Load pAGN disk model
-        pagn_surf_dens_func, pagn_aspect_ratio_func, pagn_opacity_func, pagn_model, bonus_structures =\
+        #pagn_surf_dens_func, pagn_aspect_ratio_func, pagn_opacity_func, pagn_model, bonus_structures =\
+        pagn_surf_dens_func, pagn_aspect_ratio_func, pagn_opacity_func, pagn_sound_speed_func, \
+            disk_density_func, disk_pressure_grad_func, disk_omega_func, \
+            disk_surf_dens_func_log, temp_func, pagn_model, bonus_structures = \
             construct_disk_pAGN(
                 mcfacts_input_variables["disk_model_name"],
                 smbh_mass,
@@ -214,26 +219,36 @@ def make_batch(opts, wkdir, smbh_mass, nsc_mass):
     print(cmd)
     if not opts.print_only:
         os.system(cmd)
+    
+    # Estimate a new capture radius
+    new_capture_radius = mcfacts_input_variables["disk_radius_capture_outer"] * np.sqrt(
+        smbh_mass_fiducial /
+        (mcfacts_input_variables["smbh_mass"] * units.solMass)
+    )
+    cmd=f"sed --in-place 's/disk_radius_capture_outer =.*/disk_radius_capture_outer = {new_capture_radius}/' {fname_ini_local}"
+    print(cmd)
+    if not opts.print_only:
+        os.system(cmd)
 
+    # Open script
+    mcfacts_script = fname_ini_local.rstrip("ini") + "sh"
     # Identify output file
     mcfacts_out = fname_ini_local.rstrip("ini") + "out"
-    # Make all iterations
-    cmd = "python3 %s --fname-ini %s --work-directory %s > %s"%(
-        opts.mcfacts_exe, fname_ini_local, wkdir, mcfacts_out)
-    print(cmd)
-    if not opts.print_only:
-        os.system(cmd)
-    # Make plots for all iterations
-    cmd = "python3 %s --fname-mergers %s/output_mergers_population.dat --fname-nal %s --cdf bin_com chi_eff final_mass time_merge"%(
-        opts.vera_plots_exe, wkdir, opts.fname_nal)
-    print(cmd)
-    if not opts.print_only:
-        os.system(cmd)
-    # Make disk plots
-    cmd = f"python3 {opts.plot_disk_exe} --fname-ini {fname_ini_local} --outdir {wkdir}"
-    print(cmd)
-    if not opts.print_only:
-        os.system(cmd)
+    with open(mcfacts_script, 'w') as F:
+        # Make all iterations
+        cmd = "python3 %s --fname-ini %s --work-directory %s > %s\n"%(
+            os.path.abspath(opts.mcfacts_exe), fname_ini_local, wkdir, mcfacts_out)
+        print(cmd)
+        F.writelines(cmd)
+        # Make plots for all iterations
+        cmd = "python3 %s --fname-mergers %s/output_mergers_population.dat --fname-nal %s --cdf bin_com chi_eff final_mass time_merge\n"%(
+            opts.vera_plots_exe, wkdir, opts.fname_nal)
+        print(cmd)
+        F.writelines(cmd)
+        # Make disk plots
+        cmd = f"python3 {opts.plot_disk_exe} --fname-ini {fname_ini_local} --outdir {wkdir}\n"
+        print(cmd)
+        F.writelines(cmd)
 
     # Scrub runs
     if opts.scrub:
@@ -267,13 +282,11 @@ def main():
         smbh_mass = SMBH_arr[i]
         early_mass = NSC_early_arr[i]
         late_mass = NSC_late_arr[i]
-        # Generate label for this mass bin
-        mstar_str = "%.8f"%np.log10(mstar)
         # Generate directories
-        early_dir = join(opts.wkdir, 'early', mstar_str)
+        early_dir = join(opts.wkdir, 'early', opts.mbins[i])
         if not isdir(early_dir):
             os.mkdir(early_dir)
-        late_dir = join(opts.wkdir, 'late', mstar_str)
+        late_dir = join(opts.wkdir, 'late', opts.mbins[i])
         if not isdir(late_dir):
             os.mkdir(late_dir)
 

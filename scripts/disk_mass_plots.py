@@ -46,7 +46,7 @@ def main():
 
     for t in np.unique(data[:, 1]):
         mass_gain_avg.append(np.mean(data[:, 2][data[:, 1] == t]))
-        mass_gain_std.append(np.mean(data[:, 2][data[:, 1] == t]))
+        mass_gain_std.append(np.std(data[:, 2][data[:, 1] == t]))
         mass_lost_avg.append(np.mean(data[:, 3][data[:, 1] == t]))
         mass_lost_std.append(np.std(data[:, 3][data[:, 1] == t]))
 

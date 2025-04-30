@@ -34,9 +34,9 @@ BONDI_PLOTS = ${HERE}/scripts/bondi_plots.py
 SEED=3456789108 # put an 8 here
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
 FNAME_INI= ${HERE}/recipes/model_choice_old.ini
-FNAME_INI_MSTAR_PAGN= ${HERE}/recipes/p3_pAGN_on.ini
-FNAME_INI_MSTAR_FIXED= ${HERE}/recipes/p3_pAGN_off.ini
-MSTAR_RUNS_WKDIR_PAGN = ${HERE}/runs_mstar_bins_pAGN
+FNAME_INI_MSTAR_SCALE= ${HERE}/recipes/paper_3/p3_scale.ini
+FNAME_INI_MSTAR_FIXED= ${HERE}/recipes/paper_3/p3_fixed.ini
+MSTAR_RUNS_WKDIR_SCALE = ${HERE}/runs_mstar_bins_scale
 MSTAR_RUNS_WKDIR_FIXED = ${HERE}/runs_mstar_bins_fixed
 # NAL files might not exist unless you download them from
 # https://gitlab.com/xevra/nal-data
@@ -45,6 +45,24 @@ MSTAR_RUNS_WKDIR_FIXED = ${HERE}/runs_mstar_bins_fixed
 FNAME_GWTC2_NAL = ${HOME}/Repos/nal-data/GWTC-2.nal.hdf5
 #Set this to change your working directory
 wd=${HERE}
+
+## Setup for dumb parallelization
+MBINS_FIXED := \
+	FIXED_00 FIXED_01 FIXED_02 FIXED_03 FIXED_04 \
+	FIXED_05 FIXED_06 FIXED_07 FIXED_08 FIXED_09 \
+	FIXED_10 FIXED_11 FIXED_12 FIXED_13 FIXED_14 \
+	FIXED_15 FIXED_16 FIXED_17 FIXED_18 FIXED_19 \
+	FIXED_20 FIXED_21 FIXED_22 FIXED_23 FIXED_24 \
+	FIXED_25 FIXED_26 FIXED_27 FIXED_28 FIXED_29 \
+	FIXED_30 FIXED_31 FIXED_32
+MBINS_SCALE := \
+	SCALE_00 SCALE_01 SCALE_02 SCALE_03 SCALE_04 \
+	SCALE_05 SCALE_06 SCALE_07 SCALE_08 SCALE_09 \
+	SCALE_10 SCALE_11 SCALE_12 SCALE_13 SCALE_14 \
+	SCALE_15 SCALE_16 SCALE_17 SCALE_18 SCALE_19 \
+	SCALE_20 SCALE_21 SCALE_22 SCALE_23 SCALE_24 \
+	SCALE_25 SCALE_26 SCALE_27 SCALE_28 SCALE_29 \
+	SCALE_30 SCALE_31 SCALE_32
 
 ######## Instructions ########
 #### Install ####
@@ -113,23 +131,6 @@ vera_plots: mcfacts_sim
 		--cdf-fields chi_eff chi_p final_mass gen1 gen2 time_merge \
 		--verbose
 
-mstar_runs_pagn:
-	python ${MSTAR_RUNS_EXE} \
-		--fname-ini ${FNAME_INI_MSTAR_PAGN} \
-		--timestep_num 1000 \
-		--bin_num_max 10000 \
-		--nbins 33 \
-		--galaxy_num 100 \
-		--mstar-min 1e9 \
-		--mstar-max 1e13 \
-		--scrub \
-		--fname-nal ${FNAME_GWTC2_NAL} \
-		--wkdir ${MSTAR_RUNS_WKDIR_PAGN} \
-		--truncate-opacity
-		#--nbins 33 
-		#--timestep_num 1000 \
-	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
-
 kaila_stars: plots
 	cd runs; \
 	python ../${STARS_PLOTS} \
@@ -189,13 +190,34 @@ bondi_plots:
 	--fname-bondi ${wd}/output_bondi_variables.dat \
 	--plots-directory ${wd}
 
-mstar_runs_fixed:
+#### Vera's mstar_runs ####
+
+# Define the setup for mstar_runs for the scaled inifile
+setup_mstar_runs_scale:
+	python ${MSTAR_RUNS_EXE} \
+		--fname-ini ${FNAME_INI_MSTAR_SCALE} \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--galaxy_num 100 \
+		--mbins ${MBINS_SCALE} \
+		--mstar-min 1e9 \
+		--mstar-max 1e13 \
+		--scrub \
+		--fname-nal ${FNAME_GWTC2_NAL} \
+		--wkdir ${MSTAR_RUNS_WKDIR_SCALE} \
+		--truncate-opacity
+		#--nbins 33
+		#--timestep_num 1000 \
+	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
+
+# Define the setup for mstar_runs with the fixed inifile
+setup_mstar_runs_fixed:
 	python ${MSTAR_RUNS_EXE} \
 		--fname-ini ${FNAME_INI_MSTAR_FIXED} \
 		--timestep_num 1000 \
 		--bin_num_max 10000 \
-		--nbins 33 \
 		--galaxy_num 100 \
+		--mbins ${MBINS_FIXED} \
 		--mstar-min 1e9 \
 		--mstar-max 1e13 \
 		--scrub \
@@ -205,6 +227,23 @@ mstar_runs_fixed:
 		#--timestep_num 1000 \
 	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
 		
+# Define an individual job for the fixed inifile
+%.run_fixed: setup_mstar_runs_fixed
+	bash runs_mstar_bins_fixed/early/$(basename $@)/p3_fixed.sh
+	bash runs_mstar_bins_fixed/late/$(basename $@)/p3_fixed.sh
+# Define an individual job for the scaled inifile
+%.run_scale: setup_mstar_runs_scale
+	bash runs_mstar_bins_scale/early/$(basename $@)/p3_scale.sh
+	bash runs_mstar_bins_scale/late/$(basename $@)/p3_scale.sh
+
+## You can't handle the truth!
+# Seriously, I am lucky every time I can get this to work at all
+# Pattern Rules are truly the dark arts
+mstar_runs_scale: $(MBINS_SCALE)
+$(MBINS_SCALE): %: %.run_scale
+mstar_runs_fixed: $(MBINS_FIXED)
+$(MBINS_FIXED): %: %.run_fixed
+
 
 #### CLEAN ####
 
