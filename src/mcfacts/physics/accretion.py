@@ -143,6 +143,53 @@ def accrete_star_mass(disk_star_pro_masses,
     return disk_star_pro_new_masses, mass_gained.sum(), immortal_mass_lost.sum()
 
 
+def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_pro_spins, disk_bh_pro_spin_angle,
+                                disk_sound_speed, disk_density, disk_aspect_ratio, migration_velocity,
+                                disk_bh_torque_condition, smbh_mass, timestep_duration_yr):
+
+    smbh_kg = smbh_mass * u.kg
+
+    sound_speed = disk_sound_speed(disk_bh_pro_orb_a) * (u.m / u.s)
+    density = disk_density(disk_bh_pro_orb_a) * (u.kg / u.m**3)
+
+    pro_orb_a = (disk_bh_pro_orb_a * const.G * smbh_kg) / (const.c ** 2)
+    pro_orb_mass = disk_bh_pro_masses * u.kg
+
+    timestep = (timestep_duration_yr * u.yr).to(u.s)
+
+    radius_schwarzschild = (2 * const.G * pro_orb_mass) / const.c ** 2
+    spin_component = disk_bh_pro_spins * (radius_schwarzschild / 2)
+
+    comp_1_part_a = (1 - ((4 * (spin_component ** 2)) / (radius_schwarzschild ** 2))) ** (1 / 3)
+    comp_1_part_b = (1 + ((2 * spin_component) / radius_schwarzschild)) ** (1 / 3)
+    comp_1_part_c = (1 - ((2 * spin_component) / radius_schwarzschild)) ** (1 / 3)
+    radius_comp_1 = 1 + (comp_1_part_a * (comp_1_part_b + comp_1_part_c))
+    radius_comp_2 = ((3 * ((4 * (spin_component ** 2)) / (radius_schwarzschild ** 2))) + (radius_comp_1 ** 2)) ** (1 / 3)
+
+    radius_isco = (3 + radius_comp_2 - (((3 - radius_comp_1) * (3 + radius_comp_1 + (2 * radius_comp_2))) ** (1/2))) # (radius_schwarzschild / 2) *
+    radii_bondi = (2 * const.G * pro_orb_mass) / (sound_speed ** 2) # Only using sound speed in this bondi radii approximation
+
+    shear_velocity = radii_bondi * np.sqrt(const.G * smbh_kg / pro_orb_a ** 3)
+    mig_velocity = ((migration_velocity * const.G * smbh_kg) / (const.c ** 2 * 3.154e+7)) * (1 / u.s)
+
+    radii_hill = pro_orb_a * (pro_orb_mass / (3 * smbh_kg)) ** (1/3)
+    f_c = 10
+    radii_c = np.minimum(radii_hill, radii_bondi)
+    disk_height = disk_aspect_ratio(disk_bh_pro_orb_a) * pro_orb_a
+    delta_mass = f_c * radii_c * disk_height * density * ((sound_speed ** 2 + shear_velocity ** 2 + mig_velocity ** 2) ** (1/2)) * timestep
+
+    final_mass = disk_bh_pro_masses + delta_mass.value
+
+    spin_magnitude_change = ((2 / (3 * (3 ** 1/2))) * (1 / pro_orb_mass) * ((1 + 2 * ((3 * radius_isco - 2) ** 1/2)) / (1 - (2/(3*radius_isco))) ** (1 / 2)) - (disk_bh_pro_spins / pro_orb_mass)) * delta_mass
+    final_spin_magnitude = disk_bh_pro_spins + spin_magnitude_change.value
+
+    eddington_ratio = delta_mass / disk_bh_pro_masses
+    normalized_spin_torque_condition = disk_bh_torque_condition / 0.1
+    spin_torque_iteration = (6.98e-3 * eddington_ratio.value * normalized_spin_torque_condition * (timestep_duration_yr * 1e4))
+    final_spin_angle = disk_bh_pro_spin_angle + spin_torque_iteration
+
+    return final_mass, final_spin_magnitude, final_spin_angle
+
 def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddington_mass_growth_rate, timestep_duration_yr):
     """Adds mass according to chosen BH mass accretion prescription
 
@@ -307,41 +354,6 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
 
     return disk_bh_spin_angles_new
 
-def change_bh_mass_bondi_agn(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_density, disk_sound_speed, disk_aspect_ratio, smbh_mass, migration_velocity, timestep_duration_yr):
-
-    sound_speed = disk_sound_speed(disk_bh_pro_orb_a) * (u.m / u.s)
-    density = disk_density(disk_bh_pro_orb_a) * (u.kg / u.m**3)
-
-    M_smbh = smbh_mass * u.kg
-    pro_orb_a = (disk_bh_pro_orb_a * const.G * M_smbh) / (const.c ** 2)
-    pro_orb_mass = disk_bh_pro_masses * u.kg
-
-    # Only using sound speed in this bondi radii approximation
-    radii_bondi = (2 * const.G * pro_orb_mass) / (sound_speed ** 2)
-
-    shear_velocity = radii_bondi * np.sqrt(const.G * M_smbh / pro_orb_a ** 3)
-    mig_velocity = ((migration_velocity * const.G * M_smbh) / (const.c ** 2 * 3.154e+7)) * (1 / u.s)
-
-    radii_hill = pro_orb_a * (pro_orb_mass / (3 * M_smbh)) ** (1/3)
-
-    f_c = 10
-
-    radii_c = np.minimum(radii_hill, radii_bondi)
-
-    disk_height = disk_aspect_ratio(disk_bh_pro_orb_a) * pro_orb_a
-    #
-    # print("Sound Speed", sound_speed)
-    # print("Shear Velocity", shear_velocity)
-    # print("Mig Velocity", mig_velocity)
-
-    delta_mass = f_c * radii_c * disk_height * density * ((sound_speed ** 2 + shear_velocity ** 2 + mig_velocity ** 2) ** (1/2)) * (timestep_duration_yr * 3.154e+7)
-
-    # print(delta_mass)
-
-    final_mass = disk_bh_pro_masses + delta_mass.value
-
-    return final_mass
-
 def change_bh_mass_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_density, disk_sound_speed, timestep_duration_yr):
 
     """
@@ -375,6 +387,8 @@ def change_bh_mass_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_density, di
 
     # Bondi accretion rate [M_sun/s]
     bondi_rate = (4 * np.pi * G ** 2 * disk_bh_pro_masses ** 2 * rho) / Cs ** 3
+
+    print(bondi_rate)
 
     # Convert Bondi rate to [M_sun/yr]
     bondi_rate_yr = bondi_rate * yr_to_s

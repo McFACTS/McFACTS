@@ -224,6 +224,10 @@ def main():
     disk_arr_mass_lost_pop = np.array([])
     disk_arr_mass_gained_pop = np.array([])
 
+    all_shear_velocities = np.array([])
+    all_mig_velocities = np.array([])
+    all_sound_speeds = np.array([])
+
     # tdes_pop = AGNStar()
 
     print("opts.__dict__", opts.__dict__)
@@ -822,43 +826,58 @@ def main():
 
 
             if opts.bondi_accretion:
-                blackholes_pro.mass = accretion.change_bh_mass_bondi_agn(
+                # blackholes_pro.mass = accretion.change_bh_mass_bondi(
+                #     blackholes_pro.mass,
+                #     blackholes_pro.orb_a,
+                #     disk_density,
+                #     disk_sound_speed,
+                #     opts.timestep_duration_yr
+                # )
+
+                blackholes_pro.mass, blackholes_pro.spin, blackholes_pro.spin_angle = accretion.prograde_bh_accretion_bondi(
                     blackholes_pro.mass,
                     blackholes_pro.orb_a,
-                    disk_density,
+                    blackholes_pro.spin,
+                    blackholes_pro.spin_angle,
                     disk_sound_speed,
+                    disk_density,
                     disk_aspect_ratio,
-                    opts.smbh_mass,
                     migration_velocity,
+                    opts.disk_bh_torque_condition,
+                    opts.smbh_mass,
                     opts.timestep_duration_yr
                 )
 
+                # all_shear_velocities = np.append(all_shear_velocities, shear_velocity)
+                # all_mig_velocities = np.append(all_mig_velocities, mig_velocity)
+                # all_sound_speeds = np.append(all_sound_speeds, sound_speed)
+
                 # Spin up
-                blackholes_pro.spin = accretion.change_bh_spin_magnitudes_bondi(
-                    blackholes_pro.spin,
-                    blackholes_pro.mass,
-                    blackholes_pro.orb_a,
-                    disk_density,
-                    disk_sound_speed,
-                    opts.disk_bh_torque_condition,
-                    opts.timestep_duration_yr,
-                    blackholes_pro.orb_ecc,
-                    opts.disk_bh_pro_orb_ecc_crit,
-                )
+                # blackholes_pro.spin = accretion.change_bh_spin_magnitudes_bondi(
+                #     blackholes_pro.spin,
+                #     blackholes_pro.mass,
+                #     blackholes_pro.orb_a,
+                #     disk_density,
+                #     disk_sound_speed,
+                #     opts.disk_bh_torque_condition,
+                #     opts.timestep_duration_yr,
+                #     blackholes_pro.orb_ecc,
+                #     opts.disk_bh_pro_orb_ecc_crit,
+                # )
 
                 # Torque spin angle
-                blackholes_pro.spin_angle = accretion.change_bh_spin_angles_bondi(
-                    blackholes_pro.spin_angle,
-                    blackholes_pro.mass,
-                    blackholes_pro.orb_a,
-                    disk_density,
-                    disk_sound_speed,
-                    opts.disk_bh_torque_condition,
-                    disk_bh_spin_resolution_min,
-                    opts.timestep_duration_yr,
-                    blackholes_pro.orb_ecc,
-                    opts.disk_bh_pro_orb_ecc_crit
-                )
+                # blackholes_pro.spin_angle = accretion.change_bh_spin_angles_bondi(
+                #     blackholes_pro.spin_angle,
+                #     blackholes_pro.mass,
+                #     blackholes_pro.orb_a,
+                #     disk_density,
+                #     disk_sound_speed,
+                #     opts.disk_bh_torque_condition,
+                #     disk_bh_spin_resolution_min,
+                #     opts.timestep_duration_yr,
+                #     blackholes_pro.orb_ecc,
+                #     opts.disk_bh_pro_orb_ecc_crit
+                # )
 
             else:
                 # Accretion
@@ -2538,6 +2557,7 @@ def main():
     stars_merge_save_name = f"{basename}_stars_merged{extension}"
     basename_disk, extension_disk = os.path.splitext(opts.fname_output)
     disk_mass_cycled_save_name = f"{basename_disk}_diskmasscycled{extension_disk}"
+    bondi_save_name = f"{basename_disk}_bondi_variables{extension}"
 
 
     # Define columns to write
@@ -2553,6 +2573,10 @@ def main():
     tde_cols = ["galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "log_radius", "gen", "id_num", "log_teff", "log_luminosity", "star_X", "star_Y", "star_Z"]
     stars_merge_cols = ["galaxy", "time_merged","orb_a_final", "mass_final", "orb_ecc", "log_radius_final", "gen_final", "id_num", "mass_1", "mass_2", "gen_1", "gen_2"]
 
+    temp_bondi_var = np.column_stack(
+        (all_sound_speeds, all_mig_velocities, all_shear_velocities))
+    np.savetxt(os.path.join(opts.work_directory, bondi_save_name), temp_bondi_var,
+               header="sound_speed migration_velocity shear_velocity")
 
     # Save things
     emris_pop.to_txt(os.path.join(opts.work_directory, emris_save_name),

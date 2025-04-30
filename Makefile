@@ -28,6 +28,7 @@ STARS_PLOTS = ${HERE}/scripts/stars_plots.py
 DISK_MASS_PLOTS = ${HERE}/scripts/disk_mass_plots.py
 ORBA_MASS_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
 EMILY_PLOTS = ${HERE}/scripts/emily_plots.py
+BONDI_PLOTS = ${HERE}/scripts/bondi_plots.py
 
 #### Setup ####
 SEED=3456789108 # put an 8 here
@@ -178,6 +179,14 @@ emily_plots:
 	python ../${EMILY_PLOTS} \
 	--runs-directory ${wd} \
 	--fname-mergers ${wd}/output_mergers_population.dat \
+	--plots-directory ${wd}
+
+bondi_plots:
+	cd runs; \
+	python ../${BONDI_PLOTS} \
+	--runs-directory ${wd} \
+	--fname-mergers ${wd}/output_mergers_population.dat \
+	--fname-bondi ${wd}/output_bondi_variables.dat \
 	--plots-directory ${wd}
 
 mstar_runs_fixed:
