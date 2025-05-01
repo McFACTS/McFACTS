@@ -83,6 +83,9 @@ def arg():
     parser.add_argument("--fname-log", default="mcfacts.log", type=str,
                         help="Specify a file in which to save the arguments and some runtime information. Default: mcfacts.log")
 
+    #### Begin Argparse Nonsense
+    #### Please do not modify between this line and the END Argparse Nonsense
+    ####  line unless you have a good reason.
     # Add inifile arguments
     # Read default inifile
     _variable_inputs = ReadInputs.ReadInputs_ini(DEFAULT_INI, False)
@@ -96,21 +99,21 @@ def arg():
         _default = _variable_inputs[name]
         _dtype = type(_variable_inputs[name])
         parser.add_argument(_opt,
-                            default=_default,
+                            default=None,
                             type=_dtype,
                             metavar=_metavar,
                             )
 
-    # Parse arguments
+
+    # Parse arguments, using the opts namespace
+    # This causes the default inifile values to be overwritten
+    # by CLI arguments
     opts = parser.parse_args()
     # Check that the inifile exists
     assert isfile(opts.fname_ini)
     # Convert to path objects
     opts.fname_ini = Path(opts.fname_ini)
     assert opts.fname_ini.is_file()
-    opts.fname_snapshots_bh = Path(opts.fname_snapshots_bh)
-    opts.fname_output_mergers = Path(opts.fname_output_mergers)
-    opts.fname_output = Path(opts.fname_output)
 
     # Parse inifile
     print("opts.fname_ini", opts.fname_ini)
@@ -127,7 +130,7 @@ def arg():
             setattr(opts, name, variable_inputs[name])
             continue
         # Check for args not in the default_ini file
-        if getattr(opts, name) != _variable_inputs[name]:
+        if getattr(opts, name) is not None:
             # This is the case where the user has set the value of an argument
             # from the command line. We don't want to argue with the user.
             pass
@@ -139,7 +142,12 @@ def arg():
     # Case 3: if an attribute is in the default infile,
     #   and not the specified inifile,
     #   it remains unaltered.
+    #### End Argparse Nonsense ####
 
+    # Update paths of arguments to Path type
+    opts.fname_snapshots_bh = Path(opts.fname_snapshots_bh)
+    opts.fname_output_mergers = Path(opts.fname_output_mergers)
+    opts.fname_output = Path(opts.fname_output)
     if opts.verbose:
         for item in opts.__dict__:
             print(item, getattr(opts, item))
