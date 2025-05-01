@@ -112,7 +112,9 @@ def jet_luminosity(mass_final,
     v_kick = v_kick * (u.km / u.s)
     v_kick_scale = 200. * (u.km / u.s)
 
+    mass_scale = 100 * u.M_sun
+    density_scale = 10e-10 * (u.g / u.cm *3)
     eta = spin_final**2
 
-    Ljet = 2.5e45 * (eta / 0.1) * (mass_final / 100 * u.M_sun)**2 * (v_kick / v_kick_scale)**-3 * (disk_density_cgs / 10e-10 * (u.g / u.cm *3))  # Jet luminosity
+    Ljet = 2.5e45 * (eta / 0.1) * (mass_final / mass_scale)**2 * (v_kick / v_kick_scale)**-3 * (disk_density_cgs / density_scale)  # Jet luminosity
     return Ljet.value
