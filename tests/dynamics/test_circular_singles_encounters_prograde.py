@@ -4,6 +4,7 @@
 """
 ######## Imports ########
 #### Standard Library ####
+import time
 #### Third-Party ####
 import numpy as np
 #### Homemade ####
@@ -170,30 +171,33 @@ OUTPUT_DATA = {
 def test_inputs():
     for key in INPUT_DATA:
         print(key)
-        print(INPUT_DATA[key])
     for key in OUTPUT_DATA:
         print(key)
-        print(OUTPUT_DATA[key])
         assert not np.allclose(INPUT_DATA[key],OUTPUT_DATA[key]), \
             "test circular_singles_encounter_prograde: Bad OUTPUT DATA\n" +\
             "All input and output values are identical"
 
 def test_circ_singles_encounters_prograde():
+    tic = time.perf_counter()
     (disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc) = \
         circular_singles_encounters_prograde(
             INPUT_DATA["smbh_mass"],
-            INPUT_DATA["disk_bh_pro_orbs_a"],
-            INPUT_DATA["disk_bh_pro_masses"],
-            INPUT_DATA["disk_bh_pro_orbs_ecc"],
+            INPUT_DATA["disk_bh_pro_orbs_a"].copy(),
+            INPUT_DATA["disk_bh_pro_masses"].copy(),
+            INPUT_DATA["disk_bh_pro_orbs_ecc"].copy(),
             INPUT_DATA["timestep_duration_yr"],
             INPUT_DATA["disk_bh_pro_orb_ecc_crit"],
             INPUT_DATA["delta_energy_strong"],
             INPUT_DATA["disk_radius_outer"],
     )
+    toc = time.perf_counter()
     assert np.allclose(disk_bh_pro_orbs_a, OUTPUT_DATA["disk_bh_pro_orbs_a"]), \
             "test circular_singles_encounter_prograde: OUTPUT_DATA mismatch"
     assert np.allclose(disk_bh_pro_orbs_ecc, OUTPUT_DATA["disk_bh_pro_orbs_ecc"]), \
             "test circular_singles_encounter_prograde: OUTPUT_DATA mismatch"
+    print("test_circular_singlues_encounters_prograde: pass")
+    diff_mask = ~(np.isclose(disk_bh_pro_orbs_a, INPUT_DATA["disk_bh_pro_orbs_a"]) & np.isclose(disk_bh_pro_orbs_ecc, INPUT_DATA["disk_bh_pro_orbs_ecc"]))
+
 
 ######## Algorithm ########
 def tests():
