@@ -197,12 +197,32 @@ def test_circ_singles_encounters_prograde():
             "test circular_singles_encounter_prograde: OUTPUT_DATA mismatch"
     print("test_circular_singlues_encounters_prograde: pass")
     diff_mask = ~(np.isclose(disk_bh_pro_orbs_a, INPUT_DATA["disk_bh_pro_orbs_a"]) & np.isclose(disk_bh_pro_orbs_ecc, INPUT_DATA["disk_bh_pro_orbs_ecc"]))
+    print(f"{np.sum(diff_mask)} / {np.size(diff_mask)} blackholes changed")
+    print(f"Time: {toc-tic} seconds!")
+
+def test_performance(n=30):
+    tic = time.perf_counter()
+    (disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc) = \
+        circular_singles_encounters_prograde(
+            INPUT_DATA["smbh_mass"],
+            np.tile(INPUT_DATA["disk_bh_pro_orbs_a"],n),
+            np.tile(INPUT_DATA["disk_bh_pro_masses"],n),
+            np.tile(INPUT_DATA["disk_bh_pro_orbs_ecc"],n),
+            INPUT_DATA["timestep_duration_yr"],
+            INPUT_DATA["disk_bh_pro_orb_ecc_crit"],
+            INPUT_DATA["delta_energy_strong"],
+            INPUT_DATA["disk_radius_outer"],
+    )
+    toc = time.perf_counter()
+    print(f"Time: {toc-tic} seconds!")
 
 
 ######## Algorithm ########
 def tests():
     test_inputs()
     test_circ_singles_encounters_prograde()
+    #test_performance()
+
 ######## Main ########
 def main():
     tests()
