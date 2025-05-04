@@ -409,29 +409,6 @@ def circular_singles_encounters_prograde_stars(
                             # Catch for if orb_a > disk_radius_outer
                             if (disk_star_pro_orbs_a[circ_idx] > disk_radius_outer):
                                 disk_star_pro_orbs_a[circ_idx] = disk_radius_outer - epsilon[i]
-                                print("smbh_mass")
-                                print(smbh_mass)
-                                print("disk_star_pro_orbs_a")
-                                print(disk_star_pro_orbs_a)
-                                print("disk_star_pro_masses")
-                                print(disk_star_pro_masses)
-                                print("disk_star_pro_radius")
-                                print(disk_star_pro_radius)
-                                print("disk_star_pro_orbs_ecc")
-                                print(disk_star_pro_orbs_ecc)
-                                print("disk_star_pro_id_nums")
-                                print(disk_star_pro_id_nums)
-                                print("rstar_rhill_exponent")
-                                print(rstar_rhill_exponent)
-                                print("timestep_duration_yr")
-                                print(timestep_duration_yr)
-                                print("disk_bh_pro_orb_ecc_crit")
-                                print(disk_bh_pro_orb_ecc_crit)
-                                print("delta_energy_strong")
-                                print(delta_energy_strong)
-                                print("disk_radius_outer")
-                                print(disk_radius_outer)
-                                raise Exception
                             disk_star_pro_orbs_ecc[ecc_idx] = disk_star_pro_orbs_ecc[ecc_idx]*(1 - delta_energy_strong)
                             disk_star_pro_orbs_a[ecc_idx] = disk_star_pro_orbs_a[ecc_idx]*(1 - delta_energy_strong)
                             # Look for stars that are inside each other's Hill spheres and if so return them as mergers
