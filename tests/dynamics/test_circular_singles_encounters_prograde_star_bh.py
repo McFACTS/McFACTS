@@ -745,7 +745,7 @@ def test_inputs():
         print(key)
         if key in INPUT_DATA:
             assert not np.allclose(INPUT_DATA[key],OUTPUT_DATA[key]), \
-                "test circular_singles_encounter_prograde: Bad OUTPUT DATA\n" +\
+                "test circular_singles_encounters_prograde_star_bh: Bad OUTPUT DATA\n" +\
                 "All input and output values are identical"
 
 def test_function():
@@ -772,13 +772,13 @@ def test_function():
     )
     toc = time.perf_counter()
     assert np.allclose(disk_star_pro_orbs_a, OUTPUT_DATA["disk_star_pro_orbs_a"]), \
-            "test circular_singles_encounter_prograde:_star OUTPUT_DATA mismatch"
+            "test circular_singles_encounters_prograde_star_bh OUTPUT_DATA mismatch"
     assert np.allclose(disk_star_pro_orbs_ecc, OUTPUT_DATA["disk_star_pro_orbs_ecc"]), \
-            "test circular_singles_encounter_prograde:_star OUTPUT_DATA mismatch"
+            "test circular_singles_encounters_prograde_star_bh: OUTPUT_DATA mismatch"
     assert np.allclose(disk_bh_pro_orbs_a, OUTPUT_DATA["disk_bh_pro_orbs_a"]), \
-            "test circular_singles_encounter_prograde:_bh OUTPUT_DATA mismatch"
+            "test circular_singles_encounters_prograde_star_bh: OUTPUT_DATA mismatch"
     assert np.allclose(disk_bh_pro_orbs_ecc, OUTPUT_DATA["disk_bh_pro_orbs_ecc"]), \
-            "test circular_singles_encounter_prograde:_bh OUTPUT_DATA mismatch"
+            "test circular_singles_encounters_prograde_star_bh: OUTPUT_DATA mismatch"
     print("test_circular_singlues_encounters_prograde_star: pass")
     diff_mask = ~(np.isclose(disk_star_pro_orbs_a, INPUT_DATA["disk_star_pro_orbs_a"]) & np.isclose(disk_star_pro_orbs_ecc, INPUT_DATA["disk_star_pro_orbs_ecc"]))
     print(f"{np.sum(diff_mask)} / {np.size(diff_mask)} stars changed")
