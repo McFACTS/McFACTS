@@ -40,7 +40,8 @@ attr_merged_bh = ["id_num", "galaxy", "bin_orb_a", "mass_final",
                   "spin_1", "spin_2",
                   "spin_angle_1", "spin_angle_2",
                   "gen_1", "gen_2",
-                  "chi_eff", "chi_p", "time_merged"]
+                  "chi_eff", "chi_p", "v_kick",
+                   "lum_shock", "lum_jet", "time_merged"]
 
 attr_filing_cabinet = ["id_num", "category", "orb_a", "mass", "orb_ecc", "size",
                        "direction", "disk_inner_outer"]
@@ -313,8 +314,7 @@ class AGNObject(object):
             print(id_num_remove, type(id_num_remove))
             raise AttributeError("Passed id_num is not a valid type.")
         # Ensures that values are returned in the order of the original id_num array
-        a, b = np.where(getattr(self, "id_num") == id_num_remove_arr[:, None])
-        remove_idx = b[np.argsort(a)]
+        _, remove_idx = np.where(getattr(self, "id_num") == id_num_remove_arr[:, None])
         keep_idx = np.ones(self.num, dtype=bool)
         keep_idx[remove_idx] = False
         attr_list = get_attr_list(self)
@@ -372,8 +372,7 @@ class AGNObject(object):
             print(id_num_keep, type(id_num_keep))
             raise AttributeError("Passed id_num is not a valid type.")
         # Ensures that values are returned in the order of the original id_num array
-        a, b = np.where(getattr(self, "id_num") == id_num_keep_arr[:, None])
-        keep_idx = b[np.argsort(a)]
+        _, keep_idx = np.where(getattr(self, "id_num") == id_num_keep_arr[:, None])
         attr_list = get_attr_list(self)
         for attr in attr_list:
             setattr(self, attr, getattr(self, attr)[keep_idx])
@@ -408,8 +407,7 @@ class AGNObject(object):
             print(id_num, type(id_num))
             raise AttributeError("Passed id_num is not a valid type.")
         # Ensures that values are returned in the order of the original id_num array
-        a, b = np.where(getattr(self, "id_num") == id_num_arr[:, None])
-        id_mask = b[np.argsort(a)]
+        _, id_mask = np.where(getattr(self, "id_num") == id_num_arr[:, None])
 
         try:
             val = getattr(self, attr)[id_mask]
@@ -1319,9 +1317,8 @@ class AGNMergedBlackHole(AGNObject):
                  chi_eff=empty_arr,
                  chi_p=empty_arr,
                  v_kick=empty_arr,
-                 lum_shock=empty_arr, # emily add
-                 lum_jet=empty_arr, # emily add
-                 #lum_agn=empty_arr,
+                 lum_shock=empty_arr,
+                 lum_jet=empty_arr,
                  time_merged=empty_arr,
                  num_obj_merge=0):
         """Creates an instance of AGNMergedBlackHole.
@@ -1358,10 +1355,12 @@ class AGNMergedBlackHole(AGNObject):
             effective spin prior to merger
         chi_p : numpy array
             precessing spin component of the binary prior to merger
-        lum_shock: 
-
-        lum_jet: 
-        # emily add
+        v_kick : numpy array
+            kick velocity [km/s] of the remnant BH
+        lum_shock: numpy array
+            estimated shock luminosity generated post-merger in erg/s
+        lum_jet: : numy array
+            estimated jet (Bondi-Hoyle) luminosity post-merger in erg/s
         time_merged : numpy array
             the timestep of merger
         num_obj_merge : int
@@ -1390,7 +1389,6 @@ class AGNMergedBlackHole(AGNObject):
         self.v_kick = v_kick
         self.lum_shock = lum_shock
         self.lum_jet = lum_jet
-        #self.lum_agn = lum_agn
         self.time_merged = time_merged
 
         self.num = num_obj_merge
@@ -1439,10 +1437,12 @@ class AGNMergedBlackHole(AGNObject):
             effective spin prior to merger
         new_chi_p : numpy array
             precessing spin component of the binary prior to merger
-        new_lum_shock
-        new_lum_jet
-        new_lum_agn
-        # emily add
+        new_v_kick : numpy array
+            kick velocity [km/s] of the remnant BH
+        lum_shock: numpy array
+            estimated shock luminosity generated post-merger in erg/s
+        new_lum_jet : numpy array
+            estimated jet (Bondi-Hoyle) luminosity generated post-merger in erg/s
         new_time_merged : numpy array
             the timestep of merger
         num_obj_merge : int
@@ -1468,7 +1468,6 @@ class AGNMergedBlackHole(AGNObject):
         self.v_kick = np.concatenate([self.v_kick, new_v_kick])
         self.lum_shock = np.concatenate([self.lum_shock, new_lum_shock])
         self.lum_jet = np.concatenate([self.lum_jet, new_lum_jet])
-        #self.lum_agn = np.concatenate([self.lum_agn, new_lum_agn])
         self.time_merged = np.concatenate([self.time_merged, new_time_merged])
 
         if (num_obj_merge == 0):
@@ -1754,7 +1753,6 @@ class AGNExplodedStar(AGNObject):
 
         self.check_consistency()
 
-
 obj_types = {0: "single black hole",
              1: "single star",
              2: "binary black hole",
@@ -1849,6 +1847,7 @@ class AGNFilingCabinet(AGNObject):
         self.num = fc_num
 
         self.check_consistency()
+        self.unique_id_nums()
 
     def __repr__(self):
         """
@@ -1966,3 +1965,5 @@ class AGNFilingCabinet(AGNObject):
         self.num += fc_num
 
         self.check_consistency()
+        self.unique_id_nums()
+        self.id_max

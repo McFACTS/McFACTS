@@ -83,6 +83,9 @@ def arg():
     parser.add_argument("--fname-log", default="mcfacts.log", type=str,
                         help="Specify a file in which to save the arguments and some runtime information. Default: mcfacts.log")
 
+    #### Begin Argparse Nonsense
+    #### Please do not modify between this line and the END Argparse Nonsense
+    ####  line unless you have a good reason.
     # Add inifile arguments
     # Read default inifile
     _variable_inputs = ReadInputs.ReadInputs_ini(DEFAULT_INI, False)
@@ -96,21 +99,21 @@ def arg():
         _default = _variable_inputs[name]
         _dtype = type(_variable_inputs[name])
         parser.add_argument(_opt,
-                            default=_default,
+                            default=None,
                             type=_dtype,
                             metavar=_metavar,
                             )
 
-    # Parse arguments
+
+    # Parse arguments, using the opts namespace
+    # This causes the default inifile values to be overwritten
+    # by CLI arguments
     opts = parser.parse_args()
     # Check that the inifile exists
     assert isfile(opts.fname_ini)
     # Convert to path objects
     opts.fname_ini = Path(opts.fname_ini)
     assert opts.fname_ini.is_file()
-    opts.fname_snapshots_bh = Path(opts.fname_snapshots_bh)
-    opts.fname_output_mergers = Path(opts.fname_output_mergers)
-    opts.fname_output = Path(opts.fname_output)
 
     # Parse inifile
     print("opts.fname_ini", opts.fname_ini)
@@ -127,7 +130,7 @@ def arg():
             setattr(opts, name, variable_inputs[name])
             continue
         # Check for args not in the default_ini file
-        if getattr(opts, name) != _variable_inputs[name]:
+        if getattr(opts, name) is not None:
             # This is the case where the user has set the value of an argument
             # from the command line. We don't want to argue with the user.
             pass
@@ -139,7 +142,12 @@ def arg():
     # Case 3: if an attribute is in the default infile,
     #   and not the specified inifile,
     #   it remains unaltered.
+    #### End Argparse Nonsense ####
 
+    # Update paths of arguments to Path type
+    opts.fname_snapshots_bh = Path(opts.fname_snapshots_bh)
+    opts.fname_output_mergers = Path(opts.fname_output_mergers)
+    opts.fname_output = Path(opts.fname_output)
     if opts.verbose:
         for item in opts.__dict__:
             print(item, getattr(opts, item))
@@ -1219,8 +1227,7 @@ def main():
                     filing_cabinet.remove_id_num(star_id_nums)
 
                     # BHs accrete mass and spin up
-                    a, b = np.where(blackholes_pro.id_num == bh_id_nums[:, None])
-                    bh_id_mask = b[np.argsort(a)]
+                    _, bh_id_mask = np.where(blackholes_pro.id_num == bh_id_nums[:, None])
 
                     # TODO: Consider bondi accretion for BH Star encounter
 
@@ -1534,7 +1541,6 @@ def main():
                     if bh_binary_id_num_unphysical.size > 0:
                         blackholes_binary.remove_id_num(bh_binary_id_num_unphysical)
                         filing_cabinet.remove_id_num(bh_binary_id_num_unphysical)
-
                     blackholes_merged, blackholes_pro = merge.merge_blackholes(blackholes_binary,
                                                                                blackholes_pro,
                                                                                blackholes_merged,
@@ -2077,8 +2083,7 @@ def main():
                     filing_cabinet.remove_id_num(star_id_nums)
 
                     # BHs accrete mass and spin up
-                    a, b = np.where(blackholes_pro.id_num == bh_id_nums[:, None])
-                    bh_id_mask = b[np.argsort(a)]
+                    _, bh_id_mask = np.where(blackholes_pro.id_num == bh_id_nums[:, None])
                     blackholes_pro.mass[bh_id_mask] = accretion.change_bh_mass(
                         blackholes_pro.mass[bh_id_mask],
                         opts.disk_bh_eddington_ratio,
@@ -2654,7 +2659,6 @@ def main():
                                              new_v_kick=blackholes_merged.v_kick,
                                              new_lum_shock=blackholes_merged.lum_shock,
                                              new_lum_jet=blackholes_merged.lum_jet,
-                                             #new_lum_agn = blackholes_merged.lum_agn,
                                              new_time_merged=blackholes_merged.time_merged)
 
         # Add list of all binaries formed to the population level object
@@ -2810,8 +2814,8 @@ def main():
     bh_surviving_cols = ["galaxy", "orb_a", "mass", "spin", "spin_angle", "gen", "id_num"]
     population_cols = ["galaxy", "bin_orb_a", "mass_final", "chi_eff", "spin_final", "spin_angle_final",
                        "mass_1", "mass_2", "spin_1", "spin_2", "spin_angle_1", "spin_angle_2",
-                       "gen_1", "gen_2", "time_merged", "chi_p", "v_kick", "lum_shock", "lum_jet"]#, "lum_agn"] # add "v_kick", to incorp
-    binary_gw_cols = ["galaxy", "time_merged", "bin_sep", "mass_total", "bin_ecc", "gw_strain", "gw_freq", "gen_1", "gen_2"]
+                       "gen_1", "gen_2", "time_merged", "chi_p", "v_kick", "lum_shock", "lum_jet", "id_num"]
+    binary_gw_cols = ["galaxy", "time_merged", "bin_sep", "mass_total", "bin_ecc", "gw_strain", "gw_freq", "gen_1", "gen_2", "id_num"]
     stars_cols = ["galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "log_radius", "gen", "id_num", "log_teff", "log_luminosity", "star_X", "star_Y", "star_Z"]
     stars_explode_cols = ["galaxy", "time_sn", "orb_a_star", "mass_star", "orb_ecc_star", "star_log_radius", "gen_star", "id_num_star", "orb_inc_star",
                                                "orb_a_bh",   "mass_bh",   "orb_ecc_bh",   "gen_bh", "id_num_bh", "orb_inc_bh"]
