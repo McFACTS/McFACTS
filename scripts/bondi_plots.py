@@ -69,36 +69,142 @@ def main():
     opts = arg()
 
     mergers = np.loadtxt(opts.fname_mergers, skiprows=2)
-    bondi = np.loadtxt(opts.fname_bondi, skiprows=2)
+    #bondi = np.loadtxt(opts.fname_bondi, skiprows=2)
 
-    # ===============================
-    ### testing
-    # ===============================
+    merger_nan_mask = (np.isfinite(mergers[:, 2])) & (mergers[:, 2] != 0)
+    mergers = mergers[merger_nan_mask]
 
-    fig = plt.figure(figsize=plotting.set_size(figsize))
-    plt.scatter(bondi[:, 0], bondi[:, 1], s=1)
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = make_gen_masks(mergers, 12, 13)
 
-    plt.ylabel(r'Migration Velocity')
-    plt.xlabel(r'Sound Speed')
-    #plt.xscale('log')
-    # plt.yscale('log')
-    #plt.grid(True, color='gray', ls='dashed')
+    # Ensure no union between sets
+    assert all(merger_g1_mask & merger_g2_mask) == 0
+    assert all(merger_g1_mask & merger_gX_mask) == 0
+    assert all(merger_g2_mask & merger_gX_mask) == 0
 
-    plt.savefig(opts.plots_directory + '/mig_vs_sound_speed.png', format='png')
+    # Ensure no elements are missed
+    assert all(merger_g1_mask | merger_g2_mask | merger_gX_mask) == 1
+
+    # retrieve component masses and mass ratio
+    m1 = np.zeros(mergers.shape[0])
+    m2 = np.zeros(mergers.shape[0])
+    mass_ratio = np.zeros(mergers.shape[0])
+
+    for i in range(mergers.shape[0]):
+        if mergers[i, 6] < mergers[i, 7]:
+            m1[i] = mergers[i, 7]
+            m2[i] = mergers[i, 6]
+            mass_ratio[i] = mergers[i, 6]
+        else:
+            mass_ratio[i] = mergers[i, 7]
+            m1[i] = mergers[i, 6]
+            m2[i] = mergers[i, 7]
+
+    # (q,X_eff) Figure details here:
+    # Want to highlight higher generation mergers on this plot
+    chi_eff = mergers[:, 3]
+
+    # Get 1g-1g population
+    gen1_chi_eff = chi_eff[merger_g1_mask]
+    gen1_mass_ratio = mass_ratio[merger_g1_mask]
+
+    # 2g-1g and 2g-2g population
+    gen2_chi_eff = chi_eff[merger_g2_mask]
+    gen_mass_ratio = mass_ratio[merger_g2_mask]
+    # >=3g-Ng population (i.e., N=1,2,3,4,...)
+    genX_chi_eff = chi_eff[merger_gX_mask]
+    genX_mass_ratio = mass_ratio[merger_gX_mask]
+    # all 2+g mergers; H = hierarchical
+    genH_chi_eff = chi_eff[(merger_g2_mask + merger_gX_mask)]
+    genH_mass_ratio = mass_ratio[(merger_g2_mask + merger_gX_mask)]
+
+    # points for plotting line fit
+    x = np.linspace(-1, 1, num=2)
+
+    # fit the hierarchical mergers (any binaries with 2+g) to a line passing through 0,1
+    # popt contains the model parameters, pcov the covariances
+    # poptHigh, pcovHigh = curve_fit(linefunc, high_gen_mass_ratio, high_gen_chi_eff)
+
+    # plot the 1g-1g population
+    fig = plt.figure(figsize=(plotting.set_size(figsize)[0], 2.8))
+    ax2 = fig.add_subplot(111)
+    # 1g-1g mergers
+
+    ax2.scatter(gen1_mass_ratio, gen1_chi_eff,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    #plot the 2g+ mergers
+    ax2.scatter(gen_mass_ratio, gen2_chi_eff,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    # plot the 3g+ mergers
+    ax2.scatter(genX_mass_ratio, genX_chi_eff,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.xscale('log')
+
+    # if len(genH_chi_eff) > 0:
+    #     poptHier, pcovHier = curve_fit(linefunc, genH_mass_ratio, genH_chi_eff)
+    #     errHier = np.sqrt(np.diag(pcovHier))[0]
+    #     # plot the line fitting the hierarchical mergers
+    #     ax2.plot(linefunc(x, *poptHier), x,
+    #              ls='dashed',
+    #              lw=1,
+    #              color='gray',
+    #              zorder=3,
+    #              label=r'$d\chi/dq(\geq$2g)=' +
+    #                    f'{poptHier[0]:.2f}' +
+    #                    r'$\pm$' + f'{errHier:.2f}'
+    #              )
+    #     #         #  alpha=linealpha,
+    #
+    # if len(chi_eff) > 0:
+    #     poptAll, pcovAll = curve_fit(linefunc, mass_ratio, chi_eff)
+    #     errAll = np.sqrt(np.diag(pcovAll))[0]
+    #     ax2.plot(linefunc(x, *poptAll), x,
+    #              ls='solid',
+    #              lw=1,
+    #              color='black',
+    #              zorder=3,
+    #              label=r'$d\chi/dq$(all)=' +
+    #                    f'{poptAll[0]:.2f}' +
+    #                    r'$\pm$' + f'{errAll:.2f}'
+    #              )
+    #     #  alpha=linealpha,
+
+    # ax2.set(
+    #     ylabel=r'$q = M_2 / M_1$',  # ($M_1 > M_2$)')
+    #     xlabel=r'$\chi_{\rm eff}$',
+    #     ylim=(0, 1),
+    #     xlim=(-1, 1),
+    #     axisbelow=True
+    # )
+    #
+    # if figsize == 'apj_col':
+    #     ax2.legend(loc='lower left', fontsize=6)
+    # elif figsize == 'apj_page':
+    #     ax2.legend(loc='lower left')
+
+    #ax2.grid('on', color='gray', ls='dotted')
+    plt.savefig(opts.plots_directory + "/chi_eff_mass_ratio.png", format='png')  # ,dpi=600)
     plt.close()
-
-    fig = plt.figure(figsize=plotting.set_size(figsize))
-    plt.scatter(bondi[:, 0], bondi[:, 2], s=1)
-
-    plt.ylabel(r'Shear Velocity')
-    plt.xlabel(r'Sound Speed')
-    # plt.xscale('log')
-    # plt.yscale('log')
-    # plt.grid(True, color='gray', ls='dashed')
-
-    plt.savefig(opts.plots_directory + '/shear_vs_sound_speed.png', format='png')
-    plt.close()
-
 
 ######## Execution ########
 if __name__ == "__main__":
