@@ -48,7 +48,7 @@ class AGNGasDiskModel(object):
         else:
             np.savetxt(filename, np.vstack((R/ct.pc, Omega, T, rho, h, cs, tauV, Q)).T)
 
-    def return_disk_surf_model(self, flag_truncate_disk=False):
+    def return_disk_surf_model(self, flag_truncate_disk=0):
         """Generate disk surface model functions
 
         Interpolate and return disk surface model functions as a function of the disk radius.
@@ -60,9 +60,9 @@ class AGNGasDiskModel(object):
 
         Parameters
         ----------
-        flag_truncate_disk : bool, optional
-            If `True`, truncate these functions at the radius where star formation starts
-            in the gas disk. If `False`, do not truncate. By default `False`.
+        flag_truncate_disk : int, optional
+            If 1, truncate these functions at the radius where star formation starts
+            in the gas disk. If 0, do not truncate. By default 0.
 
         Returns
         -------
@@ -85,14 +85,13 @@ class AGNGasDiskModel(object):
         kappa = 2 * self.disk_model.tauV / Sigma  # Opacity = 2*tau/Sigma
         cs = self.disk_model.h * self.disk_model.Omega
         temp_midplane = self.disk_model.T # Disk midplane temp (K)
-        
 
-        if flag_truncate_disk: # truncate to gas part of disk (no SFR)
+        if flag_truncate_disk:  # truncate to gas part of disk (no SFR)
             R = R[:self.disk_model.isf]
             Sigma = Sigma[:self.disk_model.isf]
             kappa = kappa[:self.disk_model.isf]
             cs = cs[:self.disk_model.isf]
-        #Temp interpolator function
+        # Temp interpolator function
         ln_temp_midplane = np.log(temp_midplane) # ln midplane temp.
         temp_func_log = scipy.interpolate.CubicSpline(
                                                             np.log(R),
@@ -108,7 +107,7 @@ class AGNGasDiskModel(object):
                                                            ln_Sigma,
                                                            extrapolate=False
                                                            )
-        
+
         surf_dens_func = lambda x, f=surf_dens_func_log: np.exp(f(np.log(x)))
 
         # Generate aspect ratio (h/r) interpolator function
@@ -169,6 +168,33 @@ class AGNGasDiskModel(object):
                                                           )
         disk_omega_func = lambda x, f=disk_omega_func_log: np.exp(f(np.log(x)))
 
+        # Generate disk log10 Sigma function
+        log10_Sigma = np.log10(Sigma)
+        surf_dens_log10_func = scipy.interpolate.CubicSpline(
+            np.log10(R),
+            log10_Sigma,
+            extrapolate=False
+        )
+        surf_dens_log10_derivative_func = surf_dens_log10_func.derivative()
+
+        # Generate disk log10 temp function
+        log10_temp_midplane = np.log10(temp_midplane)
+        temp_log10_func = scipy.interpolate.CubicSpline(
+            np.log10(R),
+            log10_temp_midplane,
+            extrapolate=False
+        )
+        temp_log10_derivative_func = temp_log10_func.derivative()
+
+        # Generate disk log10 midplane pressure func
+        log10_pressure = np.log10((cs ** 2) / self.disk_model.rho)
+        pressure_log10_func = scipy.interpolate.CubicSpline(
+            np.log10(R),
+            log10_pressure,
+            extrapolate=False
+        )
+        pressure_log10_derivative_func = pressure_log10_func.derivative()
+
         bonus_structures = {}
         bonus_structures['R_agn'] = R_agn
         bonus_structures['R'] = R
@@ -179,7 +205,7 @@ class AGNGasDiskModel(object):
         bonus_structures["T"] = self.disk_model.T
         bonus_structures["tauV"] = self.disk_model.tauV
 
-        return surf_dens_func, aspect_func, opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, surf_dens_func_log, temp_func, bonus_structures
+        return surf_dens_func, aspect_func, opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, bonus_structures
 
 
 

@@ -392,7 +392,7 @@ def setup_disk_stars_num(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass
         nsc_ratio_mbh_mass_star_mass : float
             Ratio of mass of typical BH in NSC to typical star in NSC [unitless]. Set by user. Default is 10 (BH=10M_sun,star=1M_sun)
         disk_star_scale_factor : float
-            Scale factor [unitless] to go from number of BH to number of stars. Set by user. Default is 1.e-2.
+            Scale factor [unitless] to go from number of BH to number of stars. Set by user.
         nsc_radius_outer : float
             Outer radius of NSC [pc]. Set by user. Default is 5pc.
         nsc_density_index_outer : float

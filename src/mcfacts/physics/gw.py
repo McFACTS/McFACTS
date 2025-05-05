@@ -28,7 +28,7 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
         Mass [M_sun] of the SMBH
     agn_redshift : float
         Redshift [unitless] of the SMBH
-    flag_include_old_gw_freq : boolean
+    flag_include_old_gw_freq : int
         Flag indicating if old_gw_freq should be included in calculations
         if not, we use the hardcoded value (see note below)
         0 if no, 1 if yes
@@ -101,10 +101,15 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
         strain_factor[nu_gw > (1e-6) * u.Hz] = 4.e3
     char_strain = strain_factor*strain
 
+    assert np.isfinite(char_strain.value).all(), \
+        "Finite check failure: char_strain.value"
+    assert np.isfinite(nu_gw.value).all(), \
+        "Finite check failure: nu_gw.value"
+
     return char_strain.value, strain.value, nu_gw.value
 
 
-def evolve_gw(blackholes_binary, smbh_mass, agn_redshift, final_lvk=False):
+def evolve_gw(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_redshift, final_lvk=False):
     """Wrapper function to calculate GW strain [unitless] and frequency [Hz] for BBH with no previous GW frequency
 
     Parameters
@@ -124,9 +129,9 @@ def evolve_gw(blackholes_binary, smbh_mass, agn_redshift, final_lvk=False):
         BBH with GW strain [unitless] and frequency [Hz] updated
     """
 
-    char_strain, strain, nu_gw = gw_strain_freq(mass_1=blackholes_binary.mass_1,
-                                        mass_2=blackholes_binary.mass_2,
-                                        obj_sep=blackholes_binary.bin_sep,
+    char_strain, strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
+                                        mass_2=bin_mass_2,
+                                        obj_sep=bin_sep,
                                         timestep_duration_yr=-1,
                                         old_gw_freq=-1,
                                         smbh_mass=smbh_mass,
@@ -134,16 +139,16 @@ def evolve_gw(blackholes_binary, smbh_mass, agn_redshift, final_lvk=False):
                                         flag_include_old_gw_freq=0)
 
     # Update binaries
-    blackholes_binary.gw_freq = nu_gw
+    #gw_freq = nu_gw
 
     # This hack is only for the gw_strain plot for mergers that we force into the lvk band.
     # TODO: Track both strain and characteristic strain on the AGNObjectArray
-    blackholes_binary.gw_strain = strain if final_lvk else char_strain
+    #gw_strain = strain if final_lvk else char_strain
 
-    return (blackholes_binary)
+    return (nu_gw, char_strain)
 
 
-def bbh_gw_params(blackholes_binary, bh_binary_id_num_gw, smbh_mass, timestep_duration_yr, old_bbh_freq, agn_redshift):
+def bbh_gw_params(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_yr, old_bbh_freq, agn_redshift):
     """Wrapper function to calculate GW strain and frequency for BBH at the end of each timestep
 
     Parameters
@@ -169,7 +174,7 @@ def bbh_gw_params(blackholes_binary, bh_binary_id_num_gw, smbh_mass, timestep_du
         GW frequency [Hz] with :obj:`float` type
     """
 
-    num_tracked = bh_binary_id_num_gw.size
+    num_tracked = bin_mass_1.size
 
     old_bbh_freq = old_bbh_freq * u.Hz
 
@@ -179,9 +184,9 @@ def bbh_gw_params(blackholes_binary, bh_binary_id_num_gw, smbh_mass, timestep_du
     while (num_tracked < len(old_bbh_freq)):
         old_bbh_freq = np.delete(old_bbh_freq, 0)
 
-    char_strain, strain, nu_gw = gw_strain_freq(mass_1=blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_1"),
-                                        mass_2=blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_2"),
-                                        obj_sep=blackholes_binary.at_id_num(bh_binary_id_num_gw, "bin_sep"),
+    char_strain, strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
+                                        mass_2=bin_mass_2,
+                                        obj_sep=bin_sep,
                                         timestep_duration_yr=timestep_duration_yr,
                                         old_gw_freq=old_bbh_freq,
                                         smbh_mass=smbh_mass,
