@@ -374,7 +374,7 @@ def bin_reality_check(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc,
         return (bh_bin_id_num_fakes)
 
 
-def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging, bin_time_merged, smbh_mass, timestep_duration_yr, stalling_separation):
+def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_yr, stalling_separation):
     """Harden black hole binaries using Baruteau+11 prescription
 
     Use Baruteau+11 prescription to harden a pre-existing binary.
@@ -383,8 +383,12 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
 
     Parameters
     ----------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black hole parameters
+    bin_mass_1 : float
+        Mass [M_sun] of the primary component of the binary
+    bin_mass_2 : float
+        Mass [M_sun] of the secondary component of the binary
+    bin_sep : float
+        Separation of the binary components in units of graviational radii (R_g=GM_SMBH/c^2)
     smbh_mass : float
         Mass [M_sun] of the SMBH
     timestep_duration_yr : float
@@ -394,27 +398,16 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
 
     Returns
     -------
-    blackholes_binary : AGNBinaryBlackHole
-        Black hole binaries with time_to_merger_gw, bin_sep, flag_merging, and time_merged updated
+    new_bin_sep : float
+        New separation of the binary components in units of graviational radii (R_g=GM_SMBH/c^2)
     """
 
     # 1. Find active binaries
     # 2. Find number of binary orbits around its center of mass within the timestep
     # 3. For every 10^3 orbits, halve the binary separation.
 
-    # Only interested in BBH that are not flag for merging or <= the stalling separation
-    # np.where(blackholes_binary.flag_merging >= 0 and blackholes_binary.bin_sep > stalling_separation)[0]
-    flag_not_merging_stalling = np.zeros(len(blackholes_binary.id_num), dtype=bool)
-    for x in range(len(blackholes_binary.id_num)):
-        flag_not_merging_stalling[x] = blackholes_binary.flag_merging[x] >= 0 and blackholes_binary.bin_sep[x] > stalling_separation
-
-    # If all binaries have merged or are below the stalling separation, then there is nothing to do
-    if flag_not_merging_stalling.shape[0] == 0:
-        return blackholes_binary
-
     # Set up variables
-    mass_binary = blackholes_binary.mass_1[flag_not_merging_stalling] + blackholes_binary.mass_2[flag_not_merging_stalling]
-    bin_sep = blackholes_binary.bin_sep[flag_not_merging_stalling]
+    mass_binary = bin_mass_1 + bin_mass_2
 
     # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
     # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
@@ -432,15 +425,13 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
     assert all([x >= stalling_separation for x in new_bin_sep]), \
         f"Value out of range: bin_sep for non stalled BBH are smaller than stalling_separation {new_bin_sep[new_bin_sep < stalling_separation]}"
 
-    blackholes_binary.bin_sep[flag_not_merging_stalling] = new_bin_sep
-
     # Finite check
-    assert np.isfinite(blackholes_binary.bin_sep).all(),\
+    assert np.isfinite(new_bin_sep).all(),\
         "Finite check failure: blackholes_binary.bin_sep"
 
-    return blackholes_binary
+    return new_bin_sep
 
-def binary_merge_gw(blackholes_binary, smbh_mass, timestep_duration_yr, time_passed):
+def binary_merge_gw(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, smbh_mass, timestep_duration_yr, time_passed):
     """Check if the binary will merge by GW over the current timestep.
 
     Parameters
@@ -460,30 +451,21 @@ def binary_merge_gw(blackholes_binary, smbh_mass, timestep_duration_yr, time_pas
         Black hole binaries with time_to_merger_gw, flag_merging, and time_merged updated
 
     """
-    # Only interested in BH that have not merged
-    idx_non_mergers = np.where(bin_flag_merging >= 0)[0]
-
-    # If all binaries have merged then nothing to do
-    if (idx_non_mergers.shape[0] == 0):
-        return bin_sep, bin_flag_merging, bin_time_merged, bin_time_to_merger_gw
 
     # Set up variables
-    mass_binary = bin_mass_1[idx_non_mergers] + bin_mass_2[idx_non_mergers]
-    bin_sep_nomerge = bin_sep[idx_non_mergers]
-    bin_ecc_nomerge = bin_ecc[idx_non_mergers]
-    bin_sep = blackholes_binary.bin_sep[idx_non_mergers]
-    bin_orb_ecc = blackholes_binary.bin_ecc[idx_non_mergers]
+    mass_binary = bin_mass_1 + bin_mass_2
+
 
     # Find eccentricity factor (1-e_b^2)^7/2
-    ecc_factor_1 = np.power(1 - np.power(bin_ecc_nomerge, 2), 3.5)
+    ecc_factor_1 = np.power(1 - np.power(bin_ecc, 2), 3.5)
     # and eccentricity factor [1+(73/24)e_b^2+(37/96)e_b^4]
-    ecc_factor_2 = 1 + ((73/24) * np.power(bin_ecc_nomerge, 2)) + ((37/96) * np.power(bin_ecc_nomerge, 4))
+    ecc_factor_2 = 1 + ((73/24) * np.power(bin_ecc, 2)) + ((37/96) * np.power(bin_ecc, 4))
     # overall ecc factor = ecc_factor_1/ecc_factor_2
     ecc_factor = ecc_factor_1/ecc_factor_2
 
     # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
     # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
-    bin_period = 0.32 * np.power(bin_sep_nomerge, 1.5) * np.power(smbh_mass/1.e8, 1.5) * np.power(mass_binary/10.0, -0.5)
+    bin_period = 0.32 * np.power(bin_sep, 1.5) * np.power(smbh_mass/1.e8, 1.5) * np.power(mass_binary/10.0, -0.5)
 
     # Find how many binary orbits in timestep. Binary separation is halved for every 10^3 orbits.
     num_orbits_in_timestep = np.zeros(len(bin_period))
@@ -491,20 +473,18 @@ def binary_merge_gw(blackholes_binary, smbh_mass, timestep_duration_yr, time_pas
     scaled_num_orbits = num_orbits_in_timestep / 1000.0
 
     # Timescale for binary merger via GW emission alone in seconds, scaled to bin parameters
-    sep_crit = (point_masses.r_schwarzschild_of_m(bin_mass_1[idx_non_mergers]) +
-                point_masses.r_schwarzschild_of_m(bin_mass_2[idx_non_mergers]))
+    sep_crit = (point_masses.r_schwarzschild_of_m(bin_mass_1) +
+                point_masses.r_schwarzschild_of_m(bin_mass_2))
     time_to_merger_gw = (point_masses.time_of_orbital_shrinkage(
-        bin_mass_1[idx_non_mergers] * u.Msun,
-        bin_mass_2[idx_non_mergers] * u.Msun,
-        point_masses.si_from_r_g(smbh_mass, bin_sep_nomerge),
+        bin_mass_1 * u.Msun,
+        bin_mass_2 * u.Msun,
+        point_masses.si_from_r_g(smbh_mass, bin_sep),
         sep_final=sep_crit
     ) * ecc_factor).value
 
     # Finite check for time_to_merger_gw
     assert np.isfinite(time_to_merger_gw).all(),\
         "Finite check failure: time_to_merger_gw"
-
-    bin_time_to_merger_gw[idx_non_mergers] = time_to_merger_gw
 
     # Create mask for things that WILL merge in this timestep
     # need timestep_duration_yr in seconds
@@ -513,23 +493,31 @@ def binary_merge_gw(blackholes_binary, smbh_mass, timestep_duration_yr, time_pas
 
     # Binary will not merge in this timestep
     # new bin_sep according to Baruteau+11 prescription
-    bin_sep_nomerge[~merge_mask] = bin_sep_nomerge[~merge_mask] * (0.5 ** scaled_num_orbits[~merge_mask])
-    bin_sep[idx_non_mergers[~merge_mask]] = bin_sep_nomerge[~merge_mask]
+    new_bin_sep = bin_sep
+    new_bin_sep[~merge_mask] = bin_sep[~merge_mask] * (0.5 ** scaled_num_orbits[~merge_mask])
+
+
+    #bin_sep[idx_non_mergers[~merge_mask]] = bin_sep[~merge_mask]
+
+
     # Finite check
-    assert np.isfinite(bin_sep_nomerge).all(),\
+    assert np.isfinite(new_bin_sep).all(),\
         "Finite check failure: bin_sep_nomerge"
 
     # Otherwise binary will merge in this timestep
     # Update flag_merging to -2 and time_merged to current time
-    bin_flag_merging[idx_non_mergers[merge_mask]] = -2
-    bin_time_merged[idx_non_mergers[merge_mask]] = time_passed
+    bin_flag_merging = np.full(len(merge_mask), 0)
+    bin_flag_merging[merge_mask] = -2
+
+    time_merged = np.zeros(len(merge_mask))
+    time_merged[merge_mask] = time_passed
 
     # Finite checks for flag_merging, time_merged, and bin_sep
 
     assert np.isfinite(bin_flag_merging).all(), \
         "Finite check failure: bin_flag_merging"
 
-    assert np.isfinite(bin_time_merged).all(), \
+    assert np.isfinite(time_to_merger_gw).all(), \
         "Finite check failure: bin_time_merged"
 
-    return (bin_sep, bin_flag_merging, bin_time_merged, bin_time_to_merger_gw)
+    return (new_bin_sep, bin_flag_merging, time_merged, time_to_merger_gw)

@@ -1432,16 +1432,18 @@ def main():
                     blackholes_binary.remove_id_num(bh_binary_id_num_ecc_hyperbolic)
                     filing_cabinet.remove_id_num(bh_binary_id_num_ecc_hyperbolic)
 
+                # Only interested in BBH that are not flag for merging or <= the stalling separation
+                # np.where(blackholes_binary.flag_merging >= 0 and blackholes_binary.bin_sep > stalling_separation)[0]
+                flag_not_merging_stalling = np.zeros(len(blackholes_binary.id_num), dtype=bool)
+                for x in range(len(blackholes_binary.id_num)):
+                    flag_not_merging_stalling[x] = blackholes_binary.flag_merging[x] >= 0 and blackholes_binary.bin_sep[x] > opts.stalling_separation
+
                 # Harden binaries via gas
                 # Choose between Baruteau et al. 2011 gas hardening, or gas hardening from LANL simulations. To do: include dynamical hardening/softening from encounters
-                blackholes_binary.bin_sep, blackholes_binary.flag_merging, blackholes_binary.time_merged, blackholes_binary.time_to_merger_gw = evolve.bin_harden_baruteau(
-                    blackholes_binary.mass_1,
-                    blackholes_binary.mass_2,
-                    blackholes_binary.bin_sep,
-                    blackholes_binary.bin_ecc,
-                    blackholes_binary.time_to_merger_gw,
-                    blackholes_binary.flag_merging,
-                    blackholes_binary.time_merged,
+                blackholes_binary.bin_sep[flag_not_merging_stalling] = evolve.bin_harden_baruteau(
+                    blackholes_binary.mass_1[flag_not_merging_stalling],
+                    blackholes_binary.mass_2[flag_not_merging_stalling],
+                    blackholes_binary.bin_sep[flag_not_merging_stalling],
                     opts.smbh_mass,
                     opts.timestep_duration_yr,
                     opts.stalling_separation
@@ -1452,8 +1454,15 @@ def main():
                                       attr="size",
                                       new_info=blackholes_binary.bin_sep)
 
-                blackholes_binary = evolve.binary_merge_gw(
-                    blackholes_binary,
+                # Only interested in BH that have not merged
+                idx_non_mergers = np.where(blackholes_binary.flag_merging >= 0)[0]
+
+                blackholes_binary.bin_sep[idx_non_mergers], blackholes_binary.flag_merging[idx_non_mergers],\
+                    blackholes_binary.time_merged[idx_non_mergers], blackholes_binary.time_to_merger_gw[idx_non_mergers] = evolve.binary_merge_gw(
+                    blackholes_binary.mass_1[idx_non_mergers],
+                    blackholes_binary.mass_2[idx_non_mergers],
+                    blackholes_binary.bin_sep[idx_non_mergers],
+                    blackholes_binary.bin_ecc[idx_non_mergers],
                     opts.smbh_mass,
                     opts.timestep_duration_yr,
                     time_passed
@@ -1936,48 +1945,48 @@ def main():
                     filing_cabinet.update(id_num=bh_binary_id_num_merger,
                                           attr="orb_ecc",
                                           new_info=blackholes_pro.at_id_num(bh_binary_id_num_merger, "orb_ecc"))
-                        filing_cabinet.update(id_num=bh_binary_id_num_merger,
-                                              attr="size",
-                                              new_info=np.full(bh_binary_id_num_merger.size, -1.5))
+                    filing_cabinet.update(id_num=bh_binary_id_num_merger,
+                                          attr="size",
+                                          new_info=np.full(bh_binary_id_num_merger.size, -1.5))
 
-                        bh_bin_m_1 = blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1")
-                        bh_bin_m_2 = blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2")
-                        bh_bin_sep_final = 2 * (bh_bin_m_1 + bh_bin_m_2) / opts.smbh_mass
-                        bh_bin_final = blackholes_binary.copy()
-                        bh_bin_final.keep_id_num(bh_binary_id_num_merger)
-                        bh_bin_final.bin_sep = bh_bin_sep_final
-                        bh_bin_final = gw.evolve_gw(bh_bin_final, opts.smbh_mass, agn_redshift, final_lvk=True)
+                    bh_bin_m_1 = blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1")
+                    bh_bin_m_2 = blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2")
+                    bh_bin_sep_final = 2 * (bh_bin_m_1 + bh_bin_m_2) / opts.smbh_mass
+                    bh_bin_final = blackholes_binary.copy()
+                    bh_bin_final.keep_id_num(bh_binary_id_num_merger)
+                    bh_bin_final.bin_sep = bh_bin_sep_final
+                    bh_bin_final = gw.evolve_gw(bh_bin_final, opts.smbh_mass, agn_redshift, final_lvk=True)
 
-                        blackholes_binary_gw.add_binaries(
-                            new_id_num=bh_binary_id_num_merger,
-                            new_mass_1=bh_bin_final.mass_1,
-                            new_mass_2=bh_bin_final.mass_2,
-                            new_orb_a_1=bh_bin_final.orb_a_1,
-                            new_orb_a_2=bh_bin_final.orb_a_2,
-                            new_spin_1=bh_bin_final.spin_1,
-                            new_spin_2=bh_bin_final.spin_2,
-                            new_spin_angle_1=bh_bin_final.spin_angle_1,
-                            new_spin_angle_2=bh_bin_final.spin_angle_2,
-                            new_bin_sep=bh_bin_final.bin_sep,
-                            new_bin_orb_a=bh_bin_final.bin_orb_a,
-                            new_time_to_merger_gw=bh_bin_final.time_to_merger_gw,
-                            new_flag_merging=bh_bin_final.flag_merging,
-                            new_time_merged=np.full(bh_binary_id_num_merger.size, time_passed),
-                            new_bin_ecc=bh_bin_final.bin_ecc,
-                            new_gen_1=bh_bin_final.gen_1,
-                            new_gen_2=bh_bin_final.gen_2,
-                            new_bin_orb_ang_mom=bh_bin_final.bin_orb_ang_mom,
-                            new_bin_orb_inc=bh_bin_final.bin_orb_inc,
-                            new_bin_orb_ecc=bh_bin_final.bin_orb_ecc,
-                            new_gw_freq=bh_bin_final.gw_freq,
-                            new_gw_strain=bh_bin_final.gw_strain,
-                            new_galaxy=np.full(bh_binary_id_num_merger.size, galaxy),
-                        )
+                    blackholes_binary_gw.add_binaries(
+                        new_id_num=bh_binary_id_num_merger,
+                        new_mass_1=bh_bin_final.mass_1,
+                        new_mass_2=bh_bin_final.mass_2,
+                        new_orb_a_1=bh_bin_final.orb_a_1,
+                        new_orb_a_2=bh_bin_final.orb_a_2,
+                        new_spin_1=bh_bin_final.spin_1,
+                        new_spin_2=bh_bin_final.spin_2,
+                        new_spin_angle_1=bh_bin_final.spin_angle_1,
+                        new_spin_angle_2=bh_bin_final.spin_angle_2,
+                        new_bin_sep=bh_bin_final.bin_sep,
+                        new_bin_orb_a=bh_bin_final.bin_orb_a,
+                        new_time_to_merger_gw=bh_bin_final.time_to_merger_gw,
+                        new_flag_merging=bh_bin_final.flag_merging,
+                        new_time_merged=np.full(bh_binary_id_num_merger.size, time_passed),
+                        new_bin_ecc=bh_bin_final.bin_ecc,
+                        new_gen_1=bh_bin_final.gen_1,
+                        new_gen_2=bh_bin_final.gen_2,
+                        new_bin_orb_ang_mom=bh_bin_final.bin_orb_ang_mom,
+                        new_bin_orb_inc=bh_bin_final.bin_orb_inc,
+                        new_bin_orb_ecc=bh_bin_final.bin_orb_ecc,
+                        new_gw_freq=bh_bin_final.gw_freq,
+                        new_gw_strain=bh_bin_final.gw_strain,
+                        new_galaxy=np.full(bh_binary_id_num_merger.size, galaxy),
+                    )
 
-                        blackholes_binary.remove_id_num(bh_binary_id_num_merger)
+                    blackholes_binary.remove_id_num(bh_binary_id_num_merger)
 
-                    if opts.verbose:
-                        print("New BH locations", blackholes_pro.orb_a)
+                if opts.verbose:
+                    print("New BH locations", blackholes_pro.orb_a)
                 else:
                     # No merger
                     # do nothing! hardening should happen FIRST (and now it does!)
