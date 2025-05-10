@@ -64,15 +64,13 @@ def shock_luminosity(smbh_mass,
 
     msolar = ct.M_sun.cgs
 
-    r_hill_mass = (disk_density_cgs * v_hill_gas) / msolar
-
-    # for scaling:
-    rg = ct.G.cgs * smbh_mass * ct.M_sun.cgs / ct.c.cgs
+    r_hill_mass = (disk_density_cgs * v_hill_gas).to('Msun')
+    rg = ct.G.cgs * (mass_final * msolar) / ct.c.cgs**2
 
     v_kick = v_kick  * (u.km / u.s)
-    v_kick_scale = 200. * (u.km / u.s)
-    E = 10**46 * (r_hill_mass / 1 * rg) * (v_kick / v_kick_scale)**2  # Energy of the shock
-    time = 31556952.0 * ((r_hill_rg /  3 * rg) / (v_kick / v_kick_scale))  # Timescale for energy dissipation
+    v_kick_scale = 200. * (u.km / u.s) # need to fix RH issue.
+    E = 10**47 * (r_hill_mass / msolar) * (v_kick / v_kick_scale) #10**46 * (r_hill_mass / 1 * msolar) * (v_kick / v_kick_scale)**2  # Energy of the shock
+    time = 31556952.0 * ((r_hill_rg /  1 * rg) / (v_kick / v_kick_scale))  # Timescale for energy dissipation
     Lshock = E / time  # Shock luminosity
     return Lshock.value
 
