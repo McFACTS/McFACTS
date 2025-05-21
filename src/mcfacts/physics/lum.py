@@ -51,7 +51,8 @@ def shock_luminosity(smbh_mass,
     r_hill_rg = bin_orb_a * ((mass_final / smbh_mass) / 3)**(1/3) 
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
     r_hill_cm = r_hill_m.cgs
-
+    r_hill_rg_scale = 10**3 * ((65 / 10**9) / 3)**(1/3) 
+    #print(r_hill_rg_scale)
     disk_height_rg = disk_aspect_ratio(bin_orb_a) * bin_orb_a
     disk_height_m = si_from_r_g(smbh_mass, disk_height_rg)
     disk_height_cm = disk_height_m.cgs
@@ -63,16 +64,14 @@ def shock_luminosity(smbh_mass,
     disk_density_cgs = disk_density_si.cgs
 
     msolar = ct.M_sun.cgs
-
-    r_hill_mass = (disk_density_cgs * v_hill_gas) / msolar
-
+    r_hill_mass = (disk_density_cgs * v_hill_gas) 
     # for scaling:
-    rg = ct.G.cgs * smbh_mass * ct.M_sun.cgs / ct.c.cgs
-
+    #rg = bin_orb_a * (ct.G.cgs * smbh_mass * ct.M_sun.cgs / ct.c.cgs**2) / u.cm
+    #print(rg)
     v_kick = v_kick  * (u.km / u.s)
-    v_kick_scale = 200. * (u.km / u.s)
-    E = 10**46 * (r_hill_mass / 1 * rg) * (v_kick / v_kick_scale)**2  # Energy of the shock
-    time = 31556952.0 * ((r_hill_rg /  3 * rg) / (v_kick / v_kick_scale))  # Timescale for energy dissipation
+    v_kick_scale = 100. * (u.km / u.s)
+    E = 1e47 * (r_hill_mass / msolar) * (v_kick / v_kick_scale)**2  # Energy of the shock
+    time = 1.577e7 * (r_hill_rg / 3 * r_hill_rg_scale) / (v_kick / v_kick_scale)  # Timescale for energy dissipation
     Lshock = E / time  # Shock luminosity
     return Lshock.value
 

@@ -16,7 +16,7 @@ from mcfacts.vis import plotting
 from mcfacts.vis import styles
 import matplotlib.colors as mcolors
 from matplotlib.gridspec import GridSpec
-import seaborn as sns
+#import seaborn as sns
 #from scipy.stats import gaussian_kde
 
 
@@ -1269,7 +1269,7 @@ def main():
 
     plt.savefig(opts.plots_directory + './gw_strain_em.png', format='png')
     plt.close()
-    """
+
 # ===============================
 ### kde test
 # ===============================
@@ -1286,7 +1286,7 @@ def main():
     plt.savefig(opts.plots_directory + '/kde.png', format='png')
     plt.close()
 
-"""
+
 # ===============================
 ### KDE test
 # ===============================
