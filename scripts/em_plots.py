@@ -250,7 +250,7 @@ def main():
     #jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
     counts, bins = np.histogram(shock_log)
     # plt.hist(bins[:-1], bins, weights=counts)
-    bins = np.arange(int(shock_log.min()), int(shock_log.max()), 0.1)
+    bins = np.arange(int(shock_log.min()), int(shock_log.max()), 0.2)
 
     hist_data = [shock_log[merger_g1_mask], shock_log[merger_g2_mask], shock_log[merger_gX_mask]]
     hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
@@ -379,7 +379,7 @@ def main():
     gen2_orb_a = all_orb_a[merger_g2_mask]
     genX_orb_a = all_orb_a[merger_gX_mask]
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=plotting.set_size(figsize))
     ax3 = fig.add_subplot(111)
     ax3.scatter(gen1_orb_a, gen1_jet,
                 s=styles.markersize_gen1,
@@ -522,7 +522,7 @@ def main():
         plt.legend(fontsize=6)
     elif figsize == 'apj_page':
         plt.legend()
-    plt.legend(loc ='best')
+    #plt.legend(loc ='best')
     plt.savefig(opts.plots_directory + '/remnant_mass_vs_jet_lum.png', format='png')
     plt.close()
 
@@ -1285,7 +1285,6 @@ def main():
 
     plt.savefig(opts.plots_directory + '/kde.png', format='png')
     plt.close()
-
 
 # ===============================
 ### KDE test
