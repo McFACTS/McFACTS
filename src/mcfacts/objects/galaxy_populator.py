@@ -64,8 +64,6 @@ class SingleBlackHolePopulator(GalaxyPopulator):
         bh_orb_inc_initial = setupdiskblackholes.setup_disk_blackholes_incl(disk_bh_num, bh_orb_a_initial, bh_orb_ang_mom_initial, agn_disk.disk_aspect_ratio)
         bh_orb_arg_periapse_initial = setupdiskblackholes.setup_disk_blackholes_arg_periapse(disk_bh_num)
 
-        bh_orb_ang_mom = setupdiskblackholes.setup_disk_blackholes_orb_ang_mom(disk_bh_num)
-
         unique_ids = np.array([uuid_provider(random_generator) for _ in range(disk_bh_num)])
 
         return AGNBlackHoleArray(
@@ -76,7 +74,7 @@ class SingleBlackHolePopulator(GalaxyPopulator):
             orb_a=bh_orb_a_initial,
             orb_inc=bh_orb_inc_initial,
             orb_ecc=bh_orb_ecc_initial,
-            orb_ang_mom=bh_orb_ang_mom,
+            orb_ang_mom=bh_orb_ang_mom_initial,
             orb_arg_periapse=bh_orb_arg_periapse_initial,
         )
 

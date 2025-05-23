@@ -9,9 +9,10 @@ from mcfacts.mcfacts_random_state import uuid_provider
 from mcfacts.objects.agn_disk import AGNDisk
 from mcfacts.objects.agn_object_array import AGNBlackHoleArray, AGNBinaryBlackHoleArray, AGNMergedBlackHoleArray
 from mcfacts.objects.filing_cabinet import FilingCabinet
-from mcfacts.physics import migration, accretion, eccentricity, disk_capture, dynamics, gw
+from mcfacts.physics import migration, accretion, eccentricity, disk_capture, dynamics, gw, feedback
 from mcfacts.physics.binary import evolve, merge, formation
 from mcfacts.physics.gw import gw_strain_freq
+from mcfacts.setup import setupdiskblackholes
 
 
 class SimulationActor(ABC):
@@ -203,6 +204,19 @@ class ProgradeBlackHoleDynamics(SimulationActor):
 
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
 
+        # Migrate
+        # First if feedback present, find ratio of feedback heating torque to migration torque
+        if sm.flag_thermal_feedback > 0:
+            ratio_heat_mig_torques = feedback.feedback_bh_hankla(
+                blackholes_pro.orb_a,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_opacity,
+                sm.disk_bh_eddington_ratio,
+                sm.disk_alpha_viscosity,
+                sm.disk_radius_outer)
+        else:
+            ratio_heat_mig_torques = np.ones(len(blackholes_pro.orb_a))
+
         # Migrate as usual
         blackholes_pro.orb_a = migration.type1_migration_single(
             sm.smbh_mass,
@@ -212,7 +226,7 @@ class ProgradeBlackHoleDynamics(SimulationActor):
             sm.disk_bh_pro_orb_ecc_crit,
             agn_disk.disk_surface_density,
             agn_disk.disk_aspect_ratio,
-            np.ones(len(blackholes_pro)),
+            ratio_heat_mig_torques,
             sm.disk_radius_trap,
             sm.disk_radius_outer,
             sm.timestep_duration_yr
@@ -274,6 +288,51 @@ class ProgradeBlackHoleDynamics(SimulationActor):
                 sm.delta_energy_strong,
             )
 
+        # After this time period, was there a disk capture via orbital grind-down?
+        # To do: What eccentricity do we want the captured BH to have? Right now ecc=0.0? Should it be ecc<h at a?
+        # Assume 1st gen BH captured and orb ecc =0.0
+        # To do: Bias disk capture to more massive BH!
+        capture = time_passed % sm.capture_time_yr
+        if capture == 0:
+            disk_bh_num = 1
+
+            bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location(disk_bh_num, sm.disk_radius_capture_outer, sm.disk_inner_stable_circ_orb)
+            bh_mass_captured = setupdiskblackholes.setup_disk_blackholes_masses(disk_bh_num, sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up)
+            bh_spin_captured = setupdiskblackholes.setup_disk_blackholes_spins(disk_bh_num, sm.nsc_bh_spin_dist_mu, sm.nsc_bh_spin_dist_sigma)
+            bh_spin_angle_captured = setupdiskblackholes.setup_disk_blackholes_spin_angles(disk_bh_num, bh_spin_captured)
+
+            unique_ids = np.array([uuid_provider(random_generator) for _ in range(disk_bh_num)])
+
+            captured_prograde_bh = AGNBlackHoleArray(
+                unique_id=unique_ids,
+                mass=bh_mass_captured,
+                spin=bh_spin_captured,
+                spin_angle=bh_spin_angle_captured,
+                orb_a=bh_orb_a_captured,
+                orb_inc=np.full(disk_bh_num, 0.0),
+                orb_ecc=np.full(disk_bh_num, 0.0),
+                orb_ang_mom=np.ones(disk_bh_num),
+                orb_arg_periapse=np.full(disk_bh_num, -1.5),
+                gen=np.ones(disk_bh_num)
+            )
+
+            blackholes_pro.add_objects(captured_prograde_bh)
+
+        # Test if any BH or BBH are in the danger-zone (<mininum_safe_distance, default =50r_g) from SMBH.
+        # Potential EMRI/BBH EMRIs.
+        # Find prograde BH in inner disk. Define inner disk as <=50r_g.
+        # Since a 10Msun BH will decay into a 10^8Msun SMBH at 50R_g in ~38Myr and decay time propto a^4.
+        # e.g at 25R_g, decay time is only 2.3Myr.
+
+        # Remove the pros if it is in the inner disk and add it to the inner disk array.
+        pro_bh_inner_disk_ids = blackholes_pro.unique_id[blackholes_pro.orb_a < sm.inner_disk_outer_radius]
+
+        inner_pros = blackholes_pro.copy()
+        inner_pros.keep_only(pro_bh_inner_disk_ids)
+        filing_cabinet.create_or_append_array(sm.bh_inner_disk_array_name, inner_pros)
+
+        blackholes_pro.remove_all(pro_bh_inner_disk_ids)
+
 
 class RetrogradeBlackholeDynamics(SimulationActor):
     def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
@@ -288,7 +347,7 @@ class RetrogradeBlackholeDynamics(SimulationActor):
 
         blackholes_retro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
 
-        blackholes_retro.orb_ecc, blackholes_retro.orb_a, blackholes_retro.orb_inc = disk_capture.retro_bh_orb_disk_evolve(
+        orb_ecc, orb_a, orb_inc = disk_capture.retro_bh_orb_disk_evolve(
             sm.smbh_mass,
             blackholes_retro.mass,
             blackholes_retro.orb_a,
@@ -300,8 +359,34 @@ class RetrogradeBlackholeDynamics(SimulationActor):
             timestep_length
         )
 
+        # Update retro black hole object array attributes
+        blackholes_retro.orb_ecc = np.array(orb_ecc)
+        blackholes_retro.orb_a = np.array(orb_a)
+        blackholes_retro.orb_inc = np.array(orb_inc)
+
+        # Check for unphysical orbital eccentricities
         bh_retro_id_num_unphysical_ecc = blackholes_retro.unique_id[blackholes_retro.orb_ecc >= 1.]
         blackholes_retro.remove_all(bh_retro_id_num_unphysical_ecc)
+
+        # Remove the retro if it is in the inner disk and add it to the inner disk array.
+        retro_bh_inner_disk_ids = blackholes_retro.unique_id[blackholes_retro.orb_a < sm.inner_disk_outer_radius]
+
+        inner_retros = blackholes_retro.copy()
+        inner_retros.keep_only(retro_bh_inner_disk_ids)
+        filing_cabinet.create_or_append_array(sm.bh_inner_disk_array_name, inner_retros)
+
+        blackholes_retro.remove_all(retro_bh_inner_disk_ids)
+
+        # Remove any retros that have flipped prograde and add them to the prograde black holes array
+        inc_threshhold = 5.0 * np.pi / 180.0
+
+        bh_id_num_flip_to_pro = blackholes_retro.unique_id[np.where((np.abs(blackholes_retro.orb_inc) <= inc_threshhold) | (blackholes_retro.orb_ecc == 0.0))]
+
+        blackholes_pro = blackholes_retro.copy()
+        blackholes_pro.keep_only(bh_id_num_flip_to_pro)
+        filing_cabinet.create_or_append_array(sm.bh_prograde_array_name, blackholes_pro)
+
+        blackholes_retro.remove_all(bh_id_num_flip_to_pro)
 
 
 class BinaryBlackHoleDynamics(SimulationActor):
@@ -733,6 +818,9 @@ class BreakupBinaryBlackHoles(SimulationActor):
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
 
         blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
 

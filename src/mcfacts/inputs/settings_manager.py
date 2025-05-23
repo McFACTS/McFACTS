@@ -22,7 +22,7 @@ defaults = {
     "disk_radius_capture_outer": 2.e3,  # Outer radius for capture (gravitational radii)
     "disk_bh_pro_orb_ecc_crit": 0.01,  # Critical eccentricity for circularized orbits
     "inner_disk_outer_radius": 50.0,  # Outer radius of the inner disk (gravitational radii)
-    "disk_radius_max_pc": -0.25,  # Maximum disk size in parsecs (negative for off)
+    "disk_radius_max_pc": 0.,  # Maximum disk size in parsecs (negative for off)
     "disk_inner_stable_circ_orb": 6.0,  # Innermost stable circular orbit (gravitational radii)
     "initial_binary_orbital_ecc": 0.01, # The initial common orbital eccentricity around the SMBH to be assumed of a binary when it forms
     "fraction_bin_retro": 0, # Fraction of formed binaries that should be retrograde orbiters

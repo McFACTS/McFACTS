@@ -58,7 +58,7 @@ class Galaxy:
 
         # Set seed in mcfacts_random_state so non legacy methods are consistent.
         # TODO: Make all methods using global random from mcfacts_random_state use galaxy randomGenerator through pass by reference.
-        reset_random(int(str(seed)[:10]))
+        reset_random(int(str(seed)[len(str(seed)) - 10:]))
 
         self.filing_cabinet: FilingCabinet = FilingCabinet()
         self.timeline_history: list[SimulationTimeline] = list()
