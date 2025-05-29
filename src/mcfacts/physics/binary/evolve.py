@@ -419,8 +419,14 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_dur
     scaled_num_orbits = num_orbits_in_timestep / 1000.0
 
     # Scale binary separations according to Baruteau+11 prescription
-    # Prevent overshooting of separations smaller than the stalling separation
-    new_bin_sep = np.maximum(bin_sep * (0.5 ** scaled_num_orbits), stalling_separation)
+    baruteau_separation = bin_sep * (0.5 ** scaled_num_orbits)
+
+    # Calculate the critical separation of the binary, below which we consider the binary to be merged
+    critical_separation = 2 * (bin_mass_1 + bin_mass_2) / smbh_mass
+    # Check if baruteau has overshot the stalling separation
+    stalled_separation = np.maximum(baruteau_separation, stalling_separation)
+    # Check if baruteau has overshot the critical separation
+    new_bin_sep = np.maximum(critical_separation, stalled_separation)
 
     assert all([x >= stalling_separation for x in new_bin_sep]), \
         f"Value out of range: bin_sep for non stalled BBH are smaller than stalling_separation {new_bin_sep[new_bin_sep < stalling_separation]}"
@@ -455,26 +461,18 @@ def binary_merge_gw(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, smbh_mass, timeste
     # Set up variables
     mass_binary = bin_mass_1 + bin_mass_2
 
-
     # Find eccentricity factor (1-e_b^2)^7/2
     ecc_factor_1 = np.power(1 - np.power(bin_ecc, 2), 3.5)
+
     # and eccentricity factor [1+(73/24)e_b^2+(37/96)e_b^4]
     ecc_factor_2 = 1 + ((73/24) * np.power(bin_ecc, 2)) + ((37/96) * np.power(bin_ecc, 4))
+
     # overall ecc factor = ecc_factor_1/ecc_factor_2
     ecc_factor = ecc_factor_1/ecc_factor_2
 
-    # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
-    # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
-    bin_period = 0.32 * np.power(bin_sep, 1.5) * np.power(smbh_mass/1.e8, 1.5) * np.power(mass_binary/10.0, -0.5)
-
-    # Find how many binary orbits in timestep. Binary separation is halved for every 10^3 orbits.
-    num_orbits_in_timestep = np.zeros(len(bin_period))
-    num_orbits_in_timestep[bin_period > 0] = timestep_duration_yr / bin_period[bin_period > 0]
-    scaled_num_orbits = num_orbits_in_timestep / 1000.0
-
     # Timescale for binary merger via GW emission alone in seconds, scaled to bin parameters
-    sep_crit = (point_masses.r_schwarzschild_of_m(bin_mass_1) +
-                point_masses.r_schwarzschild_of_m(bin_mass_2))
+    sep_crit = (point_masses.r_schwarzschild_of_m(bin_mass_1) + point_masses.r_schwarzschild_of_m(bin_mass_2))
+
     time_to_merger_gw = (point_masses.time_of_orbital_shrinkage(
         bin_mass_1 * u.Msun,
         bin_mass_2 * u.Msun,
@@ -490,19 +488,6 @@ def binary_merge_gw(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, smbh_mass, timeste
     # need timestep_duration_yr in seconds
     timestep_duration_sec = (timestep_duration_yr * u.year).to("second").value
     merge_mask = time_to_merger_gw <= timestep_duration_sec
-
-    # Binary will not merge in this timestep
-    # new bin_sep according to Baruteau+11 prescription
-    new_bin_sep = bin_sep
-    new_bin_sep[~merge_mask] = bin_sep[~merge_mask] * (0.5 ** scaled_num_orbits[~merge_mask])
-
-
-    #bin_sep[idx_non_mergers[~merge_mask]] = bin_sep[~merge_mask]
-
-
-    # Finite check
-    assert np.isfinite(new_bin_sep).all(),\
-        "Finite check failure: bin_sep_nomerge"
 
     # Otherwise binary will merge in this timestep
     # Update flag_merging to -2 and time_merged to current time
@@ -520,4 +505,4 @@ def binary_merge_gw(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, smbh_mass, timeste
     assert np.isfinite(time_to_merger_gw).all(), \
         "Finite check failure: bin_time_merged"
 
-    return (new_bin_sep, bin_flag_merging, time_merged, time_to_merger_gw)
+    return bin_flag_merging, time_merged, time_to_merger_gw

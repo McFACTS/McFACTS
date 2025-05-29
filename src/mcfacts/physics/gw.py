@@ -143,9 +143,8 @@ def evolve_gw(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_redshift, final_lv
 
     # This hack is only for the gw_strain plot for mergers that we force into the lvk band.
     # TODO: Track both strain and characteristic strain on the AGNObjectArray
-    #gw_strain = strain if final_lvk else char_strain
 
-    return (nu_gw, char_strain)
+    return nu_gw, (strain if final_lvk else char_strain)
 
 
 def bbh_gw_params(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_yr, old_bbh_freq, agn_redshift):
