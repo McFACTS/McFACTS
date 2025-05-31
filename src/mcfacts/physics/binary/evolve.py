@@ -1,6 +1,8 @@
 """
 Module for evolving the state of a binary.
 """
+from bdb import effective
+
 from mcfacts.physics import point_masses
 import numpy as np
 import scipy
@@ -558,7 +560,7 @@ def bin_reality_check(blackholes_binary):
         return (bh_bin_id_num_fakes)
 
 
-def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr, stalling_separation):
+def bin_harden_baruteau(blackholes_binary, disk_sound_speed, smbh_mass, timestep_duration_yr, stalling_separation):
     """Harden black hole binaries using Baruteau+11 prescription
 
     Use Baruteau+11 prescription to harden a pre-existing binary.
@@ -600,6 +602,14 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr, stal
     mass_binary = blackholes_binary.mass_1[flag_not_merging_stalling] + blackholes_binary.mass_2[flag_not_merging_stalling]
     bin_sep = blackholes_binary.bin_sep[flag_not_merging_stalling]
 
+    effective_stalling_separation = stalling_separation
+    if stalling_separation == -1:
+        rg_scale = (const.G * smbh_mass * const.M_sun / const.c ** 2).value
+        bin_orb_velocity = np.sqrt((const.G.value * (mass_binary * const.M_sun).si.value) / (bin_sep * rg_scale))
+        sound_speed = disk_sound_speed(blackholes_binary.bin_orb_a)
+
+        effective_stalling_separation = [(sep if vel >= s_speed else 0) for vel, sep, s_speed in zip(bin_orb_velocity, bin_sep, sound_speed)]
+
     # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
     # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
     bin_period = 0.32 * np.power(bin_sep, 1.5) * np.power(smbh_mass / 1.e8, 1.5) * np.power(mass_binary / 10.0, -0.5)
@@ -611,7 +621,7 @@ def bin_harden_baruteau(blackholes_binary, smbh_mass, timestep_duration_yr, stal
 
     # Scale binary separations according to Baruteau+11 prescription
     # Prevent overshooting of separations smaller than the stalling separation
-    new_bin_sep = np.maximum(bin_sep * (0.5 ** scaled_num_orbits), stalling_separation)
+    new_bin_sep = np.maximum(bin_sep * (0.5 ** scaled_num_orbits), effective_stalling_separation)
 
     assert all([x >= stalling_separation for x in new_bin_sep]), \
         f"Value out of range: bin_sep for non stalled BBH are smaller than stalling_separation {new_bin_sep[new_bin_sep < stalling_separation]}"

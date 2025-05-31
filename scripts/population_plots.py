@@ -14,6 +14,7 @@ from importlib import resources as impresources
 from mcfacts.vis import data
 from mcfacts.vis import plotting
 from mcfacts.vis import styles
+import astropy.constants as const
 
 # Use the McFACTS plot style
 plt.style.use("mcfacts.vis.mcfacts_figures")
@@ -672,6 +673,14 @@ def main():
                      label=r'$\geq$3g-Ng'
                      )
 
+    stall_sep = 2 * ((const.G * 1e8 * const.M_sun) / (const.c ** 2))
+
+    gw_freq_stall = (((const.G * (lvk[:, 3] * const.M_sun) / (stall_sep ** 3)) ** 0.5) / np.pi).value
+
+    lisa_axs.vlines(np.mean(gw_freq_stall), 1.0e-26, 1.0e-15, colors="red", alpha=0.5, linewidth=1, linestyle="--", label="Stalling Avg.")
+
+    lisa_axs.axvspan(np.min(gw_freq_stall), np.max(gw_freq_stall), alpha=0.5, color='red', label="Stalling Range")
+
     lisa_axs.loglog()
 
     # ax.loglog(f_L1, h_L1,label = 'LIGO O3, L1 Sensitivity') # plot the characteristic strain
@@ -746,7 +755,7 @@ def main():
     # plt.savefig(opts.plots_directory + './lvk_gw_strain.png', format='png')
     # plt.close()
 
-    plt.savefig(opts.plots_directory + './gw_strain.png', format='png')
+    plt.savefig(opts.plots_directory + './gw_strain.png', format='png', dpi=1200)
     plt.close()
 
 

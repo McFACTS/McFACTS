@@ -299,7 +299,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
                                    new_bin_orb_ang_mom=bin_orb_ang_mom,
                                    new_bin_orb_inc=bin_orb_inc,
                                    new_bin_orb_ecc=bin_orb_ecc,
-                                   new_gw_freq=gw_freq,
+                                   new_gw_freq=9.e-7*np.ones(id_nums.size),
                                    new_gw_strain=gw_char_strain,
                                    new_id_num=id_nums,
                                    new_galaxy=galaxy)

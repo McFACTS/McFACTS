@@ -1129,6 +1129,7 @@ def main():
                 # Choose between Baruteau et al. 2011 gas hardening, or gas hardening from LANL simulations. To do: include dynamical hardening/softening from encounters
                 blackholes_binary = evolve.bin_harden_baruteau(
                     blackholes_binary,
+                    disk_sound_speed,
                     opts.smbh_mass,
                     opts.timestep_duration_yr,
                     opts.stalling_separation
@@ -1256,7 +1257,7 @@ def main():
                     if num_bbh_gw_tracked == 0:
                         old_bbh_gw_freq = 9.e-7*np.ones(bh_binary_id_num_gw.size)
                     if num_bbh_gw_tracked > 0:
-                        old_bbh_gw_freq = bbh_gw_freq
+                        old_bbh_gw_freq = blackholes_binary.at_id_num(bh_binary_id_num_gw, "gw_freq")
 
                     num_bbh_gw_tracked = bh_binary_id_num_gw.size
 
@@ -2298,7 +2299,7 @@ def main():
     population_cols = ["galaxy", "bin_orb_a", "mass_final", "chi_eff", "spin_final", "spin_angle_final",
                        "mass_1", "mass_2", "spin_1", "spin_2", "spin_angle_1", "spin_angle_2",
                        "gen_1", "gen_2", "time_merged", "chi_p", "lum_shock", "lum_jet"] # add "v_kick", to incorp
-    binary_gw_cols = ["galaxy", "time_merged", "bin_sep", "mass_total", "bin_ecc", "gw_strain", "gw_freq", "gen_1", "gen_2"]
+    binary_gw_cols = ["galaxy", "time_merged", "bin_sep", "mass_total", "bin_ecc", "gw_strain", "gw_freq", "gen_1", "gen_2", "bin_orb_a"]
     stars_cols = ["galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "log_radius", "gen", "id_num", "log_teff", "log_luminosity", "star_X", "star_Y", "star_Z"]
     stars_explode_cols = ["galaxy", "time_sn", "orb_a_star", "mass_star", "orb_ecc_star", "star_log_radius", "gen_star", "id_num_star", "orb_inc_star",
                                                "orb_a_bh",   "mass_bh",   "orb_ecc_bh",   "gen_bh", "id_num_bh", "orb_inc_bh"]
