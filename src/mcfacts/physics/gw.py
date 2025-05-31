@@ -165,11 +165,11 @@ def bbh_gw_params(blackholes_binary, bh_binary_id_num_gw, smbh_mass, timestep_du
 
     old_bbh_freq = old_bbh_freq * u.Hz
 
-    while (num_tracked > len(old_bbh_freq)):
-        old_bbh_freq = np.append(old_bbh_freq, (9.e-7) * u.Hz)
-
-    while (num_tracked < len(old_bbh_freq)):
-        old_bbh_freq = np.delete(old_bbh_freq, 0)
+    # while (num_tracked > len(old_bbh_freq)):
+    #     old_bbh_freq = np.append(old_bbh_freq, (9.e-7) * u.Hz)
+    #
+    # while (num_tracked < len(old_bbh_freq)):
+    #     old_bbh_freq = np.delete(old_bbh_freq, 0)
 
     char_strain, nu_gw = gw_strain_freq(mass_1=blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_1"),
                                         mass_2=blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_2"),

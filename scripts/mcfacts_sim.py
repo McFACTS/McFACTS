@@ -1245,7 +1245,7 @@ def main():
                     if num_bbh_gw_tracked == 0:
                         old_bbh_gw_freq = 9.e-7*np.ones(bh_binary_id_num_gw.size)
                     if num_bbh_gw_tracked > 0:
-                        old_bbh_gw_freq = bbh_gw_freq
+                        old_bbh_gw_freq = blackholes_binary.at_id_num(bh_binary_id_num_gw, "gw_freq")
 
                     num_bbh_gw_tracked = bh_binary_id_num_gw.size
 
@@ -1769,7 +1769,8 @@ def main():
                     new_gen=blackholes_pro.at_id_num(bh_id_num_pro_inner_disk, "gen"),
                     new_galaxy=blackholes_pro.at_id_num(bh_id_num_pro_inner_disk, "galaxy"),
                     new_time_passed=blackholes_pro.at_id_num(bh_id_num_pro_inner_disk, "time_passed"),
-                    new_id_num=blackholes_pro.at_id_num(bh_id_num_pro_inner_disk, "id_num")
+                    new_id_num=blackholes_pro.at_id_num(bh_id_num_pro_inner_disk, "id_num"),
+                    new_gw_freq=9.e-7 * np.ones(len(bh_id_num_pro_inner_disk))
                 )
 
                 # Remove from blackholes_pro and update filing_cabinet
@@ -1823,7 +1824,8 @@ def main():
                     new_gen=blackholes_retro.at_id_num(bh_id_num_retro_inner_disk, "gen"),
                     new_galaxy=blackholes_retro.at_id_num(bh_id_num_retro_inner_disk, "galaxy"),
                     new_time_passed=blackholes_retro.at_id_num(bh_id_num_retro_inner_disk, "time_passed"),
-                    new_id_num=blackholes_retro.at_id_num(bh_id_num_retro_inner_disk, "id_num")
+                    new_id_num=blackholes_retro.at_id_num(bh_id_num_retro_inner_disk, "id_num"),
+                    new_gw_freq=9.e-7*np.ones(len(bh_id_num_retro_inner_disk))
                 )
                 # Remove from blackholes_retro and update filing_cabinet
                 blackholes_retro.remove_id_num(bh_id_num_retro_inner_disk)
@@ -1879,8 +1881,8 @@ def main():
                 # On 1st run through define old GW freqs (at say 9.e-7 Hz, since evolution change is 1e-6Hz)
                 if blackholes_emris.num == 0:
                     old_gw_freq = 9.e-7*np.ones(blackholes_inner_disk.num)
-                if (blackholes_emris.num > 0):
-                    old_gw_freq = emri_gw_freq
+                if blackholes_emris.num > 0:
+                    old_gw_freq = blackholes_inner_disk.gw_freq
 
                 emri_gw_strain, emri_gw_freq = emri.evolve_emri_gw(
                     blackholes_inner_disk,
@@ -1889,6 +1891,9 @@ def main():
                     opts.smbh_mass,
                     agn_redshift
                 )
+
+                blackholes_inner_disk.gw_freq = emri_gw_freq
+                blackholes_inner_disk.gw_strain = emri_gw_strain
 
             if (stars_inner_disk.num > 0):
                 # FIX THIS: Return the new evolved bh_orb_ecc_inner_disk as they decay inwards.

@@ -27,10 +27,10 @@ def evolve_emri_gw(blackholes_inner_disk, timestep_duration_yr, old_gw_freq, smb
     old_gw_freq = old_gw_freq * u.Hz
 
     # If number of EMRIs has grown since last timestep_duration_yr, add a new component to old_gw_freq to carry out dnu/dt calculation
-    while (blackholes_inner_disk.num < len(old_gw_freq)):
-        old_gw_freq = np.delete(old_gw_freq, 0)
-    while blackholes_inner_disk.num > len(old_gw_freq):
-        old_gw_freq = np.append(old_gw_freq, (9.e-7) * u.Hz)
+    # while (blackholes_inner_disk.num < len(old_gw_freq)):
+    #     old_gw_freq = np.delete(old_gw_freq, 0)
+    # while blackholes_inner_disk.num > len(old_gw_freq):
+    #     old_gw_freq = np.append(old_gw_freq, (9.e-7) * u.Hz)
 
     char_strain, nu_gw = gw_strain_freq(mass_1=smbh_mass,
                                         mass_2=blackholes_inner_disk.mass,
