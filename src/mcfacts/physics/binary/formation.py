@@ -304,4 +304,17 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
                                    new_id_num=id_nums,
                                    new_galaxy=galaxy)
 
+    assert np.all(blackholes_binary.bin_sep >= 0), \
+        "blackholes_binary.bin_sep has values <0"
+    assert np.all(blackholes_binary.orb_a_1 > 0), \
+        "blackholes_binary.orb_a_1 has values <=0"
+    assert np.all(blackholes_binary.orb_a_2 > 0), \
+        "blackholes_binary.orb_a_2 has values <= 0"
+    assert np.all(blackholes_binary.mass_1 > 0), \
+        "blackholes_binary.mass_1 has values <= 0"
+    assert np.all(blackholes_binary.mass_2 > 0), \
+        "blackholes_binary.mass_2 has values <= 0"
+    assert np.all(blackholes_binary.bin_orb_a > 0), \
+        "blackholes_binary.bin_orb_a has values <= 0"
+
     return (blackholes_binary, id_nums)

@@ -117,6 +117,13 @@ def interp_star_params(disk_star_masses):
     if (np.sum(logl_mask) > 0 | np.sum(logr_mask) > 0 | np.sum(logt_mask) > 0):
         raise ValueError("Interpolated values are not being set properly!")
 
+    assert np.isfinite(new_logR).all(), \
+        "Finite check failure: new_logR"
+    assert np.isfinite(new_logL).all(), \
+        "Finite check failure: new_logL"
+    assert np.isfinite(new_logTeff).all(), \
+        "Finite check failure: new_logTeff"
+
     return (new_logR, new_logL, new_logTeff)
 
 

@@ -12,18 +12,18 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     smbh_mass : float
         supermassive black hole mass in units of solar masses
             default : 1.e8
-    flag_use_pagn : bool
-        Switch pAGN program on or off
+    flag_use_pagn : int
+        Switch pAGN program on (1) or off (0)
         Gangardt, Daria et al. 2024      
-            default : True  
+            default : 1  
     disk_model_name : string
         McFACTS comes with the following example options for disk models:
         sirko_goodman: from Sirko & Goodman 2003
         thompson_etal: from Thompson, Quataert & Murray 2005
 
-        If user sets pAGN to True, only sirko_goodman and thompson_etal are available to use   
+        If user sets pAGN to on (1), only sirko_goodman and thompson_etal are available to use   
             this variable sets the model used by pAGN Sirko & Goodman 2003 or Thompson, Quataert, and Murray 2005
-        If user sets pAGN to False, tabulated models will be used. Options included are sirko_goodman and thompson_etal
+        If user sets pAGN to off (0), tabulated models will be used. Options included are sirko_goodman and thompson_etal
             which will use the tablulated models within src/mcfacts/inputs/data/
             However, the intended use is for users that wish to input their own tabulated models 
         
@@ -187,22 +187,51 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     nsc_spheroid_normalization : float
         Normalization factor determines the departures from sphericity of the initial distribution of perturbers
         default : 1.0
-    save_snapshots : bool
+    save_snapshots : int
         Saving the snapshots of each object being per time step. Deafult is 0 [off] 
         default : 0
+    flag_use_surrogate : float
+        Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) sets 200 km/s for each merger's kick velocity.
+        default : 0
 
-    # =========================== DONT TOUCH STARS YET SINCE NOT ADDED ===========================
-    disk_star_torque_condition
-    disk_star_orb_ecc_max_init
-    disk_star_eddington_ratio
-    disk_star_mass_min_init
-    disk_star_mass_max_init
-    nsc_star_metallicity_x_init
-    nsc_star_metallicity_y_init
-    nsc_star_metallicity_z_init
-    nsc_imf_star_mass_mode
-    nsc_imf_star_powerlaw_index
-    
+    flag_add_stars : int
+        Switch stars on (1) or off (0)
+        default: 0
+    flag_initial_stars_BH_immortal : int
+        Switch to turn initially drawn stars with mass greater than disk_star_initial_mass_cutoff into BH (1), otherwise stars above disk_star_initial_mass_cutoff are held at disk_star_initial_mass_cutoff (0)
+        default: 0
+    flag_coalesce_initial_stars : int
+        Switch to coalesce initially drawn stars that are within each other's Hill spheres (1) or not (0)
+        default: 0
+    disk_star_initial_mass_cutoff : float
+        Maximum star mass
+        default: 300 M_sun
+    disk_star_scale_factor : float
+        Factor by which to scale the number of stars in the disk at the beginning relative to the number of BH
+        default: 0.5e-2
+    disk_star_mass_min_init : float
+        Minimum star mass for the IMF
+        default: 0.5 M_sun
+    disk_star_mass_max_init : float
+        Maximum star mass for the IMF
+        default: 10.0 M_sun
+    nsc_imf_star_powerlaw_index : float
+        Powerlaw index for the IMF
+        default: 2.35
+    nsc_imf_star_mass_mode : float
+        default: 2.0
+    disk_star_torque_condition : float
+        default: 0.1
+    disk_star_eddington_ratio : float
+        default: 1.0
+    disk_star_orb_ecc_max_init : float
+        default: 0.3
+    nsc_star_metallicity_x_init : float
+        default: 0.7064
+    nsc_star_metallicity_y_init : float
+        default: 0.2735
+    nsc_star_metallicity_z_init : float
+        default: 0.02    
 
 
 Output file : output_mergers.dat

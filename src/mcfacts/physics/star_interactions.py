@@ -61,4 +61,13 @@ def add_merged_stars(id_nums_mergers, stars, id_start_val, disk_bh_pro_orb_ecc_c
     # Delete id nums from stars object
     stars.remove_id_num(id_num_remove=id_nums_mergers.flatten())
 
+    assert np.isfinite(masses).all(), \
+        "Finite check failure: masses"
+    assert np.isfinite(orbs_a).all(), \
+        "Finite check failure: orbs_a"
+    assert np.isfinite(gens).all(), \
+        "Finite check failure: gens"
+    assert np.all(masses > 0), \
+        "masses contains values <= 0"
+
     return (stars, id_nums)

@@ -119,10 +119,31 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
     # timescale for large ecc damping from eqn. 2 above
     t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio ** 2.0)) + (0.06 * (e_h_ratio ** 3.0)))
     large_timescale_ratio = timestep_duration_yr / t_ecc
-    # print("t_damp",timestep_duration_yr/t_damp)
-    # print("t_ecc",timestep_duration_yr/t_ecc)
 
-    # print("timescale_ratio",timescale_ratio)
+    # Check if nan's exist
+    index_nan = np.argwhere(np.isnan(t_damp))
+    # Check for any other nans
+    if any(index_nan):
+        # Check for things inside 12 R_g causing nans
+        if all(disk_bh_pro_orbs_a[index_nan] < 12.1):
+            # This is an interpolation error caused by pAGN not searching
+            # within 12 R_g.
+            # TODO check for EMRIs before now.
+            pass
+        else:
+            print("Nan found at:")
+            print("t_damp:", np.argwhere(np.isnan(t_damp)))
+            print("t_ecc:", np.argwhere(np.isnan(t_ecc)))
+            print("e_h_ratio:", e_h_ratio[index_nan])
+            print("orb_a:", disk_bh_pro_orbs_a[index_nan])
+            print("h/r:", disk_aspect_ratio[index_nan])
+            print("locns",normalized_bh_locations)
+            print("mass ratio",normalized_mass_ratio)
+            print("ecc",prograde_disk_bh_pro_orbs_ecc)
+            print("aspect_ratio",disk_aspect_ratio)
+            print("at that value", normalized_bh_locations[index_nan],normalized_disk_surf_density_func[index_nan],normalized_mass_ratio[index_nan],normalized_aspect_ratio[index_nan],prograde_disk_bh_pro_orbs_ecc[index_nan])
+            raise TypeError("Encountered a nan in `t_damp`")
+
     new_disk_bh_pro_orbs_ecc[modest_ecc_prograde_indices] = disk_bh_pro_orbs_ecc[modest_ecc_prograde_indices] * np.exp(
         -modest_timescale_ratio[modest_ecc_prograde_indices])
     new_disk_bh_pro_orbs_ecc[large_ecc_prograde_indices] = disk_bh_pro_orbs_ecc[large_ecc_prograde_indices] * np.exp(
@@ -134,10 +155,11 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
     # print("Old ecc, New ecc",disk_bh_pro_orbs_ecc,new_disk_bh_pro_orbs_ecc)
     assert np.isfinite(new_disk_bh_pro_orbs_ecc).all(), \
         "Finite check failed for new_disk_bh_pro_orbs_ecc"
+
     return new_disk_bh_pro_orbs_ecc
 
 
-def orbital_bin_ecc_damping(smbh_mass, blackholes_binary, disk_surf_density_func, disk_aspect_ratio_func, timestep_duration_yr,
+def orbital_bin_ecc_damping(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_ecc, bin_orb_ecc, disk_surf_density_func, disk_aspect_ratio_func, timestep_duration_yr,
                             disk_bh_pro_orb_ecc_crit):
     """Calculates damping of BBH orbital eccentricities according to a prescription.
 
@@ -187,29 +209,29 @@ def orbital_bin_ecc_damping(smbh_mass, blackholes_binary, disk_surf_density_func
         t_ecc ~ (t_damp/0.78)*[1 + (0.06*(e/h)^3)]
     """
     # Check incoming eccentricities for nans
-    assert np.isfinite(blackholes_binary.bin_ecc).all(), \
+    assert np.isfinite(bin_ecc).all(), \
         "Finite check failed for blackholes_binary.bin_ecc"
 
     # get surface density function, or deal with it if only a float
     if isinstance(disk_surf_density_func, float):
         disk_surface_density = disk_surf_density_func
     else:
-        disk_surface_density = disk_surf_density_func(blackholes_binary.bin_orb_a)
+        disk_surface_density = disk_surf_density_func(bin_orb_a)
     # ditto for aspect ratio
     if isinstance(disk_aspect_ratio_func, float):
         disk_aspect_ratio = disk_aspect_ratio_func
     else:
-        disk_aspect_ratio = disk_aspect_ratio_func(blackholes_binary.bin_orb_a)
+        disk_aspect_ratio = disk_aspect_ratio_func(bin_orb_a)
 
     # Set up new_bin_orb_ecc
-    new_bin_orb_ecc = np.zeros_like(blackholes_binary.bin_orb_ecc)
+    new_bin_orb_ecc = np.zeros_like(bin_orb_ecc)
 
     # Calculate & normalize all the parameters above in t_damp
     # E.g. normalize q=bh_mass/smbh_mass to 10^-7
-    mass_ratio = (blackholes_binary.mass_1 + blackholes_binary.mass_2) / smbh_mass
+    mass_ratio = (bin_mass_1 + bin_mass_2) / smbh_mass
 
     normalized_mass_ratio = mass_ratio / (10 ** -7)
-    normalized_bh_locations = blackholes_binary.bin_orb_a / 1.e4
+    normalized_bh_locations = bin_orb_a / 1.e4
     normalized_disk_surf_density_func = disk_surface_density / 1.e5
     normalized_aspect_ratio = disk_aspect_ratio / 0.03
 
@@ -219,32 +241,30 @@ def orbital_bin_ecc_damping(smbh_mass, blackholes_binary, disk_surf_density_func
     modest_timescale_ratio = timestep_duration_yr / t_damp
 
     # Calculate (e/h) ratio for all prograde BH for use in eqn. 2 above
-    e_h_ratio = blackholes_binary.bin_orb_ecc / disk_aspect_ratio
+    e_h_ratio = bin_orb_ecc / disk_aspect_ratio
 
     # Calculate damping time for large orbital eccentricity binaries
     t_ecc = (t_damp / 0.78) * (1 - (0.14 * (e_h_ratio ** 2.0)) + (0.06 * (e_h_ratio ** 3.0)))
     large_timescale_ratio = timestep_duration_yr / t_ecc
 
     # If bin orb ecc <= disk_bh_pro_orb_ecc_crit, do nothing (no damping needed)
-    mask1 = blackholes_binary.bin_orb_ecc <= disk_bh_pro_orb_ecc_crit
-    new_bin_orb_ecc[mask1] = blackholes_binary.bin_orb_ecc[mask1]
+    mask1 = bin_orb_ecc <= disk_bh_pro_orb_ecc_crit
+    new_bin_orb_ecc[mask1] = bin_orb_ecc[mask1]
 
     # If bin orb ecc > disk_bh_pro_orb_ecc_crit, but <2*h then damp modest orb eccentricity
-    mask2 = (blackholes_binary.bin_orb_ecc > disk_bh_pro_orb_ecc_crit) & (blackholes_binary.bin_orb_ecc < (2 * disk_aspect_ratio))
-    new_bin_orb_ecc[mask2] = blackholes_binary.bin_orb_ecc[mask2] * np.exp(-modest_timescale_ratio[mask2])
+    mask2 = (bin_orb_ecc > disk_bh_pro_orb_ecc_crit) & (bin_orb_ecc < (2 * disk_aspect_ratio))
+    new_bin_orb_ecc[mask2] = bin_orb_ecc[mask2] * np.exp(-modest_timescale_ratio[mask2])
 
     # If bin orb ecc > 2*h then damp large orb eccentricity
-    mask3 = (blackholes_binary.bin_orb_ecc > disk_bh_pro_orb_ecc_crit) & (blackholes_binary.bin_orb_ecc > (2 * disk_aspect_ratio))
-    new_bin_orb_ecc[mask3] = blackholes_binary.bin_orb_ecc[mask3] * np.exp(-large_timescale_ratio[mask3])
+    mask3 = (bin_orb_ecc > disk_bh_pro_orb_ecc_crit) & (bin_orb_ecc > (2 * disk_aspect_ratio))
+    new_bin_orb_ecc[mask3] = bin_orb_ecc[mask3] * np.exp(-large_timescale_ratio[mask3])
 
     new_bin_orb_ecc[new_bin_orb_ecc < disk_bh_pro_orb_ecc_crit] = disk_bh_pro_orb_ecc_crit
     # Check output
     assert np.isfinite(new_bin_orb_ecc).all(), \
         "Finite check failed for new_bin_orb_ecc"
 
-    blackholes_binary.bin_orb_ecc = new_bin_orb_ecc
-
-    return (blackholes_binary)
+    return (new_bin_orb_ecc)
 
 
 def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk_surf_density_func,
@@ -382,6 +402,7 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
     # Check new eccentricities
     assert np.isfinite(new_disk_bh_pro_orbs_ecc).all(),\
         "Finite check failed for new_disk_bh_pro_orbs_ecc"
+
     return new_disk_bh_pro_orbs_ecc
 
 

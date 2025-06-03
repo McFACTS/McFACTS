@@ -46,7 +46,7 @@ def main():
 
     for t in np.unique(data[:, 1]):
         mass_gain_avg.append(np.mean(data[:, 2][data[:, 1] == t]))
-        mass_gain_std.append(np.mean(data[:, 2][data[:, 1] == t]))
+        mass_gain_std.append(np.std(data[:, 2][data[:, 1] == t]))
         mass_lost_avg.append(np.mean(data[:, 3][data[:, 1] == t]))
         mass_lost_std.append(np.std(data[:, 3][data[:, 1] == t]))
 
@@ -79,7 +79,7 @@ def main():
     elif figsize == 'apj_page':
         plt.legend()
 
-    plt.xticks(np.linspace(0,data[:, 1].max()/timestep_division + 1, 6))
+    plt.xticks(np.linspace(0, data[:, 1].max()/timestep_division + 0.01, 6))
 
     plt.savefig(opts.plots_directory + r"/mass_disk_lost.png",format="png")
     plt.close()
@@ -101,7 +101,7 @@ def main():
     elif figsize == 'apj_page':
         plt.legend()
 
-    plt.xticks(np.linspace(0,data[:, 1].max()/timestep_division + 1, 6))
+    plt.xticks(np.linspace(0, data[:, 1].max()/timestep_division + 0.01, 6))
 
     plt.savefig(opts.plots_directory + r"/mass_disk_gain.png",format="png")
     plt.close()
@@ -123,7 +123,7 @@ def main():
     elif figsize == 'apj_page':
         plt.legend()
 
-    plt.xticks(np.linspace(0,data[:, 1].max()/timestep_division + 1, 6))
+    plt.xticks(np.linspace(0, data[:, 1].max()/timestep_division + 0.01, 6))
 
     plt.savefig(opts.plots_directory + r"/mdot_disk_gain.png",format="png")
     plt.close()
@@ -138,14 +138,14 @@ def main():
     plt.fill_between(np.unique(data[:, 1])/timestep_division, -(mass_lost_avg_rate - mass_lost_std_rate), -(mass_lost_avg_rate + mass_lost_std_rate), alpha=0.2, label='Standard deviation')
 
     plt.xlabel("Time [Myr]")
-    plt.ylabel(r"$M_{\rm disk}$ los [$M_\odot$/yr]")
+    plt.ylabel(r"$M_{\rm disk}$ lost [$M_\odot$/yr]")
 
     if figsize == 'apj_col':
         plt.legend(fontsize=6)
     elif figsize == 'apj_page':
         plt.legend()
 
-    plt.xticks(np.linspace(0,data[:, 1].max()/timestep_division + 1, 6))
+    plt.xticks(np.linspace(0, data[:, 1].max()/timestep_division + 0.01, 6))
 
     plt.savefig(opts.plots_directory + r"/mdot_disk_loss.png",format="png")
     plt.close()
