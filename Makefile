@@ -33,6 +33,7 @@ EM_PLOTS = ${HERE}/scripts/em_plots.py
 SEED=3456789108 # put an 8 here
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
 FNAME_INI= ${HERE}/recipes/model_choice_old.ini
+FNAME_INI_EMRI= ${HERE}/recipes/model_choice_emri.ini
 FNAME_INI_MSTAR_SCALE= ${HERE}/recipes/paper_3/p3_scale.ini
 FNAME_INI_MSTAR_FIXED= ${HERE}/recipes/paper_3/p3_fixed.ini
 MSTAR_RUNS_WKDIR_SCALE = ${HERE}/runs_mstar_bins_scale
@@ -118,6 +119,17 @@ mcfacts_sim: clean
 
 
 plots: mcfacts_sim
+	cd runs; \
+	python ../${POPULATION_PLOTS_EXE} --fname-mergers ${wd}/output_mergers_population.dat --plots-directory ${wd}
+
+emri_plots: clean
+	mkdir -p runs
+	cd runs; \
+		python ../${MCFACTS_SIM_EXE} \
+		--galaxy_num 100 \
+		--fname-ini ../${FNAME_INI_EMRI} \
+		--fname-log mcfacts.log \
+		--seed ${SEED}
 	cd runs; \
 	python ../${POPULATION_PLOTS_EXE} --fname-mergers ${wd}/output_mergers_population.dat --plots-directory ${wd}
 
