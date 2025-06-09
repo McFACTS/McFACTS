@@ -1,5 +1,7 @@
 from typing import Any
 
+from mcfacts.inputs import ReadInputs
+
 defaults = {
     # IO Options
     "verbose": False, # Print all debug messages
@@ -26,6 +28,11 @@ defaults = {
     "disk_inner_stable_circ_orb": 6.0,  # Innermost stable circular orbit (gravitational radii)
     "initial_binary_orbital_ecc": 0.01, # The initial common orbital eccentricity around the SMBH to be assumed of a binary when it forms
     "fraction_bin_retro": 0, # Fraction of formed binaries that should be retrograde orbiters
+    "torque_prescription": "paardekooper", # Torque prescription ('old','paardekooper','jimenez_masset': Paaardekooper default; Jimenez-Masset option)
+    "flag_phenom_turb": False, # Phenomenological turbulence
+    "phenom_turb_centroid":  0., # Centroid of Gaussian w.r.t. to migrating BH. (default = 0.)
+    "phenom_turb_std_dev": 1.0, # Variance of Gaussian around Centroid (default=0.1)
+
 
     # Star stuff
     "flag_add_stars": True,  # Enable or disable stars
@@ -150,3 +157,31 @@ class SettingsManager:
             return self.settings_finals[item]
         except KeyError as exception:
             raise AttributeError(f"SettingsManager has no key {item!r}") from exception
+
+class AGNDisk:
+    def __init__(self, settings: SettingsManager):
+        # TODO: More advanced handling?
+
+        (
+            self.disk_surface_density,
+            self.disk_aspect_ratio,
+            self.disk_opacity,
+            self.disk_sound_speed,
+            self.disk_density,
+            self.disk_pressure_grad,
+            self.disk_omega,
+            self.disk_surface_density_log,
+            self.temp_func,
+            self.disk_dlog10surfdens_dlog10R_func,
+            self.disk_dlog10temp_dlog10R_func,
+            self.disk_dlog10pressure_dlog10R_func
+        ) = ReadInputs.construct_disk_interp(
+            settings.smbh_mass,
+            settings.disk_radius_outer,
+            settings.disk_model_name,
+            settings.disk_alpha_viscosity,
+            settings.disk_bh_eddington_ratio,
+            disk_radius_max_pc=settings.disk_radius_max_pc,
+            flag_use_pagn=settings.flag_use_pagn,
+            verbose=settings.verbose
+        )

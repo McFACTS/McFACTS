@@ -1,18 +1,30 @@
 import copy
 import os.path
 import sys
+import uuid
+from abc import ABC, abstractmethod
+from typing import Any, TypeVar, Type
 
 import numpy as np
+from numpy.random import Generator
 from tqdm.auto import tqdm
 
-from mcfacts.inputs.settings_manager import SettingsManager
+from mcfacts.inputs import ReadInputs
+from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
 from mcfacts.mcfacts_random_state import reset_random
-from mcfacts.objects.agn_disk import AGNDisk
-from mcfacts.objects.agn_object_array import AGNObjectArray
-from mcfacts.objects.filing_cabinet import FilingCabinet
-from mcfacts.objects.galaxy_populator import GalaxyPopulator
-from mcfacts.objects.simulation_timeline import SimulationTimeline
+from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet
+from mcfacts.objects.timeline import SimulationTimeline
 from mcfacts.outputs.standard_out import pickle_state
+
+
+class GalaxyPopulator(ABC):
+    def __init__(self, name: str, settings: SettingsManager = SettingsManager()):
+        self.name: str = name
+        self.settings_manager: SettingsManager = settings
+
+    @abstractmethod
+    def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
+        return NotImplemented
 
 
 class Galaxy:
@@ -97,7 +109,7 @@ class Galaxy:
         if strict_fill and len(populators) == 0:
             raise Exception("No populators have been passed into the method.")
 
-        self.log("Beginning galaxy population.", True)
+        self.log("Beginning galaxy population.")
 
         # Loop over the populators
         for populator in populators:
@@ -111,7 +123,7 @@ class Galaxy:
 
                 self.filing_cabinet.set_array(populator.name, galaxy_object_array)
 
-                self.log("Beginning galaxy population.", True)
+                self.log("Beginning galaxy population.")
 
             # In strict mode, check to make sure that we actually created some objects, otherwise throw an exception.
             if strict_fill and len(galaxy_object_array) == 0:
@@ -152,13 +164,17 @@ class Galaxy:
             timestep_length = active_timeline.timestep_length
             time_passed = timestep * timestep_length
 
-            self.log("---------------------", True)
-            self.log(f"Timestep: {timestep}, Time passed: {time_passed}")
+            self.log("---------------------")
+            self.log(f"Timestep: {timestep}, Time passed: {time_passed}", False)
 
             for simulation_actor in active_timeline.get_ordered_actor_list():
 
-                self.log(f"<T:{timestep}> Running {simulation_actor.name}, Default Settings: {len(simulation_actor.settings.settings_overrides) == 0}", True)
+                if simulation_actor.settings is None:
+                    simulation_actor.settings = self.settings
 
+                self.log(f"<T:{timestep}> Running {simulation_actor.name}, Using Galaxy Settings: {simulation_actor.settings.settings_overrides == self.settings.settings_overrides}")
+
+                simulation_actor.set_log_func(self.nocheck_log)
                 simulation_actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)
 
             if self.settings.pickle_each_timestep:
@@ -171,9 +187,13 @@ class Galaxy:
         if self.settings.pickle_state:
             self.pickle_state()
 
+    def nocheck_log(self, msg: str, new_line: bool = True):
+        print(f"{"\n" if new_line else ""}(ID:{self.galaxy_id}) {msg}")
 
     def log(self, msg: str, new_line: bool = False):
         if not self.settings.verbose:
             return
 
-        print(f"{"\n" if new_line else ""}(ID:{self.galaxy_id}) {msg}")
+        self.nocheck_log(msg, new_line)
+
+

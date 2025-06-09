@@ -270,6 +270,7 @@ def main():
         #   not using our strain this parameter will do nothing. If you are using our strain and you want to put 
         #   your sources at a different distance, scale them to the value here DO NOT CHANGE 
 
+        # region Setup Single Black Holes
         # Set up number of BH in disk
         disk_bh_num = setupdiskblackholes.setup_disk_nbh(
             opts.nsc_mass,
@@ -344,7 +345,9 @@ def main():
                                           orb_ecc=blackholes.orb_ecc,
                                           size=np.full(blackholes.num, -1.5),
                                           )
+        # endregion
 
+        # region Setup Single Stars
         # Initialize stars
         if opts.flag_add_stars:
             stars, disk_star_num = initializediskstars.init_single_stars(opts, disk_aspect_ratio, galaxy, id_start_val=filing_cabinet.id_max+1)
@@ -360,6 +363,7 @@ def main():
                                    new_size=point_masses.r_g_from_units(opts.smbh_mass, (10 ** stars.log_radius) * u.Rsun).value,
                                    new_direction=np.zeros(stars.num),
                                    new_disk_inner_outer=np.zeros(stars.num))
+        # endregion
 
         # Writing initial parameters to file
         if opts.flag_add_stars:
@@ -404,7 +408,9 @@ def main():
                                   "size",
                                   np.full(len(star_to_bh_id_num), -1.5))
 
-        # Generate initial inner disk arrays for objects that end up in the inner disk. 
+        # region Initial Galaxy Population Reclassification
+
+        # Generate initial inner disk arrays for objects that end up in the inner disk.
         # This is to track possible EMRIs--we're tossing things in these arrays
         #  that end up with semi-major axis < 50rg
         # Assume all drawn from prograde population for now.
@@ -514,6 +520,7 @@ def main():
         filing_cabinet.update(id_num=stars_retro.id_num,
                               attr="direction",
                               new_info=np.full(stars_retro.num, -1))
+        # endregion
 
         # Tracker for all binaries ever formed in this galaxy
         num_bbh_gw_tracked = 0
@@ -873,6 +880,7 @@ def main():
             # Mass lost from stars is gained by the disk
             disk_mass_gained.append(np.abs(star_mass_lost))
 
+            # region Singleton Accretion in Disk
             # Accrete
             blackholes_pro.mass = accretion.change_bh_mass(
                 blackholes_pro.mass,
@@ -964,6 +972,7 @@ def main():
             filing_cabinet.update(id_num=stars_pro.id_num,
                                   attr="orb_ecc",
                                   new_info=stars_pro.orb_ecc)
+            # endregion
 
             # Now do retrograde singles--change semi-major axis
             #   note this is dyn friction only, not true 'migration'
