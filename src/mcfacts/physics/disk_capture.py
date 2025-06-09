@@ -1,10 +1,15 @@
 """
 Module for computing disk-orbiter interactions, which may lead to capture.
 """
-import numpy as np
 import astropy.constants as const
 import astropy.units as u
+import numpy as np
+from numpy.random import Generator
+
+from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.mcfacts_random_state import rng
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
+from mcfacts.objects.timeline import TimelineActor
 from mcfacts.physics.point_masses import si_from_r_g
 
 
@@ -85,7 +90,7 @@ def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_
     #   tau in units of sec
     tau_i_dyn = np.sqrt(2.0) * inc * ((delta - np.cos(inc)) ** 1.5) \
                 * (smbh_mass ** 2) * period / (
-                            retro_mass * disk_surf_density_func(disk_bh_retro_orbs_a) * np.pi * (semi_lat_rec ** 2)) \
+                        retro_mass * disk_surf_density_func(disk_bh_retro_orbs_a) * np.pi * (semi_lat_rec ** 2)) \
                 / kappa
 
     # assume the fractional change in inclination is the fraction
@@ -103,7 +108,8 @@ def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_
 
 def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs_a, disk_bh_retro_orbs_ecc,
                              disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
-                             disk_inner_stable_circ_orb, disk_surf_density_func, timestep_duration_yr, disk_radius_outer):
+                             disk_inner_stable_circ_orb, disk_surf_density_func, timestep_duration_yr,
+                             disk_radius_outer):
     """Evolve the orbit of initially-embedded retrograde black hole orbiters due to disk interactions.
 
     This is a CRUDE version of evolution, future upgrades may couple to SpaceHub.
@@ -193,17 +199,17 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
 
     step1_time = 1.5e5  # years
     step1_delta_ecc = step2_ecc_0 - step1_ecc_0
-    step1_delta_semimaj = step1_semi_maj_0 - step2_semi_maj_0  #rg
-    step1_delta_inc = step1_inc_0 - step2_inc_0  #rad
+    step1_delta_semimaj = step1_semi_maj_0 - step2_semi_maj_0  # rg
+    step1_delta_inc = step1_inc_0 - step2_inc_0  # rad
 
     step2_time = 1.4e4  # years
     step2_delta_ecc = step2_ecc_0 - step3_ecc_0
-    step2_delta_semimaj = step2_semi_maj_0 - step3_semi_maj_0  #rg
+    step2_delta_semimaj = step2_semi_maj_0 - step3_semi_maj_0  # rg
     step2_delta_inc = step2_inc_0 - step3_inc_0
 
     step3_time = 1.4e4  # years
     step3_delta_ecc = step3_ecc_0 - step3_ecc_f
-    step3_delta_semimaj = step3_semi_maj_0 - step3_semi_maj_f  #rg
+    step3_delta_semimaj = step3_semi_maj_0 - step3_semi_maj_f  # rg
     step3_delta_inc = step3_inc_0 - step3_inc_f
 
     # Then figure out cos(w)=0
@@ -216,7 +222,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     #       in 1.5e7yrs a=100rg->60rg, e=0.7->0.5, i=175->170deg
     stepw0_time = 1.5e7  # years
     stepw0_delta_ecc = stepw0_ecc_0 - stepw0_ecc_f
-    stepw0_delta_semimaj = stepw0_semi_maj_0 - stepw0_semi_maj_f  #rg
+    stepw0_delta_semimaj = stepw0_semi_maj_0 - stepw0_semi_maj_f  # rg
     stepw0_delta_inc = stepw0_inc_0 - stepw0_inc_f
 
     # setup output arrays
@@ -280,14 +286,16 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
 
     # Get current tau values
     tau_e_current, tau_a_current = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
-                                               disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
+                                               disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
+                                               disk_bh_retro_orbs_inc,
                                                disk_surf_density_func)
     tau_inc_current = tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                   disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
                                   disk_bh_retro_orbs_inc, disk_surf_density_func)
 
     # Get reference tau values
-    tau_e_ref, tau_a_ref = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func)
+    tau_e_ref, tau_a_ref = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0,
+                                       disk_surf_density_func)
     tau_inc_ref = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func)
 
     if (tau_e_current == -100.5).sum() > 0:
@@ -295,52 +303,99 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
 
     # Get ecc scale factors
     tau_e_div = tau_e_current / tau_e_ref
-    ecc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_e_div[cos_pm1_mask & no_max_ecc_retro_mask]
+    ecc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_e_div[
+        cos_pm1_mask & no_max_ecc_retro_mask]
     ecc_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_e_div[cos_pm1_mask & max_ecc_mask]
     ecc_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_e_div[cos_pm1_mask & barely_prograde_mask]
     ecc_scale_factor[cos_0_mask] = stepw0_time * tau_e_div[cos_0_mask]
     # Get semimaj scale factors
     tau_a_div = tau_a_current / tau_a_ref
-    semimaj_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_a_div[cos_pm1_mask & no_max_ecc_retro_mask]
+    semimaj_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_a_div[
+        cos_pm1_mask & no_max_ecc_retro_mask]
     semimaj_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_a_div[cos_pm1_mask & max_ecc_mask]
-    semimaj_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_a_div[cos_pm1_mask & barely_prograde_mask]
+    semimaj_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_a_div[
+        cos_pm1_mask & barely_prograde_mask]
     semimaj_scale_factor[cos_0_mask] = stepw0_time * tau_a_div[cos_0_mask]
     # Get inc scale factors
     tau_inc_div = tau_inc_current / tau_inc_ref
-    inc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_inc_div[cos_pm1_mask & no_max_ecc_retro_mask]
+    inc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_inc_div[
+        cos_pm1_mask & no_max_ecc_retro_mask]
     inc_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_inc_div[cos_pm1_mask & max_ecc_mask]
-    inc_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_inc_div[cos_pm1_mask & barely_prograde_mask]
+    inc_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_inc_div[
+        cos_pm1_mask & barely_prograde_mask]
     inc_scale_factor[cos_0_mask] = stepw0_time * tau_inc_div[cos_0_mask]
 
     # Calculate new orb_ecc values
-    disk_bh_retro_orbs_ecc_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_ecc[cos_pm1_mask & no_max_ecc_retro_mask] * (
-        1.0 + step1_delta_ecc / disk_bh_retro_orbs_ecc[cos_pm1_mask & no_max_ecc_retro_mask] * (timestep_duration_yr / ecc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask]))
+    disk_bh_retro_orbs_ecc_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_ecc[
+                                                                           cos_pm1_mask & no_max_ecc_retro_mask] * (
+                                                                               1.0 + step1_delta_ecc /
+                                                                               disk_bh_retro_orbs_ecc[
+                                                                                   cos_pm1_mask & no_max_ecc_retro_mask] * (
+                                                                                           timestep_duration_yr /
+                                                                                           ecc_scale_factor[
+                                                                                               cos_pm1_mask & no_max_ecc_retro_mask]))
     disk_bh_retro_orbs_ecc_new[cos_pm1_mask & max_ecc_mask] = disk_bh_retro_orbs_ecc[cos_pm1_mask & max_ecc_mask] * (
-        1.0 - step2_delta_ecc / disk_bh_retro_orbs_ecc[cos_pm1_mask & max_ecc_mask] * (timestep_duration_yr / ecc_scale_factor[cos_pm1_mask & max_ecc_mask]))
-    disk_bh_retro_orbs_ecc_new[cos_pm1_mask & barely_prograde_mask] = disk_bh_retro_orbs_ecc[cos_pm1_mask & barely_prograde_mask] * (
-        1.0 - step3_delta_ecc / disk_bh_retro_orbs_ecc[cos_pm1_mask & barely_prograde_mask] * (timestep_duration_yr / ecc_scale_factor[cos_pm1_mask & barely_prograde_mask]))
+            1.0 - step2_delta_ecc / disk_bh_retro_orbs_ecc[cos_pm1_mask & max_ecc_mask] * (
+                timestep_duration_yr / ecc_scale_factor[cos_pm1_mask & max_ecc_mask]))
+    disk_bh_retro_orbs_ecc_new[cos_pm1_mask & barely_prograde_mask] = disk_bh_retro_orbs_ecc[
+                                                                          cos_pm1_mask & barely_prograde_mask] * (
+                                                                              1.0 - step3_delta_ecc /
+                                                                              disk_bh_retro_orbs_ecc[
+                                                                                  cos_pm1_mask & barely_prograde_mask] * (
+                                                                                          timestep_duration_yr /
+                                                                                          ecc_scale_factor[
+                                                                                              cos_pm1_mask & barely_prograde_mask]))
     disk_bh_retro_orbs_ecc_new[cos_0_mask] = disk_bh_retro_orbs_ecc[cos_0_mask] * (
-        1.0 - stepw0_delta_ecc / disk_bh_retro_orbs_ecc[cos_0_mask] * (timestep_duration_yr / ecc_scale_factor[cos_0_mask]))
+            1.0 - stepw0_delta_ecc / disk_bh_retro_orbs_ecc[cos_0_mask] * (
+                timestep_duration_yr / ecc_scale_factor[cos_0_mask]))
 
     # Calculate new orb_a values
-    disk_bh_retro_orbs_a_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_a[cos_pm1_mask & no_max_ecc_retro_mask] * (
-        1.0 - step1_delta_semimaj / disk_bh_retro_orbs_a[cos_pm1_mask & no_max_ecc_retro_mask] * (timestep_duration_yr / semimaj_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask]))
+    disk_bh_retro_orbs_a_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_a[
+                                                                         cos_pm1_mask & no_max_ecc_retro_mask] * (
+                                                                             1.0 - step1_delta_semimaj /
+                                                                             disk_bh_retro_orbs_a[
+                                                                                 cos_pm1_mask & no_max_ecc_retro_mask] * (
+                                                                                         timestep_duration_yr /
+                                                                                         semimaj_scale_factor[
+                                                                                             cos_pm1_mask & no_max_ecc_retro_mask]))
     disk_bh_retro_orbs_a_new[cos_pm1_mask & max_ecc_mask] = disk_bh_retro_orbs_a[cos_pm1_mask & max_ecc_mask] * (
-        1.0 - step2_delta_semimaj / disk_bh_retro_orbs_a[cos_pm1_mask & max_ecc_mask] * (timestep_duration_yr / semimaj_scale_factor[cos_pm1_mask & max_ecc_mask]))
-    disk_bh_retro_orbs_a_new[cos_pm1_mask & barely_prograde_mask] = disk_bh_retro_orbs_a[cos_pm1_mask & barely_prograde_mask] * (
-        1.0 - step3_delta_semimaj / disk_bh_retro_orbs_a[cos_pm1_mask & barely_prograde_mask] * (timestep_duration_yr / semimaj_scale_factor[cos_pm1_mask & barely_prograde_mask]))
+            1.0 - step2_delta_semimaj / disk_bh_retro_orbs_a[cos_pm1_mask & max_ecc_mask] * (
+                timestep_duration_yr / semimaj_scale_factor[cos_pm1_mask & max_ecc_mask]))
+    disk_bh_retro_orbs_a_new[cos_pm1_mask & barely_prograde_mask] = disk_bh_retro_orbs_a[
+                                                                        cos_pm1_mask & barely_prograde_mask] * (
+                                                                            1.0 - step3_delta_semimaj /
+                                                                            disk_bh_retro_orbs_a[
+                                                                                cos_pm1_mask & barely_prograde_mask] * (
+                                                                                        timestep_duration_yr /
+                                                                                        semimaj_scale_factor[
+                                                                                            cos_pm1_mask & barely_prograde_mask]))
     disk_bh_retro_orbs_a_new[cos_0_mask] = disk_bh_retro_orbs_a[cos_0_mask] * (
-        1.0 - stepw0_delta_semimaj / disk_bh_retro_orbs_a[cos_0_mask] * (timestep_duration_yr / semimaj_scale_factor[cos_0_mask]))
+            1.0 - stepw0_delta_semimaj / disk_bh_retro_orbs_a[cos_0_mask] * (
+                timestep_duration_yr / semimaj_scale_factor[cos_0_mask]))
 
     # Calculate new orb_inc values
-    disk_bh_retro_orbs_inc_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_inc[cos_pm1_mask & no_max_ecc_retro_mask] * (
-        1.0 - step1_delta_inc / disk_bh_retro_orbs_inc[cos_pm1_mask & no_max_ecc_retro_mask] * (timestep_duration_yr / inc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask]))
+    disk_bh_retro_orbs_inc_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_inc[
+                                                                           cos_pm1_mask & no_max_ecc_retro_mask] * (
+                                                                               1.0 - step1_delta_inc /
+                                                                               disk_bh_retro_orbs_inc[
+                                                                                   cos_pm1_mask & no_max_ecc_retro_mask] * (
+                                                                                           timestep_duration_yr /
+                                                                                           inc_scale_factor[
+                                                                                               cos_pm1_mask & no_max_ecc_retro_mask]))
     disk_bh_retro_orbs_inc_new[cos_pm1_mask & max_ecc_mask] = disk_bh_retro_orbs_inc[cos_pm1_mask & max_ecc_mask] * (
-        1.0 - step2_delta_inc / disk_bh_retro_orbs_inc[cos_pm1_mask & max_ecc_mask] * (timestep_duration_yr / inc_scale_factor[cos_pm1_mask & max_ecc_mask]))
-    disk_bh_retro_orbs_inc_new[cos_pm1_mask & barely_prograde_mask] = disk_bh_retro_orbs_inc[cos_pm1_mask & barely_prograde_mask] * (
-        1.0 - step3_delta_inc / disk_bh_retro_orbs_inc[cos_pm1_mask & barely_prograde_mask] * (timestep_duration_yr / inc_scale_factor[cos_pm1_mask & barely_prograde_mask]))
+            1.0 - step2_delta_inc / disk_bh_retro_orbs_inc[cos_pm1_mask & max_ecc_mask] * (
+                timestep_duration_yr / inc_scale_factor[cos_pm1_mask & max_ecc_mask]))
+    disk_bh_retro_orbs_inc_new[cos_pm1_mask & barely_prograde_mask] = disk_bh_retro_orbs_inc[
+                                                                          cos_pm1_mask & barely_prograde_mask] * (
+                                                                              1.0 - step3_delta_inc /
+                                                                              disk_bh_retro_orbs_inc[
+                                                                                  cos_pm1_mask & barely_prograde_mask] * (
+                                                                                          timestep_duration_yr /
+                                                                                          inc_scale_factor[
+                                                                                              cos_pm1_mask & barely_prograde_mask]))
     disk_bh_retro_orbs_inc_new[cos_0_mask] = disk_bh_retro_orbs_inc[cos_0_mask] * (
-        1.0 - stepw0_delta_inc / disk_bh_retro_orbs_inc[cos_0_mask] * (timestep_duration_yr / inc_scale_factor[cos_0_mask]))
+            1.0 - stepw0_delta_inc / disk_bh_retro_orbs_inc[cos_0_mask] * (
+                timestep_duration_yr / inc_scale_factor[cos_0_mask]))
 
     # Catch overshooting ecc = 0
     disk_bh_retro_orbs_ecc_new[disk_bh_retro_orbs_ecc_new < 0.0] = 0.0
@@ -353,10 +408,10 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
 
     # Check Finite
     nan_mask = (
-        ~np.isfinite(disk_bh_retro_orbs_ecc_new) | \
-        ~np.isfinite(disk_bh_retro_orbs_a_new) | \
-        ~np.isfinite(disk_bh_retro_orbs_inc_new) \
-    )
+            ~np.isfinite(disk_bh_retro_orbs_ecc_new) | \
+            ~np.isfinite(disk_bh_retro_orbs_a_new) | \
+            ~np.isfinite(disk_bh_retro_orbs_inc_new) \
+        )
     if np.sum(nan_mask) > 0:
         # Check for objects inside 12.1 R_g
         if all(disk_bh_retro_orbs_a[nan_mask] < 12.1):
@@ -366,8 +421,8 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
             # It's been eaten
             disk_bh_retro_orbs_inc_new[nan_mask] = 0.
         else:
-            print("nan_mask:",np.where(nan_mask))
-            print("nan old ecc:",disk_bh_retro_orbs_ecc[nan_mask])
+            print("nan_mask:", np.where(nan_mask))
+            print("nan old ecc:", disk_bh_retro_orbs_ecc[nan_mask])
             print("disk_bh_retro_masses:", disk_bh_retro_masses[nan_mask])
             print("disk_bh_retro_orbs_a:", disk_bh_retro_orbs_a[nan_mask])
             print("disk_bh_retro_orbs_inc:", disk_bh_retro_orbs_inc[nan_mask])
@@ -379,8 +434,11 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
 
     # Anything outside the disk is brought back in
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
-    epsilon_orb_a = disk_radius_outer * ((disk_bh_retro_masses / (3 * (disk_bh_retro_masses + smbh_mass)))**(1. / 3.)) * rng.uniform(size=len(disk_bh_retro_masses))
-    disk_bh_retro_orbs_a_new[disk_bh_retro_orbs_a_new > disk_radius_outer] = disk_radius_outer - epsilon_orb_a[disk_bh_retro_orbs_a_new > disk_radius_outer]
+    epsilon_orb_a = disk_radius_outer * (
+                (disk_bh_retro_masses / (3 * (disk_bh_retro_masses + smbh_mass))) ** (1. / 3.)) * rng.uniform(
+        size=len(disk_bh_retro_masses))
+    disk_bh_retro_orbs_a_new[disk_bh_retro_orbs_a_new > disk_radius_outer] = disk_radius_outer - epsilon_orb_a[
+        disk_bh_retro_orbs_a_new > disk_radius_outer]
 
     assert np.all(disk_bh_retro_orbs_a_new < disk_radius_outer), \
         "disk_bh_retro_orbs_a_new has values greater than disk_radius_outer"
@@ -446,7 +504,7 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     #   tau in units of sec
     tau_i_dyn = np.sqrt(2.0) * inc * ((delta - np.cos(inc)) ** 1.5) \
                 * (SI_smbh_mass ** 2) * period / (
-                            SI_orbiter_mass * disk_surf_density_func(disk_bh_retro_orbs_a) * np.pi * (semi_lat_rec ** 2)) \
+                        SI_orbiter_mass * disk_surf_density_func(disk_bh_retro_orbs_a) * np.pi * (semi_lat_rec ** 2)) \
                 / kappa
 
     assert np.isfinite(tau_i_dyn).all(), \
@@ -529,7 +587,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     #   NOTE: had to add an abs(sin(inc)) to avoid negative timescales(!)
     tau_p_dyn = np.abs(np.sin(inc)) * ((delta - np.cos(inc)) ** 1.5) \
                 * (smbh_mass ** 2) * period / (
-                            retro_mass * disk_surf_model(retrograde_bh_locations) * np.pi * (semi_lat_rec ** 2)) \
+                        retro_mass * disk_surf_model(retrograde_bh_locations) * np.pi * (semi_lat_rec ** 2)) \
                 / (np.sqrt(2)) * kappa * np.abs(np.cos(inc) - zeta)
 
     assert np.isfinite(tau_p_dyn).all(), \
@@ -595,12 +653,13 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     zeta_bar = xi_bar / kappa_bar
 
     # call function for tau_p_dyn (WZL Eqn 70)
-    tau_p_dyn = tau_semi_lat(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
+    tau_p_dyn = tau_semi_lat(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
+                             disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
                              disk_surf_density_func)
     #  also need to find tau_a_dyn, but
     #   fortunately it's a few factors off of tau_p_dyn (this may be a dumb way to handle it)
     tau_a_dyn = tau_p_dyn * (1.0 - (ecc ** 2)) * kappa * np.abs(np.cos(inc) - zeta) / (
-                kappa_bar * np.abs(np.cos(inc) - zeta_bar))
+            kappa_bar * np.abs(np.cos(inc) - zeta_bar))
     # WZL Eqn 73
     tau_e_dyn = (2.0 * (ecc ** 2) / (1.0 - (ecc ** 2))) * 1.0 / np.abs(1.0 / tau_a_dyn - 1.0 / tau_p_dyn)
 
@@ -610,3 +669,61 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
         "Finite check failure: tau_a_dyn"
 
     return tau_e_dyn.value, tau_a_dyn.value
+
+
+class CaptureRetrogradeBlackHoles(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Capture Retrograde Black Holes" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bh_retrograde_array_name not in filing_cabinet:
+            return
+
+        blackholes_retro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
+
+        blackholes_retro.orb_ecc, blackholes_retro.orb_a, blackholes_retro.orb_inc = retro_bh_orb_disk_evolve(
+            sm.smbh_mass,
+            blackholes_retro.mass,
+            blackholes_retro.orb_a,
+            blackholes_retro.orb_ecc,
+            blackholes_retro.orb_inc,
+            blackholes_retro.orb_arg_periapse,
+            sm.disk_inner_stable_circ_orb,
+            agn_disk.disk_surface_density,
+            sm.timestep_duration_yr,
+            sm.disk_radius_outer
+        )
+
+        blackholes_retro.consistency_check()
+
+
+class CaptureRetrogradeStars(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Capture Retrograde Stars" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.stars_retrograde_array_name not in filing_cabinet:
+            return
+
+        stars_retro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
+
+        stars_retro.orb_ecc, stars_retro.orb_a, stars_retro.orb_inc = retro_bh_orb_disk_evolve(
+            sm.smbh_mass,
+            stars_retro.mass,
+            stars_retro.orb_a,
+            stars_retro.orb_ecc,
+            stars_retro.orb_inc,
+            stars_retro.orb_arg_periapse,
+            sm.disk_inner_stable_circ_orb,
+            agn_disk.disk_surface_density,
+            sm.timestep_duration_yr,
+            sm.disk_radius_outer
+        )
+
+        stars_retro.consistency_check()

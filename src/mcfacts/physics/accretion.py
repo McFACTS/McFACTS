@@ -2,9 +2,14 @@
 Module for calculating change of mass, spin magnitude, and spin angle due to accretion.
 """
 
-import numpy as np
 import astropy.constants as const
 import astropy.units as u
+import numpy as np
+from numpy.random import Generator
+
+from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
+from mcfacts.objects.timeline import TimelineActor
 from mcfacts.physics.point_masses import si_from_r_g
 
 
@@ -113,20 +118,22 @@ def accrete_star_mass(disk_star_pro_masses,
 
     # Put things in SI units
     star_masses_si = disk_star_pro_masses * u.solMass
-    disk_sound_speed_si = disk_sound_speed(disk_star_pro_orbs_a) * u.meter/u.second
+    disk_sound_speed_si = disk_sound_speed(disk_star_pro_orbs_a) * u.meter / u.second
     disk_density_si = disk_density(disk_star_pro_orbs_a) * (u.kg / (u.m ** 3))
     timestep_duration_yr_si = timestep_duration_yr * u.year
 
     # Calculate Bondi and Hill radii
     r_bondi = (2 * const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
-    r_hill_rg = (disk_star_pro_orbs_a * (1 - disk_star_pro_eccs) * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
+    r_hill_rg = (disk_star_pro_orbs_a * (1 - disk_star_pro_eccs) * (
+                (disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1. / 3.)))
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
 
     # Determine which is smaller for each star
     min_radius = np.minimum(r_bondi, r_hill_m)
 
     # Calculate the mass accretion rate
-    mdot = ((np.pi / disk_star_luminosity_factor) * disk_density_si * disk_sound_speed_si * (min_radius ** 2)).to("kg/yr")
+    mdot = ((np.pi / disk_star_luminosity_factor) * disk_density_si * disk_sound_speed_si * (min_radius ** 2)).to(
+        "kg/yr")
 
     # Accrete mass onto stars
     disk_star_pro_new_masses = ((star_masses_si + mdot * timestep_duration_yr_si).to("Msun")).value
@@ -139,7 +146,8 @@ def accrete_star_mass(disk_star_pro_masses,
 
     # Immortal stars don't enter this function as immortal because they lose a small amt of mass in star_wind_mass_loss
     # Get how much mass is req to make them immortal again
-    immortal_mass_diff = disk_star_pro_new_masses[disk_star_pro_new_masses == disk_star_initial_mass_cutoff] - disk_star_pro_masses[disk_star_pro_new_masses == disk_star_initial_mass_cutoff]
+    immortal_mass_diff = disk_star_pro_new_masses[disk_star_pro_new_masses == disk_star_initial_mass_cutoff] - \
+                         disk_star_pro_masses[disk_star_pro_new_masses == disk_star_initial_mass_cutoff]
     # Any extra mass over the immortal cutoff is blown off the star and back into the disk
     immortal_mass_lost = mass_gained[disk_star_pro_new_masses == disk_star_initial_mass_cutoff] - immortal_mass_diff
 
@@ -149,7 +157,8 @@ def accrete_star_mass(disk_star_pro_masses,
     return disk_star_pro_new_masses, mass_gained.sum(), immortal_mass_lost.sum()
 
 
-def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddington_mass_growth_rate, timestep_duration_yr):
+def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddington_mass_growth_rate,
+                   timestep_duration_yr):
     """Adds mass according to chosen BH mass accretion prescription
 
     Takes initial BH masses at start of timestep and adds mass according to
@@ -175,7 +184,8 @@ def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddingto
         Masses [M_sun] of black holes after accreting at prescribed rate for one timestep with :obj:`float` type
     """
     # Mass grows exponentially for length of timestep:
-    disk_bh_pro_new_masses = disk_bh_pro_masses*np.exp(disk_bh_eddington_mass_growth_rate*disk_bh_eddington_ratio*timestep_duration_yr)
+    disk_bh_pro_new_masses = disk_bh_pro_masses * np.exp(
+        disk_bh_eddington_mass_growth_rate * disk_bh_eddington_ratio * timestep_duration_yr)
 
     assert np.all(disk_bh_pro_new_masses > 0), \
         "disk_bh_pro_new_masses has values <= 0"
@@ -221,12 +231,12 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
     # Since M_edd/t = 2.3 e-8 M0/yr or 2.3e-4M0/10kyr then M(t)=M0*exp((M_edd/t)*f_edd*time)
     # so M(t)~1.2=M0*exp(0.2) so in 10^7yr, spin should go a=-1 to a=0. Or delta a ~ 10^-3 every 10^4yr.
 
-    normalized_Eddington_ratio = disk_bh_eddington_ratio/1.0
-    normalized_timestep = timestep_duration_yr/1.e4
-    normalized_spin_torque_condition = disk_bh_torque_condition/0.1
+    normalized_Eddington_ratio = disk_bh_eddington_ratio / 1.0
+    normalized_timestep = timestep_duration_yr / 1.e4
+    normalized_spin_torque_condition = disk_bh_torque_condition / 0.1
 
     # Magnitude of spin iteration per normalized timestep
-    spin_iteration = (1.e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
+    spin_iteration = (1.e-3 * normalized_Eddington_ratio * normalized_spin_torque_condition * normalized_timestep)
 
     disk_bh_pro_spins_new = disk_bh_pro_spins
 
@@ -290,11 +300,12 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
     """
 
     # Calculate change in spin angle due to accretion during timestep
-    normalized_Eddington_ratio = disk_bh_eddington_ratio/1.0
-    normalized_timestep = timestep_duration_yr/1.e4
-    normalized_spin_torque_condition = disk_bh_torque_condition/0.1
+    normalized_Eddington_ratio = disk_bh_eddington_ratio / 1.0
+    normalized_timestep = timestep_duration_yr / 1.e4
+    normalized_spin_torque_condition = disk_bh_torque_condition / 0.1
 
-    spin_torque_iteration = (6.98e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
+    spin_torque_iteration = (
+                6.98e-3 * normalized_Eddington_ratio * normalized_spin_torque_condition * normalized_timestep)
 
     # Assume same angles as before to start
     disk_bh_spin_angles_new = disk_bh_pro_spin_angles
@@ -307,7 +318,8 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
     # Spin up BH are torqued towards zero (ie alignment with disk, so decrease mag of spin angle)
     disk_bh_spin_angles_new[indices_bh_spin_up] = disk_bh_pro_spin_angles[indices_bh_spin_up] - spin_torque_iteration
     # Spin down BH with orb ecc > disk_bh_pro_orbs_ecc_crit are torqued toward anti-alignment with disk, incr mag of spin angle.
-    disk_bh_spin_angles_new[indices_bh_spin_down] = disk_bh_pro_spin_angles[indices_bh_spin_down] + spin_torque_iteration
+    disk_bh_spin_angles_new[indices_bh_spin_down] = disk_bh_pro_spin_angles[
+                                                        indices_bh_spin_down] + spin_torque_iteration
     # print(disk_bh_spin_angles_new[indices_bh_spin_down])
 
     # Housekeeping
@@ -320,3 +332,47 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
         "Finite check failure: disk_bh_spin_angles_new"
 
     return disk_bh_spin_angles_new
+
+
+class ProgradeBlackHoleAccretion(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Prograde Black Hole Accretion" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+
+        blackholes_pro.mass = change_bh_mass(
+            blackholes_pro.mass,
+            sm.disk_bh_eddington_ratio,
+            sm.disk_bh_eddington_mass_growth_rate,
+            sm.timestep_duration_yr
+        )
+
+        blackholes_pro.spin = change_bh_spin_magnitudes(
+            blackholes_pro.spin,
+            sm.disk_bh_eddington_ratio,
+            sm.disk_bh_torque_condition,
+            sm.timestep_duration_yr,
+            blackholes_pro.orb_ecc,
+            sm.disk_bh_pro_orb_ecc_crit,
+        )
+
+        blackholes_pro.spin_angle = change_bh_spin_angles(
+            blackholes_pro.spin_angle,
+            sm.disk_bh_eddington_ratio,
+            sm.disk_bh_torque_condition,
+            sm.disk_bh_spin_resolution_min,
+            sm.timestep_duration_yr,
+            blackholes_pro.orb_ecc,
+            sm.disk_bh_pro_orb_ecc_crit
+        )
+
+        blackholes_pro.consistency_check()
+
+        # TODO: Stars

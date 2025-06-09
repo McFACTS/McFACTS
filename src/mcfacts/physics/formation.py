@@ -64,9 +64,9 @@ def close_encounters_check(id_nums,
     separations = np.diff(fc_can_encounter.orb_a)
 
     if (len(separations) > 0):
-        R_Hill_possible_encounter = (fc_can_encounter.orb_a[:-1] + separations/2.0) * \
-            pow(((fc_can_encounter.mass[:-1] + fc_can_encounter.mass[1:]) /
-                 (smbh_mass * 3.0)), (1.0/3.0))
+        R_Hill_possible_encounter = (fc_can_encounter.orb_a[:-1] + separations / 2.0) * \
+                                    pow(((fc_can_encounter.mass[:-1] + fc_can_encounter.mass[1:]) /
+                                         (smbh_mass * 3.0)), (1.0 / 3.0))
 
         # compare separations to mutual Hill spheres - negative values mean possible binary formation
         minimum_formation_criteria = separations - R_Hill_possible_encounter
@@ -105,7 +105,8 @@ def close_encounters_check(id_nums,
                             # And the implicit partner of this thing isn't already an implicit partner we've counted
                             if (idx_poss_encounter[idx_seq] + 1 not in checked_encounter_index + 1):
                                 # Then you can count it as a real binary
-                                checked_encounter_index = np.append(checked_encounter_index, idx_poss_encounter[idx_seq])
+                                checked_encounter_index = np.append(checked_encounter_index,
+                                                                    idx_poss_encounter[idx_seq])
             final_encounter_indices = np.array([checked_encounter_index, checked_encounter_index + 1])
             encounter_id_nums = fc_can_encounter.id_num[final_encounter_indices]
 
@@ -173,7 +174,8 @@ def divide_types_encounters(id_nums, encounter_categories, filing_cabinet):
     return (tuple(results))
 
 
-def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, id_start_val, fraction_bin_retro, smbh_mass, agn_redshift, disk_bh_pro_orb_ecc_crit):
+def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, id_start_val, fraction_bin_retro,
+                      smbh_mass, agn_redshift, disk_bh_pro_orb_ecc_crit):
     """Create new BH binaries with appropriate parameters.
 
     We take the semi-maj axis, masses, spins, spin angles and generations
@@ -214,7 +216,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
     """
 
     bin_num = bh_pro_id_num_binary.shape[1]
-    id_nums = np.arange(id_start_val+1, id_start_val + 1 + bin_num, 1)
+    id_nums = np.arange(id_start_val + 1, id_start_val + 1 + bin_num, 1)
     orb_a_1 = np.zeros(bin_num)
     orb_a_2 = np.zeros(bin_num)
     mass_1 = np.zeros(bin_num)
@@ -274,7 +276,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
         else:
             # return a 1 or -1 in the ratio 
             # (1-fraction_bin_retro: fraction_bin_retro)
-            bin_orb_ang_mom[i] = rng.choice(a=[1, -1], p=[1-fraction_bin_retro, fraction_bin_retro])
+            bin_orb_ang_mom[i] = rng.choice(a=[1, -1], p=[1 - fraction_bin_retro, fraction_bin_retro])
 
     gw_strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                         old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,

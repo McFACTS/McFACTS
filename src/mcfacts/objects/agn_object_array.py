@@ -200,20 +200,20 @@ class AGNObjectArray(ABC):
         }
 
     @abstractmethod
-    def add_objects(self, agnObjectArray: 'AGNObjectArray'):
-        if not isinstance(agnObjectArray, AGNObjectArray):
-            raise Exception(f"Type Error: Unable to add {type(agnObjectArray)} objects to AGNObjectArray.")
+    def add_objects(self, agn_object_array: 'AGNObjectArray'):
+        if not isinstance(agn_object_array, AGNObjectArray):
+            raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNObjectArray.")
 
-        self.unique_id = np.concatenate((self.unique_id, agnObjectArray.unique_id))
-        self.gen = np.concatenate((self.gen, agnObjectArray.gen))
-        self.mass = np.concatenate((self.mass, agnObjectArray.mass))
-        self.spin = np.concatenate((self.spin, agnObjectArray.spin))
-        self.spin_angle = np.concatenate((self.spin_angle, agnObjectArray.spin_angle))
-        self.orb_a = np.concatenate((self.orb_a, agnObjectArray.orb_a))
-        self.orb_inc = np.concatenate((self.orb_inc, agnObjectArray.orb_inc))
-        self.orb_ecc = np.concatenate((self.orb_ecc, agnObjectArray.orb_ecc))
-        self.orb_ang_mom = np.concatenate((self.orb_ang_mom, agnObjectArray.orb_ang_mom))
-        self.orb_arg_periapse = np.concatenate((self.orb_arg_periapse, agnObjectArray.orb_arg_periapse))
+        self.unique_id = np.concatenate((self.unique_id, agn_object_array.unique_id))
+        self.gen = np.concatenate((self.gen, agn_object_array.gen))
+        self.mass = np.concatenate((self.mass, agn_object_array.mass))
+        self.spin = np.concatenate((self.spin, agn_object_array.spin))
+        self.spin_angle = np.concatenate((self.spin_angle, agn_object_array.spin_angle))
+        self.orb_a = np.concatenate((self.orb_a, agn_object_array.orb_a))
+        self.orb_inc = np.concatenate((self.orb_inc, agn_object_array.orb_inc))
+        self.orb_ecc = np.concatenate((self.orb_ecc, agn_object_array.orb_ecc))
+        self.orb_ang_mom = np.concatenate((self.orb_ang_mom, agn_object_array.orb_ang_mom))
+        self.orb_arg_periapse = np.concatenate((self.orb_arg_periapse, agn_object_array.orb_arg_periapse))
 
     def __len__(self):
         return len(self.unique_id)
@@ -241,14 +241,14 @@ class AGNBlackHoleArray(AGNObjectArray):
         return super_list
 
     @override
-    def add_objects(self, agnObjectArray: 'AGNBlackHoleArray'):
-        super().add_objects(agnObjectArray)
+    def add_objects(self, agn_object_array: 'AGNBlackHoleArray'):
+        super().add_objects(agn_object_array)
 
-        if not isinstance(agnObjectArray, AGNBlackHoleArray):
-            raise Exception(f"Type Error: Unable to add {type(agnObjectArray)} objects to AGNBlackHoleArray.")
+        if not isinstance(agn_object_array, AGNBlackHoleArray):
+            raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNBlackHoleArray.")
 
-        self.gw_freq = np.concatenate((self.gw_freq, agnObjectArray.gw_freq))
-        self.gw_strain = np.concatenate((self.gw_strain, agnObjectArray.gw_strain))
+        self.gw_freq = np.concatenate((self.gw_freq, agn_object_array.gw_freq))
+        self.gw_strain = np.concatenate((self.gw_strain, agn_object_array.gw_strain))
 
 
 class AGNStarArray(AGNObjectArray):
@@ -256,12 +256,16 @@ class AGNStarArray(AGNObjectArray):
                  star_x: npt.NDArray[np.float_] = np.array([]),
                  star_y: npt.NDArray[np.float_] = np.array([]),
                  star_z: npt.NDArray[np.float_] = np.array([]),
-                 radius: npt.NDArray[np.float_] = np.array([]),
+                 log_radius: npt.NDArray[np.float_] = np.array([]),
+                 log_teff: npt.NDArray[np.float_] = np.array([]),
+                 log_luminosity: npt.NDArray[np.float_] = np.array([]),
                  **kwargs):
         self.star_x = star_x
         self.star_y = star_y
         self.star_z = star_z,
-        self.radius = radius
+        self.log_radius = log_radius
+        self.log_teff = log_teff
+        self.log_luminosity = log_luminosity
 
         # Call init last so consistency check passes.
         super().__init__(**kwargs)
@@ -273,21 +277,25 @@ class AGNStarArray(AGNObjectArray):
         super_list["star_x"] = self.star_x
         super_list["star_y"] = self.star_y
         super_list["star_z"] = self.star_z
-        super_list["radius"] = self.radius
+        super_list["log_radius"] = self.log_radius
+        super_list["log_teff"] = self.log_teff
+        super_list["log_luminosity"] = self.log_luminosity
 
         return super_list
 
     @override
-    def add_objects(self, agnObjectArray: 'AGNStarArray'):
-        super().add_objects(agnObjectArray)
+    def add_objects(self, agn_object_array: 'AGNStarArray'):
+        super().add_objects(agn_object_array)
 
-        if not isinstance(agnObjectArray, AGNStarArray):
-            raise Exception(f"Type Error: Unable to add {type(agnObjectArray)} objects to AGNStarArray.")
+        if not isinstance(agn_object_array, AGNStarArray):
+            raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNStarArray.")
 
-        self.star_x = np.concatenate((self.star_x, agnObjectArray.star_x))
-        self.star_y = np.concatenate((self.star_y, agnObjectArray.star_y))
-        self.star_z = np.concatenate((self.star_z, agnObjectArray.star_z))
-        self.radius = np.concatenate((self.radius, agnObjectArray.radius))
+        self.star_x = np.concatenate((self.star_x, agn_object_array.star_x))
+        self.star_y = np.concatenate((self.star_y, agn_object_array.star_y))
+        self.star_z = np.concatenate((self.star_z, agn_object_array.star_z))
+        self.log_radius = np.concatenate((self.log_radius, agn_object_array.log_radius))
+        self.log_teff = np.concatenate((self.log_teff, agn_object_array.log_teff))
+        self.log_luminosity = np.concatenate((self.log_luminosity, agn_object_array.log_luminosity))
 
 
 class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
@@ -436,27 +444,27 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         return super_list
 
     @override
-    def add_objects(self, agnObjectArray: 'AGNBinaryBlackHoleArray'):
-        super().add_objects(agnObjectArray)
+    def add_objects(self, agn_object_array: 'AGNBinaryBlackHoleArray'):
+        super().add_objects(agn_object_array)
 
-        if not isinstance(agnObjectArray, AGNBinaryBlackHoleArray):
-            raise Exception(f"Type Error: Unable to add {type(agnObjectArray)} objects to AGNBinaryBlackHoleArray.")
+        if not isinstance(agn_object_array, AGNBinaryBlackHoleArray):
+            raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNBinaryBlackHoleArray.")
 
-        self.unique_id_2 = np.concatenate((self.unique_id_2, agnObjectArray.unique_id_2))
-        self.mass_2 = np.concatenate((self.mass_2, agnObjectArray.mass_2))
-        self.orb_a_2 = np.concatenate((self.orb_a_2, agnObjectArray.orb_a_2))
-        self.spin_2 = np.concatenate((self.spin_2, agnObjectArray.spin_2))
-        self.spin_angle_2 = np.concatenate((self.spin_angle_2, agnObjectArray.spin_angle_2))
-        self.bin_sep = np.concatenate((self.bin_sep, agnObjectArray.bin_sep))
-        self.bin_orb_a = np.concatenate((self.bin_orb_a, agnObjectArray.bin_orb_a))
-        self.time_to_merger_gw = np.concatenate((self.time_to_merger_gw, agnObjectArray.time_to_merger_gw))
-        self.flag_merging = np.concatenate((self.flag_merging, agnObjectArray.flag_merging))
-        self.time_merged = np.concatenate((self.time_merged, agnObjectArray.time_merged))
-        self.bin_ecc = np.concatenate((self.bin_ecc, agnObjectArray.bin_ecc))
-        self.gen_2 = np.concatenate((self.gen_2, agnObjectArray.gen_2))
-        self.bin_orb_ang_mom = np.concatenate((self.bin_orb_ang_mom, agnObjectArray.bin_orb_ang_mom))
-        self.bin_orb_inc = np.concatenate((self.bin_orb_inc, agnObjectArray.bin_orb_inc))
-        self.bin_orb_ecc = np.concatenate((self.bin_orb_ecc, agnObjectArray.bin_orb_ecc))
+        self.unique_id_2 = np.concatenate((self.unique_id_2, agn_object_array.unique_id_2))
+        self.mass_2 = np.concatenate((self.mass_2, agn_object_array.mass_2))
+        self.orb_a_2 = np.concatenate((self.orb_a_2, agn_object_array.orb_a_2))
+        self.spin_2 = np.concatenate((self.spin_2, agn_object_array.spin_2))
+        self.spin_angle_2 = np.concatenate((self.spin_angle_2, agn_object_array.spin_angle_2))
+        self.bin_sep = np.concatenate((self.bin_sep, agn_object_array.bin_sep))
+        self.bin_orb_a = np.concatenate((self.bin_orb_a, agn_object_array.bin_orb_a))
+        self.time_to_merger_gw = np.concatenate((self.time_to_merger_gw, agn_object_array.time_to_merger_gw))
+        self.flag_merging = np.concatenate((self.flag_merging, agn_object_array.flag_merging))
+        self.time_merged = np.concatenate((self.time_merged, agn_object_array.time_merged))
+        self.bin_ecc = np.concatenate((self.bin_ecc, agn_object_array.bin_ecc))
+        self.gen_2 = np.concatenate((self.gen_2, agn_object_array.gen_2))
+        self.bin_orb_ang_mom = np.concatenate((self.bin_orb_ang_mom, agn_object_array.bin_orb_ang_mom))
+        self.bin_orb_inc = np.concatenate((self.bin_orb_inc, agn_object_array.bin_orb_inc))
+        self.bin_orb_ecc = np.concatenate((self.bin_orb_ecc, agn_object_array.bin_orb_ecc))
 
 
 class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
@@ -489,17 +497,17 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         return super_list
 
     @override
-    def add_objects(self, agnObjectArray: 'AGNMergedBlackHoleArray'):
-        super().add_objects(agnObjectArray)
+    def add_objects(self, agn_object_array: 'AGNMergedBlackHoleArray'):
+        super().add_objects(agn_object_array)
 
-        if not isinstance(agnObjectArray, AGNMergedBlackHoleArray):
-            raise Exception(f"Type Error: Unable to add {type(agnObjectArray)} objects to AGNMergedBlackHoleArray.")
+        if not isinstance(agn_object_array, AGNMergedBlackHoleArray):
+            raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNMergedBlackHoleArray.")
 
-        self.mass_final = np.concatenate((self.mass_final, agnObjectArray.mass_final))
-        self.spin_final = np.concatenate((self.spin_final, agnObjectArray.spin_final))
-        self.spin_angle_final = np.concatenate((self.spin_angle_final, agnObjectArray.spin_angle_final))
-        self.chi_eff = np.concatenate((self.chi_eff, agnObjectArray.chi_eff))
-        self.chi_p = np.concatenate((self.chi_p, agnObjectArray.chi_p))
+        self.mass_final = np.concatenate((self.mass_final, agn_object_array.mass_final))
+        self.spin_final = np.concatenate((self.spin_final, agn_object_array.spin_final))
+        self.spin_angle_final = np.concatenate((self.spin_angle_final, agn_object_array.spin_angle_final))
+        self.chi_eff = np.concatenate((self.chi_eff, agn_object_array.chi_eff))
+        self.chi_p = np.concatenate((self.chi_p, agn_object_array.chi_p))
 
 
 class FilingCabinet:

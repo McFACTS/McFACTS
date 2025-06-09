@@ -66,6 +66,8 @@ class TimelineActor(ABC):
         if not self.settings.verbose:
             return
 
+        msg = f"{self.name} :: {msg}"
+
         if self.parent_log_func is None:
             print(f"{"\n" if new_line else ""}(ID:??) {msg}")
         else:

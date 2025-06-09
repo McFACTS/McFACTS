@@ -4,9 +4,7 @@ Module for calculating the final variables of a merging binary.
 import numpy as np
 from astropy import units as u
 from astropy import constants as const
-from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.binary import merge
-from mcfacts.physics import analytical_velo, lum
+from mcfacts.physics import analytical_velo, lum, point_masses
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
@@ -333,21 +331,21 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         Current galaxy iteration
     """
 
-    bh_mass_merged = merge.merged_mass(
+    bh_mass_merged = merged_mass(
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2")
     )
 
-    bh_spin_merged = merge.merged_spin(
+    bh_spin_merged = merged_spin(
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2")
     )
 
-    bh_chi_eff_merged = merge.chi_effective(
+    bh_chi_eff_merged = chi_effective(
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
@@ -357,7 +355,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_ang_mom")
     )
 
-    bh_chi_p_merged = merge.chi_p(
+    bh_chi_p_merged = chi_p(
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
@@ -396,7 +394,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_spin_merged,
         bh_v_kick)
 
-    bh_orb_ecc_merged = merge.merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
+    bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
                                              np.full(bh_binary_id_num_merger.size, bh_v_kick),
                                              smbh_mass)
 
@@ -438,3 +436,45 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
                                   new_id_num=bh_binary_id_num_merger)
 
     return (blackholes_merged, blackholes_pro)
+
+
+def bin_contact_check(bin_mass_1, bin_mass_2, bin_sep, bin_flag_merging, smbh_mass):
+    """Tests if binary separation has shrunk so that binary is touching
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black hole parameters
+    smbh_mass : float
+        Mass [M_sun] of the SMBH
+
+    Returns
+    -------
+    blackholes_binary : AGNBinaryBlackHole
+        Returns modified blackholes_binary with updated bin_sep and flag_merging.
+
+    Notes
+    -----
+    Touching condition is where binary separation is <= R_schw(M_1) + R_schw(M_2)
+                                                      = 2(R_g(M_1) + R_g(M_2))
+                                                      = 2G(M_1+M_2) / c^{2}
+
+    Since binary separation is in units of r_g (GM_smbh/c^2) then condition is simply:
+        binary_separation <= 2M_bin/M_smbh
+    """
+
+    # We assume bh are not spinning when in contact. TODO: Consider spin in future.
+    contact_condition = (point_masses.r_schwarzschild_of_m(bin_mass_1) +
+                         point_masses.r_schwarzschild_of_m(bin_mass_2))
+    contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition)
+    mask_condition = (bin_sep <= contact_condition)
+
+    # If binary separation <= contact condition, set binary separation to contact condition
+    bin_sep[mask_condition] = contact_condition[mask_condition]
+    bin_flag_merging[mask_condition] = -2
+
+    assert np.all(~np.isnan(bin_flag_merging)), \
+        "blackholes_binary.flag_merging contains NaN values"
+
+    return (bin_sep, bin_flag_merging)
+

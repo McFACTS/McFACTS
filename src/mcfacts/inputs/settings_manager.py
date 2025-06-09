@@ -38,6 +38,7 @@ defaults = {
     "flag_add_stars": True,  # Enable or disable stars
     "disk_star_mass_min_init": 5.0,
     "disk_star_mass_max_init": 40,
+    "rstar_rhill_exponent_ratio": 2.0,
 
     # Nuclear Star Cluster Parameters
     "nsc_radius_outer": 5.0,  # Outer radius of the Nuclear Star Cluster (pc)
@@ -85,6 +86,9 @@ defaults = {
     "bh_inner_disk_array_name": "blackholes_inner_disk",
     "bh_prograde_array_name": "blackholes_prograde",
     "bh_retrograde_array_name": "blackholes_retrograde",
+    "stars_prograde_array_name": "stars_prograde",
+    "stars_retrograde_array_name": "stars_retrograde",
+    "stars_merged_array_name": "stars_merged",
     "bbh_array_name": "blackholes_binary",
     "bbh_gw_array_name": "blackholes_binary_gw",
     "bbh_merged_array_name": "blackholes_merged"
@@ -97,6 +101,7 @@ static_settings = [
     "min_bbh_gw_separation",
     "agn_redshift"
 ]
+
 
 class SettingsManager:
     """
@@ -158,6 +163,7 @@ class SettingsManager:
         except KeyError as exception:
             raise AttributeError(f"SettingsManager has no key {item!r}") from exception
 
+
 class AGNDisk:
     def __init__(self, settings: SettingsManager):
         # TODO: More advanced handling?
@@ -183,5 +189,5 @@ class AGNDisk:
             settings.disk_bh_eddington_ratio,
             disk_radius_max_pc=settings.disk_radius_max_pc,
             flag_use_pagn=settings.flag_use_pagn,
-            verbose=settings.verbose
+            verbose= 1 if settings.verbose else 0
         )

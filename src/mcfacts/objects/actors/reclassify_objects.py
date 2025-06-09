@@ -1,3 +1,4 @@
+import numpy as np
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager
@@ -6,7 +7,7 @@ from mcfacts.objects.galaxy import AGNDisk, FilingCabinet
 from mcfacts.objects.timeline import TimelineActor
 
 
-class ReclassifyDiskObjects(TimelineActor):
+class InitialObjectReclassification(TimelineActor):
     """
     This simulation actor looks at the initial seeded array of objects and distributes them
     based on different classifications.
@@ -35,7 +36,7 @@ class ReclassifyDiskObjects(TimelineActor):
             name (str): Optional. The name of the actor. Defaults to "Reclassify Disk Objects".
             settings (SettingsManager): A settings manager instance. Defaults to base instance of `SettingsManager`.
         """
-        super().__init__("Reclassify Disk Objects" if name is None else name, settings)
+        super().__init__("Initial Object Reclassification" if name is None else name, settings)
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
         """
@@ -119,3 +120,57 @@ class ReclassifyDiskObjects(TimelineActor):
         # it can be used in the future to seed new black holes before classification is run.
 
         # TODO: Stars
+
+
+class InnerDiskFilter(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
+        super().__init__("Inner Disk Filter" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bh_retrograde_array_name in filing_cabinet:
+            blackholes_retro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
+
+            bh_id_num_retro_inner_disk = blackholes_retro.id_num[blackholes_retro.orb_a < sm.inner_disk_outer_radius]
+
+            if bh_id_num_retro_inner_disk.size > 0:
+                # Add BH to inner_disk_arrays
+                blackholes_inner_disk = blackholes_retro.copy()
+                blackholes_inner_disk.keep_only(bh_id_num_retro_inner_disk)
+
+                # Remove from blackholes_retro and update filing_cabinet
+
+                filing_cabinet.create_or_append_array(sm.bh_inner_disk_array_name, blackholes_inner_disk)
+                blackholes_retro.remove_all(bh_id_num_retro_inner_disk)
+
+
+class FlipRetroProFilter(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
+        super().__init__("Flip Retrograde Prograde Filter" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bh_retrograde_array_name not in filing_cabinet:
+            return
+
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
+        blackholes_retro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
+
+        inc_threshhold = 5.0 * np.pi / 180.0
+
+        bh_id_num_flip_to_pro = blackholes_retro.id_num[
+            np.where((np.abs(blackholes_retro.orb_inc) <= inc_threshhold) | (blackholes_retro.orb_ecc == 0.0))]
+
+        blackholes_flipped = blackholes_retro.copy()
+        blackholes_flipped.keep_only(bh_id_num_flip_to_pro)
+        blackholes_flipped.orb_ang_mom = np.ones(bh_id_num_flip_to_pro.size)
+
+        blackholes_pro.add_objects(blackholes_flipped)
+        blackholes_retro.remove_all(bh_id_num_flip_to_pro)

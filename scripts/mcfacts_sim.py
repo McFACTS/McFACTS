@@ -9,24 +9,17 @@ import time
 import numpy as np
 from astropy import units as u
 
-from mcfacts.physics.binary import evolve
-from mcfacts.physics.binary import formation
-from mcfacts.physics.binary import merge
-
-from mcfacts.physics import accretion
+from mcfacts.physics import accretion, merge, formation, evolve
 from mcfacts.physics import disk_capture
 from mcfacts.physics import dynamics
 from mcfacts.physics import eccentricity
 from mcfacts.physics import emri
 from mcfacts.physics import tde
-from mcfacts.physics import feedback
 from mcfacts.physics import gw
 from mcfacts.physics import migration
 from mcfacts.physics import stellar_interpolation
 #from mcfacts.physics import star_interactions
 from mcfacts.physics import point_masses
-from mcfacts.physics import lum
-from mcfacts.physics import analytical_velo
 
 from mcfacts.inputs import ReadInputs
 from mcfacts.inputs import data as input_data
@@ -591,10 +584,12 @@ def main():
             #       All other BH, damp ecc and spin *down* BH (retrograde accretion), accrete mass.
             # 2. Run close encounters only on those prograde_bh_location_ecrit members.
 
+            # region Singleton Migration
+
             # Migrate
             # First if feedback present, find ratio of feedback heating torque to migration torque
             if opts.flag_thermal_feedback > 0:
-                ratio_heat_mig_torques = feedback.feedback_bh_hankla(
+                ratio_heat_mig_torques = migration.feedback_bh_hankla(
                     blackholes_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
@@ -602,7 +597,7 @@ def main():
                     opts.disk_alpha_viscosity,
                     opts.disk_radius_outer)
 
-                ratio_heat_mig_stars_torques = feedback.feedback_stars_hankla(
+                ratio_heat_mig_stars_torques = migration.feedback_stars_hankla(
                     stars_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
@@ -860,12 +855,15 @@ def main():
             filing_cabinet.update(id_num=stars_pro.id_num,
                                   attr="orb_a",
                                   new_info=stars_pro.orb_a)
+            # endregion
 
+            # region Orbit Reality Check
             # Check for eccentricity > 1 (hyperbolic orbit, ejected from disk)
             bh_pro_id_num_ecc_hyperbolic = blackholes_pro.id_num[blackholes_pro.orb_ecc >= 1.]
             if bh_pro_id_num_ecc_hyperbolic.size > 0:
                 blackholes_pro.remove_id_num(bh_pro_id_num_ecc_hyperbolic)
                 filing_cabinet.remove_id_num(bh_pro_id_num_ecc_hyperbolic)
+            # endregion
 
             # Stars lose mass via stellar winds
             stars_pro.mass, star_mass_lost = accretion.star_wind_mass_loss(
@@ -974,6 +972,8 @@ def main():
                                   new_info=stars_pro.orb_ecc)
             # endregion
 
+            # region Capture Retrograde Objects
+
             # Now do retrograde singles--change semi-major axis
             #   note this is dyn friction only, not true 'migration'
             # change retrograde eccentricity (some damping, some pumping)
@@ -1018,7 +1018,9 @@ def main():
             filing_cabinet.update(id_num=stars_retro.id_num,
                                   attr="orb_a",
                                   new_info=stars_retro.orb_a)
+            # endregion
 
+            # region Orbit Reality Check (Part 2)
             # Check for hyperbolic eccentricity (ejected from disk)
             bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc >= 1.]
             if bh_retro_id_num_ecc_hyperbolic.size > 0:
@@ -1029,7 +1031,9 @@ def main():
             if star_retro_id_num_ecc_hyperbolic.size > 0:
                 stars_retro.remove_id_num(star_retro_id_num_ecc_hyperbolic)
                 filing_cabinet.remove_id_num(star_retro_id_num_ecc_hyperbolic)
+            # endregion
 
+            # region Singleton Dynamics
             # Perturb eccentricity via dynamical encounters
             if opts.flag_dynamic_enc > 0:
 
@@ -1214,7 +1218,9 @@ def main():
                 filing_cabinet.update(id_num=stars_pro.id_num,
                                       attr="orb_a",
                                       new_info=stars_pro.orb_a)
+            # endregion
 
+            # region Binary Dynamics
             # Do things to the binaries--first check if there are any:
             if blackholes_binary.num > 0:
 
@@ -1951,6 +1957,7 @@ def main():
                     print("No binaries formed yet")
                     # No Binaries present in bin_array. Nothing to do.
                 # Finished evolving binaries
+            # endregion
 
             # If a close encounter within mutual Hill sphere objects will form a binary or otherwise interact
             # check which objects have a close encounter within mutual Hill sphere

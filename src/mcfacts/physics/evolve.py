@@ -1,11 +1,10 @@
 """
 Module for evolving the state of a binary.
 """
-from mcfacts.physics import point_masses
-import numpy as np
-import scipy
-import astropy.constants as const
 import astropy.units as u
+import numpy as np
+
+from mcfacts.physics import point_masses
 
 
 def change_bin_mass(binary_mass_1, binary_mass_2, binary_flag_merging, disk_bh_eddington_ratio,
@@ -85,9 +84,9 @@ def change_bin_spin_magnitudes(bin_spin_1, bin_spin_2, bin_flag_merging, disk_bh
         Binary black holes with updated spins after spinning up at prescribed rate for one timestep
     """
 
-    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio/1.0  # does nothing?
-    timestep_duration_yr_normalized = timestep_duration_yr/1.e4  # yrs to yr/10k?
-    disk_bh_torque_condition_normalized = disk_bh_torque_condition/0.1  # what does this do?
+    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio / 1.0  # does nothing?
+    timestep_duration_yr_normalized = timestep_duration_yr / 1.e4  # yrs to yr/10k?
+    disk_bh_torque_condition_normalized = disk_bh_torque_condition / 0.1  # what does this do?
 
     # Set max allowed spin
     max_allowed_spin = 0.98
@@ -147,9 +146,9 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
     blackholes_binary : AGNBinaryBlackHole
         Binary black holes with updated spin angles after subtracting angle at prescribed rate for one timestep
     """
-    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio/1.0  # does nothing?
-    timestep_duration_yr_normalized = timestep_duration_yr/1.e4  # yrs to yr/10k?
-    disk_bh_torque_condition_normalized = disk_bh_torque_condition/0.1  # what does this do?
+    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio / 1.0  # does nothing?
+    timestep_duration_yr_normalized = timestep_duration_yr / 1.e4  # yrs to yr/10k?
+    disk_bh_torque_condition_normalized = disk_bh_torque_condition / 0.1  # what does this do?
 
     # Only interested in BH that have not merged
     idx_non_mergers = np.where(binary_flag_merging >= 0)
@@ -175,7 +174,8 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
     return (bin_spin_angle_1, bin_spin_angle_2)
 
 
-def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio, disk_alpha_viscosity, disk_radius_outer):
+def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio,
+                            disk_alpha_viscosity, disk_radius_outer):
     """Calculates ratio of heating torque to migration torque using Eqn. 28 in Hankla, Jiang & Armitage (2020)
 
     Parameters
@@ -237,12 +237,14 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
     # Define kappa (or set up a function to call).
     disk_opacity = disk_opacity_func(bin_orb_a)
 
-    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity, -1.5) * disk_bh_eddington_ratio * np.sqrt(bin_orb_a) / disk_surface_density_at_location
+    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity,
+                                                                          -1.5) * disk_bh_eddington_ratio * np.sqrt(
+        bin_orb_a) / disk_surface_density_at_location
 
     # set ratio = 1 (no migration) for binaries at or beyond the disk outer radius
     ratio_heat_mig_torques_bin_com[bin_orb_a > disk_radius_outer] = 1.0
 
-    assert np.isfinite(ratio_heat_mig_torques_bin_com).all(),\
+    assert np.isfinite(ratio_heat_mig_torques_bin_com).all(), \
         "Finite check failure: ratio_heat_mig_torques_bin_com"
 
     return (ratio_heat_mig_torques_bin_com)
@@ -291,89 +293,16 @@ def bin_ionization_check(bin_mass_1, bin_mass_2, bin_orb_a, bin_sep, bin_id_num,
     frac_rhill = 1.0
 
     # bin_orb_a is in units of r_g of the SMBH = GM_smbh/c^2
-    mass_ratio = (bin_mass_1 + bin_mass_2)/smbh_mass
+    mass_ratio = (bin_mass_1 + bin_mass_2) / smbh_mass
     hill_sphere = bin_orb_a * np.power(mass_ratio / 3, 1. / 3.)
 
-    bh_id_nums = bin_id_num[np.where(bin_sep > (frac_rhill*hill_sphere))[0]]
+    bh_id_nums = bin_id_num[np.where(bin_sep > (frac_rhill * hill_sphere))[0]]
 
     return (bh_id_nums)
 
 
-def bin_contact_check(bin_mass_1, bin_mass_2, bin_sep, bin_flag_merging, smbh_mass):
-    """Tests if binary separation has shrunk so that binary is touching
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black hole parameters
-    smbh_mass : float
-        Mass [M_sun] of the SMBH
-
-    Returns
-    -------
-    blackholes_binary : AGNBinaryBlackHole
-        Returns modified blackholes_binary with updated bin_sep and flag_merging.
-
-    Notes
-    -----
-    Touching condition is where binary separation is <= R_schw(M_1) + R_schw(M_2)
-                                                      = 2(R_g(M_1) + R_g(M_2))
-                                                      = 2G(M_1+M_2) / c^{2}
-
-    Since binary separation is in units of r_g (GM_smbh/c^2) then condition is simply:
-        binary_separation <= 2M_bin/M_smbh
-    """
-
-    # We assume bh are not spinning when in contact. TODO: Consider spin in future.
-    contact_condition = (point_masses.r_schwarzschild_of_m(bin_mass_1) +
-                         point_masses.r_schwarzschild_of_m(bin_mass_2))
-    contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition)
-    mask_condition = (bin_sep <= contact_condition)
-
-    # If binary separation <= contact condition, set binary separation to contact condition
-    bin_sep[mask_condition] = contact_condition[mask_condition]
-    bin_flag_merging[mask_condition] = -2
-
-    assert np.all(~np.isnan(bin_flag_merging)), \
-        "blackholes_binary.flag_merging contains NaN values"
-
-    return (bin_sep, bin_flag_merging)
-
-
-def bin_reality_check(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc, bin_id_num):
-    """Tests if binaries are real (location and mass do not equal 0)
-
-    This function tests to see if the binary is real. If location = 0 or mass = 0 *and* any other element is NON-ZERO then discard this binary element.
-    Returns ID numbers of fake binaries.
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black hole parameters
-
-    Returns
-    -------
-    id_nums or bh_bin_id_num_fakes : numpy.ndarray
-        ID numbers of fake binaries with :obj:`float` type
-    """
-    bh_bin_id_num_fakes = np.array([])
-
-    mass_1_id_num = bin_id_num[bin_mass_1 == 0]
-    mass_2_id_num = bin_id_num[bin_mass_2 == 0]
-    orb_a_1_id_num = bin_id_num[bin_orb_a_1 == 0]
-    orb_a_2_id_num = bin_id_num[bin_orb_a_2 == 0]
-    bin_ecc_id_num = bin_id_num[bin_ecc >= 1]
-
-    id_nums = np.concatenate([mass_1_id_num, mass_2_id_num,
-                             orb_a_1_id_num, orb_a_2_id_num, bin_ecc_id_num])
-
-    if id_nums.size > 0:
-        return (id_nums)
-    else:
-        return (bh_bin_id_num_fakes)
-
-
-def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging, bin_time_merged, smbh_mass, timestep_duration_yr,
+def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging,
+                        bin_time_merged, smbh_mass, timestep_duration_yr,
                         time_gw_normalization, time_passed):
     """Harden black hole binaries using Baruteau+11 prescription
 
@@ -422,13 +351,14 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
     # Find eccentricity factor (1-e_b^2)^7/2
     ecc_factor_1 = np.power(1 - np.power(bin_ecc_nomerge, 2), 3.5)
     # and eccentricity factor [1+(73/24)e_b^2+(37/96)e_b^4]
-    ecc_factor_2 = 1 + ((73/24) * np.power(bin_ecc_nomerge, 2)) + ((37/96) * np.power(bin_ecc_nomerge, 4))
+    ecc_factor_2 = 1 + ((73 / 24) * np.power(bin_ecc_nomerge, 2)) + ((37 / 96) * np.power(bin_ecc_nomerge, 4))
     # overall ecc factor = ecc_factor_1/ecc_factor_2
-    ecc_factor = ecc_factor_1/ecc_factor_2
+    ecc_factor = ecc_factor_1 / ecc_factor_2
 
     # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
     # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
-    bin_period = 0.32 * np.power(bin_sep_nomerge, 1.5) * np.power(smbh_mass/1.e8, 1.5) * np.power(mass_binary/10.0, -0.5)
+    bin_period = 0.32 * np.power(bin_sep_nomerge, 1.5) * np.power(smbh_mass / 1.e8, 1.5) * np.power(mass_binary / 10.0,
+                                                                                                    -0.5)
 
     # Find how many binary orbits in timestep. Binary separation is halved for every 10^3 orbits.
     num_orbits_in_timestep = np.zeros(len(bin_period))
@@ -446,7 +376,7 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
     ) * ecc_factor).value
 
     # Finite check
-    assert np.isfinite(time_to_merger_gw).all(),\
+    assert np.isfinite(time_to_merger_gw).all(), \
         "Finite check failure: time_to_merger_gw"
     bin_time_to_merger_gw[idx_non_mergers] = time_to_merger_gw
 
@@ -460,7 +390,7 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
     bin_sep_nomerge[~merge_mask] = bin_sep_nomerge[~merge_mask] * (0.5 ** scaled_num_orbits[~merge_mask])
     bin_sep[idx_non_mergers[~merge_mask]] = bin_sep_nomerge[~merge_mask]
     # Finite check
-    assert np.isfinite(bin_sep_nomerge).all(),\
+    assert np.isfinite(bin_sep_nomerge).all(), \
         "Finite check failure: bin_sep_nomerge"
 
     # Otherwise binary will merge in this timestep
@@ -468,10 +398,10 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
     bin_flag_merging[idx_non_mergers[merge_mask]] = -2
     bin_time_merged[idx_non_mergers[merge_mask]] = time_passed
     # Finite check
-    assert np.isfinite(bin_flag_merging).all(),\
+    assert np.isfinite(bin_flag_merging).all(), \
         "Finite check failure: bin_flag_merging"
     # Finite check
-    assert np.isfinite(bin_time_merged).all(),\
+    assert np.isfinite(bin_time_merged).all(), \
         "Finite check failure: bin_time_merged"
 
     return (bin_sep, bin_flag_merging, bin_time_merged, bin_time_to_merger_gw)
