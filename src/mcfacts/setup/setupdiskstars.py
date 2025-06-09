@@ -1,9 +1,10 @@
 import numpy as np
-from astropy.constants import G 
+from astropy.constants import G
 from mcfacts.mcfacts_random_state import rng
+from mcfacts.setup import setupdiskblackholes
 
 
-def setup_disk_stars_orb_a(star_num, disk_radius_outer):
+def setup_disk_stars_orb_a(star_num, disk_radius_outer, disk_inner_stable_circ_orb):
     """Generates initial single star semi-major axes
 
     BH semi-major axes are distributed randomly uniformly through disk of radial size :math:`\\mathtt{disk_outer_radius}`
@@ -14,13 +15,19 @@ def setup_disk_stars_orb_a(star_num, disk_radius_outer):
         number of stars
     disk_radius_outer : float
         outer radius of disk, maximum semimajor axis for stars
+    disk_inner_stable_circ_orb : float
+        Inner radius of disk [r_{g,SMBH}]
 
     Returns
     -------
     star_orb_a_initial : numpy.ndarray
         semi-major axes for stars
     """
-    star_orb_a_initial = disk_radius_outer*rng.uniform(size=star_num)
+
+    # Generating star locations in an x^2 distribution
+    x_vals = rng.uniform(low=(disk_inner_stable_circ_orb/disk_radius_outer) ** 2, high=1, size=star_num)
+    star_orb_a_initial = np.sqrt(x_vals) * disk_radius_outer
+
     return (star_orb_a_initial)
 
 
@@ -74,11 +81,12 @@ def setup_disk_stars_radius(masses):
 
     Returns
     -------
-    radii : numpy.ndarray
-        stellar radii
+    star_log_radius : numpy.ndarray
+        log of stellar radii
     """
     star_radius_initial = (masses**0.8)
-    return (star_radius_initial)
+    star_log_radius = np.log10(star_radius_initial)
+    return (star_log_radius)
 
 
 def setup_disk_stars_comp(star_num,
@@ -120,60 +128,8 @@ def setup_disk_stars_comp(star_num,
     return (star_X_initial, star_Y_initial, star_Z_initial)
 
 
-def setup_disk_stars_spins(star_num,
-                           nsc_star_spin_dist_mu, nsc_star_spin_dist_sigma):
-    """
-    Generate initial spins for stars.
-
-    Parameters
-    ----------
-    star_num : int
-        number of stars
-    nsc_star_spin_dist_mu : float
-        mean for Gaussian distribution
-    nsc_star_spin_dist_sigma : float
-        standard deviation for Gaussian distribution
-
-    Returns
-    -------
-    star_spins_initial : numpy array
-        initial spins for stars
-    """
-    star_spins_initial = rng.normal(loc=nsc_star_spin_dist_mu,
-                                    scale=nsc_star_spin_dist_sigma,
-                                    size=star_num)
-    return (star_spins_initial)
-
-
-def setup_disk_stars_spin_angles(star_num, star_spins_initial):
-    """
-    Return an array of star initial spin angles (in radians). Positive
-    (negative) spin magnitudes have spin angles
-    [0,1.57]([1.5701,3.14])rads. All star spin angles drawn
-    from [0,1.57]rads and +1.57rads to negative spin indices
-
-    Parameters
-    ----------
-    star_num : int
-        number of stars
-    star_spins_initial : numpy array
-        spins of stars
-
-    Returns
-    -------
-    star_spin_angles_initial : numpy array
-        spin angles of stars
-    """
-
-    star_initial_spin_indices = np.array(star_spins_initial)
-    negative_spin_indices = np.where(star_initial_spin_indices < 0.)
-    star_spin_angles_initial = rng.uniform(low=0., high=1.57, size=star_num)
-    star_spin_angles_initial[negative_spin_indices] = star_spin_angles_initial[negative_spin_indices] + 1.57
-    return (star_spin_angles_initial)
-
-
-def setup_disk_stars_orb_ang_mom(star_num,
-                                 mass_reduced, mass_total,
+def setup_disk_stars_orb_ang_mom_full(star_num,
+                                 mass, smbh_mass,
                                  orb_a, orb_inc,):
     """
     Calculate initial orbital angular momentum from Keplerian orbit formula
@@ -198,11 +154,32 @@ def setup_disk_stars_orb_ang_mom(star_num,
     star_orb_ang_mom_initial : numpy.ndarray
         orbital angular momentum
     """
-    random_uniform_number = rng.uniform(size=star_num)
-    star_orb_ang_mom_initial_sign = (2.0*np.around(random_uniform_number)) - 1.0
+    mass_total = mass + smbh_mass
+    mass_reduced = (mass * smbh_mass) / mass_total
+    star_orb_ang_mom_initial_sign = rng.choice(a=[1., -1.], size=star_num)
     star_orb_ang_mom_initial_value = mass_reduced*np.sqrt(G.to('m^3/(M_sun s^2)').value*mass_total*orb_a*(1-orb_inc**2))
     star_orb_ang_mom_initial = star_orb_ang_mom_initial_sign*star_orb_ang_mom_initial_value
     return (star_orb_ang_mom_initial)
+
+
+def setup_disk_stars_orb_ang_mom(star_num):
+    """Generates disk star initial orbital angular momenta [unitless]
+
+    Assume either initially fully prograde (+1) or retrograde (-1)
+
+    Parameters
+    ----------
+        star_num : int
+            Integer number of BH initially embedded in disk
+
+    Returns
+    -------
+        disk_bh_initial_orb_ang_mom : numpy.ndarray
+            Initial BH orb ang mom [unitless] with :obj:`float` type. No units because it is an on/off switch.
+    """
+
+    disk_star_initial_orb_ang_mom = rng.choice(a=[1.,-1.],size=star_num)
+    return disk_star_initial_orb_ang_mom
 
 
 def setup_disk_stars_arg_periapse(star_num):
@@ -230,8 +207,7 @@ def setup_disk_stars_arg_periapse(star_num):
         arguments for orbital periapse
     """
 
-    random_uniform_number = rng.uniform(size=star_num)
-    star_orb_arg_periapse_initial = 0.5 * np.pi * np.around(random_uniform_number)
+    star_orb_arg_periapse_initial = rng.choice(a=[0., 0.5*np.pi],size=star_num)
 
     return (star_orb_arg_periapse_initial)
 
@@ -264,7 +240,7 @@ def setup_disk_stars_eccentricity_thermal(star_num):
     return (star_orb_ecc_initial)
 
 
-def setup_disk_stars_eccentricity_uniform(star_num):
+def setup_disk_stars_eccentricity_uniform(star_num, disk_star_orb_ecc_max_init):
     """
     Return an array of star orbital eccentricities
     For a uniform initial distribution of eccentricities, select from
@@ -288,14 +264,12 @@ def setup_disk_stars_eccentricity_uniform(star_num):
         orbital eccentricities
     """
     random_uniform_number = rng.uniform(size=star_num)
-    star_orb_ecc_initial = random_uniform_number
+    star_orb_ecc_initial = random_uniform_number * disk_star_orb_ecc_max_init
     return (star_orb_ecc_initial)
 
 
-def setup_disk_stars_inclination_toinclude(star_num,
-                                           star_orb_a,
-                                           star_orb_ang_mom,
-                                           disk_aspect_ratio):
+def setup_disk_stars_inc(star_num, star_orb_a, star_orb_ang_mom,
+                         disk_aspect_ratio):
     """
     NEED TO UPDATE STAR FUNCTIONS TO CALL THS INSTEAD
     Return an array of star orbital inclinations
@@ -399,84 +373,58 @@ def setup_disk_stars_circularized(star_num, crit_ecc):
 
     # For now, inclinations are zeros
     # Try zero eccentricities
-    star_orb_ecc_initial = crit_ecc*np.zeros(shape=star_num, dtype=float)
+    star_orb_ecc_initial = crit_ecc*np.ones(shape=star_num, dtype=float)
     return (star_orb_ecc_initial)
 
 
-def setup_disk_stars_num(nsc_mass,
-                         nsc_ratio_bh_num_star_num,
-                         nsc_ratio_bh_mass_star_mass,
-                         nsc_radius_outer,
-                         nsc_density_index_outer,
-                         smbh_mass,
-                         disk_radius_outer,
-                         disk_aspect_ratio_avg,
-                         nsc_radius_crit,
-                         nsc_density_index_inner):
-    """
-    Return the integer number of stars in the AGN disk as calculated from NSC
-    inputs assuming isotropic distribution of NSC orbits
-    To do: Calculate when R_disk_outer is not equal to the nsc_radius_crit
-    To do: Calculate when disky NSC population of BH in plane/out of plane.
-
+def setup_disk_stars_num(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
+                         disk_star_scale_factor,
+                         nsc_radius_outer, nsc_density_index_outer, smbh_mass, disk_radius_outer,
+                         disk_aspect_ratio_avg, nsc_radius_crit, nsc_density_index_inner):
+    """Calculates integer number of BH in the AGN disk as calculated from user inputs for NSC and disk
 
     Parameters
     ----------
-    nsc_mass : float
-        mass of the NSC
-    nsc_ratio_bh_num_star_num : float
-        ratio of number of black holes to number of stars
-    nsc_ratio_bh_mass_star_mass : float
-        ratio of mass of black holes to mass of stars
-    nsc_radius_outer : float
-        outer radius of the NSC
-    nsc_density_index_outer : float
-        inner radius of the NSC
-    smbh_mass : float
-        mass of the SMBH
-    disk_radius_outer : float
-        outer radius of the disk
-    disk_aspect_ratio_avg : float
-        aspect ratio of the disk
-    nsc_radius_crit : float
-        critical radius of the NSC
-    nsc_density_index_inner : float
+        nsc_mass : float
+            Mass of Nuclear Star Cluster [M_sun]. Set by user. Default is mass of Milky Way NSC = 3e7M_sun.
+        nsc_ratio_bh_num_star_num : float
+            Ratio of number of BH in NSC to number of stars [unitless]. Set by user. Default is 1.e-3.
+        nsc_ratio_mbh_mass_star_mass : float
+            Ratio of mass of typical BH in NSC to typical star in NSC [unitless]. Set by user. Default is 10 (BH=10M_sun,star=1M_sun)
+        disk_star_scale_factor : float
+            Scale factor [unitless] to go from number of BH to number of stars. Set by user.
+        nsc_radius_outer : float
+            Outer radius of NSC [pc]. Set by user. Default is 5pc.
+        nsc_density_index_outer : float
+            NSC density powerlaw index in outer regions. Set by user. 
+            NSC density n(r) is assumed to consist of a broken powerlaw distribution,
+            with one powerlaw in inner regions (Bahcall-Wolf, r^{-7/4} usually) and one in the outer regions.
+            This is the outer region NSC powerlaw density index. Default is :math:`n(r) \\propto r^{-5/2}`
+        smbh_mass : float
+            Mass of the SMBH [M_sun]. Set by user. Default is 1.e8M_sun.
+        disk_radius_outer : float
+            Outer radius of disk [r_{g,SMBH}]. Set by user. Default is 5.e4r_g (or 0.25pc around a 10^8M_sun)
+        disk_aspect_ratio_avg : float
+            Average disk aspect ratio [unitless]. Set by user. Default is h=0.03.
+        nsc_radius_crit : float
+            NSC critical radius [pc]. Set by user.
+            Radius at which NSC density changes from inner powerlaw index to outer powerlaw index.
+        nsc_density_index_inner : float
+            NSC density powerlaw index in inner regions [unitless]. Set by user.
+            Default is :math:`n(r) \propto r^{-7/4}` (Bahcall-Wolf)
 
     Returns
     -------
-    disk_star_num_total : int
-        number of stars in the disk in total
+        disk_star_num : int
+            Number of stars in the AGN disk
     """
-    # Housekeeping:
-    # Convert disk_radius_outer in r_g to units of pc. 1r_g =1AU (M_smbh/10^8Msun)
-    # 1pc =2e5AU =2e5 r_g(M/10^8Msun)^-1
-    pc_to_rg = 2.e5*((smbh_mass/1.e8)**(-1.0))
-    critical_disk_radius_pc = disk_radius_outer/pc_to_rg
-    # Total average mass of stars in NSC
-    nsc_star_mass = nsc_mass * (1./nsc_ratio_bh_num_star_num) * (1./nsc_ratio_bh_mass_star_mass)
-    # Total number of stars in NSC
-    nsc_star_num = nsc_star_mass * nsc_ratio_bh_mass_star_mass
-    # Relative volumes:
-    #   of central 1 pc^3 to size of NSC
-    relative_volumes_at1pc = (1.0/nsc_radius_outer)**(3.0)
-    #   of nsc_radius_crit^3 to size of NSC
-    relative_volumes_at_r_nsc_crit = (nsc_radius_crit/nsc_radius_outer)**(3.0)
-    # Total number of stars
-    #   at R<1pc (should be about 10^4 for Milky Way parameters; 3x10^7Msun, 5pc, r^-5/2 in outskirts)
-    nsc_star_num_orb_a_in_1pc = nsc_star_num * relative_volumes_at1pc * (1.0/nsc_radius_outer)**(-nsc_density_index_outer)
-    #   at nsc_radius_crit
-    nsc_star_num_orb_a_in_nsc_radius_crit = nsc_star_num * relative_volumes_at_r_nsc_crit * (nsc_radius_crit/nsc_radius_outer)**(-nsc_density_index_outer)
 
-    # Calculate Total number of stars in volume R < disk_radius_outer,
-    # assuming disk_radius_outer<=1pc.
+    # Get number of BH in disk
+    disk_bh_num = setupdiskblackholes.setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
+                                                     nsc_radius_outer, nsc_density_index_outer, smbh_mass, disk_radius_outer,
+                                                     disk_aspect_ratio_avg, nsc_radius_crit, nsc_density_index_inner)
 
-    if critical_disk_radius_pc >= nsc_radius_crit:
-        relative_volumes_at_disk_outer_radius = (critical_disk_radius_pc/1.0)**(3.0)
-        disk_star_num_volume_in_disk_radius_outer = nsc_star_num_orb_a_in_1pc * relative_volumes_at_disk_outer_radius * ((critical_disk_radius_pc/1.0)**(-nsc_density_index_outer))
-    else:
-        relative_volumes_at_disk_outer_radius = (critical_disk_radius_pc/nsc_radius_crit)**(3.0)
-        disk_star_num_volume_in_disk_radius_outer = nsc_star_num_orb_a_in_nsc_radius_crit * relative_volumes_at_disk_outer_radius * ((critical_disk_radius_pc/nsc_radius_crit)**(-nsc_density_index_inner))
+    # Number of stars is number of BH divided by the number ratio of BH to stars and multiplied by scale factor
+    disk_star_num = (disk_bh_num / nsc_ratio_bh_num_star_num) * disk_star_scale_factor
 
-    # Total number of BH in disk
-    disk_star_num_total = np.rint(disk_star_num_volume_in_disk_radius_outer * disk_aspect_ratio_avg)
-    return np.int64(disk_star_num_total)
+    return (int(disk_star_num))

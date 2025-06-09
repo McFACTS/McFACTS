@@ -1,0 +1,47 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - main-dev
+  pull_request:
+    branches:
+      - main-dev
+
+jobs:
+  run-test:
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest"] # "ubuntu-latest" We'll target linux, and maybe windows later.
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: 3.12
+          miniconda-version: 'latest'
+          channels: conda-forge
+          auto-update-conda: false
+          auto-activate-base: false
+          activate-environment: mcfacts-dev
+
+      - name: Install dependencies and McFACTS
+        run: |
+          conda activate mcfacts-dev
+          conda install pytest
+          python -m pip install --editable .
+
+      - name: Run Pytest
+        run: |
+          conda activate mcfacts-dev
+          pytest

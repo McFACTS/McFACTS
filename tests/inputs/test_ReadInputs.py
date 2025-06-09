@@ -144,36 +144,64 @@ def test_load_disk_arrays(verbose=True):
     # Loop disk models
     for disk_model_name in DISK_MODEL_NAMES:
         # Load the disk arrays
-        truncated_disk_radii, truncated_surface_densities, truncated_aspect_ratios = \
+        trunc_surf_density_data, trunc_aspect_ratio_data, \
+                trunc_opacity_data, trunc_sound_speed_data, \
+                trunc_density_data, trunc_omega_data, \
+                trunc_pressure_data, trunc_temperature_data = \
             load_disk_arrays(disk_model_name, disk_radius_outer)
         # Check the arrays
-        assert isinstance(truncated_disk_radii, np.ndarray), \
-            "load_disk_arrays returned truncated_disk_radii as type %s"%(
-                type(truncated_disk_radii)
+        assert isinstance(trunc_surf_density_data, np.ndarray), \
+            "load_disk_arrays returned trunc_surf_density_data as type %s"%(
+                type(trunc_surf_density_data)
             )
-        assert isinstance(truncated_surface_densities, np.ndarray), \
-            "load_disk_arrays returned truncated_surface_densities as type %s"%(
-                type(truncated_surface_densities)
+        assert isinstance(trunc_aspect_ratio_data, np.ndarray), \
+            "load_disk_arrays returned trunc_aspect_ratio_data as type %s"%(
+                type(trunc_aspect_ratio_data)
             )
-        assert isinstance(truncated_aspect_ratios, np.ndarray), \
-            "load_disk_arrays returned truncated_aspect_ratios as type %s"%(
-                type(truncated_aspect_ratios)
+        assert isinstance(trunc_opacity_data, np.ndarray), \
+            "load_disk_arrays returned trunc_opacity_data as type %s"%(
+                type(trunc_opacity_data)
+            )
+        assert isinstance(trunc_sound_speed_data, np.ndarray), \
+            "load_disk_arrays returned trunc_sound_speed_data as type %s"%(
+                type(trunc_sound_speed_data)
+            )
+        assert isinstance(trunc_density_data, np.ndarray), \
+            "load_disk_arrays returned trunc_density_data as type %s"%(
+                type(trunc_density_data)
+            )
+        assert isinstance(trunc_omega_data, np.ndarray), \
+            "load_disk_arrays returned trunc_omega_data as type %s"%(
+                type(trunc_omega_data)
+            )
+        assert isinstance(trunc_pressure_data, np.ndarray), \
+            "load_disk_arrays returned trunc_pressure_data as type %s"%(
+                type(trunc_pressure_data)
+            )
+        assert isinstance(trunc_temperature_data, np.ndarray), \
+            "load_disk_arrays returned trunc_temperature_data as type %s"%(
+                type(trunc_temperature_data)
             )
         # Check that arrays are one-dimensional
-        assert len(truncated_disk_radii.shape) == 1, \
-            "truncated_disk_radii.shape = %s"%(str(truncated_disk_radii.shape))
-        assert len(truncated_surface_densities.shape) == 1, \
-            "truncated_surface_densities.shape = %s"%(str(truncated_surface_densities.shape))
-        assert len(truncated_aspect_ratios.shape) == 1, \
-            "truncated_aspect_ratios.shape = %s"%(str(truncated_aspect_ratios.shape))
-        # Check that arrays have the same length
-        assert truncated_disk_radii.size == truncated_surface_densities.size, \
-            "truncated_disk_radii and truncated_surface_densities have different length"
-        assert truncated_disk_radii.size == truncated_aspect_ratios.size, \
-            "truncated_disk_radiis and truncated_aspect_ratios have different length"
+        assert len(trunc_surf_density_data.shape) == 2, \
+            "trunc_surf_density_data.shape = %s"%(str(trunc_surf_density_data.shape))
+        assert len(trunc_aspect_ratio_data.shape) == 2, \
+            "trunc_aspect_ratio_data.shape = %s"%(str(trunc_aspect_ratio_data.shape))
+        assert len(trunc_opacity_data.shape) == 2, \
+            "trunc_opacity_data.shape = %s"%(str(trunc_opacity_data.shape))
+        assert len(trunc_sound_speed_data.shape) == 2, \
+            "trunc_sound_speed_data.shape = %s"%(str(trunc_sound_speed_data.shape))
+        assert len(trunc_density_data.shape) == 2, \
+            "trunc_density_data.shape = %s"%(str(trunc_density_data.shape))
+        assert len(trunc_omega_data.shape) == 2, \
+            "trunc_omega_data.shape = %s"%(str(trunc_omega_data.shape))
+        assert len(trunc_pressure_data.shape) == 2, \
+            "trunc_pressure_data.shape = %s"%(str(trunc_pressure_data.shape))
+        assert len(trunc_temperature_data.shape) == 2, \
+            "trunc_temperature_data.shape = %s"%(str(trunc_temperature_data.shape))
     if verbose:
         print("  pass!")
-        
+
 def test_construct_disk_direct(verbose=True):
     """test mcfacts.inputs.ReadInputs.construct_disk_direct
 
@@ -197,19 +225,49 @@ def test_construct_disk_direct(verbose=True):
     # Loop disk models
     for disk_model_name in DISK_MODEL_NAMES:
         # Load the disk arrays
-        truncated_disk_radii, truncated_surface_densities, truncated_aspect_ratios = \
+        trunc_surf_density_data, trunc_aspect_ratio_data, \
+                trunc_opacity_data, trunc_sound_speed_data, \
+                trunc_density_data, trunc_omega_data, \
+                trunc_pressure_data, trunc_temperature_data = \
             load_disk_arrays(disk_model_name, disk_radius_outer)
         # Construct disk
-        disk_surf_dens_func, disk_aspect_ratio_func, disk_model_properties = \
+        disk_surf_dens_func, disk_aspect_ratio_func, \
+                disk_opacity_func, sound_speed_func, \
+                disk_density_func, disk_pressure_grad_func, \
+                disk_omega_func, disk_surf_dens_func_log, \
+                temp_func, \
+                surf_dens_log10_derivative_func, \
+                temp_log10_derivative_func, \
+                pressure_log10_derivative_func, \
+                disk_model_properties = \
             construct_disk_direct(disk_model_name, disk_radius_outer)
         # Evaluate estimates for each quantity
-        surface_density_estimate = disk_surf_dens_func(truncated_disk_radii)
-        aspect_ratio_estimate = disk_aspect_ratio_func(truncated_disk_radii)
-        # Check that they're close
-        assert np.allclose(surface_density_estimate, truncated_surface_densities), \
+        surface_density_estimate = disk_surf_dens_func(trunc_surf_density_data[0])
+        assert np.allclose(surface_density_estimate, trunc_surf_density_data[1]), \
             "NumPy allclose failed for %s surface_density interpolation"%(disk_model_name)
-        assert np.allclose(aspect_ratio_estimate, truncated_aspect_ratios), \
+        aspect_ratio_estimate = disk_aspect_ratio_func(trunc_aspect_ratio_data[0])
+        assert np.allclose(aspect_ratio_estimate, trunc_aspect_ratio_data[1]), \
             "NumPy allclose failed for %s aspect_ratio interpolation"%(disk_model_name)
+        opacity_estimate = disk_opacity_func(trunc_opacity_data[0])
+        assert np.allclose(opacity_estimate, trunc_opacity_data[1]), \
+            "NumPy allclose failed for %s opacity interpolation"%(disk_model_name)
+        sound_speed_estimate = sound_speed_func(trunc_sound_speed_data[0])
+        assert np.allclose(sound_speed_estimate, trunc_sound_speed_data[1]), \
+            "NumPy allclose failed for %s sound_speed interpolation"%(disk_model_name)
+        density_estimate = disk_density_func(trunc_density_data[0])
+        assert np.allclose(density_estimate, trunc_density_data[1]), \
+            "NumPy allclose failed for %s density interpolation"%(disk_model_name)
+        omega_estimate = disk_omega_func(trunc_omega_data[0])
+        assert np.allclose(omega_estimate, trunc_omega_data[1]), \
+            "NumPy allclose failed for %s omega interpolation"%(disk_model_name)
+        pressure_estimate = disk_pressure_grad_func(trunc_pressure_data[0])
+        assert np.allclose(pressure_estimate, trunc_pressure_data[1]), \
+            "NumPy allclose failed for %s pressure interpolation"%(disk_model_name)
+        temperature_estimate = temp_func(trunc_temperature_data[0])
+        assert np.allclose(temperature_estimate, trunc_temperature_data[1]), \
+            "NumPy allclose failed for %s temperature interpolation"%(disk_model_name)
+        # TODO test log10 derivatives
+
     if verbose:
         print("  pass!")
 
@@ -233,7 +291,7 @@ def test_construct_disk_pAGN(verbose=True):
     input_variables = ReadInputs_ini(fname_default_ini, verbose=verbose)
     # We only want disk_radius_outer
     disk_radius_outer = input_variables["disk_radius_outer"]
-    # Construct productspace 
+    # Construct productspace
     test_product_space = named_product(
         disk_model_name         = DISK_MODEL_NAMES,
         smbh_mass               = SMBH_MASSES,
@@ -243,7 +301,13 @@ def test_construct_disk_pAGN(verbose=True):
     # Loop tests
     for test_config in test_product_space:
         # Run pAGN
-        disk_surf_dens_func, disk_aspect_ratio_func, disk_model_properties, bonus_structures = \
+        disk_surf_dens_func, disk_aspect_ratio_func, \
+                disk_opacity_func, sound_speed_func, \
+                disk_density_func, disk_pressure_grad_func, \
+                disk_omega_func, disk_surf_dens_func_log, \
+                temp_func, surf_dens_log10_derivative_func, \
+                temp_log10_derivative_func, pressure_log10_derivative_func, \
+                disk_model_properties, bonus_structures = \
             construct_disk_pAGN(
                 test_config.disk_model_name,
                 test_config.smbh_mass,
@@ -280,7 +344,7 @@ def test_construct_disk_interp(
     disk_alpha_viscosity = input_variables["disk_alpha_viscosity"]
     disk_bh_eddington_ratio = input_variables["disk_bh_eddington_ratio"]
     disk_radius_max_pc = input_variables["disk_radius_max_pc"]
-    # Construct productspace 
+    # Construct productspace
     test_product_space = named_product(
         disk_model_name = DISK_MODEL_NAMES,
         flag_use_pagn   = FLAG_USE_PAGN,
@@ -288,16 +352,22 @@ def test_construct_disk_interp(
     # Loop tests
     for test_config in test_product_space:
         # Run function
-        disk_surf_dens_func, disk_aspect_ratio_func = construct_disk_interp(
-            smbh_mass,
-            disk_radius_outer,
-            test_config.disk_model_name,
-            disk_alpha_viscosity,
-            disk_bh_eddington_ratio,
-            disk_radius_max_pc=disk_radius_max_pc,
-            flag_use_pagn=test_config.flag_use_pagn,
-            verbose=verbose,
-        )
+        disk_surf_dens_func, disk_aspect_ratio_func, \
+                disk_opacity_func, sound_speed_func, \
+                disk_density_func, disk_pressure_grad_func, \
+                disk_omega_func, disk_surf_dens_func_log, \
+                temp_func, surf_dens_log10_derivative_func, \
+                temp_log10_derivative_func, pressure_log10_derivative_func = \
+            construct_disk_interp(
+                smbh_mass,
+                disk_radius_outer,
+                test_config.disk_model_name,
+                disk_alpha_viscosity,
+                disk_bh_eddington_ratio,
+                disk_radius_max_pc=disk_radius_max_pc,
+                flag_use_pagn=test_config.flag_use_pagn,
+                verbose=verbose,
+            )
     if verbose:
         print("  pass!")
 

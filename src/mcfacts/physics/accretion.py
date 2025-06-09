@@ -3,16 +3,86 @@ Module for calculating change of mass, spin magnitude, and spin angle due to acc
 """
 
 import numpy as np
+import astropy.constants as const
+import astropy.units as u
+from mcfacts.physics.point_masses import si_from_r_g
 
 
-def change_star_mass(disk_star_pro_masses,
-                     disk_star_eddington_ratio,
-                     mdisk_star_eddington_mass_growth_rate,
-                     timestep_duration_yr):
-    """Adds mass according to chosen stellar mass accretion prescription
+def star_wind_mass_loss(disk_star_pro_masses,
+                        disk_star_pro_log_radius,
+                        disk_star_pro_log_lum,
+                        disk_star_pro_orbs_a,
+                        disk_opacity_func,
+                        timestep_duration_yr):
+    """Removes mass according to the Cantiello+ 2021 prescription
 
-    Takes initial star masses at start of timestep and adds mass according to
-    chosen stellar mass accretion prescription
+    Takes initial star masses at the start of the timestep and removes mass according
+    to Eqn. 16 in Cantiello+ 2021
+
+    Parameters
+    ----------
+    disk_star_pro_masses : numpy.ndarray
+        Initial masses [M_sun] of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_log_radius : numpy.ndarray
+        Radius (log R/R_sun) of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_log_lum : numpy.ndarray
+        Luminosity (log L/L_sun) of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_orbs_a : numpy.narray
+        Semi-major axes [R_{g,SMBH}] of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_opacity_func : function
+        Disk opacity function
+    timestep_duration_yr : float
+        Length of timestep [yr]
+
+    Returns
+    -------
+    star_new_masses : numpy.ndarray
+        New masses [M_sun] after removing mass for one timestep at specified mass loss rate with :obj:`float` type.
+    """
+
+    # Get opacity for orb_a values and add SI units
+    disk_opacity = disk_opacity_func(disk_star_pro_orbs_a) * (u.meter ** 2) / u.kg
+
+    # First convert quantities to SI units
+    star_radius = (10 ** disk_star_pro_log_radius) * u.Rsun
+    star_lum = (10 ** disk_star_pro_log_lum) * u.Lsun
+    star_mass = disk_star_pro_masses * u.Msun
+    timestep_duration_yr_si = timestep_duration_yr * u.year
+
+    # Calculate Eddington luminosity
+    L_Edd = (4. * np.pi * const.G * const.c * star_mass / disk_opacity).to("Lsun")
+
+    # Calculate escape speed
+    v_esc = ((2. * const.G * star_mass / star_radius) ** 0.5).to("km/s")
+
+    tanh_argument = (star_lum - L_Edd) / (0.1 * L_Edd)
+    assert u.dimensionless_unscaled == tanh_argument.unit, "Units do not cancel out, error in luminosity calculations"
+
+    mdot_Edd = (- (star_lum / (v_esc ** 2)) * (1 + np.tanh(tanh_argument.value))).to("Msun/yr")
+
+    # This is already a negative number
+    mass_lost = (mdot_Edd * timestep_duration_yr_si).to("Msun").value
+
+    star_new_masses = ((star_mass + (mdot_Edd * timestep_duration_yr_si)).to("Msun")).value
+
+    assert np.all(star_new_masses > 0), \
+        "star_new_masses has values <= 0"
+
+    return (star_new_masses, mass_lost.sum())
+
+
+def accrete_star_mass(disk_star_pro_masses,
+                      disk_star_pro_orbs_a,
+                      disk_star_pro_eccs,
+                      disk_star_luminosity_factor,
+                      disk_star_initial_mass_cutoff,
+                      smbh_mass,
+                      disk_sound_speed,
+                      disk_density,
+                      timestep_duration_yr):
+    """Adds mass according to Fabj+2024 accretion rate
+
+    Takes initial star masses at start of timestep and adds mass according to Fabj+2024.
 
     Parameters
     ----------
@@ -32,12 +102,51 @@ def change_star_mass(disk_star_pro_masses,
     -------
     disk_star_pro_new_masses : numpy.ndarray
         Masses [M_sun] of stars after accreting at prescribed rate for one timestep [M_sun] with :obj:`float` type
+
+    Notes
+    -----
+    Calculate Bondi radius: R_B = (2 G M_*)/(c_s **2) and Hill radius: R_Hill \\approx a(1-e)(M_*/(3(M_* + M_SMBH)))^(1/3).
+    Accretion rate is Mdot = (pi/f) * rho * c_s * min[R_B, R_Hill]**2
+    with f ~ 4 as luminosity dependent factor that accounts for the decrease of the accretion rate onto the star as it
+    approaches the Eddington luminosity (see Cantiello+2021), rho as the disk density, and c_s as the sound speed.
     """
 
-    # Mass grows exponentially for length of timestep:
-    disk_star_pro_new_masses = disk_star_pro_masses*np.exp(mdisk_star_eddington_mass_growth_rate*disk_star_eddington_ratio*timestep_duration_yr)
+    # Put things in SI units
+    star_masses_si = disk_star_pro_masses * u.solMass
+    disk_sound_speed_si = disk_sound_speed(disk_star_pro_orbs_a) * u.meter/u.second
+    disk_density_si = disk_density(disk_star_pro_orbs_a) * (u.kg / (u.m ** 3))
+    timestep_duration_yr_si = timestep_duration_yr * u.year
 
-    return disk_star_pro_new_masses
+    # Calculate Bondi and Hill radii
+    r_bondi = (2 * const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
+    r_hill_rg = (disk_star_pro_orbs_a * (1 - disk_star_pro_eccs) * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
+    r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
+
+    # Determine which is smaller for each star
+    min_radius = np.minimum(r_bondi, r_hill_m)
+
+    # Calculate the mass accretion rate
+    mdot = ((np.pi / disk_star_luminosity_factor) * disk_density_si * disk_sound_speed_si * (min_radius ** 2)).to("kg/yr")
+
+    # Accrete mass onto stars
+    disk_star_pro_new_masses = ((star_masses_si + mdot * timestep_duration_yr_si).to("Msun")).value
+
+    # Stars can't accrete over disk_star_initial_mass_cutoff
+    disk_star_pro_new_masses[disk_star_pro_new_masses > disk_star_initial_mass_cutoff] = disk_star_initial_mass_cutoff
+
+    # Mass gained does not include the cutoff
+    mass_gained = ((mdot * timestep_duration_yr_si).to("Msun")).value
+
+    # Immortal stars don't enter this function as immortal because they lose a small amt of mass in star_wind_mass_loss
+    # Get how much mass is req to make them immortal again
+    immortal_mass_diff = disk_star_pro_new_masses[disk_star_pro_new_masses == disk_star_initial_mass_cutoff] - disk_star_pro_masses[disk_star_pro_new_masses == disk_star_initial_mass_cutoff]
+    # Any extra mass over the immortal cutoff is blown off the star and back into the disk
+    immortal_mass_lost = mass_gained[disk_star_pro_new_masses == disk_star_initial_mass_cutoff] - immortal_mass_diff
+
+    assert np.all(disk_star_pro_new_masses > 0), \
+        "disk_star_pro_new_masses has values <= 0"
+
+    return disk_star_pro_new_masses, mass_gained.sum(), immortal_mass_lost.sum()
 
 
 def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddington_mass_growth_rate, timestep_duration_yr):
@@ -68,157 +177,10 @@ def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddingto
     # Mass grows exponentially for length of timestep:
     disk_bh_pro_new_masses = disk_bh_pro_masses*np.exp(disk_bh_eddington_mass_growth_rate*disk_bh_eddington_ratio*timestep_duration_yr)
 
+    assert np.all(disk_bh_pro_new_masses > 0), \
+        "disk_bh_pro_new_masses has values <= 0"
+
     return disk_bh_pro_new_masses
-
-
-def change_star_spin_magnitudes(disk_star_pro_spins,
-                                disk_star_eddington_ratio,
-                                disk_star_torque_condition,
-                                timestep_duration_yr,
-                                disk_star_pro_orbs_ecc,
-                                disk_star_pro_orbs_ecc_crit):
-    """Updates the spin magnitude of the embedded stars based on their accreted mass in this timestep.
-
-    Parameters
-    ----------
-    disk_star_pro_spins : numpy.ndarray
-        Initial spins [unitless] of black holes in prograde orbits around SMBH :obj:`float` type
-    disk_star_eddington_ratio : float
-        Accretion rate of fully embedded stars [Eddington accretion rate].
-        1.0=embedded star accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
-    disk_star_torque_condition : float
-        Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk [unitless]. We don't know for sure but Bogdanovic et al.
-        says between 0.01=1% and 0.1=10% is what is required
-        User chosen input set by input file
-    timestep_duration_yr : float
-        Length of timestep [yr]
-    disk_star_pro_orbs_ecc : numpy.ndarray
-        Orbital eccentricity [unitless] of BH in prograde orbits around SMBH
-    disk_star_pro_orbs_ecc_crit : float
-        Critical value of orbital eccentricity [unitless] below which prograde accretion (& migration & binary formation) occurs
-    Returns
-    -------
-    disk_star_pro_spins_new : numpy.ndarray
-        Spin magnitudes [unitless] of black holes after accreting at prescribed rate for one timestep with :obj:`float` type
-
-    Notes
-    -----
-    Right now this is just a copy of the BH function. No changes.
-    """
-
-    # A retrograde BH a=-1 will spin down to a=0 when it accretes a factor sqrt(3/2)=1.22 in mass (Bardeen 1970).
-    # Since M_edd/t = 2.3 e-8 M0/yr or 2.3e-4M0/10kyr then M(t)=M0*exp((M_edd/t)*f_edd*time)
-    # so M(t)~1.2=M0*exp(0.2) so in 10^7yr, spin should go a=-1 to a=0. Or delta a ~ 10^-3 every 10^4yr.
-
-    disk_bh_eddington_ratio_normalized = disk_star_eddington_ratio/1.0
-    timestep_duration_yr_normalized = timestep_duration_yr/1.e4
-    disk_star_torque_condition_normalized = disk_star_torque_condition/0.1
-
-    spin_iteration = (1.e-3*disk_bh_eddington_ratio_normalized*disk_star_torque_condition_normalized*timestep_duration_yr_normalized)
-
-    disk_star_pro_spins_new = disk_star_pro_spins
-
-    # Singleton star with orb_ecc > orb_ecc_crit will spin down bc accrete retrograde
-    disk_star_pro_indices_spin_down = np.asarray(disk_star_pro_orbs_ecc > disk_star_pro_orbs_ecc_crit).nonzero()[0]
-    # Singleton star with orb ecc <= disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
-    disk_star_pro_indices_spin_up = np.asarray(disk_star_pro_orbs_ecc <= disk_star_pro_orbs_ecc_crit).nonzero()[0]
-
-
-
-    # disk_star_pro_spins_new[prograde_orb_ang_mom_indices]=disk_star_pro_spins_new[prograde_orb_ang_mom_indices]+(4.4e-3*disk_bh_eddington_ratio_normalized*disk_star_torque_condition_normalized*timestep_duration_yr_normalized)
-    disk_star_pro_spins_new[disk_star_pro_indices_spin_up] = disk_star_pro_spins[disk_star_pro_indices_spin_up] + spin_iteration
-    # Spin down stars with orb ecc > disk_star_pro_orbs_ecc_crit
-    disk_star_pro_spins_new[disk_star_pro_indices_spin_down] = disk_star_pro_spins[disk_star_pro_indices_spin_down] - spin_iteration
-
-    # Housekeeping: max possible spins, do not spin above or below these values.
-    disk_star_pro_spin_max = 0.98
-    disk_star_pro_spin_min = -0.98
-
-    for i in range(len(disk_star_pro_spins)):
-        if (disk_star_pro_spins_new[i] < disk_star_pro_spin_min):
-            disk_star_pro_spins_new[i] = disk_star_pro_spin_min
-
-        if (disk_star_pro_spins_new[i] > disk_star_pro_spin_max):
-            disk_star_pro_spins_new[i] = disk_star_pro_spin_max
-
-    return disk_star_pro_spins_new
-
-
-def change_star_spin_angles(prograde_stars_spin_angles,
-                            disk_star_eddington_ratio,
-                            disk_star_torque_condition,
-                            disk_star_spin_minimum_resolution,
-                            timestep_duration_yr,
-                            disk_star_pro_orbs_ecc,
-                            disk_star_pro_orbs_ecc_crit):
-    """Updates the spin angles of the embedded stars based on their accreted mass in this timestep.
-
-    Parameters
-    ----------
-    prograde_stars_spin_angles : numpy.ndarray
-        Spin angles [radian] of stars in prograde orbits around SMBH
-    disk_star_eddington_ratio : float
-        Accretion rate of fully embedded stars [Eddington accretion rate].
-        1.0=embedded star accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
-    disk_star_torque_condition : float
-        Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk [unitless]. We don't know for sure but Bogdanovic et al.
-        says between 0.01=1% and 0.1=10% is what is required
-        User chosen input set by input file
-    disk_star_spin_minimum_resolution : float
-        Minimum resolution of spin change followed by code [unitless]
-    timestep_duration_yr : float
-        Length of timestep [yr]
-    prograde_bh_orb ecc : numpy.ndarray
-        Orbital eccentricity [unitless] of stars in prograde orbist around SMBH
-    disk_star_pro_orbs_ecc_crit : float
-        Critical eccentricity [unitless] of stars below which prograde accretion & spin
-        will torque into disk alignment else retrograde accretion
-
-    Returns
-    -------
-    disk_star_spin_angles_new : numpy.ndarray
-        Spin angles [radian] of stars after accreting at prescribed rate for one timestep with :obj:`float` type
-
-    Notes
-    -----
-    Right now this is just a copy of the BH function. No changes.
-
-    """
-    # Calculate change in spin angle due to accretion during timestep
-    disk_bh_eddington_ratio_normalized = disk_star_eddington_ratio/1.0
-    timestep_duration_yr_normalized = timestep_duration_yr/1.e4
-    disk_star_torque_condition_normalized = disk_star_torque_condition/0.1
-
-    spin_torque_iteration = (6.98e-3*disk_bh_eddington_ratio_normalized*disk_star_torque_condition_normalized*timestep_duration_yr_normalized)
-
-    # Assume same angles as before to start
-    disk_star_spin_angles_new = prograde_stars_spin_angles
-
-    # Singleton star with orb_ecc > orb_ecc_crit will spin down bc accrete retrograde
-    disk_star_pro_indices_spin_down = np.asarray(disk_star_pro_orbs_ecc > disk_star_pro_orbs_ecc_crit).nonzero()[0]
-    # Singleton star with orb ecc <= disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
-    disk_star_pro_indices_spin_up = np.asarray(disk_star_pro_orbs_ecc <= disk_star_pro_orbs_ecc_crit).nonzero()[0]
-
-
-    # Spin up stars are torqued towards zero (ie alignment with disk,
-    # so decrease mag of spin angle)
-    disk_star_spin_angles_new[disk_star_pro_indices_spin_up] = prograde_stars_spin_angles[disk_star_pro_indices_spin_up] - spin_torque_iteration
-    # Spin down stars with orb ecc > disk_star_pro_orbs_ecc_crit are torqued toward anti-alignment with disk, incr mag of spin angle.
-    disk_star_spin_angles_new[disk_star_pro_indices_spin_down] = prograde_stars_spin_angles[disk_star_pro_indices_spin_down] + spin_torque_iteration
-
-    # TO DO: Include a condition to keep spin angle at or close to zero once it gets there
-    # Housekeeping
-    # Max bh spin angle in rads (pi rads = anti-alignment)
-    disk_star_spin_angle_max = 3.10
-    disk_star_spin_angles_new[disk_star_spin_angles_new < disk_star_spin_minimum_resolution] = 0.0
-    disk_star_spin_angles_new[disk_star_spin_angles_new > disk_star_spin_angle_max] = disk_star_spin_angle_max
-    return disk_star_spin_angles_new
 
 
 def change_bh_spin_magnitudes(disk_bh_pro_spins,
@@ -281,12 +243,11 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
     disk_bh_pro_spin_max = 0.98
     disk_bh_pro_spin_min = -0.98
 
-    for i in range(len(disk_bh_pro_spins)):
-        if (disk_bh_pro_spins_new[i] < disk_bh_pro_spin_min):
-            disk_bh_pro_spins_new[i] = disk_bh_pro_spin_min
+    disk_bh_pro_spins_new[disk_bh_pro_spins_new < disk_bh_pro_spin_min] = disk_bh_pro_spin_min
+    disk_bh_pro_spins_new[disk_bh_pro_spins_new > disk_bh_pro_spin_max] = disk_bh_pro_spin_max
 
-        if (disk_bh_pro_spins_new[i] > disk_bh_pro_spin_max):
-            disk_bh_pro_spins_new[i] = disk_bh_pro_spin_max
+    assert np.isfinite(disk_bh_pro_spins_new).all(), \
+        "Finite check failure: disk_bh_pro_spins_new"
 
     return disk_bh_pro_spins_new
 
@@ -343,7 +304,6 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
     # Singleton BH with orb ecc < disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
     indices_bh_spin_up = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orbs_ecc_crit).nonzero()[0]
 
-
     # Spin up BH are torqued towards zero (ie alignment with disk, so decrease mag of spin angle)
     disk_bh_spin_angles_new[indices_bh_spin_up] = disk_bh_pro_spin_angles[indices_bh_spin_up] - spin_torque_iteration
     # Spin down BH with orb ecc > disk_bh_pro_orbs_ecc_crit are torqued toward anti-alignment with disk, incr mag of spin angle.
@@ -355,5 +315,8 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
     bh_max_spin_angle = 3.10
     disk_bh_spin_angles_new[disk_bh_spin_angles_new < disk_bh_spin_minimum_resolution] = 0.0
     disk_bh_spin_angles_new[disk_bh_spin_angles_new > bh_max_spin_angle] = bh_max_spin_angle
+
+    assert np.isfinite(disk_bh_spin_angles_new).all(), \
+        "Finite check failure: disk_bh_spin_angles_new"
 
     return disk_bh_spin_angles_new
