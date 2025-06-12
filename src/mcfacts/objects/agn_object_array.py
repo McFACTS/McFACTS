@@ -102,7 +102,7 @@ class AGNObjectArray(ABC):
 
     def get_attribute(self, attribute_name: str, unique_id: npt.NDArray[uuid.UUID]) -> npt.NDArray[Any]:
         """
-        Retrieves a copy of an array of attribute values corresponding to a given attribute name and a selection of unique IDs.
+        Retrieves a masked copy of an array of attribute values corresponding to a given attribute name and a selection of unique IDs.
 
         Args:
             attribute_name (str): The name of the attribute to retrieve.
@@ -339,18 +339,32 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         self.bin_orb_inc = bin_orb_inc
         self.bin_orb_ecc = bin_orb_ecc
 
-        # Call init last so consistency check passes.
+        legacy_arguments = {}
+
+        if "unique_id" not in kwargs:
+            legacy_arguments["unique_id"] = unique_id_1
+        if "mass" not in kwargs:
+            legacy_arguments["mass"] = mass_1
+        if "spin" not in kwargs:
+            legacy_arguments["spin"] = spin_1
+        if "spin_angle" not in kwargs:
+            legacy_arguments["spin_angle"] = spin_angle_1
+        if "orb_a" not in kwargs:
+            legacy_arguments["orb_a"] = orb_a_1
+        if "orb_inc" not in kwargs:
+            legacy_arguments["orb_inc"] = np.full(len(unique_id_1), 0)
+        if "orb_ecc" not in kwargs:
+            legacy_arguments["orb_ecc"] = np.full(len(unique_id_1), 0)
+        if "orb_ang_mom" not in kwargs:
+            legacy_arguments["orb_ang_mom"] = np.full(len(unique_id_1), 0)
+        if "orb_arg_periapse" not in kwargs:
+            legacy_arguments["orb_arg_periapse"] = np.full(len(unique_id_1), 0)
+        if "gen" not in kwargs:
+            legacy_arguments["gen"] = gen_1
+
+        # Since we use the parent class variables for the primary component, we need to call the super init last so our consistency check passes.
         super().__init__(
-            unique_id=unique_id_1,
-            mass=mass_1,
-            spin=spin_1,
-            spin_angle=spin_angle_1,
-            orb_a=orb_a_1,
-            orb_inc=np.full(len(unique_id_1), 0),
-            orb_ecc=np.full(len(unique_id_1), 0),
-            orb_ang_mom=np.full(len(unique_id_1), 0),
-            orb_arg_periapse=np.full(len(unique_id_1), 0),
-            gen=gen_1,
+            **legacy_arguments,
             **kwargs
         )
 
@@ -440,7 +454,6 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         super_list["flag_merging"] = self.flag_merging
         super_list["time_merged"] = self.time_merged
 
-
         return super_list
 
     @override
@@ -474,6 +487,8 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
                  spin_angle_final: npt.NDArray[uuid] = np.array([]),
                  chi_eff: npt.NDArray[uuid] = np.array([]),
                  chi_p: npt.NDArray[uuid] = np.array([]),
+                 lum_shock: npt.NDArray[uuid] = np.array([]),
+                 lum_jet: npt.NDArray[uuid] = np.array([]),
                  **kwargs):
 
         self.mass_final = mass_final
@@ -481,6 +496,8 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         self.spin_angle_final = spin_angle_final
         self.chi_eff = chi_eff
         self.chi_p = chi_p
+        self.lum_shock = lum_shock
+        self.lum_jet = lum_jet
 
         super().__init__(**kwargs)
 
@@ -493,6 +510,8 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         super_list["spin_angle_final"] = self.spin_angle_final
         super_list["chi_eff"] = self.chi_eff
         super_list["chi_p"] = self.chi_p
+        super_list["lum_shock"] = self.lum_shock
+        super_list["lum_jet"] = self.lum_jet
 
         return super_list
 
@@ -508,6 +527,8 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         self.spin_angle_final = np.concatenate((self.spin_angle_final, agn_object_array.spin_angle_final))
         self.chi_eff = np.concatenate((self.chi_eff, agn_object_array.chi_eff))
         self.chi_p = np.concatenate((self.chi_p, agn_object_array.chi_p))
+        self.lum_shock = np.concatenate((self.lum_shock, agn_object_array.lum_shock))
+        self.lum_jet = np.concatenate((self.lum_jet, agn_object_array.lum_jet))
 
 
 class FilingCabinet:

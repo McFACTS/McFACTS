@@ -671,6 +671,60 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     return tau_e_dyn.value, tau_a_dyn.value
 
 
+def bin_recapture(bin_mass_1_all, bin_mass_2_all, bin_orb_a_all, bin_orb_inc_all, timestep_duration_yr):
+    """Recapture BBH that has orbital inclination >0 post spheroid encounter
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        binary black holes
+    timestep_duration_yr : float
+        Length of timestep [yr]
+
+    Returns
+    -------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black holes with binary orbital inclination [radian] updated
+
+    Notes
+    -----
+    Purely bogus scaling does not account for real disk surface density.
+    From Fabj+20, if i<5deg (=(5deg/180deg)*pi=0.09rad), time to recapture a BH in SG disk is 1Myr (M_b/10Msun)^-1(R/10^4r_g)
+    if i=[5,15]deg =(0.09-0.27rad), time to recapture a BH in SG disk is 50Myrs(M_b/10Msun)^-1 (R/10^4r_g)
+    For now, ignore if i>15deg (>0.27rad)
+    """
+    # Critical inclinations (5deg,15deg for SG disk model)
+    crit_inc1 = 0.09
+    crit_inc2 = 0.27
+
+    idx_gtr_0 = bin_orb_inc_all > 0
+
+    if (idx_gtr_0.shape[0] == 0):
+        return (bin_orb_inc_all)
+
+    bin_orb_inc = bin_orb_inc_all[idx_gtr_0]
+    bin_mass = bin_mass_1_all[idx_gtr_0] + bin_mass_2_all[idx_gtr_0]
+    bin_orb_a = bin_orb_a_all[idx_gtr_0]
+
+    less_crit_inc1_mask = bin_orb_inc < crit_inc1
+    bwtwn_crit_inc1_inc2_mask = (bin_orb_inc > crit_inc1) & (bin_orb_inc < crit_inc2)
+
+    # is bin orbital inclination <5deg in SG disk?
+    bin_orb_inc[less_crit_inc1_mask] = bin_orb_inc[less_crit_inc1_mask] * (1. - (
+            (timestep_duration_yr / 1e6) * (bin_mass[less_crit_inc1_mask] / 10.) * (
+            bin_orb_a[less_crit_inc1_mask] / 1.e4)))
+    bin_orb_inc[bwtwn_crit_inc1_inc2_mask] = bin_orb_inc[bwtwn_crit_inc1_inc2_mask] * (1. - (
+            (timestep_duration_yr / 5.e7) * (bin_mass[bwtwn_crit_inc1_inc2_mask] / 10.) * (
+            bin_orb_a[bwtwn_crit_inc1_inc2_mask] / 1.e4)))
+
+    bin_orb_inc_all[idx_gtr_0] = bin_orb_inc
+
+    assert np.isfinite(bin_orb_inc_all).all(), \
+        "Finite check failure: bin_orb_inc_all"
+
+    return (bin_orb_inc_all)
+
+
 class CaptureRetrogradeBlackHoles(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Capture Retrograde Black Holes" if name is None else name, settings)
@@ -727,3 +781,26 @@ class CaptureRetrogradeStars(TimelineActor):
         )
 
         stars_retro.consistency_check()
+
+
+class CaptureBinaryBlackHoles(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Capture Binary Black Holes" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+        sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBlackHoleArray)
+
+        # Recapture bins out of disk plane.
+        # FIX THIS: Replace this with orb_inc_damping but for binary bhbh OBJECTS (KN)
+        blackholes_binary.bin_orb_inc = bin_recapture(
+            blackholes_binary.mass_1,
+            blackholes_binary.mass_2,
+            blackholes_binary.bin_orb_a,
+            blackholes_binary.bin_orb_inc,
+            timestep_length
+        )

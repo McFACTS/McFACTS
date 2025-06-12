@@ -1,3 +1,4 @@
+import numpy as np
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
@@ -6,7 +7,7 @@ from mcfacts.objects.timeline import TimelineActor
 from mcfacts.physics import evolve
 
 
-def bin_reality_check(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc, bin_id_num):
+def bin_check_params(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc, bin_id_num):
     """Tests if binaries are real (location and mass do not equal 0)
 
     This function tests to see if the binary is real. If location = 0 or mass = 0 *and* any other element is NON-ZERO then discard this binary element.
@@ -68,6 +69,29 @@ class SingleBlackHoleRealityCheck(TimelineActor):
                 blackholes_retro.remove_all(bh_retro_id_ecc_hyperbolic)
 
 
+def binary_reality_check(sm: SettingsManager, filing_cabinet: FilingCabinet, log_func: callable):
+    if sm.bbh_array_name not in filing_cabinet:
+        return
+
+    blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
+
+    # First check that binaries are real (mass and location are not zero)
+    bh_binary_id_num_unphysical = bin_check_params(
+        blackholes_binary.mass_1,
+        blackholes_binary.mass_2,
+        blackholes_binary.orb_a_1,
+        blackholes_binary.orb_a_2,
+        blackholes_binary.bin_ecc,
+        blackholes_binary.id_num
+    )
+    blackholes_binary.remove_all(bh_binary_id_num_unphysical)
+
+    # Check for binaries with hyperbolic eccentricity (ejected from disk)
+    bh_binary_id_num_ecc_hyperbolic = blackholes_binary.id_num[blackholes_binary.bin_orb_ecc >= 1.]
+    blackholes_binary.remove_all(bh_binary_id_num_ecc_hyperbolic)
+
+    log_func(f"Removed {len(bh_binary_id_num_unphysical) + len(bh_binary_id_num_ecc_hyperbolic)} binaries with unphysical parameters.")
+
 class BinaryBlackHoleRealityCheck(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Binary Black Hole Reality Check" if name is None else name, settings)
@@ -76,22 +100,4 @@ class BinaryBlackHoleRealityCheck(TimelineActor):
                 agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
-        if sm.bbh_array_name not in filing_cabinet:
-            return
-
-        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
-
-        # First check that binaries are real (mass and location are not zero)
-        bh_binary_id_num_unphysical = evolve.bin_reality_check(
-            blackholes_binary.mass_1,
-            blackholes_binary.mass_2,
-            blackholes_binary.orb_a_1,
-            blackholes_binary.orb_a_2,
-            blackholes_binary.bin_ecc,
-            blackholes_binary.id_num
-        )
-        blackholes_binary.remove_all(bh_binary_id_num_unphysical)
-
-        # Check for binaries with hyperbolic eccentricity (ejected from disk)
-        bh_binary_id_num_ecc_hyperbolic = blackholes_binary.id_num[blackholes_binary.bin_orb_ecc >= 1.]
-        blackholes_binary.remove_all(bh_binary_id_num_ecc_hyperbolic)
+        binary_reality_check(sm, filing_cabinet, self.log)

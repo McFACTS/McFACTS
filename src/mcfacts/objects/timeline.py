@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Callable
 
 import numpy as np
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
 from mcfacts.objects.galaxy import FilingCabinet
+from mcfacts.objects.log import LogFunction
 
 
 class TimelineActor(ABC):
@@ -37,10 +39,10 @@ class TimelineActor(ABC):
         """
         self.name: str = name
         self.settings: SettingsManager = settings
-        self.parent_log_func = None
+        self.parent_log_func: LogFunction = None
 
     @abstractmethod
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
         """
         Abstract method to define the behavior of the simulation actor during a timestep.
 
@@ -59,10 +61,10 @@ class TimelineActor(ABC):
         """
         return NotImplemented
 
-    def set_log_func(self, log_func: callable):
+    def set_log_func(self, log_func: LogFunction) -> None:
         self.parent_log_func = log_func
 
-    def log(self, msg: str, new_line: bool = False):
+    def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
 
@@ -73,7 +75,7 @@ class TimelineActor(ABC):
         else:
             self.parent_log_func(msg, new_line)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns a string representation of the simulation actor.
 

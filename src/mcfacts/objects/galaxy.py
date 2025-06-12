@@ -3,7 +3,7 @@ import os.path
 import sys
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar, Type
+from typing import Any, TypeVar, Type, Protocol
 
 import numpy as np
 from numpy.random import Generator
@@ -74,9 +74,9 @@ class Galaxy:
 
         self.filing_cabinet: FilingCabinet = FilingCabinet()
         self.timeline_history: list[SimulationTimeline] = list()
-        self.populated = False
+        self.populated: bool = False
 
-    def pickle_state(self, timestep: int = None):
+    def pickle_state(self, timestep: int = None) -> None:
         save_folder = os.path.join(self.runs_folder, f"galaxy_{self.galaxy_id}", "pickle_state")
         file_name = f"galaxy_state_{len(self.timeline_history)}.pkl"
 
@@ -90,7 +90,7 @@ class Galaxy:
 
         pickle_state(self, save_folder, file_name, self.settings.override_files)
 
-    def populate(self, populators: list[GalaxyPopulator], agn_disk: AGNDisk, strict_fill: bool = True, join_populations: bool = False, save_state: bool = True):
+    def populate(self, populators: list[GalaxyPopulator], agn_disk: AGNDisk, strict_fill: bool = True, join_populations: bool = False, save_state: bool = True) -> None:
         """
         populate(populators: list[GalaxyPopulator], strict_fill: bool = True, join_populations: bool = False):
             Populates the galaxy with AGN objects using the provided GalaxyPopulator instances.
@@ -138,7 +138,7 @@ class Galaxy:
         if self.settings.pickle_state:
             self.pickle_state()
 
-    def run(self, simulation_timeline: SimulationTimeline, agn_disk: AGNDisk, save_state: bool = True):
+    def run(self, simulation_timeline: SimulationTimeline, agn_disk: AGNDisk, save_state: bool = True) -> None:
         """
         run(simulation_timeline: SimulationTimeline):
             Executes a list of actions based on the given SimulationTimeline, updating the state of the galaxy and saving the timeline.
@@ -155,8 +155,11 @@ class Galaxy:
         if not self.populated:
             raise Exception("Unable to progress through a timeline as the galaxy has not been populated yet.")
 
-        # Create a copy of the timeline with all settings and save it to the history
+        # Set the recursion limit higher so python doesn't scream at us. The timeline-actor framework does not do any recursion,
+        # but when an actor performs, something can end up executing several "layers" away from the initial call.
         sys.setrecursionlimit(10000)
+
+        # Create a copy of the timeline with all settings and save it to the history
         active_timeline = copy.deepcopy(simulation_timeline)
         self.timeline_history.append(active_timeline)
 
@@ -167,33 +170,31 @@ class Galaxy:
             self.log("---------------------")
             self.log(f"Timestep: {timestep}, Time passed: {time_passed}", False)
 
-            for simulation_actor in active_timeline.get_ordered_actor_list():
+            for actor in active_timeline.get_ordered_actor_list():
 
-                if simulation_actor.settings is None:
-                    simulation_actor.settings = self.settings
+                if actor.settings is None:
+                    actor.settings = self.settings
 
-                self.log(f"<T:{timestep}> Running {simulation_actor.name}, Using Galaxy Settings: {simulation_actor.settings.settings_overrides == self.settings.settings_overrides}")
+                self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.settings_overrides == self.settings.settings_overrides}")
 
-                simulation_actor.set_log_func(self.nocheck_log)
-                simulation_actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)
+                actor.set_log_func(self.nocheck_log)
+                actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)
 
             if self.settings.pickle_each_timestep:
                 self.pickle_state(timestep)
 
         self.log(f"Checking filing cabinet for duplicate entries.")
-
         self.filing_cabinet.consistency_check()
 
+        # TODO: Handle other persistence methods (csv, sql, json, etc.)
         if self.settings.pickle_state:
             self.pickle_state()
 
-    def nocheck_log(self, msg: str, new_line: bool = True):
+    def nocheck_log(self, msg: str, new_line: bool = True) -> None:
         print(f"{"\n" if new_line else ""}(ID:{self.galaxy_id}) {msg}")
 
-    def log(self, msg: str, new_line: bool = False):
+    def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
 
         self.nocheck_log(msg, new_line)
-
-

@@ -28,7 +28,7 @@ class InitialObjectReclassification(TimelineActor):
         - At the end of this process, there should be no unclassified black holes left in the original array (`settings.bh_array_name`).
     """
 
-    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
         """
         Initializes the `ReclassifyDiskObjects` simulation actor.
 
@@ -123,7 +123,7 @@ class InitialObjectReclassification(TimelineActor):
 
 
 class InnerDiskFilter(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Inner Disk Filter" if name is None else name, settings)
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
@@ -147,7 +147,7 @@ class InnerDiskFilter(TimelineActor):
 
 
 class FlipRetroProFilter(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Flip Retrograde Prograde Filter" if name is None else name, settings)
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,

@@ -8,8 +8,9 @@ import numpy as np
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
-from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
+from mcfacts.physics import reality_check, merge
 from mcfacts.physics.point_masses import si_from_r_g
 
 
@@ -334,6 +335,173 @@ def change_bh_spin_angles(disk_bh_pro_spin_angles,
     return disk_bh_spin_angles_new
 
 
+def change_bin_mass(binary_mass_1, binary_mass_2, binary_flag_merging, disk_bh_eddington_ratio,
+                    disk_bh_eddington_mass_growth_rate, timestep_duration_yr):
+    """Add mass to binary components according to chosen BH mass accretion prescription
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black holes in prograde orbits around SMBH
+    disk_bh_eddington_ratio : float
+        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
+        1.0=embedded BH accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+        User chosen input set by input file
+    mdisk_bh_eddington_mass_growth_rate : float
+        Fractional rate of mass growth [yr^{-1}] AT Eddington accretion rate per year (fixed at 2.3e-8 in mcfacts_sim)
+    timestep_duration_yr : float
+        Length of timestep [yr]
+
+    Returns
+    -------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black holes with updated masses after accreting at prescribed rate for one timestep
+    """
+
+    # Only interested in BH that have not merged
+    idx_non_mergers = np.where(binary_flag_merging >= 0)
+
+    # If all BH have merged then nothing to do
+    if (idx_non_mergers[0].shape[0] == 0):
+        return (binary_mass_1, binary_mass_2)
+
+    mass_growth_factor = np.exp(disk_bh_eddington_mass_growth_rate * disk_bh_eddington_ratio * timestep_duration_yr)
+
+    mass_1_before = binary_mass_1[idx_non_mergers]
+    mass_2_before = binary_mass_2[idx_non_mergers]
+
+    binary_mass_1[idx_non_mergers] = mass_1_before * mass_growth_factor
+    binary_mass_2[idx_non_mergers] = mass_2_before * mass_growth_factor
+
+    assert np.all(binary_mass_1 > 0), \
+        "binary_mass_1 has values <=0"
+    assert np.all(binary_mass_2 > 0), \
+        "binary_mass_2 has values <=0"
+
+    return (binary_mass_1, binary_mass_2)
+
+
+def change_bin_spin_magnitudes(bin_spin_1, bin_spin_2, bin_flag_merging, disk_bh_eddington_ratio,
+                               disk_bh_torque_condition, timestep_duration_yr):
+    """Add spin according to chosen BH torque prescription
+
+    Given initial binary black hole spins at start of timestep_duration_yr, add spin according to
+    chosen BH torque prescription. If spin is greater than max allowed spin, spin is set to max value.
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black holes in prograde orbits around SMBH
+    disk_bh_eddington_ratio : float
+        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
+        1.0=embedded BH accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+        User chosen input set by input file
+    disk_bh_torque_condition : float
+        Fraction of initial mass required to be accreted before BH spin is torqued fully into
+        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
+        between 0.01=1% and 0.1=10% is what is required
+        User chosen input set by input file
+    timestep_duration_yr : float
+        Length of timestep [yr]
+
+    Returns
+    -------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black holes with updated spins after spinning up at prescribed rate for one timestep
+    """
+
+    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio / 1.0  # does nothing?
+    timestep_duration_yr_normalized = timestep_duration_yr / 1.e4  # yrs to yr/10k?
+    disk_bh_torque_condition_normalized = disk_bh_torque_condition / 0.1  # what does this do?
+
+    # Set max allowed spin
+    max_allowed_spin = 0.98
+
+    # Only interested in BH that have not merged
+    idx_non_mergers = np.where(bin_flag_merging >= 0)
+
+    # If all BH have merged then nothing to do
+    if (idx_non_mergers[0].shape[0] == 0):
+        return (bin_spin_1, bin_spin_2)
+
+    spin_change_factor = 4.4e-3 * disk_bh_eddington_ratio_normalized * disk_bh_torque_condition_normalized * timestep_duration_yr_normalized
+
+    spin_1_before = bin_spin_1[idx_non_mergers]
+    spin_2_before = bin_spin_2[idx_non_mergers]
+
+    spin_1_after = spin_1_before + spin_change_factor
+    spin_2_after = spin_2_before + spin_change_factor
+
+    spin_1_after[spin_1_after > max_allowed_spin] = max_allowed_spin
+    spin_2_after[spin_2_after > max_allowed_spin] = max_allowed_spin
+
+    bin_spin_1[idx_non_mergers] = spin_1_after
+    bin_spin_2[idx_non_mergers] = spin_2_after
+
+    return (bin_spin_1, bin_spin_2)
+
+
+def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_merging, disk_bh_eddington_ratio,
+                           disk_bh_torque_condition, spin_minimum_resolution,
+                           timestep_duration_yr):
+    """Subtract spin angle according to chosen BH torque prescription
+
+    Given initial binary black hole spin angles at start of timestep, subtract spin angle
+    according to chosen BH torque prescription. If spin angle is less than spin minimum
+    resolution, spin angle is set to 0.
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        binary black holes in prograde orbits around the SMBH
+    disk_bh_eddington_ratio : float
+        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
+        1.0=embedded BH accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+        User chosen input set by input file
+    disk_bh_torque_condition : float
+        Fraction of initial mass required to be accreted before BH spin is torqued fully into
+        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
+        between 0.01=1% and 0.1=10% is what is required
+        User chosen input set by input file
+    timestep_duration_yr : float
+        Length of timestep [yr]
+
+    Returns
+    -------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black holes with updated spin angles after subtracting angle at prescribed rate for one timestep
+    """
+    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio / 1.0  # does nothing?
+    timestep_duration_yr_normalized = timestep_duration_yr / 1.e4  # yrs to yr/10k?
+    disk_bh_torque_condition_normalized = disk_bh_torque_condition / 0.1  # what does this do?
+
+    # Only interested in BH that have not merged
+    idx_non_mergers = np.where(binary_flag_merging >= 0)
+
+    # If all BH have merged then nothing to do
+    if (idx_non_mergers[0].shape[0] == 0):
+        return (bin_spin_angle_1, bin_spin_angle_2)
+
+    spin_angle_change_factor = 6.98e-3 * disk_bh_eddington_ratio_normalized * disk_bh_torque_condition_normalized * timestep_duration_yr_normalized
+
+    spin_angle_1_before = bin_spin_angle_1[idx_non_mergers]
+    spin_angle_2_before = bin_spin_angle_2[idx_non_mergers]
+
+    spin_angle_1_after = spin_angle_1_before - spin_angle_change_factor
+    spin_angle_2_after = spin_angle_2_before - spin_angle_change_factor
+
+    spin_angle_1_after[spin_angle_1_after < spin_minimum_resolution] = 0.0
+    spin_angle_2_after[spin_angle_2_after < spin_minimum_resolution] = 0.0
+
+    bin_spin_angle_1[idx_non_mergers] = spin_angle_1_after
+    bin_spin_angle_2[idx_non_mergers] = spin_angle_2_after
+
+    return (bin_spin_angle_1, bin_spin_angle_2)
+
+
 class ProgradeBlackHoleAccretion(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Prograde Black Hole Accretion" if name is None else name, settings)
@@ -376,3 +544,55 @@ class ProgradeBlackHoleAccretion(TimelineActor):
         blackholes_pro.consistency_check()
 
         # TODO: Stars
+
+
+class BinaryBlackHoleAccretion(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
+        super().__init__("Binary Black Hole Accretion" if name is None else name, settings)
+
+        self.reality_merge_checks = reality_merge_checks
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
+
+        blackholes_binary.mass_1, blackholes_binary.mass_2 = change_bin_mass(
+            blackholes_binary.mass_1,
+            blackholes_binary.mass_2,
+            blackholes_binary.flag_merging,
+            sm.disk_bh_eddington_ratio,
+            sm.disk_bh_eddington_mass_growth_rate,
+            sm.timestep_duration_yr,
+        )
+
+        blackholes_binary.spin_1, blackholes_binary.spin_2 = change_bin_spin_magnitudes(
+            blackholes_binary.spin_1,
+            blackholes_binary.spin_2,
+            blackholes_binary.flag_merging,
+            sm.disk_bh_eddington_ratio,
+            sm.disk_bh_torque_condition,
+            sm.timestep_duration_yr,
+        )
+
+        blackholes_binary.spin_angle_1, blackholes_binary.spin_angle_2 = change_bin_spin_angles(
+            blackholes_binary.spin_angle_1,
+            blackholes_binary.spin_angle_2,
+            blackholes_binary.flag_merging,
+            sm.disk_bh_eddington_ratio,
+            sm.disk_bh_torque_condition,
+            sm.disk_bh_spin_resolution_min,
+            sm.timestep_duration_yr,
+        )
+
+        blackholes_binary.consistency_check()
+
+        if not self.reality_merge_checks:
+            return
+
+        reality_check.binary_reality_check(sm, filing_cabinet, self.log)
+        merge.flag_binary_mergers(sm, filing_cabinet)

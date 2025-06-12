@@ -32,7 +32,9 @@ defaults = {
     "flag_phenom_turb": False, # Phenomenological turbulence
     "phenom_turb_centroid":  0., # Centroid of Gaussian w.r.t. to migrating BH. (default = 0.)
     "phenom_turb_std_dev": 1.0, # Variance of Gaussian around Centroid (default=0.1)
-
+    "flag_use_surrogate": False, # TODO: Add description
+    "mean_harden_energy_delta": 0.9,
+    "var_harden_energy_delta": 0.025,
 
     # Star stuff
     "flag_add_stars": True,  # Enable or disable stars

@@ -3,251 +3,13 @@ Module for evolving the state of a binary.
 """
 import astropy.units as u
 import numpy as np
+from numpy.random import Generator
 
-from mcfacts.physics import point_masses
+from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
 
-
-def change_bin_mass(binary_mass_1, binary_mass_2, binary_flag_merging, disk_bh_eddington_ratio,
-                    disk_bh_eddington_mass_growth_rate, timestep_duration_yr):
-    """Add mass to binary components according to chosen BH mass accretion prescription
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black holes in prograde orbits around SMBH
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
-    mdisk_bh_eddington_mass_growth_rate : float
-        Fractional rate of mass growth [yr^{-1}] AT Eddington accretion rate per year (fixed at 2.3e-8 in mcfacts_sim)
-    timestep_duration_yr : float
-        Length of timestep [yr]
-
-    Returns
-    -------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black holes with updated masses after accreting at prescribed rate for one timestep
-    """
-
-    # Only interested in BH that have not merged
-    idx_non_mergers = np.where(binary_flag_merging >= 0)
-
-    # If all BH have merged then nothing to do
-    if (idx_non_mergers[0].shape[0] == 0):
-        return (binary_mass_1, binary_mass_2)
-
-    mass_growth_factor = np.exp(disk_bh_eddington_mass_growth_rate * disk_bh_eddington_ratio * timestep_duration_yr)
-
-    mass_1_before = binary_mass_1[idx_non_mergers]
-    mass_2_before = binary_mass_2[idx_non_mergers]
-
-    binary_mass_1[idx_non_mergers] = mass_1_before * mass_growth_factor
-    binary_mass_2[idx_non_mergers] = mass_2_before * mass_growth_factor
-
-    assert np.all(binary_mass_1 > 0), \
-        "binary_mass_1 has values <=0"
-    assert np.all(binary_mass_2 > 0), \
-        "binary_mass_2 has values <=0"
-
-    return (binary_mass_1, binary_mass_2)
-
-
-def change_bin_spin_magnitudes(bin_spin_1, bin_spin_2, bin_flag_merging, disk_bh_eddington_ratio,
-                               disk_bh_torque_condition, timestep_duration_yr):
-    """Add spin according to chosen BH torque prescription
-
-    Given initial binary black hole spins at start of timestep_duration_yr, add spin according to
-    chosen BH torque prescription. If spin is greater than max allowed spin, spin is set to max value.
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black holes in prograde orbits around SMBH
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
-    disk_bh_torque_condition : float
-        Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
-        between 0.01=1% and 0.1=10% is what is required
-        User chosen input set by input file
-    timestep_duration_yr : float
-        Length of timestep [yr]
-
-    Returns
-    -------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black holes with updated spins after spinning up at prescribed rate for one timestep
-    """
-
-    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio / 1.0  # does nothing?
-    timestep_duration_yr_normalized = timestep_duration_yr / 1.e4  # yrs to yr/10k?
-    disk_bh_torque_condition_normalized = disk_bh_torque_condition / 0.1  # what does this do?
-
-    # Set max allowed spin
-    max_allowed_spin = 0.98
-
-    # Only interested in BH that have not merged
-    idx_non_mergers = np.where(bin_flag_merging >= 0)
-
-    # If all BH have merged then nothing to do
-    if (idx_non_mergers[0].shape[0] == 0):
-        return (bin_spin_1, bin_spin_2)
-
-    spin_change_factor = 4.4e-3 * disk_bh_eddington_ratio_normalized * disk_bh_torque_condition_normalized * timestep_duration_yr_normalized
-
-    spin_1_before = bin_spin_1[idx_non_mergers]
-    spin_2_before = bin_spin_2[idx_non_mergers]
-
-    spin_1_after = spin_1_before + spin_change_factor
-    spin_2_after = spin_2_before + spin_change_factor
-
-    spin_1_after[spin_1_after > max_allowed_spin] = max_allowed_spin
-    spin_2_after[spin_2_after > max_allowed_spin] = max_allowed_spin
-
-    bin_spin_1[idx_non_mergers] = spin_1_after
-    bin_spin_2[idx_non_mergers] = spin_2_after
-
-    return (bin_spin_1, bin_spin_2)
-
-
-def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_merging, disk_bh_eddington_ratio,
-                           disk_bh_torque_condition, spin_minimum_resolution,
-                           timestep_duration_yr):
-    """Subtract spin angle according to chosen BH torque prescription
-
-    Given initial binary black hole spin angles at start of timestep, subtract spin angle
-    according to chosen BH torque prescription. If spin angle is less than spin minimum
-    resolution, spin angle is set to 0.
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        binary black holes in prograde orbits around the SMBH
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
-    disk_bh_torque_condition : float
-        Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
-        between 0.01=1% and 0.1=10% is what is required
-        User chosen input set by input file
-    timestep_duration_yr : float
-        Length of timestep [yr]
-
-    Returns
-    -------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black holes with updated spin angles after subtracting angle at prescribed rate for one timestep
-    """
-    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio / 1.0  # does nothing?
-    timestep_duration_yr_normalized = timestep_duration_yr / 1.e4  # yrs to yr/10k?
-    disk_bh_torque_condition_normalized = disk_bh_torque_condition / 0.1  # what does this do?
-
-    # Only interested in BH that have not merged
-    idx_non_mergers = np.where(binary_flag_merging >= 0)
-
-    # If all BH have merged then nothing to do
-    if (idx_non_mergers[0].shape[0] == 0):
-        return (bin_spin_angle_1, bin_spin_angle_2)
-
-    spin_angle_change_factor = 6.98e-3 * disk_bh_eddington_ratio_normalized * disk_bh_torque_condition_normalized * timestep_duration_yr_normalized
-
-    spin_angle_1_before = bin_spin_angle_1[idx_non_mergers]
-    spin_angle_2_before = bin_spin_angle_2[idx_non_mergers]
-
-    spin_angle_1_after = spin_angle_1_before - spin_angle_change_factor
-    spin_angle_2_after = spin_angle_2_before - spin_angle_change_factor
-
-    spin_angle_1_after[spin_angle_1_after < spin_minimum_resolution] = 0.0
-    spin_angle_2_after[spin_angle_2_after < spin_minimum_resolution] = 0.0
-
-    bin_spin_angle_1[idx_non_mergers] = spin_angle_1_after
-    bin_spin_angle_2[idx_non_mergers] = spin_angle_2_after
-
-    return (bin_spin_angle_1, bin_spin_angle_2)
-
-
-def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio,
-                            disk_alpha_viscosity, disk_radius_outer):
-    """Calculates ratio of heating torque to migration torque using Eqn. 28 in Hankla, Jiang & Armitage (2020)
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black holes
-    disk_surf_density_func : function
-        Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
-        can accept a simple float (constant), but this is deprecated
-    disk_opacity_model : lambda
-        Opacity as a function of radius
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
-    disk_alpha_viscosity : float
-        Disk gas viscocity [units??] alpha parameter
-    disk_radius_outer : float
-            Outer radius [r_{g,SMBH}] of the disk
-
-    Returns
-    -------
-    ratio_feedback_to_mig : float array
-        Ratio of feedback torque to migration torque [unitless]
-
-    Notes
-    -----
-    This feedback model uses Eqn. 28 in Hankla, Jiang & Armitage (2020)
-    which yields the ratio of heating torque to migration torque.
-    Heating torque is directed outwards. 
-    So, Ratio <1, slows the inward migration of an object. Ratio>1 sends the object migrating outwards.
-    The direction & magnitude of migration (effected by feedback) will be executed in type1.py.
-
-    The ratio of torque due to heating to Type 1 migration torque is calculated as
-    R   = Gamma_heat/Gamma_mig 
-        ~ 0.07 (speed of light/ Keplerian vel.)(Eddington ratio)(1/optical depth)(1/alpha)^3/2
-    where Eddington ratio can be >=1 or <1 as needed,
-    optical depth (tau) = Sigma* kappa
-    alpha = disk_alpha_viscosity (e.g. alpha = 0.01 in Sirko & Goodman 2003)
-    kappa = 10^0.76 cm^2 g^-1=5.75 cm^2/g = 0.575 m^2/kg for most of Sirko & Goodman disk model (see Fig. 1 & sec 2)
-    but e.g. electron scattering opacity is 0.4 cm^2/g
-    So tau = Sigma*0.575 where Sigma is in kg/m^2.
-    Since v_kep = c/sqrt(a(r_g)) then
-    R   ~ 0.07 (a(r_g))^{1/2}(Edd_ratio) (1/tau) (1/alpha)^3/2
-    So if assume a=10^3r_g, Sigma=7.e6kg/m^2, alpha=0.01, tau=0.575*Sigma (SG03 disk model), Edd_ratio=1, 
-    R   ~5.5e-4 (a/10^3r_g)^(1/2) (Sigma/7.e6) v.small modification to in-migration at a=10^3r_g
-        ~0.243 (R/10^4r_g)^(1/2) (Sigma/5.e5)  comparable.
-        >1 (a/2x10^4r_g)^(1/2)(Sigma/) migration is *outward* at >=20,000r_g in SG03
-        >10 (a/7x10^4r_g)^(1/2)(Sigma/) migration outwards starts to runaway in SG03
-    """
-
-    # Making sure that surface density is a float or a function (from old function)
-    if not isinstance(disk_surface_density, float):
-        disk_surface_density_at_location = disk_surface_density(bin_orb_a)
-    else:
-        raise AttributeError("disk_surface_density is a float")
-
-    # Define kappa (or set up a function to call).
-    disk_opacity = disk_opacity_func(bin_orb_a)
-
-    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity,
-                                                                          -1.5) * disk_bh_eddington_ratio * np.sqrt(
-        bin_orb_a) / disk_surface_density_at_location
-
-    # set ratio = 1 (no migration) for binaries at or beyond the disk outer radius
-    ratio_heat_mig_torques_bin_com[bin_orb_a > disk_radius_outer] = 1.0
-
-    assert np.isfinite(ratio_heat_mig_torques_bin_com).all(), \
-        "Finite check failure: ratio_heat_mig_torques_bin_com"
-
-    return (ratio_heat_mig_torques_bin_com)
+from mcfacts.objects.timeline import TimelineActor
+from mcfacts.physics import point_masses, merge, reality_check
 
 
 def bin_ionization_check(bin_mass_1, bin_mass_2, bin_orb_a, bin_sep, bin_id_num, smbh_mass):
@@ -405,3 +167,40 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
         "Finite check failure: bin_time_merged"
 
     return (bin_sep, bin_flag_merging, bin_time_merged, bin_time_to_merger_gw)
+
+
+class BinaryBlackHoleGasHardening(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
+        super().__init__("Binary Black Hole Gas Hardening" if name is None else name, settings)
+
+        self.reality_merge_checks = reality_merge_checks
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBlackHoleArray)
+
+        time_gw_normalization = filing_cabinet.get_value("time_gw_normalization", merge.normalize_tgw(sm.smbh_mass, sm.inner_disk_outer_radius))
+
+        blackholes_binary.bin_sep, blackholes_binary.flag_merging, blackholes_binary.time_merged, blackholes_binary.time_to_merger_gw = bin_harden_baruteau(
+            blackholes_binary.mass_1,
+            blackholes_binary.mass_2,
+            blackholes_binary.bin_sep,
+            blackholes_binary.bin_ecc,
+            blackholes_binary.time_to_merger_gw,
+            blackholes_binary.flag_merging,
+            blackholes_binary.time_merged,
+            sm.smbh_mass,
+            sm.timestep_duration_yr,
+            time_gw_normalization,
+            time_passed,
+        )
+
+        if not self.reality_merge_checks:
+            return
+
+        reality_check.binary_reality_check(sm, filing_cabinet, self.log)
+        merge.flag_binary_mergers(sm, filing_cabinet)

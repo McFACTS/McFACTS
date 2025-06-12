@@ -15,7 +15,7 @@ from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.mcfacts_random_state import rng, uuid_provider
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNStarArray
 from mcfacts.objects.timeline import TimelineActor
-from mcfacts.physics import stellar_interpolation, accretion
+from mcfacts.physics import stellar_interpolation, accretion, merge, reality_check
 from mcfacts.physics.point_masses import si_from_r_g
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage
 
@@ -1634,60 +1634,6 @@ def bin_spheroid_encounter(
     return (bin_sep_all, bin_ecc_all, bin_orb_ecc_all, bin_orb_inc_all)
 
 
-def bin_recapture(bin_mass_1_all, bin_mass_2_all, bin_orb_a_all, bin_orb_inc_all, timestep_duration_yr):
-    """Recapture BBH that has orbital inclination >0 post spheroid encounter
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        binary black holes
-    timestep_duration_yr : float
-        Length of timestep [yr]
-
-    Returns
-    -------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black holes with binary orbital inclination [radian] updated
-
-    Notes
-    -----
-    Purely bogus scaling does not account for real disk surface density.
-    From Fabj+20, if i<5deg (=(5deg/180deg)*pi=0.09rad), time to recapture a BH in SG disk is 1Myr (M_b/10Msun)^-1(R/10^4r_g)
-    if i=[5,15]deg =(0.09-0.27rad), time to recapture a BH in SG disk is 50Myrs(M_b/10Msun)^-1 (R/10^4r_g)
-    For now, ignore if i>15deg (>0.27rad)
-    """
-    # Critical inclinations (5deg,15deg for SG disk model)
-    crit_inc1 = 0.09
-    crit_inc2 = 0.27
-
-    idx_gtr_0 = bin_orb_inc_all > 0
-
-    if (idx_gtr_0.shape[0] == 0):
-        return (bin_orb_inc_all)
-
-    bin_orb_inc = bin_orb_inc_all[idx_gtr_0]
-    bin_mass = bin_mass_1_all[idx_gtr_0] + bin_mass_2_all[idx_gtr_0]
-    bin_orb_a = bin_orb_a_all[idx_gtr_0]
-
-    less_crit_inc1_mask = bin_orb_inc < crit_inc1
-    bwtwn_crit_inc1_inc2_mask = (bin_orb_inc > crit_inc1) & (bin_orb_inc < crit_inc2)
-
-    # is bin orbital inclination <5deg in SG disk?
-    bin_orb_inc[less_crit_inc1_mask] = bin_orb_inc[less_crit_inc1_mask] * (1. - (
-            (timestep_duration_yr / 1e6) * (bin_mass[less_crit_inc1_mask] / 10.) * (
-            bin_orb_a[less_crit_inc1_mask] / 1.e4)))
-    bin_orb_inc[bwtwn_crit_inc1_inc2_mask] = bin_orb_inc[bwtwn_crit_inc1_inc2_mask] * (1. - (
-            (timestep_duration_yr / 5.e7) * (bin_mass[bwtwn_crit_inc1_inc2_mask] / 10.) * (
-            bin_orb_a[bwtwn_crit_inc1_inc2_mask] / 1.e4)))
-
-    bin_orb_inc_all[idx_gtr_0] = bin_orb_inc
-
-    assert np.isfinite(bin_orb_inc_all).all(), \
-        "Finite check failure: bin_orb_inc_all"
-
-    return (bin_orb_inc_all)
-
-
 def bh_near_smbh(
         smbh_mass,
         disk_bh_pro_orbs_a,
@@ -1758,15 +1704,6 @@ def bh_near_smbh(
         "Finite check failure: new_disk_bh_pro_orbs_a"
 
     return new_disk_bh_pro_orbs_a
-
-
-class BinaryBlackHoleDynamics(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
-        super().__init__("Binary Black Hole Dynamics" if name is None else name, settings)
-
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
-                agn_disk: AGNDisk, random_generator: Generator):
-        pass
 
 
 class SingleBlackHoleDynamics(TimelineActor):
@@ -1973,8 +1910,10 @@ class SingleBlackHoleStarDynamics(TimelineActor):
 
 
 class BinaryBlackHoleDynamics(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
+    def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
         super().__init__("Binary Black Hole Dynamics" if name is None else name, settings)
+
+        self.reality_merge_checks = reality_merge_checks
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
@@ -1989,10 +1928,13 @@ class BinaryBlackHoleDynamics(TimelineActor):
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
         blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBlackHoleArray)
 
+        non_merge_mask = blackholes_binary.flag_merging < 0
+
+        # Soften / harden binaries due to encounters with circular singletons (e.g. Leigh et al. 2018)
         (
-            blackholes_binary.bin_sep,
-            blackholes_binary.bin_ecc,
-            blackholes_binary.bin_orb_ecc,
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
             blackholes_pro.orb_a,
             blackholes_pro.orb_ecc
         ) = circular_binaries_encounters_circ_prograde(
@@ -2000,12 +1942,12 @@ class BinaryBlackHoleDynamics(TimelineActor):
             blackholes_pro.orb_a,
             blackholes_pro.mass,
             blackholes_pro.orb_ecc,
-            blackholes_binary.mass_1,
-            blackholes_binary.mass_1,
-            blackholes_binary.bin_orb_a,
-            blackholes_binary.bin_sep,
-            blackholes_binary.bin_ecc,
-            blackholes_binary.bin_orb_ecc,
+            blackholes_binary.mass_1[non_merge_mask],
+            blackholes_binary.mass_1[non_merge_mask],
+            blackholes_binary.bin_orb_a[non_merge_mask],
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
             sm.timestep_duration_yr,
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong,
@@ -2016,3 +1958,72 @@ class BinaryBlackHoleDynamics(TimelineActor):
 
         blackholes_pro.consistency_check()
         blackholes_binary.consistency_check()
+
+        if self.reality_merge_checks:
+            reality_check.binary_reality_check(sm, filing_cabinet, self.log)
+            merge.flag_binary_mergers(sm, filing_cabinet)
+            non_merge_mask = blackholes_binary.flag_merging < 0
+
+        # Soften / ionize binaries due to encounters with eccentric singletons
+        (
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
+            blackholes_pro.orb_a,
+            blackholes_pro.orb_ecc
+        ) = circular_binaries_encounters_ecc_prograde(
+            sm.smbh_mass,
+            blackholes_pro.orb_a,
+            blackholes_pro.mass,
+            blackholes_pro.orb_ecc,
+            blackholes_binary.mass_1[non_merge_mask],
+            blackholes_binary.mass_1[non_merge_mask],
+            blackholes_binary.bin_orb_a[non_merge_mask],
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
+            sm.timestep_duration_yr,
+            sm.disk_bh_pro_orb_ecc_crit,
+            sm.delta_energy_strong,
+            sm.disk_radius_outer
+        )
+
+        blackholes_pro.consistency_check()
+        blackholes_binary.consistency_check()
+
+        if self.reality_merge_checks:
+            reality_check.binary_reality_check(sm, filing_cabinet, self.log)
+            merge.flag_binary_mergers(sm, filing_cabinet)
+            non_merge_mask = blackholes_binary.flag_merging < 0
+
+        # Spheroid encounters
+        # FIX THIS: Replace nsc_imf_bh below with nsc_imf_stars_ since pulling from stellar MF
+        (
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_inc[non_merge_mask]
+        ) = bin_spheroid_encounter(
+            sm.smbh_mass,
+            timestep_length,
+            blackholes_binary.mass_1[non_merge_mask],
+            blackholes_binary.mass_2[non_merge_mask],
+            blackholes_binary.bin_orb_a[non_merge_mask],
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_inc[non_merge_mask],
+            time_passed,
+            sm.nsc_imf_bh_powerlaw_index,
+            sm.delta_energy_strong,
+            sm.nsc_spheroid_normalization,
+            sm.mean_harden_energy_delta,
+            sm.var_harden_energy_delta
+        )
+
+        blackholes_pro.consistency_check()
+        blackholes_binary.consistency_check()
+
+        if self.reality_merge_checks:
+            reality_check.binary_reality_check(sm, filing_cabinet, self.log)
+            merge.flag_binary_mergers(sm, filing_cabinet)

@@ -11,7 +11,7 @@ from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
 from mcfacts.mcfacts_random_state import rng
-from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.physics.point_masses import si_from_r_g
 
@@ -1069,6 +1069,82 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
     return ratio_feedback_migration_torque
 
 
+def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio,
+                            disk_alpha_viscosity, disk_radius_outer):
+    """Calculates ratio of heating torque to migration torque using Eqn. 28 in Hankla, Jiang & Armitage (2020)
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black holes
+    disk_surf_density_func : function
+        Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+        can accept a simple float (constant), but this is deprecated
+    disk_opacity_model : lambda
+        Opacity as a function of radius
+    disk_bh_eddington_ratio : float
+        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
+        1.0=embedded BH accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+        User chosen input set by input file
+    disk_alpha_viscosity : float
+        Disk gas viscocity [units??] alpha parameter
+    disk_radius_outer : float
+            Outer radius [r_{g,SMBH}] of the disk
+
+    Returns
+    -------
+    ratio_feedback_to_mig : float array
+        Ratio of feedback torque to migration torque [unitless]
+
+    Notes
+    -----
+    This feedback model uses Eqn. 28 in Hankla, Jiang & Armitage (2020)
+    which yields the ratio of heating torque to migration torque.
+    Heating torque is directed outwards.
+    So, Ratio <1, slows the inward migration of an object. Ratio>1 sends the object migrating outwards.
+    The direction & magnitude of migration (effected by feedback) will be executed in type1.py.
+
+    The ratio of torque due to heating to Type 1 migration torque is calculated as
+    R   = Gamma_heat/Gamma_mig
+        ~ 0.07 (speed of light/ Keplerian vel.)(Eddington ratio)(1/optical depth)(1/alpha)^3/2
+    where Eddington ratio can be >=1 or <1 as needed,
+    optical depth (tau) = Sigma* kappa
+    alpha = disk_alpha_viscosity (e.g. alpha = 0.01 in Sirko & Goodman 2003)
+    kappa = 10^0.76 cm^2 g^-1=5.75 cm^2/g = 0.575 m^2/kg for most of Sirko & Goodman disk model (see Fig. 1 & sec 2)
+    but e.g. electron scattering opacity is 0.4 cm^2/g
+    So tau = Sigma*0.575 where Sigma is in kg/m^2.
+    Since v_kep = c/sqrt(a(r_g)) then
+    R   ~ 0.07 (a(r_g))^{1/2}(Edd_ratio) (1/tau) (1/alpha)^3/2
+    So if assume a=10^3r_g, Sigma=7.e6kg/m^2, alpha=0.01, tau=0.575*Sigma (SG03 disk model), Edd_ratio=1,
+    R   ~5.5e-4 (a/10^3r_g)^(1/2) (Sigma/7.e6) v.small modification to in-migration at a=10^3r_g
+        ~0.243 (R/10^4r_g)^(1/2) (Sigma/5.e5)  comparable.
+        >1 (a/2x10^4r_g)^(1/2)(Sigma/) migration is *outward* at >=20,000r_g in SG03
+        >10 (a/7x10^4r_g)^(1/2)(Sigma/) migration outwards starts to runaway in SG03
+    """
+
+    # Making sure that surface density is a float or a function (from old function)
+    if not isinstance(disk_surface_density, float):
+        disk_surface_density_at_location = disk_surface_density(bin_orb_a)
+    else:
+        raise AttributeError("disk_surface_density is a float")
+
+    # Define kappa (or set up a function to call).
+    disk_opacity = disk_opacity_func(bin_orb_a)
+
+    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity,
+                                                                          -1.5) * disk_bh_eddington_ratio * np.sqrt(
+        bin_orb_a) / disk_surface_density_at_location
+
+    # set ratio = 1 (no migration) for binaries at or beyond the disk outer radius
+    ratio_heat_mig_torques_bin_com[bin_orb_a > disk_radius_outer] = 1.0
+
+    assert np.isfinite(ratio_heat_mig_torques_bin_com).all(), \
+        "Finite check failure: ratio_heat_mig_torques_bin_com"
+
+    return (ratio_heat_mig_torques_bin_com)
+
+
 class ProgradeBlackHoleMigration(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Prograde Black Hole Migration" if name is None else name, settings)
@@ -1245,3 +1321,165 @@ class ProgradeBlackHoleMigration(TimelineActor):
         blackholes_pro.consistency_check()
 
         # TODO: Stars
+
+
+class BinaryBlackHoleMigration(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Binary Black Hole Migration" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+        sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
+
+        ratio_heat_mig_torques_bin_com = None
+
+        # First if feedback present, find ratio of feedback heating torque to migration torque
+        if sm.flag_thermal_feedback > 0:
+            ratio_heat_mig_torques_bin_com = bin_com_feedback_hankla(
+                blackholes_binary.bin_orb_a,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_opacity,
+                sm.disk_bh_eddington_ratio,
+                sm.disk_alpha_viscosity,
+                sm.disk_radius_outer
+            )
+        else:
+            ratio_heat_mig_torques_bin_com = np.ones(blackholes_binary.num)
+
+        # Migrate binaries center of mass
+        # Choose torque prescription for binary migration
+        # Old is the original approximation used in v.0.1.0, based off (but not identical to Paardekooper 2010)-usually within factor [0.5-2]
+        if sm.torque_prescription == 'old':
+            blackholes_binary.bin_orb_a = type1_migration_binary(
+                sm.smbh_mass,
+                blackholes_binary.mass_1,
+                blackholes_binary.mass_2,
+                blackholes_binary.bin_orb_a,
+                blackholes_binary.bin_orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_aspect_ratio,
+                ratio_heat_mig_torques_bin_com,
+                sm.disk_radius_trap,
+                sm.disk_radius_outer,
+                sm.timestep_duration_yr
+            )
+
+        if sm.torque_prescription == 'paardekooper' or sm.torque_prescription == 'jimenez_masset':
+            normalized_torque_bh = normalized_torque(
+                sm.smbh_mass,
+                blackholes_binary.bin_orb_a,
+                blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                blackholes_binary.bin_orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_aspect_ratio
+            )
+
+            if np.size(normalized_torque_bh) > 0:
+                torque = None
+                disk_trap_radius = None
+                disk_anti_trap_radius = None
+
+                # Paardekooper torque coeff (default)
+                if sm.torque_prescription == 'paardekooper':
+                    paardekooper_torque_coeff_bh = paardekooper10_torque(
+                        blackholes_binary.bin_orb_a,
+                        blackholes_binary.bin_orb_ecc,
+                        sm.disk_bh_pro_orb_ecc_crit,
+                        agn_disk.disk_dlog10surfdens_dlog10R_func,
+                        agn_disk.disk_dlog10temp_dlog10R_func
+                    )
+
+                    torque = paardekooper_torque_coeff_bh * normalized_torque_bh
+                    disk_trap_radius = sm.disk_radius_trap
+                    disk_anti_trap_radius = sm.disk_radius_trap
+
+                # Jimenez-Masset torque coeff (from Grishin+24)
+                if sm.torque_prescription == 'jimenez_masset':
+                    jimenez_masset_torque_coeff_bh = jimenezmasset17_torque(
+                        sm.smbh_mass,
+                        agn_disk.disk_surface_density,
+                        agn_disk.disk_opacity,
+                        agn_disk.disk_aspect_ratio,
+                        agn_disk.temp_func,
+                        blackholes_binary.bin_orb_a,
+                        blackholes_binary.bin_orb_ecc,
+                        sm.disk_bh_pro_orb_ecc_crit,
+                        agn_disk.disk_dlog10surfdens_dlog10R_func,
+                        agn_disk.disk_dlog10temp_dlog10R_func
+                    )
+                    jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
+                        sm.smbh_mass,
+                        agn_disk.disk_surface_density,
+                        agn_disk.disk_opacity,
+                        agn_disk.disk_aspect_ratio,
+                        agn_disk.temp_func,
+                        sm.disk_bh_eddington_ratio,
+                        blackholes_binary.bin_orb_a,
+                        blackholes_binary.bin_orb_ecc,
+                        sm.disk_bh_pro_orb_ecc_crit,
+                        blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                        sm.flag_thermal_feedback,
+                        agn_disk.disk_dlog10pressure_dlog10R_func
+                    )
+
+                    if sm.flag_thermal_feedback > 0:
+                        total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh + jimenez_masset_thermal_torque_coeff_bh
+                    else:
+                        total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh
+
+                    torque = total_jimenez_masset_torque_bh * normalized_torque_bh
+
+                    # Set up trap scaling as a function of mass for Jimenez-Masset (for SG-like disk)
+                    # No traps if M_smbh >10^8Msun (approx.)
+                    if sm.smbh_mass > 1.e8:
+                        disk_trap_radius = sm.disk_inner_stable_circ_orb
+                        disk_anti_trap_radius = sm.disk_inner_stable_circ_orb
+
+                    if sm.smbh_mass == 1.e8:
+                        disk_trap_radius = sm.disk_radius_trap
+                        disk_anti_trap_radius = sm.disk_radius_trap
+
+                    # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
+                    if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
+                        disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
+                        disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
+
+                    # Trap location changes again at low SMBH mass (Grishin+24)
+                    if sm.smbh_mass < 1.e6:
+                        disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-0.97)
+                        disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
+
+                torque_mig_timescales_bh = torque_mig_timescale(
+                    sm.smbh_mass,
+                    blackholes_binary.bin_orb_a,
+                    blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                    blackholes_binary.bin_orb_ecc,
+                    sm.disk_bh_pro_orb_ecc_crit,
+                    torque
+                )
+
+                # Calculate new bh_orbs_a using torque
+                blackholes_binary.bin_orb_a = type1_migration_distance(
+                    sm.smbh_mass,
+                    blackholes_binary.bin_orb_a,
+                    blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                    blackholes_binary.bin_orb_ecc,
+                    sm.disk_bh_pro_orb_ecc_crit,
+                    torque_mig_timescales_bh,
+                    ratio_heat_mig_torques_bin_com,
+                    disk_trap_radius,
+                    disk_anti_trap_radius,
+                    sm.disk_radius_outer,
+                    sm.timestep_duration_yr,
+                    sm.flag_phenom_turb,
+                    sm.phenom_turb_centroid,
+                    sm.phenom_turb_std_dev,
+                    sm.nsc_imf_bh_mode,
+                    sm.torque_prescription
+                )
