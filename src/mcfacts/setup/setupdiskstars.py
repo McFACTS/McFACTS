@@ -1,6 +1,6 @@
 import numpy as np
 from astropy.constants import G
-from mcfacts.mcfacts_random_state import rng
+from mcfacts.utilities.random_state import rng
 from mcfacts.setup import setupdiskblackholes
 
 

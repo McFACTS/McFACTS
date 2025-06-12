@@ -1,5 +1,5 @@
-import mcfacts.physics.merge
-#from mcfacts.physics.binary.merge import tichy08, chieff, tgw
+import mcfacts.modules.merge
+#from mcfacts.modules.binary.merge import tichy08, chieff, tgw
 
 def test_merger():
     #This is a test of the merger 

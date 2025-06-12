@@ -1,7 +1,7 @@
 """Defines functions to set up initial conditions for black holes in the AGN disk."""
 
 import numpy as np
-from mcfacts.mcfacts_random_state import rng
+from mcfacts.utilities.random_state import rng
 
 
 def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb):

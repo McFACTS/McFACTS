@@ -1,6 +1,6 @@
 from mcfacts.setup import setupdiskstars
 from mcfacts.setup import diskstars_hillspheremergers
-from mcfacts.physics import stellar_interpolation
+from mcfacts.modules import stellar_interpolation
 from mcfacts.objects.agnobject import AGNStar
 import numpy as np
 

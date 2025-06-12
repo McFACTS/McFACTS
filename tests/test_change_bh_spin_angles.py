@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import conftest as provider
 from conftest import InputParameterSet
-import mcfacts.physics.accretion as accretion
+import mcfacts.modules.accretion as accretion
 
 def accretion_bh_spin_angles_params():
     #return input and expected values

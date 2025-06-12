@@ -1,17 +1,14 @@
 import copy
 import os.path
 import sys
-import uuid
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar, Type, Protocol
 
 import numpy as np
 from numpy.random import Generator
 from tqdm.auto import tqdm
 
-from mcfacts.inputs import ReadInputs
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
-from mcfacts.mcfacts_random_state import reset_random
+from mcfacts.utilities.random_state import reset_random
 from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet
 from mcfacts.objects.timeline import SimulationTimeline
 from mcfacts.outputs.standard_out import pickle_state
@@ -191,7 +188,7 @@ class Galaxy:
             self.pickle_state()
 
     def nocheck_log(self, msg: str, new_line: bool = True) -> None:
-        print(f"{"\n" if new_line else ""}(ID:{self.galaxy_id}) {msg}")
+        print(f"{(os.linesep if new_line else '')}(ID:{self.galaxy_id}) {msg}")
 
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:

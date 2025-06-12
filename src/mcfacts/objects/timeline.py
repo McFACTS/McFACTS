@@ -1,11 +1,11 @@
+import os
 from abc import ABC, abstractmethod
-from typing import Callable
 
 import numpy as np
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
-from mcfacts.objects.galaxy import FilingCabinet
+from mcfacts.objects.agn_object_array import FilingCabinet
 from mcfacts.objects.log import LogFunction
 
 
@@ -71,7 +71,7 @@ class TimelineActor(ABC):
         msg = f"{self.name} :: {msg}"
 
         if self.parent_log_func is None:
-            print(f"{"\n" if new_line else ""}(ID:??) {msg}")
+            print(f"{(os.linesep if new_line else '')}(ID:??) {msg}")
         else:
             self.parent_log_func(msg, new_line)
 

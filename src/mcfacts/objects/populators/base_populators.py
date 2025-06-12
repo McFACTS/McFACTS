@@ -1,11 +1,11 @@
 import numpy as np
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import SettingsManager
-from mcfacts.mcfacts_random_state import uuid_provider
-from mcfacts.objects.agn_object_array import AGNObjectArray, AGNBlackHoleArray, AGNStarArray
-from mcfacts.objects.galaxy import GalaxyPopulator, AGNDisk
-from mcfacts.setup import setupdiskblackholes, setupdiskstars, diskstars_hillspheremergers
+from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.objects.galaxy import GalaxyPopulator
+from mcfacts.utilities.random_state import uuid_provider
+from mcfacts.objects.agn_object_array import AGNObjectArray, AGNBlackHoleArray
+from mcfacts.setup import setupdiskblackholes
 
 
 class SingleBlackHolePopulator(GalaxyPopulator):
