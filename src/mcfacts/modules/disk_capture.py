@@ -5,12 +5,14 @@ import astropy.constants as const
 import astropy.units as u
 import numpy as np
 from numpy.random import Generator
+from sphinx.util.console import black
 
 import mcfacts.utilities.unit_conversion
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
-from mcfacts.utilities.random_state import rng
+from mcfacts.setup import setupdiskblackholes
+from mcfacts.utilities.random_state import rng, uuid_provider
 
 
 def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
@@ -725,7 +727,50 @@ def bin_recapture(bin_mass_1_all, bin_mass_2_all, bin_orb_a_all, bin_orb_inc_all
     return (bin_orb_inc_all)
 
 
-class CaptureRetrogradeBlackHoles(TimelineActor):
+class CaptureProgradeBlackHoles(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Capture Prograde Black Holes" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+        sm = self.settings
+
+        if time_passed % sm.capture_time_yr != 0:
+            return
+
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+
+        bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
+            1, sm.disk_radius_capture_outer, sm.disk_inner_stable_circ_orb,
+            sm.smbh_mass, sm.nsc_radius_crit, sm.nsc_density_index_inner,
+            sm.nsc_density_index_outer, volume_scaling=True)
+        bh_mass_captured = setupdiskblackholes.setup_disk_blackholes_masses(
+            1, sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up)
+        bh_spin_captured = setupdiskblackholes.setup_disk_blackholes_spins(
+            1, sm.nsc_bh_spin_dist_mu, sm.nsc_bh_spin_dist_sigma)
+        bh_spin_angle_captured = setupdiskblackholes.setup_disk_blackholes_spin_angles(
+            1, bh_spin_captured)
+
+        captured_blackholes = AGNBlackHoleArray(
+            unique_id=np.array([uuid_provider(random_generator) for _ in range(bh_mass_captured.size)]),
+            mass=bh_mass_captured,
+            spin=bh_spin_captured,
+            spin_angle=bh_spin_angle_captured,
+            orb_a=bh_orb_a_captured,
+            orb_inc=np.zeros(bh_mass_captured.size),
+            orb_ang_mom=np.ones(bh_mass_captured.size),
+            orb_ecc=np.zeros(bh_mass_captured.size),
+            orb_arg_periapse=np.full(bh_mass_captured.size, -1.5),
+            gen=np.ones(bh_mass_captured.size)
+        )
+
+        # Append captured BH to existing singleton arrays. Assume prograde and 1st gen BH.
+        blackholes_pro.add_objects(captured_blackholes)
+
+
+class RecaptureRetrogradeBlackHoles(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Capture Retrograde Black Holes" if name is None else name, settings)
 
@@ -754,7 +799,7 @@ class CaptureRetrogradeBlackHoles(TimelineActor):
         blackholes_retro.consistency_check()
 
 
-class CaptureRetrogradeStars(TimelineActor):
+class RecaptureRetrogradeStars(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Capture Retrograde Stars" if name is None else name, settings)
 
@@ -783,7 +828,7 @@ class CaptureRetrogradeStars(TimelineActor):
         stars_retro.consistency_check()
 
 
-class CaptureBinaryBlackHoles(TimelineActor):
+class RecaptureBinaryBlackHoles(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Capture Binary Black Holes" if name is None else name, settings)
 

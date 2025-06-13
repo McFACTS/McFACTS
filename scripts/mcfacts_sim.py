@@ -2155,6 +2155,7 @@ def main():
                     stars_pro.remove_id_num(starstar_id_nums.flatten())
             # endregion
 
+            # region Capture Prograde Black Holes (Generate New BH)
             # After this time period, was there a disk capture via orbital grind-down?
             # To do: What eccentricity do we want the captured BH to have? Right now ecc=0.0? Should it be ecc<h at a?             
             # Assume 1st gen BH captured and orb ecc =0.0
@@ -2198,6 +2199,7 @@ def main():
                                            new_size=np.array([-1]),
                                            new_direction=np.array([1.0]),
                                            new_disk_inner_outer=np.array([1.0]))
+            # endregion
 
             # Starter code for stars being captured
             # Conditions copy BH capture right now, but need to incorporate WZL2024 conditions

@@ -596,4 +596,4 @@ class BinaryBlackHoleAccretion(TimelineActor):
             return
 
         checks.binary_reality_check(sm, filing_cabinet, self.log)
-        mcfacts.utilities.checks.flag_binary_mergers(sm, filing_cabinet)
+        checks.flag_binary_mergers(sm, filing_cabinet)
