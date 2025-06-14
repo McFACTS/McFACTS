@@ -13,7 +13,7 @@ class AGNObjectArray(ABC):
     AGNObjectArray is an abstract base class for managing arrays of AGN (Active Galactic Nuclei) objects with specific properties.
 
     Attributes:
-        unique_id (npt.NDArray[uuid]): Array of unique identifiers for each AGN object.
+        unique_id (npt.NDArray[uuid.UUID]): Array of unique identifiers for each AGN object.
         mass (npt.NDArray[np.float_]): Array of masses for the AGN objects.
         spin (npt.NDArray[np.float_]): Array of spin magnitudes for the AGN objects.
         spin_angle (npt.NDArray[np.float_]): Array of spin angles for the AGN objects.
@@ -29,16 +29,17 @@ class AGNObjectArray(ABC):
     """
 
     def __init__(self,
-                 unique_id: npt.NDArray[uuid] = np.array([]),
-                 mass: npt.NDArray[np.float_] = np.array([]),
-                 spin: npt.NDArray[np.float_] = np.array([]),
-                 spin_angle: npt.NDArray[np.float_] = np.array([]),
-                 orb_a: npt.NDArray[np.float_] = np.array([]),
-                 orb_inc: npt.NDArray[np.float_] = np.array([]),
-                 orb_ecc: npt.NDArray[np.float_] = np.array([]),
-                 orb_ang_mom: npt.NDArray[np.float_] = np.array([]),
-                 orb_arg_periapse: npt.NDArray[np.float_] = np.array([]),
-                 gen: npt.NDArray[np.int_] = np.array([])):
+                 unique_id: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
+                 mass: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 spin: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 spin_angle: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 orb_a: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 orb_inc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 orb_ecc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 orb_ang_mom: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 orb_arg_periapse: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 gen: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
+                 skip_consistency_check: bool = False):
 
         if len(mass) > 0 and len(unique_id) == 0:
             raise ValueError("AGNObjectArray must be initialized with unique_id filled.")
@@ -56,8 +57,15 @@ class AGNObjectArray(ABC):
         self.orb_ang_mom = orb_ang_mom
         self.orb_arg_periapse = orb_arg_periapse
 
-        self.gen: npt.NDArray[np.int_] = np.full(len(unique_id), 1) if len(gen) == 0 else gen
+        # TODO: One of our modules is passing a float for this value, it should be int. Not game-breaking, but we should ensure type sameness
+        self.gen: npt.NDArray[np.int_] = np.full(len(unique_id), int(1), dtype=np.int_) if len(gen) == 0 else gen
 
+        self.skip_consistency_check = skip_consistency_check
+
+        if skip_consistency_check:
+            return
+
+        self.mirror = type(self)(unique_id=np.array([uuid.UUID(int=0)], dtype=uuid.UUID), skip_consistency_check=True).get_super_dict()
         self.consistency_check()
 
     # Legacy reference to id_num
@@ -85,9 +93,12 @@ class AGNObjectArray(ABC):
             Exception: If the lengths of the `unique_id` list and any attribute array do not match, an exception is raised.
                       The error message specifies whether the object ID or attribute is missing and the expected vs found lengths.
         """
+        if self.skip_consistency_check:
+            return
+
         id_len = len(self.unique_id)
 
-        for name, attribute in self.get_super_list().items():
+        for name, attribute in self.get_super_dict().items():
             list_length = len(attribute)
 
             if list_length != id_len:
@@ -95,6 +106,9 @@ class AGNObjectArray(ABC):
                     raise RuntimeError(f"Missing object id entries of {type(self).__name__} in {name} array. Expected: {list_length}, Found: {id_len}")
                 else:
                     raise RuntimeError(f"Missing attribute entries of {type(self).__name__} in {name} array. Expected: {id_len}, Found: {list_length}")
+
+            if attribute.dtype != self.mirror[name].dtype:
+                raise RuntimeError(f"Attribute type missmatch of {type(self).__name__} in {name} array. Expected: {self.mirror[name].dtype}, Found: {attribute.dtype}")
 
     # Legacy method for at_id_num()
     def at_id_num(self, unique_id: npt.NDArray[uuid.UUID], attribute_name: str):
@@ -118,7 +132,7 @@ class AGNObjectArray(ABC):
             - The method uses a selection mask to filter the attribute array based on the provided unique IDs.
             - Assumes that the `unique_id` attribute of the class contains a list of IDs matching those in the superclass.
         """
-        super_list = self.get_super_list()
+        super_list = self.get_super_dict()
 
         if attribute_name not in super_list.keys():
             raise AttributeError(f"{attribute_name} is not an attribute of {type(self).__name__}.")
@@ -147,7 +161,7 @@ class AGNObjectArray(ABC):
         if len(remove_mask) == 0:
             return False
 
-        for attribute_name, attribute_value in self.get_super_list().items():
+        for attribute_name, attribute_value in self.get_super_dict().items():
             setattr(self, attribute_name, attribute_value[remove_mask])
 
         self.consistency_check()
@@ -174,7 +188,7 @@ class AGNObjectArray(ABC):
         if len(remove_mask) == 0:
             return False
 
-        for attribute_name, attribute_value in self.get_super_list().items():
+        for attribute_name, attribute_value in self.get_super_dict().items():
             setattr(self, attribute_name, attribute_value[remove_mask])
 
         self.consistency_check()
@@ -185,7 +199,7 @@ class AGNObjectArray(ABC):
         return deepcopy(self)
 
     @abstractmethod
-    def get_super_list(self) -> dict[str, npt.NDArray[Any]]:
+    def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
         return {
             "unique_id": self.unique_id,
             "mass": self.mass,
@@ -221,19 +235,19 @@ class AGNObjectArray(ABC):
 
 class AGNBlackHoleArray(AGNObjectArray):
     def __init__(self,
-                 gw_freq: npt.NDArray[np.float_] = np.array([]),
-                 gw_strain: npt.NDArray[np.float_] = np.array([]),
+                 gw_freq: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 gw_strain: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
                  **kwargs):
 
-        self.gw_freq: npt.NDArray[np.float_] = gw_freq if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1)
-        self.gw_strain: npt.NDArray[np.float_] = gw_strain if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1)
+        self.gw_freq: npt.NDArray[np.float_] = gw_freq if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float_)
+        self.gw_strain: npt.NDArray[np.float_] = gw_strain if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float_)
 
         # Call init last so consistency check passes.
         super().__init__(**kwargs)
 
     @override
-    def get_super_list(self) -> dict[str, npt.NDArray[Any]]:
-        super_list = super().get_super_list()
+    def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
+        super_list = super().get_super_dict()
 
         super_list["gw_freq"] = self.gw_freq
         super_list["gw_strain"] = self.gw_strain
@@ -253,12 +267,12 @@ class AGNBlackHoleArray(AGNObjectArray):
 
 class AGNStarArray(AGNObjectArray):
     def __init__(self,
-                 star_x: npt.NDArray[np.float_] = np.array([]),
-                 star_y: npt.NDArray[np.float_] = np.array([]),
-                 star_z: npt.NDArray[np.float_] = np.array([]),
-                 log_radius: npt.NDArray[np.float_] = np.array([]),
-                 log_teff: npt.NDArray[np.float_] = np.array([]),
-                 log_luminosity: npt.NDArray[np.float_] = np.array([]),
+                 star_x: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 star_y: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 star_z: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 log_radius: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 log_teff: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 log_luminosity: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
                  **kwargs):
         self.star_x = star_x
         self.star_y = star_y
@@ -271,8 +285,8 @@ class AGNStarArray(AGNObjectArray):
         super().__init__(**kwargs)
 
     @override
-    def get_super_list(self) -> dict[str, npt.NDArray[Any]]:
-        super_list = super().get_super_list()
+    def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
+        super_list = super().get_super_dict()
 
         super_list["star_x"] = self.star_x
         super_list["star_y"] = self.star_y
@@ -300,27 +314,27 @@ class AGNStarArray(AGNObjectArray):
 
 class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
     def __init__(self,
-                 unique_id_1: npt.NDArray[uuid] = np.array([]),
-                 unique_id_2: npt.NDArray[uuid] = np.array([]),
-                 mass_1: npt.NDArray[np.float_] = np.array([]),
-                 mass_2: npt.NDArray[np.float_] = np.array([]),
-                 orb_a_1: npt.NDArray[np.float_] = np.array([]),
-                 orb_a_2: npt.NDArray[np.float_] = np.array([]),
-                 spin_1: npt.NDArray[np.float_] = np.array([]),
-                 spin_2: npt.NDArray[np.float_] = np.array([]),
-                 spin_angle_1: npt.NDArray[np.float_] = np.array([]),
-                 spin_angle_2: npt.NDArray[np.float_] = np.array([]),
-                 bin_sep: npt.NDArray[np.float_] = np.array([]),
-                 bin_orb_a: npt.NDArray[np.float_] = np.array([]),
-                 time_to_merger_gw: npt.NDArray[np.float_] = np.array([]),
-                 flag_merging: npt.NDArray[np.float_] = np.array([]),
-                 time_merged: npt.NDArray[np.float_] = np.array([]),
-                 bin_ecc: npt.NDArray[np.float_] = np.array([]),
-                 gen_1: npt.NDArray[np.float_] = np.array([]),
-                 gen_2: npt.NDArray[np.float_] = np.array([]),
-                 bin_orb_ang_mom: npt.NDArray[np.float_] = np.array([]),
-                 bin_orb_inc: npt.NDArray[np.float_] = np.array([]),
-                 bin_orb_ecc: npt.NDArray[np.float_] = np.array([]),
+                 unique_id_1: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
+                 unique_id_2: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
+                 mass_1: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 mass_2: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 orb_a_1: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 orb_a_2: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 spin_1: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 spin_2: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 spin_angle_1: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 spin_angle_2: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 bin_sep: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 bin_orb_a: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 time_to_merger_gw: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 flag_merging: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
+                 time_merged: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 bin_ecc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 gen_1: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
+                 gen_2: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
+                 bin_orb_ang_mom: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 bin_orb_inc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 bin_orb_ecc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
                  **kwargs
                  ):
         self.unique_id_2 = unique_id_2
@@ -427,8 +441,8 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         return self.mass_1 + self.mass_2
 
     @override
-    def get_super_list(self) -> dict[str, npt.NDArray[Any]]:
-        super_list = super().get_super_list()
+    def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
+        super_list = super().get_super_dict()
 
         # Redundancy for legacy purposes
         super_list["unique_id_1"] = self.unique_id
@@ -482,13 +496,13 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
 
 class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
     def __init__(self,
-                 mass_final: npt.NDArray[uuid] = np.array([]),
-                 spin_final: npt.NDArray[uuid] = np.array([]),
-                 spin_angle_final: npt.NDArray[uuid] = np.array([]),
-                 chi_eff: npt.NDArray[uuid] = np.array([]),
-                 chi_p: npt.NDArray[uuid] = np.array([]),
-                 lum_shock: npt.NDArray[uuid] = np.array([]),
-                 lum_jet: npt.NDArray[uuid] = np.array([]),
+                 mass_final: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 spin_final: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 spin_angle_final: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 chi_eff: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 chi_p: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 lum_shock: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 lum_jet: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
                  **kwargs):
 
         self.mass_final = mass_final
@@ -502,8 +516,8 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         super().__init__(**kwargs)
 
     @override
-    def get_super_list(self) -> dict[str, npt.NDArray[Any]]:
-        super_list = super().get_super_list()
+    def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
+        super_list = super().get_super_dict()
 
         super_list["mass_final"] = self.mass_final
         super_list["spin_final"] = self.spin_final

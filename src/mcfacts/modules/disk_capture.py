@@ -763,7 +763,7 @@ class CaptureProgradeBlackHoles(TimelineActor):
             orb_ang_mom=np.ones(bh_mass_captured.size),
             orb_ecc=np.zeros(bh_mass_captured.size),
             orb_arg_periapse=np.full(bh_mass_captured.size, -1.5),
-            gen=np.ones(bh_mass_captured.size)
+            gen=np.ones(bh_mass_captured.size, dtype=np.int_)
         )
 
         # Append captured BH to existing singleton arrays. Assume prograde and 1st gen BH.

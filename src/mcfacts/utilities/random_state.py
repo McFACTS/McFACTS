@@ -28,7 +28,7 @@ def reset_random(seed):
     rng.seed(seed)
 
 
-def uuid_provider(randomGenerator: Generator):
+def uuid_provider(randomGenerator: Generator) -> uuid.UUID:
     """
     Generates a random UUID (version 4) using a specified random number generator.
 

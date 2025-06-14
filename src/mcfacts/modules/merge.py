@@ -1,6 +1,7 @@
 """
 Module for calculating the final variables of a merging binary.
 """
+import uuid
 
 import numpy as np
 from astropy import constants as const
@@ -687,29 +688,29 @@ class ProcessesBinaryBlackHoleMergers(TimelineActor):
         blackholes_merged.keep_only(bh_binary_id_num_merger)
 
         blackholes_merged = AGNMergedBlackHoleArray(
-            **blackholes_merged.get_super_list(),
+            **blackholes_merged.get_super_dict(),
             mass_final=bh_mass_merged,
             spin_final=bh_spin_merged,
-            spin_angle_final=np.zeros(bh_binary_id_num_merger.size),
+            spin_angle_final=np.zeros(bh_binary_id_num_merger.size, dtype=np.float_),
             chi_eff=bh_chi_eff_merged,
             chi_p=bh_chi_p_merged,
-            lum_shock=bh_lum_shock,
-            lum_jet=bh_lum_jet
+            lum_shock=np.array(bh_lum_shock, dtype=np.float_),
+            lum_jet=np.array(bh_lum_jet, dtype=np.float_)
         )
 
         next_generation = np.maximum(
             blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_1"),
             blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_2")
-        ) + 1.0
+        ) + int(1)
 
         new_blackholes = AGNBlackHoleArray(
-            unique_id=np.array([uuid_provider(random_generator) for _ in range(bh_binary_id_num_merger.size)]),
+            unique_id=np.array([uuid_provider(random_generator) for _ in range(bh_binary_id_num_merger.size)], dtype=uuid.UUID),
             mass=blackholes_merged.at_id_num(bh_binary_id_num_merger, "mass_final"),
             orb_a=blackholes_merged.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
             spin=blackholes_merged.at_id_num(bh_binary_id_num_merger, "spin_final"),
-            spin_angle=np.zeros(bh_binary_id_num_merger.size),
-            orb_inc=np.zeros(bh_binary_id_num_merger.size),
-            orb_ang_mom=np.ones(bh_binary_id_num_merger.size),
+            spin_angle=np.zeros(bh_binary_id_num_merger.size, dtype=np.float_),
+            orb_inc=np.zeros(bh_binary_id_num_merger.size, dtype=np.float_),
+            orb_ang_mom=np.ones(bh_binary_id_num_merger.size, dtype=np.float_),
             orb_arg_periapse=np.full(bh_binary_id_num_merger.size, -1.5),
             orb_ecc=bh_orb_ecc_merged,
             gen=next_generation,

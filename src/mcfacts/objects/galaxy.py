@@ -73,6 +73,10 @@ class Galaxy:
         self.timeline_history: list[SimulationTimeline] = list()
         self.populated: bool = False
 
+        # Set the recursion limit higher so python doesn't scream at us. The timeline-actor framework does not do any recursion,
+        # but when an actor performs, something can end up executing several "layers" away from the initial call.
+        sys.setrecursionlimit(10000)
+
     def pickle_state(self, timestep: int = None) -> None:
         save_folder = os.path.join(self.runs_folder, f"galaxy_{self.galaxy_id}", "pickle_state")
         file_name = f"galaxy_state_{len(self.timeline_history)}.pkl"
@@ -151,10 +155,6 @@ class Galaxy:
         """
         if not self.populated:
             raise Exception("Unable to progress through a timeline as the galaxy has not been populated yet.")
-
-        # Set the recursion limit higher so python doesn't scream at us. The timeline-actor framework does not do any recursion,
-        # but when an actor performs, something can end up executing several "layers" away from the initial call.
-        sys.setrecursionlimit(10000)
 
         # Create a copy of the timeline with all settings and save it to the history
         active_timeline = copy.deepcopy(simulation_timeline)
