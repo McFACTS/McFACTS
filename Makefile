@@ -8,10 +8,7 @@ tests: mcfacts_sim
 #### Package ####
 # Version number for the repository
 # This is where you change the version number by hand. Not anywhere else.
-# Alpha begins at 0.1.0
-# Feature-complete Alpha begins at 0.2.0
-# Beta begins at 0.3.0
-VERSION=0.2.1
+VERSION=0.3.0
 
 ### Should work for everyone ###
 # Current directory

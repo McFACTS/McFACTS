@@ -171,6 +171,23 @@ def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migr
     bh_masses = u.Msun*masses[migration_indices]
     # Normalized torque = (q/h)^2 * Sigma * a^4 * Omega^2 (in units of seconds)
     torque_mig_timescale = (bh_masses*Omega_bh*((orb_a_si)**(2.0))/(2.0*migration_torque_si)).to("s")
+    # Check for zeros
+    torque_mig_timescale[migration_torque == 0] = 0.
+
+    # Check for nans
+    nan_mask = ~np.isfinite(torque_mig_timescale)
+    if any(nan_mask):
+        if all(orbs_a[migration_indices][nan_mask] < 12.1):
+            # They are not migrating if they have already been captured
+            torque_mig_timescale[nan_mask] = 0.
+        else:
+            torque_mig_timescale[nan_mask] = 0.
+            #print(orbs_a[migration_indices][nan_mask])
+            #print(migration_torque[nan_mask])
+            #print(Omega_bh[nan_mask])
+            #print(bh_masses[nan_mask])
+            #print(torque_mig_timescale[nan_mask])
+            #raise ValueError("nans in torque_mig_timescale")
 
     assert np.isfinite(torque_mig_timescale).all(), \
         "Finite check failure: torque_mig_timescale"
@@ -447,6 +464,8 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
     dt = timestep_duration_yr * (1 * u.yr).to(u.s).value / tau
     # migration distance is original locations times fraction of tau_mig elapsed
     migration_distance = new_orbs_a.copy() * dt
+    # zeros are not real
+    migration_distance[torque_mig_timescale == 0.] = 0.
 
     # Calculate epsilon for trap radius --amount to adjust from disk_radius_trap for objects that will be set to disk_radius_trap
     epsilon_trap_radius = disk_radius_trap * ((masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass)))**(1. / 3.)) * rng.uniform(size=migration_indices.size)
