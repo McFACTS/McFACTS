@@ -98,10 +98,10 @@ def main():
     jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
     plt.hist(mergers[:, 17], bins = shock_bins, label = 'Shock')
     plt.hist(mergers[:, 18], bins = jet_bins, label = 'Jet', alpha = 0.8)
-    plt.axvline(10**46, linewidth = 1, linestyle = 'dashed', color = 'red', label = r"~Seyfert I AGN")
+    plt.axvline(10**46, linewidth = 1, linestyle = 'dashed', color = 'red', label = r"Fiducial L$_{QSO}$")
 
-    plt.ylabel(r'N')
-    plt.xlabel(r'Luminosity [erg/s]')
+    plt.ylabel(r'n')
+    plt.xlabel(r'Luminosity [erg s$^{-1}$]')
     plt.xscale('log')
     #plt.yscale('log')
 
@@ -261,7 +261,7 @@ def main():
     #plt.hist(mergers[:, 18], bins = jet_bins)
 
     plt.ylabel(r'n')
-    plt.xlabel(r'log_10(Shock Luminsoity) (erg/s)')
+    plt.xlabel(r'log L$_{\mathrm{Shock}}$ [erg s$^{-1}$]')
     #plt.xscale('log')
     #plt.yscale('log')
 
@@ -298,7 +298,7 @@ def main():
     #plt.hist(mergers[:, 18], bins = jet_bins)
 
     plt.ylabel(r'n')
-    plt.xlabel(r'log_10(Jet Luminsoity) (erg/s)')
+    plt.xlabel(r'log L$_{\mathrm{Jet}}$ [erg s$^{-1}$]')
     #plt.xscale('log')
     #plt.yscale('log')
 
@@ -967,8 +967,8 @@ def main():
                     )
 
     ax3.set(
-            xlabel='Spin',
-            ylabel='Jet Lum [erg/s]',
+            xlabel=r'a$_{\mathrm{remnant}}$',
+            ylabel=r'L$_{Jet}$ [erg s$^{-1}$]',
             #xscale="log",
             yscale="log",
             axisbelow=True
