@@ -5,7 +5,6 @@ import astropy.constants as const
 import astropy.units as u
 import numpy as np
 from numpy.random import Generator
-from sphinx.util.console import black
 
 import mcfacts.utilities.unit_conversion
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
