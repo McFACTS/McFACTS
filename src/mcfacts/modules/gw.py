@@ -319,29 +319,6 @@ def evolve_emri_gw(blackholes_inner_disk, timestep_duration_yr, old_gw_freq, smb
     return (char_strain, nu_gw)
 
 
-class BinaryBlackHoleEvolveGW(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
-        super().__init__("Binary Black Hole Evolve GW" if name is None else name, settings)
-
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
-        sm = self.settings
-
-        if sm.bbh_array_name not in filing_cabinet:
-            return
-
-        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
-
-        blackholes_binary.gw_freq, blackholes_binary.gw_strain = evolve_gw(
-            blackholes_binary.mass_1,
-            blackholes_binary.mass_2,
-            blackholes_binary.bin_sep,
-            sm.smbh_mass,
-            sm.agn_redshift
-        )
-
-        blackholes_binary.consistency_check()
-
-
 def normalize_tgw(smbh_mass, inner_disk_outer_radius):
     """Normalizes Gravitational wave timescale.
 
@@ -388,3 +365,29 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius):
         0 * u.m,
     )
     return time_gw_normalization.si.value
+
+
+class BinaryBlackHoleEvolveGW(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Binary Black Hole Evolve GW" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+        sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
+
+        blackholes_binary.gw_freq, blackholes_binary.gw_strain = evolve_gw(
+            blackholes_binary.mass_1,
+            blackholes_binary.mass_2,
+            blackholes_binary.bin_sep,
+            sm.smbh_mass,
+            sm.agn_redshift
+        )
+
+        blackholes_binary.consistency_check()
+
+
+

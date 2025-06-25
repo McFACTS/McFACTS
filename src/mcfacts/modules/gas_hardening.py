@@ -1,5 +1,5 @@
 """
-Module for evolving the state of a binary.
+Module for hardening the binary via gas.
 """
 import astropy.units as u
 import numpy as np

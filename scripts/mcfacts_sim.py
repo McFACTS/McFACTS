@@ -11,7 +11,7 @@ from astropy import units as u
 
 from mcfacts.inputs import ReadInputs
 from mcfacts.inputs import data as input_data
-from mcfacts.modules import accretion, merge, formation, evolve, damping
+from mcfacts.modules import accretion, merge, formation, gas_hardening, damping
 from mcfacts.modules import disk_capture
 from mcfacts.modules import dynamics
 from mcfacts.modules import eccentricity
@@ -1460,7 +1460,7 @@ def main():
                 # region Binary Gas Hardening
                 # Harden binaries via gas
                 # Choose between Baruteau et al. 2011 gas hardening, or gas hardening from LANL simulations. To do: include dynamical hardening/softening from encounters
-                blackholes_binary.bin_sep, blackholes_binary.flag_merging, blackholes_binary.time_merged, blackholes_binary.time_to_merger_gw = evolve.bin_harden_baruteau(
+                blackholes_binary.bin_sep, blackholes_binary.flag_merging, blackholes_binary.time_merged, blackholes_binary.time_to_merger_gw = gas_hardening.bin_harden_baruteau(
                     blackholes_binary.mass_1,
                     blackholes_binary.mass_2,
                     blackholes_binary.bin_sep,

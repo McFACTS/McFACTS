@@ -65,7 +65,7 @@ class AGNObjectArray(ABC):
         if skip_consistency_check:
             return
 
-        self.mirror = type(self)(unique_id=np.array([uuid.UUID(int=0)], dtype=uuid.UUID), skip_consistency_check=True).get_super_dict()
+        self.consistency_mirror = type(self)(unique_id=np.array([uuid.UUID(int=0)], dtype=uuid.UUID), skip_consistency_check=True).get_super_dict()
         self.consistency_check()
 
     # Legacy reference to id_num
@@ -103,12 +103,15 @@ class AGNObjectArray(ABC):
 
             if list_length != id_len:
                 if id_len < list_length:
-                    raise RuntimeError(f"Missing object id entries of {type(self).__name__} in {name} array. Expected: {list_length}, Found: {id_len}")
+                    raise RuntimeError(f"Missing object id entries for {name} array in {type(self).__name__}. Expected: {list_length}, Found: {id_len}")
                 else:
-                    raise RuntimeError(f"Missing attribute entries of {type(self).__name__} in {name} array. Expected: {id_len}, Found: {list_length}")
+                    raise RuntimeError(f"Missing attribute entries for {name} array in {type(self).__name__}. Expected: {id_len}, Found: {list_length}")
 
-            if attribute.dtype != self.mirror[name].dtype:
-                raise RuntimeError(f"Attribute type missmatch of {type(self).__name__} in {name} array. Expected: {self.mirror[name].dtype}, Found: {attribute.dtype}")
+            if not hasattr(attribute, 'dtype'):
+                raise RuntimeError(f"Incorrect attribute type set for {name} array in {type(self).__name__}. Attribute arrays must be of type numpy.ndarray")
+
+            if attribute.dtype != self.consistency_mirror[name].dtype:
+                raise RuntimeError(f"Attribute type mismatch for {name} array in {type(self).__name__}. Expected: {self.consistency_mirror[name].dtype}, Found: {attribute.dtype}")
 
     # Legacy method for at_id_num()
     def at_id_num(self, unique_id: npt.NDArray[uuid.UUID], attribute_name: str):
