@@ -160,9 +160,6 @@ def circular_singles_encounters_prograde(
     # Find the e> crit_ecc population. These are the interlopers that can perturb the circularized population
     ecc_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orb_ecc_crit).nonzero()[0]
 
-    # Get locations for circ population
-    circ_prograde_population_locations = disk_bh_pro_orbs_a[circ_prograde_population_indices]
-
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon = disk_radius_outer * ((disk_bh_pro_masses[circ_prograde_population_indices] / (
             3 * (disk_bh_pro_masses[circ_prograde_population_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
@@ -184,7 +181,7 @@ def circular_singles_encounters_prograde(
     if len(circ_prograde_population_indices) > 0:
         for i, circ_idx in enumerate(circ_prograde_population_indices):
             for j, ecc_idx in enumerate(ecc_prograde_population_indices):
-                if (circ_prograde_population_locations[i] < ecc_orb_max[j] and circ_prograde_population_locations[i] >
+                if (disk_bh_pro_orbs_a[circ_idx] < ecc_orb_max[j] and disk_bh_pro_orbs_a[circ_idx] >
                         ecc_orb_min[j]):
                     # prob_encounter/orbit =hill sphere size/circumference of circ orbit =2RH/2pi a_circ1
                     # r_h = a_circ1(temp_bin_mass/3smbh_mass)^1/3 so prob_enc/orb = mass_ratio^1/3/pi
@@ -375,9 +372,6 @@ def circular_singles_encounters_prograde_stars(
     # Find the e> crit_ecc population. These are the interlopers that can perturb the circularized population
     ecc_prograde_population_indices = np.asarray(disk_star_pro_orbs_ecc > disk_bh_pro_orb_ecc_crit).nonzero()[0]
 
-    # Get locations for circ population
-    circ_prograde_population_locations = disk_star_pro_orbs_a[circ_prograde_population_indices]
-
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon = disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (
             3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
@@ -403,7 +397,7 @@ def circular_singles_encounters_prograde_stars(
     if len(circ_prograde_population_indices) > 0:
         for i, circ_idx in enumerate(circ_prograde_population_indices):
             for j, ecc_idx in enumerate(ecc_prograde_population_indices):
-                if (circ_prograde_population_locations[i] < ecc_orb_max[j] and circ_prograde_population_locations[i] >
+                if (disk_star_pro_orbs_a[circ_idx] < ecc_orb_max[j] and disk_star_pro_orbs_a[circ_idx] >
                         ecc_orb_min[j]):
                     # prob_encounter/orbit =hill sphere size/circumference of circ orbit =2RH/2pi a_circ1
                     # r_h = a_circ1(temp_bin_mass/3smbh_mass)^1/3 so prob_enc/orb = mass_ratio^1/3/pi
@@ -643,9 +637,6 @@ def circular_singles_encounters_prograde_star_bh(
     # Find the e> crit_ecc population. These are the interlopers that can perturb the circularized population
     ecc_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orb_ecc_crit).nonzero()[0]
 
-    # Get locations for circ population
-    circ_prograde_population_locations = disk_star_pro_orbs_a[circ_prograde_population_indices]
-
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon_star = disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (
             3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
@@ -671,7 +662,7 @@ def circular_singles_encounters_prograde_star_bh(
     if len(circ_prograde_population_indices) > 0:
         for i, circ_idx in enumerate(circ_prograde_population_indices):
             for j, ecc_idx in enumerate(ecc_prograde_population_indices):
-                if (circ_prograde_population_locations[i] < ecc_orb_max[j] and circ_prograde_population_locations[i] >
+                if (disk_star_pro_orbs_a[circ_idx] < ecc_orb_max[j] and disk_star_pro_orbs_a[circ_idx] >
                         ecc_orb_min[j]):
                     # prob_encounter/orbit =hill sphere size/circumference of circ orbit =2RH/2pi a_circ1
                     # r_h = a_circ1(temp_bin_mass/3smbh_mass)^1/3 so prob_enc/orb = mass_ratio^1/3/pi
