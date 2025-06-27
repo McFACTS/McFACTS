@@ -314,8 +314,7 @@ class AGNObject(object):
             print(id_num_remove, type(id_num_remove))
             raise AttributeError("Passed id_num is not a valid type.")
         # Ensures that values are returned in the order of the original id_num array
-        a, b = np.where(getattr(self, "id_num") == id_num_remove_arr[:, None])
-        remove_idx = b[np.argsort(a)]
+        _, remove_idx = np.where(getattr(self, "id_num") == id_num_remove_arr[:, None])
         keep_idx = np.ones(self.num, dtype=bool)
         keep_idx[remove_idx] = False
         attr_list = get_attr_list(self)
@@ -373,8 +372,7 @@ class AGNObject(object):
             print(id_num_keep, type(id_num_keep))
             raise AttributeError("Passed id_num is not a valid type.")
         # Ensures that values are returned in the order of the original id_num array
-        a, b = np.where(getattr(self, "id_num") == id_num_keep_arr[:, None])
-        keep_idx = b[np.argsort(a)]
+        _, keep_idx = np.where(getattr(self, "id_num") == id_num_keep_arr[:, None])
         attr_list = get_attr_list(self)
         for attr in attr_list:
             setattr(self, attr, getattr(self, attr)[keep_idx])
@@ -409,8 +407,7 @@ class AGNObject(object):
             print(id_num, type(id_num))
             raise AttributeError("Passed id_num is not a valid type.")
         # Ensures that values are returned in the order of the original id_num array
-        a, b = np.where(getattr(self, "id_num") == id_num_arr[:, None])
-        id_mask = b[np.argsort(a)]
+        _, id_mask = np.where(getattr(self, "id_num") == id_num_arr[:, None])
 
         try:
             val = getattr(self, attr)[id_mask]
@@ -1850,6 +1847,7 @@ class AGNFilingCabinet(AGNObject):
         self.num = fc_num
 
         self.check_consistency()
+        self.unique_id_nums()
 
     def __repr__(self):
         """
@@ -1967,3 +1965,5 @@ class AGNFilingCabinet(AGNObject):
         self.num += fc_num
 
         self.check_consistency()
+        self.unique_id_nums()
+        self.id_max

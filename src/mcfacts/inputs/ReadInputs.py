@@ -474,7 +474,7 @@ def construct_disk_direct(
         verbose=verbose
         )
     if verbose:
-        print("disk_model_radii\n", disk_model_radii)
+        print("disk_model_radii\n", trunc_surf_density_data[0])
     # Now generate interpolating functions
     # Create surface density function from input arrays
     disk_surf_dens_func_log = scipy.interpolate.CubicSpline(
