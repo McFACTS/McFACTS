@@ -286,7 +286,7 @@ def main():
     #jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
     counts, bins = np.histogram(jet_log)
     # plt.hist(bins[:-1], bins, weights=counts)
-    bins = np.arange(int(jet_log.min()), int(jet_log.max()), 0.2)
+    bins = np.arange(int(jet_log.min()), int(jet_log.max())+1, 0.2)
     # check end cases and check print()
 
     hist_data = [jet_log[merger_g1_mask], jet_log[merger_g2_mask], jet_log[merger_gX_mask]]
@@ -379,6 +379,7 @@ def main():
     gen2_orb_a = all_orb_a[merger_g2_mask]
     genX_orb_a = all_orb_a[merger_gX_mask]
 
+    fig = plt.figure(figsize=plotting.set_size(figsize))
     fig = plt.figure(figsize=plotting.set_size(figsize))
     ax3 = fig.add_subplot(111)
     ax3.scatter(gen1_orb_a, gen1_jet,
@@ -484,7 +485,8 @@ def main():
 ### jet luminosity vs. remnant mass ###
 # ===============================
     fig = plt.figure(figsize=plotting.set_size(figsize))
-    plt.scatter(gen1_mass, gen1_jet,
+    ax3 = fig.add_subplot(111)
+    ax3.scatter(gen1_mass, gen1_jet,
                 s=styles.markersize_gen1,
                 marker=styles.marker_gen1,
                 edgecolor=styles.color_gen1,
@@ -493,7 +495,7 @@ def main():
                 label='1g-1g'
                 )
 
-    plt.scatter(gen2_mass, gen2_jet,
+    ax3.scatter(gen2_mass, gen2_jet,
                 s=styles.markersize_gen2,
                 marker=styles.marker_gen2,
                 edgecolor=styles.color_gen2,
@@ -502,7 +504,7 @@ def main():
                 label='2g-1g or 2g-2g'
                 )
 
-    plt.scatter(genX_mass, genX_jet,
+    ax3.scatter(genX_mass, genX_jet,
                 s=styles.markersize_genX,
                 marker=styles.marker_genX,
                 edgecolor=styles.color_genX,
@@ -525,6 +527,7 @@ def main():
     #plt.legend(loc ='best')
     plt.savefig(opts.plots_directory + '/remnant_mass_vs_jet_lum.png', format='png')
     plt.close()
+
 
 # ===============================
 ### shock luminosity vs. mass ratio
@@ -829,7 +832,7 @@ def main():
     plt.close()
 
 # ===============================
-### jet luminosity vs. time
+### jet luminosity vs. kick velocity
 # ===============================
     fig = plt.figure(figsize=plotting.set_size(figsize))
     ax3 = fig.add_subplot(111)
@@ -1129,7 +1132,360 @@ def main():
     plt.close()
 
 
+## here
 # ===============================
+### luminous jet luminosity vs. remnant mass ###
+# ===============================
+    factor = (mergers[:,18] / 2.5e45) * 1e-9
+    density = factor * (0.1 / mergers[:,4]**2) * (100 / mergers[:,2])**2 * (mergers[:,16] / 200)**3 
+    mergers[:,19] = density
+    luminous_stuff = mergers[mergers[:, 19] >= 10**-9]
+        # Exclude all rows with NaNs or zeros in the final mass column
+    luminous_stuff_nan_mask = (np.isfinite(luminous_stuff[:, 2])) & (luminous_stuff[:, 2] != 0)
+    luminous_stuff = luminous_stuff[luminous_stuff_nan_mask]
+
+    lum_g1_mask, lum_g2_mask, lum_gX_mask = make_gen_masks(luminous_stuff, 12, 13)
+
+    # Ensure no union between sets
+    assert all(lum_g1_mask & lum_g2_mask) == 0
+    assert all(lum_g1_mask & lum_gX_mask) == 0
+    assert all(lum_g2_mask & lum_gX_mask) == 0
+
+    # Ensure no elements are missed
+    assert all(lum_g1_mask | lum_g2_mask | lum_gX_mask) == 1
+
+    all_luminous_jets = luminous_stuff[:,18]
+    gen1_luminous_jet = all_luminous_jets[lum_g1_mask]
+    gen2_luminous_jet = all_luminous_jets[lum_g2_mask]
+    genX_luminous_jet = all_luminous_jets[lum_gX_mask]
+
+    all_luminous_jets_mass = luminous_stuff[:,2]
+    gen1_luminous_jet_mass = all_luminous_jets_mass[lum_g1_mask]
+    gen2_luminous_jet_mass = all_luminous_jets_mass[lum_g2_mask]
+    genX_luminous_jet_mass = all_luminous_jets_mass[lum_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_luminous_jet_mass, gen1_luminous_jet,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_luminous_jet_mass, gen2_luminous_jet,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_luminous_jet_mass, genX_luminous_jet,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+    
+    plt.ylabel(r'Jet Lum [erg/s]')
+    plt.xlabel(r'Mass [$M_\odot$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.grid(True, color='gray', ls='dashed')
+
+    #if figsize == 'apj_col':
+     #   plt.legend(fontsize=6)
+    #elif figsize == 'apj_page':
+        #plt.legend()
+    #plt.legend(loc ='best')
+    plt.savefig(opts.plots_directory + '/remnant_mass_vs_luminous_jet_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### luminous jet luminosity vs. mass ratio
+# ===============================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+
+    mass_1_lum = luminous_stuff[:,6]
+    mass_2_lum = luminous_stuff[:,7]
+    mask_lum = mass_1_lum <= mass_2_lum 
+    
+    m_1_new_lum = np.where(mask_lum, mass_1_lum, mass_2_lum)
+    m_2_new_lum = np.where(mask_lum, mass_2_lum, mass_1_lum)
+
+    q_lum = m_1_new_lum/m_2_new_lum
+
+    all_q_lum = q_lum
+    gen1_q_lum = all_q_lum[lum_g1_mask]
+    gen2_q_lum = all_q_lum[lum_g2_mask]
+    genX_q_lum = all_q_lum[lum_gX_mask]
+
+    # plt.title("Time of Merger after AGN Onset")
+    # ax3.scatter(mergers[:,14]/1e6, mergers[:,2], s=pointsize_merge_time, color='darkolivegreen')
+    ax3.scatter(gen1_q_lum, gen1_luminous_jet,
+                    s=styles.markersize_gen1,
+                    marker=styles.marker_gen1,
+                    edgecolor=styles.color_gen1,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen1,
+                    label='1g-1g'
+                    )
+
+        # plot the 2g+ mergers
+    ax3.scatter(gen2_q_lum, gen2_luminous_jet,
+                    s=styles.markersize_gen2,
+                    marker=styles.marker_gen2,
+                    edgecolor=styles.color_gen2,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen2,
+                    label='2g-1g or 2g-2g'
+                    )
+
+        # plot the 3g+ mergers
+    ax3.scatter(genX_q_lum, genX_luminous_jet,
+                    s=styles.markersize_genX,
+                    marker=styles.marker_genX,
+                    edgecolor=styles.color_genX,
+                    facecolor='none',
+                    alpha=styles.markeralpha_genX,
+                    label=r'$\geq$3g-Ng'
+                    )
+
+    ax3.set(
+            xlabel='q',
+            ylabel='Jet Lum [erg/s]',
+            yscale="log",
+            axisbelow=True
+        )
+    
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/q_vs_luminous_jet_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### luminous jet luminosity vs. kick velocity
+# ===============================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+    
+    all_luminous_jets_vkick = luminous_stuff[:,16]
+    gen1_luminous_jet_vkick = all_luminous_jets_vkick[lum_g1_mask]
+    gen2_luminous_jet_vkick = all_luminous_jets_vkick[lum_g2_mask]
+    genX_luminous_jet_vkick = all_luminous_jets_vkick[lum_gX_mask]
+
+    # plt.title("Time of Merger after AGN Onset")
+    # ax3.scatter(mergers[:,14]/1e6, mergers[:,2], s=pointsize_merge_time, color='darkolivegreen')
+    ax3.scatter(gen1_luminous_jet_vkick,gen1_luminous_jet,
+                    s=styles.markersize_gen1,
+                    marker=styles.marker_gen1,
+                    edgecolor=styles.color_gen1,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen1,
+                    label='1g-1g'
+                    )
+
+        # plot the 2g+ mergers
+    ax3.scatter(gen2_luminous_jet_vkick, gen2_luminous_jet,
+                    s=styles.markersize_gen2,
+                    marker=styles.marker_gen2,
+                    edgecolor=styles.color_gen2,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen2,
+                    label='2g-1g or 2g-2g'
+                    )
+
+        # plot the 3g+ mergers
+    ax3.scatter(genX_luminous_jet_vkick, genX_luminous_jet,
+                    s=styles.markersize_genX,
+                    marker=styles.marker_genX,
+                    edgecolor=styles.color_genX,
+                    facecolor='none',
+                    alpha=styles.markeralpha_genX,
+                    label=r'$\geq$3g-Ng'
+                    )
+
+    ax3.set(
+            xlabel='Kick Velocity [km/s]',
+            ylabel='Jet Lum [erg/s]',
+            #xscale="log",
+            yscale="log",
+            axisbelow=True
+        )
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/vk_vs_luminous_jet_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### luminous_ jet luminosity vs. eta
+# ===============================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+    
+    all_luminous_stuff_spin = luminous_stuff[:, 4]
+    luminous_stuff_gen1_spin = all_luminous_stuff_spin[lum_g1_mask]
+    luminous_stuff_gen2_spin = all_luminous_stuff_spin[lum_g2_mask]
+    luminous_stuff_genX_spin = all_luminous_stuff_spin[lum_gX_mask]
+
+    # plt.title("Time of Merger after AGN Onset")
+    # ax3.scatter(mergers[:,14]/1e6, mergers[:,2], s=pointsize_merge_time, color='darkolivegreen')
+    ax3.scatter(luminous_stuff_gen1_spin**2,gen1_luminous_jet,
+                    s=styles.markersize_gen1,
+                    marker=styles.marker_gen1,
+                    edgecolor=styles.color_gen1,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen1,
+                    label='1g-1g'
+                    )
+
+        # plot the 2g+ mergers
+    ax3.scatter(luminous_stuff_gen2_spin**2, gen2_luminous_jet,
+                    s=styles.markersize_gen2,
+                    marker=styles.marker_gen2,
+                    edgecolor=styles.color_gen2,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen2,
+                    label='2g-1g or 2g-2g'
+                    )
+
+        # plot the 3g+ mergers
+    ax3.scatter(luminous_stuff_genX_spin**2, genX_luminous_jet,
+                    s=styles.markersize_genX,
+                    marker=styles.marker_genX,
+                    edgecolor=styles.color_genX,
+                    facecolor='none',
+                    alpha=styles.markeralpha_genX,
+                    label=r'$\geq$3g-Ng'
+                    )
+
+    ax3.set(
+            xlabel='Spin',
+            ylabel='Jet Lum [erg/s]',
+            #xscale="log",
+            yscale="log",
+            axisbelow=True
+        )
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/eta_vs_luminous_jet_lum.png', format='png')
+    plt.close()
+
+
+# ===============================
+### luminous_ jet luminosity vs. disk density
+# ===============================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+
+    all_luminous_jets_density = luminous_stuff[:,19]
+    gen1_luminous_jet_density = all_luminous_jets_density[lum_g1_mask]
+    gen2_luminous_jet_density = all_luminous_jets_density[lum_g2_mask]
+    genX_luminous_jet_density = all_luminous_jets_density[lum_gX_mask]
+
+    ax3.scatter(gen1_luminous_jet_density,gen1_luminous_jet,
+                    s=styles.markersize_gen1,
+                    marker=styles.marker_gen1,
+                    edgecolor=styles.color_gen1,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen1,
+                    label='1g-1g'
+                    )
+
+        # plot the 2g+ mergers
+    ax3.scatter(gen2_luminous_jet_density, gen2_luminous_jet,
+                    s=styles.markersize_gen2,
+                    marker=styles.marker_gen2,
+                    edgecolor=styles.color_gen2,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen2,
+                    label='2g-1g or 2g-2g'
+                    )
+
+        # plot the 3g+ mergers
+    ax3.scatter(genX_luminous_jet_density, genX_luminous_jet,
+                    s=styles.markersize_genX,
+                    marker=styles.marker_genX,
+                    edgecolor=styles.color_genX,
+                    facecolor='none',
+                    alpha=styles.markeralpha_genX,
+                    label=r'$\geq$3g-Ng'
+                    )
+
+    ax3.set(
+            xlabel=r'Density [cm$^3$/g]',
+            ylabel='Jet Lum [erg/s]',
+            xscale="log",
+            yscale="log",
+            axisbelow=True
+        )
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/density_vs_luminous_jet_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### luminous shit a_bin vs. luminosity ###
+# ===============================
+    all_lum_orb_a = luminous_stuff[:, 1]
+    gen1_orb_a_lum = all_lum_orb_a[lum_g1_mask]
+    gen2_orb_a_lum = all_lum_orb_a[lum_g2_mask]
+    genX_orb_a_lum = all_lum_orb_a[lum_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+    ax3.scatter(gen1_orb_a_lum, gen1_luminous_jet,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    ax3.scatter(gen2_orb_a_lum, gen2_luminous_jet,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    ax3.scatter(genX_orb_a_lum, genX_luminous_jet,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+    trap_radius = 700
+    ax3.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+    
+    # if figsize == 'apj_col':
+    #     ax3.legend(fontsize=6)
+    # elif figsize == 'apj_page':
+    #     ax3.legend()
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Jet Lum [erg/s]')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.grid(True, color='gray', ls='dashed')
+
+    #plt.legend(loc ='best')
+    plt.savefig(opts.plots_directory + '/radius_vs_luminous_jet_lum.png', format='png')
+    plt.close()
+
+
+"""# ===============================
 ### testing corr for jets ###
 # ===============================
     fig = plt.figure(figsize=plotting.set_size(figsize))
@@ -1143,206 +1499,6 @@ def main():
     plt.grid(True, color='gray', ls='dashed')
 
     plt.savefig(opts.plots_directory + '/radius_vs_density_vs_jet_lum.png', format='png')
-    plt.close()
-
-
-
-    """
-    # ========================================
-    # LVK and LISA Strain vs Freq
-    # ========================================
-
-    # plot for each merger generation seperately with heatmap
-
-
-    # Read LIGO O3 sensitivity data (https://git.ligo.org/sensitivity-curves/o3-sensitivity-curves)
-    H1 = impresources.files(data) / 'O3-H1-C01_CLEAN_SUB60HZ-1262197260.0_sensitivity_strain_asd.txt'
-    L1 = impresources.files(data) / 'O3-L1-C01_CLEAN_SUB60HZ-1262141640.0_sensitivity_strain_asd.txt'
-
-    # Adjust sep according to your delimiter (e.g., '\t' for tab-delimited files)
-    dfh1 = pd.read_csv(H1, sep='\t', header=None)  # Use header=None if the file doesn't contain header row
-    dfl1 = pd.read_csv(L1, sep='\t', header=None)
-
-    # Access columns as df[0], df[1], ...
-    f_H1 = dfh1[0]
-    h_H1 = dfh1[1]
-
-    # H - hanford
-    # L - Ligvston
-
-    # Using https://github.com/eXtremeGravityInstitute/LISA_Sensitivity/blob/master/LISA.py
-    # Create LISA object
-    lisa = li.LISA()
-
-    #   lisa_freq is the frequency (x-axis) being created
-    #   lisa_sn is the sensitivity curve of LISA
-    lisa_freq = np.logspace(np.log10(1.0e-5), np.log10(1.0e0), 1000)
-    lisa_sn = lisa.Sn(lisa_freq)
-
-    # Create figure and ax
-    fig, svf_ax = plt.subplots(1, figsize=(plotting.set_size(figsize)[0], 2.9))
-
-    svf_ax.set_xlabel(r'f [Hz]')  # , fontsize=20, labelpad=10)
-    svf_ax.set_ylabel(r'${\rm h}_{\rm char}$')  # , fontsize=20, labelpad=10)
-    # ax.tick_params(axis='both', which='major', labelsize=20)
-
-    svf_ax.set_xlim(0.5e-7, 1.0e+4)
-    svf_ax.set_ylim(1.0e-28, 1.0e-15)
-
-    # ----------Finding the rows in which EMRIs signals are either identical or zeroes and removing them----------
-    identical_rows_emris = np.where(emris[:, 5] == emris[:, 6])
-    zero_rows_emris = np.where(emris[:, 6] == 0)
-    emris = np.delete(emris, identical_rows_emris, 0)
-    # emris = np.delete(emris,zero_rows_emris,0)
-    emris[~np.isfinite(emris)] = 1.e-40
-
-    # ----------Finding the rows in which LVKs signals are either identical or zeroes and removing them----------
-    identical_rows_lvk = np.where(lvk[:, 5] == lvk[:, 6])
-    zero_rows_lvk = np.where(lvk[:, 6] == 0)
-    lvk = np.delete(lvk, identical_rows_lvk, 0)
-    # lvk = np.delete(lvk,zero_rows_lvk,0)
-    lvk[~np.isfinite(lvk)] = 1.e-40
-
-
-    # ----------Setting the values for the EMRIs and LVKs signals and inverting them----------
-    inv_freq_emris = 1 / emris[:, 6]
-    # inv_freq_lvk = 1/lvk[:,6]
-    # ma_freq_emris = np.ma.where(freq_emris == 0)
-    # ma_freq_lvk = np.ma.where(freq_lvk == 0)
-    # indices_where_zeros_emris = np.where(freq_emris = 0.)
-    # freq_emris = freq_emris[freq_emris !=0]
-    # freq_lvk = freq_lvk[freq_lvk !=0]
-
-    # inv_freq_emris = 1.0/ma_freq_emris
-    # inv_freq_lvk = 1.0/ma_freq_lvk
-    # timestep =1.e4yr
-    timestep = 1.e4
-    strain_per_freq_emris = emris[:, 5] * inv_freq_emris / timestep
-
-    strain_per_freq_lvk = lvk[:, 5] * (1 / lvk[:, 6]) / timestep
-
-    # plot the characteristic detector strains
-    svf_ax.loglog(lisa_freq, np.sqrt(lisa_freq * lisa_sn),
-              label='LISA Sensitivity',
-              #   color='darkred',
-              zorder=0)
-
-    svf_ax.loglog(f_H1, h_H1,
-              label='LIGO O3, H1 Sensitivity',
-              #   color='darkblue',
-              zorder=0)
-
-    svf_ax.scatter(emris[:, 6], strain_per_freq_emris,
-               s=0.4 * styles.markersize_gen1,
-               alpha=styles.markeralpha_gen1
-               )
-
-    scatter = svf_ax.scatter(
-    lvk[:, 6], strain_per_freq_lvk,
-    s=0.4 * styles.markersize_gen1,
-    marker=styles.marker_gen1,
-    edgecolor=styles.color_gen1,
-    facecolor='none',
-    alpha=styles.markeralpha_gen1,
-    label='1g-1g',
-    c=jet_log, cmap='viridis'  # <-- fixed position, no missing comma
-    )
-
-    # Add colorbar for metallicity
-    cbar = plt.colorbar(scatter, ax=svf_ax)
-    cbar.set_label('Metallicity [Fe/H]')
-
-    # Set log-log scale
-    svf_ax.set_yscale('log')
-    svf_ax.set_xscale('log')
-
-    # ax.loglog(f_L1, h_L1,label = 'LIGO O3, L1 Sensitivity') # plot the characteristic strain
-    # ax.loglog(f_gw,h,color ='black', label='GW150914')
-
-    if figsize == 'apj_col':
-        plt.legend(fontsize=7, loc="upper right")
-    elif figsize == 'apj_page':
-        plt.legend(loc="upper right")
-
-    svf_ax.set_xlabel(r'$\nu_{\rm GW}$ [Hz]')  # , fontsize=20, labelpad=10)
-    svf_ax.set_ylabel(r'$h_{\rm char}/\nu_{\rm GW}$')  # , fontsize=20, labelpad=10)
-
-    plt.savefig(opts.plots_directory + './gw_strain_em.png', format='png')
-    plt.close()
-
-# ===============================
-### kde test
-# ===============================
-    fig = plt.figure(figsize=plotting.set_size(figsize))
-
-    sns.kdeplot(x=np.log10(gen1_rho), y=np.log10(gen1_jet), fill=False, levels=10, color="green")
-    sns.kdeplot(x=np.log10(gen2_rho), y=np.log10(gen2_jet), fill=False, levels=10, color="purple")
-    sns.kdeplot(x=np.log10(genX_rho), y=np.log10(genX_jet), fill=False, levels=10, color="red")
-
-
-    plt.xlabel(r'log10Density [cm$^3$/g]')
-    plt.ylabel("log10Jet Luminosity [erg/s]")
-
-    plt.savefig(opts.plots_directory + '/kde.png', format='png')
-    plt.close()
-
-# ===============================
-### KDE test
-# ===============================
-    log_rho_all = (mergers[:,4])
-    log_shock_all = np.log10(mergers[:, 18])
-
-    # Generation-wise log values
-    log_rho_gen1 = log_rho_all[merger_g1_mask]
-    log_shock_gen1 = log_shock_all[merger_g1_mask]
-
-    log_rho_gen2 = log_rho_all[merger_g2_mask]
-    log_shock_gen2 = log_shock_all[merger_g2_mask]
-
-    log_rho_genX = log_rho_all[merger_gX_mask]
-    log_shock_genX = log_shock_all[merger_gX_mask]
-
-    # Set up the plot
-    fig = plt.figure(figsize=plotting.set_size(figsize))
-    ax = fig.add_subplot(111)
-
-    # Grid for evaluation
-    xmin, xmax = log_rho_all.min(), log_rho_all.max()
-    ymin, ymax = log_shock_all.min(), log_shock_all.max()
-    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-    grid_coords = np.vstack([xx.ravel(), yy.ravel()])
-
-    # KDE and contour for gen1 (dotted lines)
-    kde_gen1 = gaussian_kde(np.vstack([log_rho_gen1, log_shock_gen1]))
-    zz1 = kde_gen1(grid_coords).reshape(xx.shape)
-    levels1 = np.linspace(zz1.min(), zz1.max(), 10)[1:]  # 6 levels, skipping the lowest
-    alphas1 = np.linspace(0.5, 1.0, len(levels1))
-    for i, level in enumerate(levels1):
-        ax.contour(xx, yy, zz1, levels=[level], colors=[styles.color_gen1], alpha=alphas1[i], linestyles='dotted', linewidths=1.)
-
-    # KDE and contour for gen2 (dashed lines)
-    kde_gen2 = gaussian_kde(np.vstack([log_rho_gen2, log_shock_gen2]))
-    zz2 = kde_gen2(grid_coords).reshape(xx.shape)
-    levels2 = np.linspace(zz2.min(), zz2.max(), 10)[1:]
-    alphas2 = np.linspace(0.5, 1.0, len(levels2))
-    for i, level in enumerate(levels2):
-        ax.contour(xx, yy, zz2, levels=[level], colors=[styles.color_gen2], alpha=alphas2[i], linestyles='dashed', linewidths=1.)
-
-    # KDE and filled contour for genX
-    kde_genX = gaussian_kde(np.vstack([log_rho_genX, log_shock_genX]))
-    zzX = kde_genX(grid_coords).reshape(xx.shape)
-    levelsX = np.linspace(zzX.min(), zzX.max(), 10)[1:]
-    alphasX = np.linspace(0.5, 1.0, len(levelsX))
-    ax.contourf(xx, yy, zzX, levels=levelsX, cmap='Reds', alpha=0.8)  # Filled contour for genX
-
-    # Labels and styling
-    ax.set(
-        xlabel=r'log$_{10}$(Density) [cm$^3$/g]',
-        ylabel=r'log$_{10}$(Shock Luminosity) [erg/s]',
-        axisbelow=True
-    )
-    plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory + '/kde_by_generation.png', format='png')
     plt.close()
 """
 

@@ -339,6 +339,9 @@ def plot_interpolators(fname_ini=None,output_directory="./"):
             disk_omega_func, \
             disk_surf_dens_func_log, \
             temp_func, \
+            surf_dens_log10_derivative_func, \
+            temp_log10_derivative_func, \
+            pressure_log10_derivative_func, \
             direct_model_properties = \
         construct_disk_direct(
             input_variables["disk_model_name"],
@@ -364,6 +367,9 @@ def plot_interpolators(fname_ini=None,output_directory="./"):
             pagn_disk_omega_func, \
             pagn_disk_surf_dens_func_log, \
             pagn_temp_func, \
+            pagn_surf_dens_log10_derivative_func, \
+            pagn_temp_log10_derivative_func, \
+            pagn_pressure_log10_derivative_func, \
             pAGN_model, \
             bonus_structures = \
         construct_disk_pAGN(

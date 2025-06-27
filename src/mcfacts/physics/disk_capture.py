@@ -5,6 +5,7 @@ import numpy as np
 import astropy.constants as const
 import astropy.units as u
 from mcfacts.mcfacts_random_state import rng
+from mcfacts.physics.point_masses import si_from_r_g
 
 
 def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
@@ -252,80 +253,64 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     if ecc_unreliable_mask.sum() > 0:
         print("ECC Warning: retrograde orbital parameters out of range, behavior unreliable")
 
+    # Set up arrays for hardcoded values
+    semi_maj_0 = np.full(disk_bh_retro_arg_periapse.size, -100.5)
+    ecc_0 = np.full(disk_bh_retro_arg_periapse.size, -100.5)
+    inc_0 = np.full(disk_bh_retro_arg_periapse.size, -100.5)
+    periapse = np.full(disk_bh_retro_arg_periapse.size, -100.5)
+
+    # Fill with values
+    semi_maj_0[cos_pm1_mask & no_max_ecc_retro_mask] = step1_semi_maj_0
+    semi_maj_0[cos_pm1_mask & max_ecc_mask] = step2_semi_maj_0
+    semi_maj_0[cos_pm1_mask & barely_prograde_mask] = step3_semi_maj_0
+    semi_maj_0[cos_0_mask] = stepw0_semi_maj_0
+
+    ecc_0[cos_pm1_mask & no_max_ecc_retro_mask] = step1_ecc_0
+    ecc_0[cos_pm1_mask & max_ecc_mask] = step2_ecc_0
+    ecc_0[cos_pm1_mask & barely_prograde_mask] = step3_ecc_0
+    ecc_0[cos_0_mask] = stepw0_ecc_0
+
+    inc_0[cos_pm1_mask & no_max_ecc_retro_mask] = step1_inc_0
+    inc_0[cos_pm1_mask & max_ecc_mask] = step2_inc_0
+    inc_0[cos_pm1_mask & barely_prograde_mask] = step3_inc_0
+    inc_0[cos_0_mask] = stepw0_inc_0
+
+    periapse[cos_pm1_mask] = periapse_1
+    periapse[cos_0_mask] = periapse_0
+
     # Get current tau values
-    tau_e_current[cos_pm1_mask & no_max_ecc_retro_mask], tau_a_current[cos_pm1_mask & no_max_ecc_retro_mask] = tau_ecc_dyn(
-        smbh_mass, disk_bh_retro_orbs_a[cos_pm1_mask & no_max_ecc_retro_mask], disk_bh_retro_masses[cos_pm1_mask & no_max_ecc_retro_mask],
-        disk_bh_retro_arg_periapse[cos_pm1_mask & no_max_ecc_retro_mask], disk_bh_retro_orbs_ecc[cos_pm1_mask & no_max_ecc_retro_mask], disk_bh_retro_orbs_inc[cos_pm1_mask & no_max_ecc_retro_mask],
-        disk_surf_density_func)
-    tau_e_current[cos_pm1_mask & max_ecc_mask], tau_a_current[cos_pm1_mask & max_ecc_mask] = tau_ecc_dyn(
-        smbh_mass, disk_bh_retro_orbs_a[cos_pm1_mask & max_ecc_mask], disk_bh_retro_masses[cos_pm1_mask & max_ecc_mask],
-        disk_bh_retro_arg_periapse[cos_pm1_mask & max_ecc_mask], disk_bh_retro_orbs_ecc[cos_pm1_mask & max_ecc_mask], disk_bh_retro_orbs_inc[cos_pm1_mask & max_ecc_mask],
-        disk_surf_density_func)
-    tau_e_current[cos_pm1_mask & barely_prograde_mask], tau_a_current[cos_pm1_mask & barely_prograde_mask] = tau_ecc_dyn(
-        smbh_mass, disk_bh_retro_orbs_a[cos_pm1_mask & barely_prograde_mask], disk_bh_retro_masses[cos_pm1_mask & barely_prograde_mask],
-        disk_bh_retro_arg_periapse[cos_pm1_mask & barely_prograde_mask], disk_bh_retro_orbs_ecc[cos_pm1_mask & barely_prograde_mask], disk_bh_retro_orbs_inc[cos_pm1_mask & barely_prograde_mask],
-        disk_surf_density_func)
-    tau_e_current[cos_0_mask], tau_a_current[cos_0_mask] = tau_ecc_dyn(
-        smbh_mass, disk_bh_retro_orbs_a[cos_0_mask], disk_bh_retro_masses[cos_0_mask],
-        disk_bh_retro_arg_periapse[cos_0_mask], disk_bh_retro_orbs_ecc[cos_0_mask], disk_bh_retro_orbs_inc[cos_0_mask],
-        disk_surf_density_func)
+    tau_e_current, tau_a_current = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+                                               disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
+                                               disk_surf_density_func)
+    tau_inc_current = tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+                                  disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
+                                  disk_bh_retro_orbs_inc, disk_surf_density_func)
 
     # Get reference tau values
-    tau_e_ref[cos_pm1_mask & no_max_ecc_retro_mask], tau_a_ref[cos_pm1_mask & no_max_ecc_retro_mask] = tau_ecc_dyn(
-        smbh_mass_0, step1_semi_maj_0, orbiter_mass_0, periapse_1,
-        step1_ecc_0, step1_inc_0, disk_surf_density_func)
-    tau_e_ref[cos_pm1_mask & max_ecc_mask], tau_a_ref[cos_pm1_mask & max_ecc_mask] = tau_ecc_dyn(
-        smbh_mass_0, step1_semi_maj_0, orbiter_mass_0, periapse_1,
-        step1_ecc_0, step1_inc_0, disk_surf_density_func)
-    tau_e_ref[cos_pm1_mask & barely_prograde_mask], tau_a_ref[cos_pm1_mask & barely_prograde_mask] = tau_ecc_dyn(
-        smbh_mass_0, step1_semi_maj_0, orbiter_mass_0, periapse_1,
-        step1_ecc_0, step1_inc_0, disk_surf_density_func)
-    tau_e_ref[cos_0_mask], tau_a_ref[cos_0_mask] = tau_ecc_dyn(
-        smbh_mass_0, stepw0_semi_maj_0, orbiter_mass_0, periapse_0, stepw0_ecc_0,
-        stepw0_inc_0, disk_surf_density_func)
+    tau_e_ref, tau_a_ref = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func)
+    tau_inc_ref = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func)
 
     if (tau_e_current == -100.5).sum() > 0:
         print("TAU Warning: retrograde orbital parameters out of range, behavior unreliable")
 
     # Get ecc scale factors
-    ecc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_e_current[cos_pm1_mask & no_max_ecc_retro_mask] / tau_e_ref[cos_pm1_mask & no_max_ecc_retro_mask]
-    ecc_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_e_current[cos_pm1_mask & max_ecc_mask] / tau_e_ref[cos_pm1_mask & max_ecc_mask]
-    ecc_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_e_current[cos_pm1_mask & barely_prograde_mask] / tau_e_ref[cos_pm1_mask & barely_prograde_mask]
-    ecc_scale_factor[cos_0_mask] = stepw0_time * tau_e_current[cos_0_mask] / tau_e_ref[cos_0_mask]
+    tau_e_div = tau_e_current / tau_e_ref
+    ecc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_e_div[cos_pm1_mask & no_max_ecc_retro_mask]
+    ecc_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_e_div[cos_pm1_mask & max_ecc_mask]
+    ecc_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_e_div[cos_pm1_mask & barely_prograde_mask]
+    ecc_scale_factor[cos_0_mask] = stepw0_time * tau_e_div[cos_0_mask]
     # Get semimaj scale factors
-    semimaj_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_a_current[cos_pm1_mask & no_max_ecc_retro_mask] / tau_a_ref[cos_pm1_mask & no_max_ecc_retro_mask]
-    semimaj_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_a_current[cos_pm1_mask & max_ecc_mask] / tau_a_ref[cos_pm1_mask & max_ecc_mask]
-    semimaj_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_a_current[cos_pm1_mask & barely_prograde_mask] / tau_a_ref[cos_pm1_mask & barely_prograde_mask]
-    semimaj_scale_factor[cos_0_mask] = stepw0_time * tau_a_current[cos_0_mask] / tau_a_ref[cos_0_mask]
+    tau_a_div = tau_a_current / tau_a_ref
+    semimaj_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_a_div[cos_pm1_mask & no_max_ecc_retro_mask]
+    semimaj_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_a_div[cos_pm1_mask & max_ecc_mask]
+    semimaj_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_a_div[cos_pm1_mask & barely_prograde_mask]
+    semimaj_scale_factor[cos_0_mask] = stepw0_time * tau_a_div[cos_0_mask]
     # Get inc scale factors
-    inc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_inc_dyn(
-        smbh_mass, disk_bh_retro_orbs_a[cos_pm1_mask & no_max_ecc_retro_mask], disk_bh_retro_masses[cos_pm1_mask & no_max_ecc_retro_mask],
-        disk_bh_retro_arg_periapse[cos_pm1_mask & no_max_ecc_retro_mask], disk_bh_retro_orbs_ecc[cos_pm1_mask & no_max_ecc_retro_mask],
-        disk_bh_retro_orbs_inc[cos_pm1_mask & no_max_ecc_retro_mask], disk_surf_density_func) / tau_inc_dyn(smbh_mass_0, step1_semi_maj_0,
-                                                                                                            orbiter_mass_0, periapse_1,
-                                                                                                            step1_ecc_0, step1_inc_0,
-                                                                                                            disk_surf_density_func)
-    inc_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_inc_dyn(
-        smbh_mass, disk_bh_retro_orbs_a[cos_pm1_mask & max_ecc_mask], disk_bh_retro_masses[cos_pm1_mask & max_ecc_mask],
-        disk_bh_retro_arg_periapse[cos_pm1_mask & max_ecc_mask], disk_bh_retro_orbs_ecc[cos_pm1_mask & max_ecc_mask],
-        disk_bh_retro_orbs_inc[cos_pm1_mask & max_ecc_mask], disk_surf_density_func) / tau_inc_dyn(smbh_mass_0, step2_semi_maj_0,
-                                                                                                   orbiter_mass_0, periapse_1,
-                                                                                                   step2_ecc_0, step2_inc_0,
-                                                                                                   disk_surf_density_func)
-    inc_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_inc_dyn(
-        smbh_mass, disk_bh_retro_orbs_a[cos_pm1_mask & barely_prograde_mask], disk_bh_retro_masses[cos_pm1_mask & barely_prograde_mask],
-        disk_bh_retro_arg_periapse[cos_pm1_mask & barely_prograde_mask], disk_bh_retro_orbs_ecc[cos_pm1_mask & barely_prograde_mask],
-        disk_bh_retro_orbs_inc[cos_pm1_mask & barely_prograde_mask], disk_surf_density_func) / tau_inc_dyn(smbh_mass_0, step3_semi_maj_0,
-                                                                                                           orbiter_mass_0, periapse_1,
-                                                                                                           step3_ecc_0, step3_inc_0,
-                                                                                                           disk_surf_density_func)
-    inc_scale_factor[cos_0_mask] = stepw0_time * tau_inc_dyn(
-        smbh_mass, disk_bh_retro_orbs_a[cos_0_mask], disk_bh_retro_masses[cos_0_mask],
-        disk_bh_retro_arg_periapse[cos_0_mask], disk_bh_retro_orbs_ecc[cos_0_mask],
-        disk_bh_retro_orbs_inc[cos_0_mask], disk_surf_density_func) / tau_inc_dyn(smbh_mass_0, stepw0_semi_maj_0,
-                                                                                  orbiter_mass_0, periapse_0,
-                                                                                  stepw0_ecc_0, stepw0_inc_0,
-                                                                                  disk_surf_density_func)
+    tau_inc_div = tau_inc_current / tau_inc_ref
+    inc_scale_factor[cos_pm1_mask & no_max_ecc_retro_mask] = step1_time * tau_inc_div[cos_pm1_mask & no_max_ecc_retro_mask]
+    inc_scale_factor[cos_pm1_mask & max_ecc_mask] = step2_time * tau_inc_div[cos_pm1_mask & max_ecc_mask]
+    inc_scale_factor[cos_pm1_mask & barely_prograde_mask] = step3_time * tau_inc_div[cos_pm1_mask & barely_prograde_mask]
+    inc_scale_factor[cos_0_mask] = stepw0_time * tau_inc_div[cos_0_mask]
 
     # Calculate new orb_ecc values
     disk_bh_retro_orbs_ecc_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_ecc[cos_pm1_mask & no_max_ecc_retro_mask] * (
@@ -435,23 +420,23 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     SI_smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    SI_semi_maj_axis = disk_bh_retro_orbs_a * const.G * smbh_mass \
-                       / (const.c ** 2)  # m
+    SI_semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a).to("m").value
     SI_orbiter_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
+    cos_omega = np.cos(omega)
 
     # period in units of sec
     period = 2.0 * np.pi * np.sqrt((SI_semi_maj_axis ** 3) / (const.G * SI_smbh_mass))
     # semi-latus rectum in units of meters
     semi_lat_rec = SI_semi_maj_axis * (1.0 - (ecc ** 2))
     # WZL Eqn 7 (sigma+/-)
-    sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * np.cos(omega))
-    sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * np.cos(omega))
+    sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * cos_omega)
+    sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * cos_omega)
     # WZL Eqn 8 (eta+/-)
-    eta_plus = np.sqrt(1.0 + ecc * np.cos(omega))
-    eta_minus = np.sqrt(1.0 - ecc * np.cos(omega))
+    eta_plus = np.sqrt(1.0 + ecc * cos_omega)
+    eta_minus = np.sqrt(1.0 - ecc * cos_omega)
     # WZL Eqn 62
     kappa = 0.5 * (np.sqrt(1.0 / (eta_plus ** 15)) + np.sqrt(1.0 / (eta_minus ** 15)))
     # WZL Eqn 30
@@ -467,7 +452,7 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     assert np.isfinite(tau_i_dyn).all(), \
         "Finite check failure: tau_i_dyn"
 
-    return tau_i_dyn
+    return tau_i_dyn.value
 
 
 def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retrograde_bh_orb_ecc, retrograde_bh_orb_inc,
@@ -513,23 +498,23 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    semi_maj_axis = retrograde_bh_locations * const.G * smbh_mass \
-                    / (const.c ** 2)  # m
+    semi_maj_axis = si_from_r_g(smbh_mass, retrograde_bh_locations).to("m").value
     retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
     omega = retro_arg_periapse  # radians
     ecc = retrograde_bh_orb_ecc  # unitless
     inc = retrograde_bh_orb_inc  # radians
+    cos_omega = np.cos(omega)
 
     # period in units of sec
     period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (const.G * smbh_mass))
     # semi-latus rectum in units of meters
     semi_lat_rec = semi_maj_axis * (1.0 - (ecc ** 2))
     # WZL Eqn 7 (sigma+/-)
-    sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * np.cos(omega))
-    sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * np.cos(omega))
+    sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * cos_omega)
+    sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * cos_omega)
     # WZL Eqn 8 (eta+/-)
-    eta_plus = np.sqrt(1.0 + ecc * np.cos(omega))
-    eta_minus = np.sqrt(1.0 - ecc * np.cos(omega))
+    eta_plus = np.sqrt(1.0 + ecc * cos_omega)
+    eta_minus = np.sqrt(1.0 - ecc * cos_omega)
     # WZL Eqn 62
     kappa = 0.5 * (np.sqrt(1.0 / (eta_plus ** 15)) + np.sqrt(1.0 / (eta_minus ** 15)))
     # WZL Eqn 63
@@ -588,13 +573,14 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
+    cos_omega = np.cos(omega)
 
     # WZL Eqn 7 (sigma+/-)
-    sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * np.cos(omega))
-    sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * np.cos(omega))
+    sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * cos_omega)
+    sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * cos_omega)
     # WZL Eqn 8 (eta+/-)
-    eta_plus = np.sqrt(1.0 + ecc * np.cos(omega))
-    eta_minus = np.sqrt(1.0 - ecc * np.cos(omega))
+    eta_plus = np.sqrt(1.0 + ecc * cos_omega)
+    eta_minus = np.sqrt(1.0 - ecc * cos_omega)
     # WZL Eqn 62
     kappa = 0.5 * (np.sqrt(1.0 / (eta_plus ** 15)) + np.sqrt(1.0 / (eta_minus ** 15)))
     # WZL Eqn 63
@@ -623,4 +609,4 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     assert np.isfinite(tau_a_dyn).all(), \
         "Finite check failure: tau_a_dyn"
 
-    return tau_e_dyn, tau_a_dyn
+    return tau_e_dyn.value, tau_a_dyn.value
