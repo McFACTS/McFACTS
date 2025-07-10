@@ -110,10 +110,15 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
     # print('large ecc indices', large_ecc_prograde_indices)
     # Calculate the 1-d array of damping times at all locations since we need t_damp for both modest & large ecc
     # (see eqns above)
-    t_damp = 1.e5 * (1.0 / normalized_mass_ratio) * (normalized_aspect_ratio ** 4) * (
-            1.0 / normalized_disk_surf_density_func) * (1.0 / np.sqrt(normalized_bh_locations))
+    log_t_damp = 5 \
+        - np.log10(normalized_mass_ratio) \
+        + 4*np.log10(normalized_aspect_ratio) \
+        - np.log10(normalized_disk_surf_density_func) \
+        - 0.5 * np.log10(normalized_bh_locations)
+    t_damp = 10**log_t_damp
+    #t_damp = 1.e5 * (1.0 / normalized_mass_ratio) * (normalized_aspect_ratio ** 4) * (
+    #        1.0 / normalized_disk_surf_density_func) * (1.0 / np.sqrt(normalized_bh_locations))
 
-    # timescale ratio for modest ecc damping
     modest_timescale_ratio = timestep_duration_yr / t_damp
 
     # timescale for large ecc damping from eqn. 2 above
@@ -236,8 +241,14 @@ def orbital_bin_ecc_damping(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_ec
     normalized_aspect_ratio = disk_aspect_ratio / 0.03
 
     # Calculate the damping time for all bins
-    t_damp = 1.e5 * (1.0 / normalized_mass_ratio) * (normalized_aspect_ratio ** 4) * (
-            1.0 / normalized_disk_surf_density_func) * (1.0 / np.sqrt(normalized_bh_locations))
+    #t_damp = 1.e5 * (1.0 / normalized_mass_ratio) * (normalized_aspect_ratio ** 4) * (
+    #        1.0 / normalized_disk_surf_density_func) * (1.0 / np.sqrt(normalized_bh_locations))
+    log_t_damp = 5 \
+        - np.log10(normalized_mass_ratio) \
+        + 4*np.log10(normalized_aspect_ratio) \
+        - np.log10(normalized_disk_surf_density_func) \
+        - 0.5 * np.log10(normalized_bh_locations)
+    t_damp = 10**log_t_damp
     modest_timescale_ratio = timestep_duration_yr / t_damp
 
     # Calculate (e/h) ratio for all prograde BH for use in eqn. 2 above
@@ -378,8 +389,14 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
     # print('large ecc indices', large_ecc_prograde_indices)
     # Calculate the 1-d array of damping times at all locations since we need t_damp for both modest & large ecc
     # (see eqns above)
-    t_damp = 1.e5 * (1.0 / normalized_mass_ratio) * (normalized_aspect_ratio ** 4) * (
-            1.0 / normalized_disk_surf_density_func) * (1.0 / np.sqrt(normalized_bh_locations))
+    #t_damp = 1.e5 * (1.0 / normalized_mass_ratio) * (normalized_aspect_ratio ** 4) * (
+    #        1.0 / normalized_disk_surf_density_func) * (1.0 / np.sqrt(normalized_bh_locations))
+    log_t_damp = 5 \
+        - np.log10(normalized_mass_ratio) \
+        + 4*np.log10(normalized_aspect_ratio) \
+        - np.log10(normalized_disk_surf_density_func) \
+        - 0.5 * np.log10(normalized_bh_locations)
+    t_damp = 10**log_t_damp
 
     # timescale ratio for modest ecc damping
     modest_timescale_ratio = timestep_duration_yr / t_damp

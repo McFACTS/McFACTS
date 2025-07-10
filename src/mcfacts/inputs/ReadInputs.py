@@ -116,9 +116,11 @@ Inifile
         Critical eccentricity (limiting eccentricity, below which assumed circular orbit)
     "flag_dynamic_enc"              : int
         Switch (1) turns dynamical encounters between embedded BH on.
-    "delta_energy_strong"           : float
+    "delta_energy_strong_mu"           : float
         Average energy change per strong interaction.
         de can be 20% in cluster interactions. May be 10% on average (with gas)
+    "delta_energy_strong_sigma"     : float
+        Standard deviation for de Gaussian
     "inner_disk_outer_radius"       : float
         Outer radius of the inner disk (Rg)
     "disk_inner_stable_circ_orb"    : float
@@ -132,7 +134,7 @@ Inifile
     "var_harden_energy_delta"       : float
         The Gaussian variance value for the energy change during a strong interaction
     "flag_use_surrogate"            : int
-        Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) sets 200 km/s for each merger's kick velocity.
+        Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) uses NRSurrogate model from (paper in prep).
 """
 # Things everyone needs
 import configparser as ConfigParser
@@ -199,7 +201,8 @@ INPUT_TYPES = {
     "disk_radius_capture_outer"     : float,
     "disk_bh_pro_orb_ecc_crit"      : float,
     "flag_dynamic_enc"              : int,
-    "delta_energy_strong"           : float,
+    "delta_energy_strong_mu"        : float,
+    "delta_energy_strong_sigma"     : float,
     "inner_disk_outer_radius"       : float,
     "disk_inner_stable_circ_orb"    : float,
     "mass_pile_up"                  : float,
