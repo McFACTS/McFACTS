@@ -650,40 +650,6 @@ def main():
     plt.close()
 
 # ===============================
-### testing color map stuff for jets ###
-# ===============================
-
-    fig = plt.figure(figsize=plotting.set_size(figsize))
-    plt.scatter(mergers[:,2], mergers[:,16], c=np.log10(mergers[:,18]), cmap="viridis", marker="+", s=1)
-    plt.colorbar(label='Jet Lum')
-        
-    plt.xlabel(r'Remnant Mass [$M_\odot$]')
-    plt.ylabel(r'Kick Velocity [km/s]')
-    plt.xscale('log')
-    #plt.yscale('log')
-    plt.grid(True, color='gray', ls='dashed')
-
-    plt.savefig(opts.plots_directory + '/mass_vs_vel_vs_jet_lum.png', format='png')
-    plt.close()
-
-# ===============================
-### testing color map stuff for shocks ###
-# ===============================
-
-    fig = plt.figure(figsize=plotting.set_size(figsize))
-    plt.scatter(mergers[:,2], mergers[:,16], c=np.log10(mergers[:,17]), cmap="viridis", marker="+", s=1)
-    plt.colorbar(label='Shock Lum')
-    
-    plt.xlabel(r'Remnant Mass [$M_\odot$]')
-    plt.ylabel(r'Kick Velocity [km/s]')
-    plt.xscale('log')
-    #plt.yscale('log')
-    plt.grid(True, color='gray', ls='dashed')
-
-    plt.savefig(opts.plots_directory + '/mass_vs_vel_vs_shock_lum.png', format='png')
-    plt.close()
-
-# ===============================
 ### shock luminosity vs. time
 # ===============================
 
@@ -978,6 +944,108 @@ def main():
         )
     plt.grid(True, color='gray', ls='dashed')
     plt.savefig(opts.plots_directory + '/spin_vs_jet_lum.png', format='png')
+    plt.close()
+
+# ===============================
+### spin_final vs. kick velocity
+# ===============================
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+
+    # plt.title("Time of Merger after AGN Onset")
+    # ax3.scatter(mergers[:,14]/1e6, mergers[:,2], s=pointsize_merge_time, color='darkolivegreen')
+    ax3.scatter(gen1_vk,gen1_spin,
+                    s=styles.markersize_gen1,
+                    marker=styles.marker_gen1,
+                    edgecolor=styles.color_gen1,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen1,
+                    label='1g-1g'
+                    )
+
+        # plot the 2g+ mergers
+    ax3.scatter(gen2_vk, gen2_spin,
+                    s=styles.markersize_gen2,
+                    marker=styles.marker_gen2,
+                    edgecolor=styles.color_gen2,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen2,
+                    label='2g-1g or 2g-2g'
+                    )
+
+        # plot the 3g+ mergers
+    ax3.scatter(genX_vk, genX_spin,
+                    s=styles.markersize_genX,
+                    marker=styles.marker_genX,
+                    edgecolor=styles.color_genX,
+                    facecolor='none',
+                    alpha=styles.markeralpha_genX,
+                    label=r'$\geq$3g-Ng'
+                    )
+
+    ax3.set(
+            xlabel=r'v$_{kick}$',
+            ylabel=r'a$_{\mathrm{remnant}}$',
+            xscale="log",
+            #yscale="log",
+            axisbelow=True
+        )
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/spin_vs_kick_velocity.png', format='png')
+    plt.close()
+
+# ===============================
+### spin_final vs. spin angle final
+# ===============================
+    all_spin_angle = mergers[:, 5]
+    gen1_spin_angle = all_spin_angle[merger_g1_mask]
+    gen2_spin_angle = all_spin_angle[merger_g2_mask]
+    genX_spin_angle = all_spin_angle[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+
+    # plt.title("Time of Merger after AGN Onset")
+    # ax3.scatter(mergers[:,14]/1e6, mergers[:,2], s=pointsize_merge_time, color='darkolivegreen')
+    ax3.scatter(gen1_spin_angle,gen1_spin,
+                    s=styles.markersize_gen1,
+                    marker=styles.marker_gen1,
+                    edgecolor=styles.color_gen1,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen1,
+                    label='1g-1g'
+                    )
+
+        # plot the 2g+ mergers
+    ax3.scatter(gen2_spin_angle, gen2_spin,
+                    s=styles.markersize_gen2,
+                    marker=styles.marker_gen2,
+                    edgecolor=styles.color_gen2,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen2,
+                    label='2g-1g or 2g-2g'
+                    )
+
+        # plot the 3g+ mergers
+    ax3.scatter(genX_spin_angle, genX_spin,
+                    s=styles.markersize_genX,
+                    marker=styles.marker_genX,
+                    edgecolor=styles.color_genX,
+                    facecolor='none',
+                    alpha=styles.markeralpha_genX,
+                    label=r'$\geq$3g-Ng'
+                    )
+
+    ax3.set(
+            xlabel=r'Spin angle',
+            ylabel=r'a$_{\mathrm{remnant}}$',
+            #xscale="log",
+            #yscale="log",
+            axisbelow=True
+        )
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/spin_vs_angle.png', format='png')
     plt.close()
 
 # ===============================
