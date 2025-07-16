@@ -152,19 +152,19 @@ def accrete_star_mass(disk_star_pro_masses,
 def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_pro_spins, disk_bh_pro_spin_angle,
                                 disk_sound_speed, disk_density, disk_aspect_ratio, migration_velocity,
                                 disk_bh_torque_condition, smbh_mass, timestep_duration_yr):
+    smbh_kg = (smbh_mass * u.Msun).to(u.kg) # solar mass to kg, good
+    sound_speed = disk_sound_speed(disk_bh_pro_orb_a) * (u.m / u.s) # m/s, good
+    density = disk_density(disk_bh_pro_orb_a) * (u.kg / u.m**3) # kg/cm^3, good
 
-    smbh_kg = smbh_mass * u.kg
+    pro_orb_a = (disk_bh_pro_orb_a * const.G * smbh_kg) / (const.c ** 2) # good
+    pro_orb_mass = (disk_bh_pro_masses * u.Msun).to(u.kg) # kg, good
 
-    sound_speed = disk_sound_speed(disk_bh_pro_orb_a) * (u.m / u.s)
-    density = disk_density(disk_bh_pro_orb_a) * (u.kg / u.m**3)
+    timestep = (timestep_duration_yr * u.yr).to(u.s) # seconds, good
 
-    pro_orb_a = (disk_bh_pro_orb_a * const.G * smbh_kg) / (const.c ** 2)
-    pro_orb_mass = disk_bh_pro_masses * u.kg
+    radius_schwarzschild = (2 * const.G * pro_orb_mass) / const.c ** 2 # m, good
 
-    timestep = (timestep_duration_yr * u.yr).to(u.s)
-
-    radius_schwarzschild = (2 * const.G * pro_orb_mass) / const.c ** 2
     spin_component = disk_bh_pro_spins * (radius_schwarzschild / 2)
+    #print(spin_component)
 
     comp_1_part_a = (1 - ((4 * (spin_component ** 2)) / (radius_schwarzschild ** 2))) ** (1 / 3)
     comp_1_part_b = (1 + ((2 * spin_component) / radius_schwarzschild)) ** (1 / 3)
@@ -174,25 +174,47 @@ def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_p
 
     radius_isco = (3 + radius_comp_2 - (((3 - radius_comp_1) * (3 + radius_comp_1 + (2 * radius_comp_2))) ** (1/2))) # (radius_schwarzschild / 2) *
     radii_bondi = (2 * const.G * pro_orb_mass) / (sound_speed ** 2) # Only using sound speed in this bondi radii approximation
+    #print(disk_bh_pro_spins)
+    #print(comp_1_part_a)
+    #print(comp_1_part_b)
+    #print(comp_1_part_c)
+    print()
 
-    shear_velocity = radii_bondi * np.sqrt(const.G * smbh_kg / pro_orb_a ** 3)
-    mig_velocity = ((migration_velocity * const.G * smbh_kg) / (const.c ** 2 * 3.154e+7)) * (1 / u.s)
-
+    shear_velocity = radii_bondi * np.sqrt(const.G * smbh_kg / pro_orb_a ** 3) # good, m/s
+    mig_velocity = ((migration_velocity * const.G * smbh_kg) / (const.c ** 2 * 3.154e+7)) * (1 / u.s) # good, m/s
+    
     radii_hill = pro_orb_a * (pro_orb_mass / (3 * smbh_kg)) ** (1/3)
     f_c = 10
     radii_c = np.minimum(radii_hill, radii_bondi)
     disk_height = disk_aspect_ratio(disk_bh_pro_orb_a) * pro_orb_a
-    delta_mass = f_c * radii_c * disk_height * density * ((sound_speed ** 2 + shear_velocity ** 2 + mig_velocity ** 2) ** (1/2)) * timestep
+    radii_h = np.minimum(radii_hill, disk_height)
+    #sigma_gas =  (disk_sound_speed**2 + radii_hill**2 * mig_velocity**2 + (spin * r * mig_velocity)**2)**0.5
 
-    final_mass = disk_bh_pro_masses + delta_mass.value
+    #R_acc = const.G * pro_orb_mass / sigma_gas**2
 
-    spin_magnitude_change = ((2 / (3 * (3 ** 1/2))) * (1 / pro_orb_mass) * ((1 + 2 * ((3 * radius_isco - 2) ** 1/2)) / (1 - (2/(3*radius_isco))) ** (1 / 2)) - (disk_bh_pro_spins / pro_orb_mass)) * delta_mass
-    final_spin_magnitude = disk_bh_pro_spins + spin_magnitude_change.value
+    mdot = f_c * radii_h * radii_c * density * (sound_speed**2 + mig_velocity**2 + shear_velocity**2)**0.5
+    delta_m = mdot * timestep
+    # might be producing too high of masses!!
+    #print(delta_m)
+    final_mass = (disk_bh_pro_masses * u.Msun).to(u.kg) + delta_m # good, in kg
+    final_mass = final_mass.to(u.Msun).value
+    spin_magnitude_change = (0.3849 * (1 / pro_orb_mass) * ((1 + 2 * np.sqrt(3 * radius_isco - 2)) / np.sqrt(1 - (2 / 3* radius_isco))) - (2 * disk_bh_pro_spins / pro_orb_mass)) * delta_m
+    #spin_magnitude_change = ((2 / (3 * np.sqrt(3))) * (1 / pro_orb_mass) * ((1 + 2 * ((3 * radius_isco - 2) ** 0.5)) / ((1 - (2/(3*radius_isco))) ** 0.5)) - (2 * disk_bh_pro_spins / pro_orb_mass)) * delta_m
+    print(disk_bh_pro_spins)
+    final_spin_magnitude = disk_bh_pro_spins + spin_magnitude_change
+    print(spin_magnitude_change)
 
-    eddington_ratio = delta_mass / disk_bh_pro_masses
+    eddington_ratio = delta_m / pro_orb_mass
     normalized_spin_torque_condition = disk_bh_torque_condition / 0.1
     spin_torque_iteration = (6.98e-3 * eddington_ratio.value * normalized_spin_torque_condition * (timestep_duration_yr * 1e4))
     final_spin_angle = disk_bh_pro_spin_angle + spin_torque_iteration
+
+    print()
+
+    assert np.all(final_spin_magnitude < 1), \
+        "final_spin_magnitude has values >= 0.98"
+    assert np.all(final_mass >= 0), \
+        "final_mass has values <= 0"
 
     return final_mass, final_spin_magnitude, final_spin_angle
 
@@ -295,7 +317,9 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
 
     assert np.isfinite(disk_bh_pro_spins_new).all(), \
         "Finite check failure: disk_bh_pro_spins_new"
-
+    assert np.all(disk_bh_pro_spins_new >= 0.98), \
+        "disk_bh_pro_spins_new has values >= 0.98"
+    
     return disk_bh_pro_spins_new
 
 

@@ -109,7 +109,7 @@ mcfacts_sim: clean
 	mkdir -p runs
 	cd runs; \
 		python ../${MCFACTS_SIM_EXE} \
-		--galaxy_num 100 \
+		--galaxy_num 1 \
 		--fname-ini ../${FNAME_INI} \
 		--fname-log mcfacts.log \
 		--seed ${SEED}
