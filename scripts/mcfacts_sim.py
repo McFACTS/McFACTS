@@ -846,7 +846,7 @@ def main():
             blackholes_pro.orb_a = np.where(blackholes_pro.orb_a > opts.disk_inner_stable_circ_orb, blackholes_pro.orb_a, 3*opts.disk_inner_stable_circ_orb)
             if new_orb_a_bh is not None:
                 blackholes_pro.orb_a = new_orb_a_bh
-                migration_velocity = np.abs(old_orbs_a_bh - old_orbs_a_bh) / opts.timestep_duration_yr
+                migration_velocity = np.abs(new_orb_a_bh - old_orbs_a_bh) / opts.timestep_duration_yr
 
 
             stars_pro.orb_a = np.where(stars_pro.orb_a > opts.disk_inner_stable_circ_orb, stars_pro.orb_a, 3*opts.disk_inner_stable_circ_orb)
