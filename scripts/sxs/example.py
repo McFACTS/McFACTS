@@ -1,6 +1,6 @@
 import numpy as np
-import fit_modeler
-import mcfacts.external.sxs.surrogate as surrogate
+import mcfacts.external.sxs.fit_modeler as fit_modeler
+import mcfacts.external.sxs.evolve_surrogate as evolve_surrogate
 
 import time
 
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     mass_SMBH = None
     spin_SMBH = None
 
-    surrogate = fit_modeler.GPRFitters.read_from_file(f"surrogate.joblib")
+    surrogate = fit_modeler.GPRFitters.read_from_file(f"../../src/mcfacts/inputs/data/surrogate.joblib")
 
     spin_1 = spin_1_mag * np.array(
         [
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     print("spin_2 input = ", spin_2)
     print()
 
-    M_f, spin_f, v_f, mass_1_20Hz, mass_2_20Hz, spin_1_20Hz, spin_2_20Hz = surrogate.evolve_binary(
+    M_f, spin_f, v_f, mass_1_20Hz, mass_2_20Hz, spin_1_20Hz, spin_2_20Hz = evolve_surrogate.evolve_binary(
         mass_1,
         mass_2,
         spin_1_mag,

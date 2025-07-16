@@ -8,8 +8,8 @@ from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.binary import merge
 from mcfacts.physics import analytical_velo, lum
 from mcfacts.external.sxs import evolve_binary
-#from scripts.sxs import evolve_binary
 from mcfacts.external.sxs import fit_modeler
+#from mcfacts.inputs import data
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
@@ -254,6 +254,8 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2):
     -------
     merged_spins : numpy array
         Final spin magnitude [unitless] of merger remnant with :obj:`float` type
+    merged_spin_angle : numpy array
+        Final spin angle wrt to angular momentum of the remnant in units of radians
     """
 
     mass_ratios = np.ones(masses_1.size)
@@ -270,11 +272,12 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2):
     spin_factors_2 = (0.632 + mass_ratios) ** 2.0
 
     merged_spins = 0.686 * ((5.04 * nu) - (4.16 * nu_squared)) + (0.4 * ((spins_1 / spin_factors_1) + (spins_2 / spin_factors_2)))
-
+    #merged_spin_angle = np.arccos( [insert z component of spin] /merged_spins)
+    
     assert np.isfinite(merged_spins).all(), \
         "Finite check failure: merged_spins"
 
-    return (merged_spins)
+    return (merged_spins) #merged_spin_angle
 
 
 def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
@@ -343,13 +346,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2")
     )
 
-    bh_spin_merged = merge.merged_spin(
-        blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
-        blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-        blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
-        blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2")
-    )
-
     bh_chi_eff_merged = merge.chi_effective(
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -371,6 +367,12 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
     )
 
     if flag_use_surrogate == 0:
+        bh_spin_merged = merge.merged_spin( #insert bh_spin_angle_merged
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2")
+        )
         bh_v_kick = analytical_velo.analytical_kick_velocity(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -379,17 +381,24 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
         )
+        
+        bh_mass_1_20Hz = np.zeros(bh_binary_id_num_merger.size)
+        bh_mass_2_20Hz = np.zeros(bh_binary_id_num_merger.size)
+        bh_spin_1_20Hz = np.zeros(bh_binary_id_num_merger.size)
+        bh_spin_2_20Hz = np.zeros(bh_binary_id_num_merger.size)
+        bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
+
     else:
         #bh_v_kick = 200 #evolve_binary.velocity()
         surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
-        bh_mass_merged, bh_spin_merged, bh_v_kick = evolve_binary.surrogate(
+        bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2") - blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
             1000, # binary seperation - in units of mass_1+mass_2 - shawn need to optimize seperation to speed up processing time 
             [0, 0, 1], # binary inclination - cartesian coords
             0, # binary phase angle - radians?
@@ -427,7 +436,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
                                      new_bin_orb_a=blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
                                      new_mass_final=bh_mass_merged,
                                      new_spin_final=bh_spin_merged,
-                                     new_spin_angle_final=np.zeros(bh_binary_id_num_merger.size),
+                                     new_spin_angle_final=bh_spin_angle_merged,
                                      new_mass_1=blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
                                      new_mass_2=blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
                                      new_spin_1=blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
@@ -439,6 +448,10 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
                                      new_chi_eff=bh_chi_eff_merged,
                                      new_chi_p=bh_chi_p_merged,
                                      new_v_kick=bh_v_kick,
+                                     new_mass_1_20Hz=bh_mass_1_20Hz,
+                                     new_mass_2_20Hz=bh_mass_2_20Hz,
+                                     new_spin_1_20Hz=bh_spin_1_20Hz,
+                                     new_spin_2_20Hz=bh_spin_2_20Hz,
                                      new_lum_shock=bh_lum_shock,
                                      new_lum_jet=bh_lum_jet,
                                      new_time_merged=np.full(bh_binary_id_num_merger.size, time_passed))

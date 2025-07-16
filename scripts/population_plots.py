@@ -559,7 +559,6 @@ def main():
         yscale='log',
         axisbelow=(True),
         xlim=(9, 100)
-        xlim=(9, 100)
         # aspect=('equal')
     )
 

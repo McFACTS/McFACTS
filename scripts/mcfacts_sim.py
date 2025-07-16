@@ -2595,6 +2595,10 @@ def main():
                                              new_chi_eff=blackholes_merged.chi_eff,
                                              new_chi_p=blackholes_merged.chi_p,
                                              new_v_kick=blackholes_merged.v_kick,
+                                             new_mass_1_20Hz=blackholes_merged.mass_1_20Hz,
+                                             new_mass_2_20Hz=blackholes_merged.mass_2_20Hz, 
+                                             new_spin_1_20Hz=blackholes_merged.spin_1_20Hz, 
+                                             new_spin_2_20Hz=blackholes_merged.spin_2_20Hz,
                                              new_lum_shock=blackholes_merged.lum_shock,
                                              new_lum_jet=blackholes_merged.lum_jet,
                                              new_time_merged=blackholes_merged.time_merged)
