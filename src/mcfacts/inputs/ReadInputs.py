@@ -51,6 +51,8 @@ Inifile
     "nsc_imf_bh_mass_max"           : float
         Initial mass distribution for stellar bh is assumed to be Pareto
         with high mass cutoff--mass of cutoff (M_sun)
+    "nsc_imf_bh_method"                 : str
+        The name of an IMF method ('uniform', 'default', 'gaussian' or filename for samples)
     "nsc_bh_spin_dist_mu"           : float
         Initial spin distribution for stellar bh is assumed to be Gaussian
         --mean of spin dist
@@ -174,6 +176,7 @@ INPUT_TYPES = {
     "nsc_imf_bh_mode"               : float,
     "nsc_imf_bh_powerlaw_index"     : float,
     "nsc_imf_bh_mass_max"           : float,
+    "nsc_imf_bh_method"             : str,
     "nsc_bh_spin_dist_mu"           : float,
     "nsc_bh_spin_dist_sigma"        : float,
     "disk_bh_torque_condition"      : float,
