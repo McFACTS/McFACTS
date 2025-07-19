@@ -204,12 +204,33 @@ def setup_disk_blackholes_masses(
             (nsc_bh_imf_max_mass - nsc_bh_imf_mode) * \
             uniform_samples**(1/(1+nsc_bh_imf_powerlaw_index)) \
             ) + nsc_bh_imf_mode
-    elif isfile(nsc_imf_bh_method):
-        raise NotImplementedError("TODO Samples")
     else:
-        raise RuntimeError(f"Unknown BH IMF method: {nsc_imf_bh_method}")
+        # Try to see if it's a file
+        try:
+            from os.path import isfile
+        except:
+            raise NotImplementedError("Using a sample-based IMF is not currently supported without os.path")
+        # Check if it's a file
+        if isfile(nsc_imf_bh_method):
+            # Load samples
+            nsc_imf_bh_sample_data = np.loadtxt(nsc_imf_bh_method)
+            nsc_imf_bh_sample_data_mass = nsc_imf_bh_sample_data[:,0]
+            nsc_imf_bh_sample_data_weights = nsc_imf_bh_sample_data[:,1]
+            # Adjust weights
+            # TODO figure out why there are other calls to pareto elsewhere in the code
+            #nsc_imf_bh_sample_data_weights *= nsc_imf_bh_sample_data_mass**nsc_bh_imf_powerlaw_index
+            nsc_imf_bh_sample_data_weights *= nsc_imf_bh_sample_data_mass**(0.5)
+            nsc_imf_bh_sample_data_weights = nsc_imf_bh_sample_data_weights / np.sum(nsc_imf_bh_sample_data_weights)
+            # Draw the samples
+            disk_bh_initial_masses = rng.choice(
+                nsc_imf_bh_sample_data_mass,
+                p=nsc_imf_bh_sample_data_weights,
+                size=disk_bh_num,
+            )
+        else:
+            raise RuntimeError(f"Unknown BH IMF method: {nsc_imf_bh_method}")
     #print(nsc_imf_bh_method, nsc_bh_imf_powerlaw_index)
-    #print(np.percentile(disk_bh_initial_masses, [0,10,50,90,100]))
+    #print(np.percentile(disk_bh_initial_masses, [0,10,50,75,90,100]))
     #raise Exception
     return disk_bh_initial_masses
 
