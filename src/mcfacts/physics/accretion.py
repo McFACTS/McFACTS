@@ -203,16 +203,19 @@ def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_p
     final_mass = (disk_bh_pro_masses * u.Msun).to(u.kg) + delta_m  # good, in kg
     final_mass = final_mass.to(u.Msun).value
 
+    #print(final_mass)
+
     #spin_magnitude_change = ((2 / (3 * np.sqrt(3))) * (1 / pro_orb_mass) * ((1 + 2 * ((3 * radius_isco - 2) ** 0.5)) / ((1 - (2/(3*radius_isco))) ** 0.5)) - (2 * disk_bh_pro_spins / pro_orb_mass)) * delta_m
     #print(disk_bh_pro_spins)
     final_spin_magnitude = disk_bh_pro_spins + spin_magnitude_change
-    final_spin_magnitude[final_spin_magnitude >= 1] = 0.998
 
     eddington_ratio = delta_m / pro_orb_mass
     normalized_spin_torque_condition = disk_bh_torque_condition / 0.1
     spin_torque_iteration = (6.98e-3 * eddington_ratio.value * normalized_spin_torque_condition * (timestep_duration_yr * 1e4))
     final_spin_angle = disk_bh_pro_spin_angle + spin_torque_iteration
 
+    final_spin_angle[final_spin_magnitude >= 1] = 0.
+    final_spin_magnitude[final_spin_magnitude >= 1] = 0.998
 
     assert np.isfinite(final_spin_magnitude).all(), \
         "final_spin_magnitude has non finite values"
@@ -221,7 +224,7 @@ def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_p
     assert np.all(final_mass >= 0), \
         "final_mass has values <= 0"
 
-    return final_mass, final_spin_magnitude, final_spin_angle
+    return final_mass, final_spin_magnitude.value, final_spin_angle
 
 def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddington_mass_growth_rate, timestep_duration_yr):
     """Adds mass according to chosen BH mass accretion prescription

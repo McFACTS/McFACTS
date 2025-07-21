@@ -110,7 +110,7 @@ def main():
     fig = plt.figure(figsize=plotting.set_size(figsize))
     counts, bins = np.histogram(mergers[:, 2])
     # plt.hist(bins[:-1], bins, weights=counts)
-    bins = np.arange(int(mergers[:, 2].min()), int(mergers[:, 2].max()) + 2, 1)
+    bins = 100# np.arange(int(mergers[:, 2].min()), int(mergers[:, 2].max()) + 2, 1)
 
     hist_data = [mergers[:, 2][merger_g1_mask], mergers[:, 2][merger_g2_mask], mergers[:, 2][merger_gX_mask]]
     hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
