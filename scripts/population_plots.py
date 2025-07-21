@@ -331,7 +331,7 @@ def main():
     )
 
     if figsize == 'apj_col':
-        ax2.legend(loc='lower left', fontsize=6)
+        ax2.legend(loc='lower left', fontsize=5)
     elif figsize == 'apj_page':
         ax2.legend(loc='lower left')
 
@@ -397,6 +397,8 @@ def main():
     elif figsize == 'apj_page':
         ax1.legend()
 
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
     plt.savefig(opts.plots_directory + "/r_chi_p.png", format='png')
     plt.close()
 
@@ -415,7 +417,7 @@ def main():
 
 
     # ========================================
-    # Mass 2 vs Mass 1
+    # Time of Merger
     # ========================================
 
     all_time = mergers[:, 14]
@@ -476,7 +478,7 @@ def main():
 
 
     # ========================================
-    # Number of Mergers vs Mass
+    # Mass 1 v Mass 2
     # ========================================
 
     # Sort Objects into Mass 1 and Mass 2 by generation
@@ -552,11 +554,11 @@ def main():
         xscale='log',
         yscale='log',
         axisbelow=(True),
+        xlim=(9, 100)
         # aspect=('equal')
     )
 
     ax4.legend(fontsize=6)
-
     # plt.grid(True, color='gray', ls='dotted')
     plt.savefig(opts.plots_directory + '/m1m2.png', format='png')
     plt.close()
@@ -590,7 +592,7 @@ def main():
     plt.close()
 
     # ===============================
-    ### a_bin vs. kick velocity with kick velocity histogram ###
+    # a_bin vs. kick velocity with kick velocity histogram#
     # ===============================
 
     all_kick = mergers[:, 16]
@@ -643,7 +645,7 @@ def main():
     axs[0].set_yscale('log')
     axs[0].grid(True, color='gray', ls='dashed')
     if figsize == 'apj_col':
-        axs[0].legend(fontsize=6)
+        axs[0].legend(fontsize=6, loc = 'lower right')
     elif figsize == 'apj_page':
         axs[0].legend()
 
@@ -667,6 +669,401 @@ def main():
     plt.tight_layout()
     plt.savefig(opts.plots_directory + '/v_kick_vs_radius.png', format='png')
     plt.close()
+
+    # ===============================
+    ### kick velocity vs. chi_eff ###
+    # ===============================
+
+    all_chi_eff = mergers[:, 3]
+    gen1_chi_eff = all_chi_eff[merger_g1_mask]
+    gen2_chi_eff  = all_chi_eff[merger_g2_mask]
+    genX_chi_eff  = all_chi_eff[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+    ax3.scatter(gen1_chi_eff, gen1_vkick,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    ax3.scatter(gen2_chi_eff, gen2_vkick,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    ax3.scatter(genX_chi_eff, genX_vkick,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    mean_chieff_gen_1 = np.mean(gen1_vkick)
+    mean_chieff_gen_2 = np.mean(gen2_vkick)
+    mean_chieff_gen_X = np.mean(genX_vkick)
+    # ax3.axhline(mean_chieff_gen_1, color='gold', linestyle='--', zorder=0,
+    #             label= f"{mean_chieff_gen_1:.2f}")
+    # ax3.axhline(mean_chieff_gen_2, color='purple', linestyle='--', zorder=0,
+    #             label= f"{mean_chieff_gen_2:.2f}")
+    # ax3.axhline(mean_chieff_gen_X, color='red', linestyle='--', zorder=0,
+    #             label= f"{mean_chieff_gen_X:.2f}")
+    
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'$\chi_{eff}$')
+    plt.ylabel(r'$v_{kick}$ [km/s]')
+    #plt.xscale('log')
+    plt.yscale('log')
+
+    plt.grid(True, color='gray', ls='dashed')
+
+    if figsize == 'apj_col':
+         ax3.legend(fontsize=5, loc='lower right')
+    # elif figsize == 'apj_page':
+    #     ax3.legend()
+
+    plt.savefig(opts.plots_directory + '/v_kick_vs_chi_eff.png', format='png')
+    plt.close()
+    
+
+    # ========================================
+    # Mass v Spin
+    # ========================================
+    
+    gen1_spin = mergers[:, 4][merger_g1_mask]
+    gen2_spin = mergers[:, 4][merger_g2_mask]
+    genX_spin = mergers[:, 4][merger_gX_mask]
+        
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_mass, gen1_spin,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_mass, gen2_spin,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_mass, genX_spin,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Remnant Mass [$M_\odot$]')
+    plt.ylabel(r'Spin')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(9, 110)
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(18, 1000)
+
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/spin_v_mass.png', format='png')
+    
+    # ========================================
+    # Radius from SMBH v Kick Velocity
+    # ========================================
+    
+    trap_radius = 700.
+    v_kick = 200.
+
+    '''# plt.title('Migration Trap influence')
+    for i in range(len(plot_boa)):
+        if plot_boa[i] < 10.0:
+            plot_boa[i] = 10.0'''
+
+    # Separate generational subpopulations
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_vkick,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_vkick,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_vkick,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axhline(v_kick, color='k', linestyle='--', zorder=0,
+                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Radius from SMBH [$R_g$]')
+    plt.ylabel(r'Kick velocity [$km/s$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=4, loc = 'lower left')
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(18, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/radius_v_kick.png', format='png')
+    
+    # ========================================
+    # Radius from SMBH v Kick Velocity
+    # ========================================
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_spin,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_spin,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_spin,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Radius from SMBH [$R_g$]')
+    plt.ylabel(r'Spin')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=4, loc = 'lower right')
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(18, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/radius_v_spin.png', format='png')
+
+    # ========================================
+    # Radius v Remnant Mass
+    # ========================================
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_mass,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_mass,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_mass,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Radius from SMBH [$R_g$]')
+    plt.ylabel(r'Remnant Mass [$M_\odot$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=4, loc = 'upper right')
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(18, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/radius_mass.png', format='png')
+    
+    # ========================================
+    # Spin v Kick Velocity
+    # ========================================
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_vkick, gen1_spin,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_vkick, gen2_spin,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_vkick, genX_spin,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axvline(v_kick, color='k', linestyle='--', zorder=0,
+                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Kick velocity [$km/s$]')
+    plt.ylabel(r'Spin')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=4)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(18, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/spin_v_kick.png', format='png')
+    
+    # ========================================
+    # Kick Velocity v Remnant Mass
+    # ========================================
+
+    v_kick = 200.    
+    
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_mass, gen1_vkick,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_mass, gen2_vkick,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_mass, genX_vkick,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axhline(v_kick, color='k', linestyle='--', zorder=0,
+                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Remnant Mass [$M_\odot$]')
+    plt.ylabel(r'Kick Velocity [$km/s$]')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(9, 100)
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=4)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(18, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/v_kick_mass.png", format='png')  # ,dpi=600)
 
     # ========================================
     # LVK and LISA Strain vs Freq
@@ -739,11 +1136,11 @@ def main():
     # inv_freq_lvk = 1.0/ma_freq_lvk
     # timestep =1.e4yr
     timestep = 1.e4
-    strain_per_freq_emris = emris[:, 5] * inv_freq_emris / timestep
+    strain_per_freq_emris = emris[:, 5] # * inv_freq_emris / timestep
 
-    strain_per_freq_lvk_g1 = lvk_g1[:, 5] * (1 / lvk_g1[:, 6]) / timestep
-    strain_per_freq_lvk_g2 = lvk_g2[:, 5] * (1 / lvk_g2[:, 6]) / timestep
-    strain_per_freq_lvk_gX = lvk_gX[:, 5] * (1 / lvk_gX[:, 6]) / timestep
+    strain_per_freq_lvk_g1 = lvk_g1[:, 5] # * (1 / lvk_g1[:, 6]) / timestep
+    strain_per_freq_lvk_g2 = lvk_g2[:, 5] # * (1 / lvk_g2[:, 6]) / timestep
+    strain_per_freq_lvk_gX = lvk_gX[:, 5] # * (1 / lvk_gX[:, 6]) / timestep
 
     # plot the characteristic detector strains
     svf_ax.loglog(lisa_freq, np.sqrt(lisa_freq * lisa_sn),
@@ -795,15 +1192,16 @@ def main():
     # ax.loglog(f_gw,h,color ='black', label='GW150914')
 
     if figsize == 'apj_col':
-        plt.legend(fontsize=7, loc="upper right")
+        plt.legend(fontsize=5, loc="lower right")
     elif figsize == 'apj_page':
         plt.legend(loc="upper right")
 
     svf_ax.set_xlabel(r'$\nu_{\rm GW}$ [Hz]')  # , fontsize=20, labelpad=10)
-    svf_ax.set_ylabel(r'$h_{\rm char}/\nu_{\rm GW}$')  # , fontsize=20, labelpad=10)
+    svf_ax.set_ylabel(r'$h_{\rm char}$')  # , fontsize=20, labelpad=10)
 
     plt.savefig(opts.plots_directory + './gw_strain.png', format='png')
     plt.close()
+
 
 
 ######## Execution ########

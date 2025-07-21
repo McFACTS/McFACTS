@@ -73,7 +73,6 @@ def star_wind_mass_loss(disk_star_pro_masses,
 
 def accrete_star_mass(disk_star_pro_masses,
                       disk_star_pro_orbs_a,
-                      disk_star_pro_eccs,
                       disk_star_luminosity_factor,
                       disk_star_initial_mass_cutoff,
                       smbh_mass,
@@ -119,7 +118,7 @@ def accrete_star_mass(disk_star_pro_masses,
 
     # Calculate Bondi and Hill radii
     r_bondi = (2 * const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
-    r_hill_rg = (disk_star_pro_orbs_a * (1 - disk_star_pro_eccs) * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
+    r_hill_rg = (disk_star_pro_orbs_a * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
 
     # Determine which is smaller for each star
@@ -198,7 +197,7 @@ def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_p
     spin_magnitude_change[~np.isfinite(spin_magnitude_change)] = 0
 
     #print(delta_m)
-    print(spin_magnitude_change)
+    #print(spin_magnitude_change)
     #print(spin_magnitude_change < 1)
 
     final_mass = (disk_bh_pro_masses * u.Msun).to(u.kg) + delta_m  # good, in kg
@@ -323,7 +322,7 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
 
     assert np.isfinite(disk_bh_pro_spins_new).all(), \
         "Finite check failure: disk_bh_pro_spins_new"
-    assert np.all(disk_bh_pro_spins_new >= 0.98), \
+    assert np.all(disk_bh_pro_spins_new <= 0.98), \
         "disk_bh_pro_spins_new has values >= 0.98"
     
     return disk_bh_pro_spins_new

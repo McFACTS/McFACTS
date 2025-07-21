@@ -7,6 +7,9 @@ from astropy import constants as const
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.binary import merge
 from mcfacts.physics import analytical_velo, lum
+from mcfacts.external.sxs import evolve_binary
+#from scripts.sxs import evolve_binary
+from mcfacts.external.sxs import fit_modeler
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
@@ -377,7 +380,25 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
         )
     else:
-        bh_v_kick = 200.
+        #bh_v_kick = 200 #evolve_binary.velocity()
+        surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
+        bh_mass_merged, bh_spin_merged, bh_v_kick = evolve_binary.surrogate(
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2") - blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+            1000, # binary seperation - in units of mass_1+mass_2 - shawn need to optimize seperation to speed up processing time 
+            [0, 0, 1], # binary inclination - cartesian coords
+            0, # binary phase angle - radians?
+            # the following three None values are any correction needed to the values
+            None, # bin_orb_a
+            None, # mass_smbh
+            None, # spin_smbh
+            surrogate
+        )
 
     bh_lum_shock = lum.shock_luminosity(
         smbh_mass,

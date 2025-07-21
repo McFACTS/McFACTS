@@ -30,13 +30,13 @@ def arg():
                         default="runs",
                         type=str, help="folder with files for each run")
     parser.add_argument("--fname-stars",
-                        default="output_mergers_stars_population.dat",
+                        default="output_stars_population.dat",
                         type=str, help="output_stars file")
     parser.add_argument("--fname-stars-merge",
-                        default="output_mergers_stars_merged.dat",
+                        default="output_stars_merged.dat",
                         type=str, help="output merged stars file")
     parser.add_argument("--fname-stars-explode",
-                        default="output_mergers_stars_exploded.dat",
+                        default="output_stars_exploded.dat",
                         type=str, help="output exploded stars file")
     parser.add_argument("--plots-directory",
                         default=".",
@@ -123,7 +123,7 @@ def main():
     fig = plt.figure(figsize=plotting.set_size(figsize))
     counts, bins = np.histogram(stars[:, 3])
     # plt.hist(bins[:-1], bins, weights=counts)
-    bins = np.arange(int(stars[:, 3].min()), int(stars[:, 3].max()) + 2, 1)
+    bins = np.linspace(int(stars[:, 3].min()), int(stars[:, 3].max()) + 2, int(np.sqrt(len(stars[:,3]))))
 
     hist_data = [stars[:, 3][merger_g1_mask], stars[:, 3][merger_g2_mask], stars[:, 3][merger_gX_mask]]
     hist_label = ['1g', '2g', r'$\geq$3g']
@@ -134,6 +134,7 @@ def main():
     plt.ylabel('Number of Mergers')
     plt.xlabel(r'Star Mass [$M_\odot$]')
     #plt.xscale('log')
+    plt.yscale("log")
     # plt.ylim(-5,max(counts))
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
@@ -151,10 +152,9 @@ def main():
     elif figsize == 'apj_page':
         plt.legend()
 
-    plt.savefig(opts.plots_directory + r"/star_merger_mass.png", format='png')
+    plt.savefig(opts.plots_directory + r"/star_pop_mass.png", format='png')
 
     plt.close()
-
 
 
     # ========================================
@@ -211,9 +211,9 @@ def main():
     plt.yscale('log')
 
     if figsize == 'apj_col':
-        plt.legend(fontsize=6)
+        plt.legend(fontsize=6, loc="upper left")
     elif figsize == 'apj_page':
-        plt.legend()
+        plt.legend(loc="upper left")
 
     plt.ylim(0.4, 400)
 
@@ -277,9 +277,9 @@ def main():
     plt.yscale('log')
 
     if figsize == 'apj_col':
-        plt.legend(fontsize=6, title="Exploded stars")
+        plt.legend(fontsize=6, title="Exploded stars", loc="upper left")
     elif figsize == 'apj_page':
-        plt.legend(title="Exploded stars")
+        plt.legend(title="Exploded stars", loc="upper left")
 
     plt.ylim(0.4, 400)
 
@@ -346,6 +346,71 @@ def main():
     plt.savefig(opts.plots_directory + "/star_hrd.png", format='png')
     plt.close()
 
+    # ========================================
+    # Teff histogram
+    # ========================================
+
+    # Separate generational subpopulations
+    gen1_teff = stars[:, 8][merger_g1_mask]
+    gen2_teff = stars[:, 8][merger_g2_mask]
+    genX_teff = stars[:, 8][merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+
+    bins = np.linspace(stars[:, 8].min(), stars[:, 8].max(), 75)
+    hist_data = [gen1_teff, gen2_teff, genX_teff]
+    hist_label = ['1g', '2g', r'$\geq$3g']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
+    plt.yscale("log")
+    plt.gca().invert_xaxis()
+    plt.xlabel(r"$\log T_\mathrm{eff}/\mathrm{K}$")
+    plt.ylabel("Number")
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #svf_ax = plt.gca()
+    #svf_ax.set_axisbelow(True)
+    #plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/star_teff_hist.png", format='png')
+    plt.close()
+
+
+    # ========================================
+    # Luminosity histogram
+    # ========================================
+
+    # Separate generational subpopulations
+    gen1_lum = stars[:, 9][merger_g1_mask]
+    gen2_lum = stars[:, 9][merger_g2_mask]
+    genX_lum = stars[:, 9][merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+
+    bins = np.linspace(stars[:, 8].min(), stars[:, 8].max(), 75)
+    hist_data = [gen1_lum, gen2_lum, genX_lum]
+    hist_label = ['1g', '2g', r'$\geq$3g']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
+    plt.xlabel(r"$\log L/L_\odot$")
+    plt.ylabel("Number")
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #svf_ax = plt.gca()
+    #svf_ax.set_axisbelow(True)
+    #plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/star_lum_hist.png", format='png')
+    plt.close()
+
 
     # ========================================
     # M1 vs M2 for merged stars
@@ -362,12 +427,68 @@ def main():
     plt.xlabel(r"$M_1$ [$M_\odot$]")
     plt.ylabel(r"$M_2$ [$M_\odot$]")
 
-    if figsize == 'apj_col':
-        plt.legend(fontsize=6, title='Merged stars')
-    elif figsize == 'apj_page':
-        plt.legend(title="Merged stars")
+    plt.xlim(-10, 310)
+    plt.ylim(-10, 310)
+
+    #if figsize == 'apj_col':
+    #    plt.legend(fontsize=6, title='Merged stars')
+    #elif figsize == 'apj_page':
+    #    plt.legend(title="Merged stars")
 
     plt.savefig(opts.plots_directory + "/stars_m1m2.png", format="png")
+    plt.close()
+
+    # ========================================
+    # M1 vs M2 histogram for merged stars
+    # ========================================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+
+    _,_,_,cm = plt.hist2d(stars_merge[:, 8], stars_merge[:, 9], bins=10, cmap="binary", norm="log")
+
+    cbar = fig.colorbar(cm)
+    cbar.set_label(r"Number")
+
+    plt.xlabel(r"$M_1$ [$M_\odot$]")
+    plt.ylabel(r"$M_2$ [$M_\odot$]")
+
+    plt.xlim(-10, 310)
+    plt.ylim(-10, 310)
+
+    #if figsize == 'apj_col':
+    #    plt.legend(fontsize=6, title='Merged stars')
+    #elif figsize == 'apj_page':
+    #    plt.legend(title="Merged stars")
+
+    plt.savefig(opts.plots_directory + "/stars_m1m2_hist.png", format="png")
+    plt.close()
+
+
+    # ========================================
+    # Radius histogram
+    # ========================================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+
+    bins = np.logspace(np.log10(stars[:, 2].min()), np.log10(stars[:, 2].max()), 75)
+    hist_data = [stars[:, 2][merger_g1_mask], stars[:, 2][merger_g2_mask], stars[:, 2][merger_gX_mask]]
+    hist_label = ['1g', '2g', r'$\geq$3g']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
+    plt.xlabel(r"Radius [$R_{\rm g}$]")
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+
+    plt.xscale("log")
+    plt.yscale("log")
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6, loc="upper left")
+    elif figsize == 'apj_page':
+        plt.legend(loc="upper left")
+
+    plt.savefig(opts.plots_directory + "/stars_radius_hist.png", format="png")
     plt.close()
 
 
@@ -383,13 +504,60 @@ def main():
     plt.ylabel(r"Mass [$M_\odot$]")
 
     if figsize == 'apj_col':
-        plt.legend(fontsize=6)
+        plt.legend(fontsize=6, loc="upper left")
     elif figsize == 'apj_page':
-        plt.legend()
+        plt.legend(loc="upper left")
 
     plt.savefig(opts.plots_directory + "/stars_merge_explode.png", format="png")
     plt.close()
 
+
+    # ========================================
+    # Merged and exploded stars vs radius
+    # ========================================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+
+    plt.scatter(stars_merge[:, 2], stars_merge[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen1, facecolor="None", alpha=styles.markeralpha_gen1, label="Merged star")
+    plt.scatter(stars_explode[:, 2], stars_explode[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen2, facecolor="None", alpha=styles.markeralpha_gen1, label="Exploded star")
+
+    plt.xlabel(r"Radius [$R_{\rm g}$]")
+    plt.ylabel(r"Mass [$M_\odot$]")
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+
+    plt.xscale("log")
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6, loc="upper left")
+    elif figsize == 'apj_page':
+        plt.legend(loc="upper left")
+
+    plt.savefig(opts.plots_directory + "/stars_merge_explode_radius.png", format="png")
+    plt.close()
+
+
+    # ========================================
+    # Merged and exploded stars vs time histogram
+    # ========================================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+
+    #bins = np.linspace(0, stars_merge[:, 1].max()/1e6, int(np.sqrt(min(len(stars_merge[:, 1]), len(stars_explode[:, 1])))))
+    #bins = np.linspace(0, stars_merge[:, 1].max()/1e6, 20)
+    bins = np.arange(0, (stars_merge[:, 1].max()/1e6) + 0.02, 0.02)
+
+    plt.hist([stars_merge[:, 1]/1e6, stars_explode[:, 1]/1e6], bins=bins, color=[styles.color_gen1, styles.color_gen2], label=["Merged star", "Exploded star"], stacked=True)
+
+    plt.xlabel(r"Time [Myr]")
+    plt.ylabel(r"Number")
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6, loc="upper left")
+    elif figsize == 'apj_page':
+        plt.legend(loc="upper left")
+
+    plt.savefig(opts.plots_directory + "/stars_merge_explode_hist.png", format="png")
+    plt.close()
 
 
 
