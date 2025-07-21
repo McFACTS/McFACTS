@@ -8,6 +8,7 @@ import time
 
 import numpy as np
 from astropy import units as u
+from astropy import constants as const
 
 from mcfacts.physics.binary import evolve
 from mcfacts.physics.binary import formation
@@ -846,8 +847,13 @@ def main():
             blackholes_pro.orb_a = np.where(blackholes_pro.orb_a > opts.disk_inner_stable_circ_orb, blackholes_pro.orb_a, 3*opts.disk_inner_stable_circ_orb)
             if new_orb_a_bh is not None:
                 blackholes_pro.orb_a = new_orb_a_bh
-                migration_velocity = np.abs(new_orb_a_bh - old_orbs_a_bh) / opts.timestep_duration_yr
 
+                delta_distance = np.abs(new_orb_a_bh - old_orbs_a_bh)
+                delta_distance_meters = (delta_distance * const.G * (opts.smbh_mass * u.M_sun).si) / (const.c ** 2)
+                migration_velocity = delta_distance_meters / (opts.timestep_duration_yr * u.yr).to(u.s)
+
+                print("out", len(migration_velocity))
+                print("out", len(blackholes_pro.orb_a))
 
             stars_pro.orb_a = np.where(stars_pro.orb_a > opts.disk_inner_stable_circ_orb, stars_pro.orb_a, 3*opts.disk_inner_stable_circ_orb)
             if new_orb_a_star is not None:
@@ -864,6 +870,12 @@ def main():
             # Check for eccentricity > 1 (hyperbolic orbit, ejected from disk)
             bh_pro_id_num_ecc_hyperbolic = blackholes_pro.id_num[blackholes_pro.orb_ecc >= 1.]
             if bh_pro_id_num_ecc_hyperbolic.size > 0:
+                _, remove_ids = np.where(blackholes_pro.id_num == np.array(bh_pro_id_num_ecc_hyperbolic)[:, None])
+                keep_ids = np.ones(len(migration_velocity), dtype=bool)
+                keep_ids[remove_ids] = False
+
+                migration_velocity = migration_velocity[keep_ids]
+
                 blackholes_pro.remove_id_num(bh_pro_id_num_ecc_hyperbolic)
                 filing_cabinet.remove_id_num(bh_pro_id_num_ecc_hyperbolic)
 
