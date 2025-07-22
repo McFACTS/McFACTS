@@ -624,7 +624,7 @@ def main():
                     stars_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
-                    opts.disk_star_eddington_ratio,
+                    opts.disk_bh_eddington_ratio,
                     opts.disk_alpha_viscosity,
                     opts.disk_radius_outer,)
             else:
