@@ -5,7 +5,7 @@ import numpy as np
 from astropy import units as u
 from astropy import constants as const
 from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.binary import merge
+from mcfacts.physics.binary import merge, spin_check
 from mcfacts.physics import analytical_velo, lum
 from mcfacts.external.sxs import evolve_binary
 from mcfacts.external.sxs import fit_modeler
@@ -373,6 +373,11 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2")
         )
+        bh_spin_merged = spin_check.spin_check(
+        blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
+        blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
+        bh_spin_merged
+        )
         bh_v_kick = analytical_velo.analytical_kick_velocity(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -398,10 +403,11 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
-            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
+            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")), # phi_1 - randomly set in the function file
+            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")), # phi_2 - randomly set in the function file
             1000, # binary seperation - in units of mass_1+mass_2 - shawn need to optimize seperation to speed up processing time 
             [0, 0, 1], # binary inclination - cartesian coords
-            0, # binary phase angle - radians?
+            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")), # bin_phase - randomly set in the function file
             # the following three None values are any correction needed to the values
             None, # bin_orb_a
             None, # mass_smbh

@@ -2,7 +2,6 @@ import numpy as np
 import mcfacts.external.sxs.fit_modeler as fit_modeler
 import mcfacts.external.sxs.evolve_surrogate as evolve_surrogate
 
-import time
 
 if __name__ == "__main__":
     mass_1 = 35.8
@@ -11,34 +10,35 @@ if __name__ == "__main__":
     spin_2_mag = 0.2
     spin_angle_1 = np.pi / 3
     spin_angle_2 = np.pi / 2
-    phi_12 = np.pi / 4
+    phi_1 = 0.
+    phi_2 = np.pi / 6
     # This should be in units of mass_1 + mass_2
     bin_sep = 1000
-    bin_inc = [0, 0, 1]
-    bin_phase = 0
+    bin_inc = [np.sin(np.pi/16), 0, np.cos(np.pi/16)]
+    bin_phase = np.pi/8
     # These next three are used to correct the remnant velocity;
     # If they are None, no correction is applied.
     bin_orb_a = None
     mass_SMBH = None
     spin_SMBH = None
 
-    surrogate = fit_modeler.GPRFitters.read_from_file(f"../../src/mcfacts/inputs/data/surrogate.joblib")
+    surrogate = fit_modeler.GPRFitters.read_from_file(f"surrogate.joblib")
 
     spin_1 = spin_1_mag * np.array(
         [
-            np.cos(phi_12) * np.sin(spin_angle_1),
-            np.sin(phi_12) * np.sin(spin_angle_1),
+            np.cos(phi_1) * np.sin(spin_angle_1),
+            np.sin(phi_1) * np.sin(spin_angle_1),
             np.cos(spin_angle_1),
         ]
     )
     spin_2 = spin_2_mag * np.array(
         [
-            np.cos(phi_12) * np.sin(spin_angle_2),
-            np.sin(phi_12) * np.sin(spin_angle_2),
+            np.cos(phi_2) * np.sin(spin_angle_2),
+            np.sin(phi_2) * np.sin(spin_angle_2),
             np.cos(spin_angle_2),
         ]
     )
-    print("Inputs:")
+    print("Inputs (in SMBH frame):")
     print("-------")
     print("M_1 input = ", mass_1)
     print("M_2 input = ", mass_2)
@@ -53,7 +53,8 @@ if __name__ == "__main__":
         spin_2_mag,
         spin_angle_1,
         spin_angle_2,
-        phi_12,
+        phi_1,
+        phi_2,
         bin_sep,
         bin_inc,
         bin_phase,
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     )
 
     print()
-    print("Outputs:")
+    print("Outputs (in SMBH frame):")
     print("--------")
     print("M_f = ", M_f)
     print("spin_f = ", spin_f)

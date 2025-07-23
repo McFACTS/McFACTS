@@ -14,14 +14,14 @@ from astropy import constants as const
 
 #surrogate = fit_modeler.GPRFitters.read_from_file(f"surrogate.joblib")
 
-def surrogate(mass_1, mass_2, spin_1_mag, spin_2_mag, spin_angle_1, spin_angle_2, phi_12, bin_sep, bin_inc, bin_phase, bin_orb_a, mass_SMBH, spin_SMBH, surrogate):
+def surrogate(mass_1, mass_2, spin_1_mag, spin_2_mag, spin_angle_1, spin_angle_2, phi_1, phi_2, bin_sep, bin_inc, bin_phase, bin_orb_a, mass_SMBH, spin_SMBH, surrogate):
 
     #print(m1, m2, s1m, s2m, sa1, sa2, p12)
     mass_final, spin_final, spin_angle_final, kick_final, mass_1_20Hz_final, mass_2_20Hz_final, spin_1_20Hz_final, spin_2_20Hz_final = [], [], [], [], [], [], [], []
 
-    arr_len = phi_12
-    phi_12 = np.random.uniform(0, 2 * np.pi, arr_len)
-    bin_phase = np.random.uniform(0, 2 * np.pi, arr_len)
+    phi_1_rand = np.random.uniform(0, 2 * np.pi, phi_1)
+    phi_2_rand = np.random.uniform(0, 2 * np.pi, phi_2)
+    bin_phase_rand = np.random.uniform(0, 2 * np.pi, bin_phase)
 
     for i in range(len(mass_1)):        
         # Variables are all sent to surrogate model 
@@ -35,10 +35,11 @@ def surrogate(mass_1, mass_2, spin_1_mag, spin_2_mag, spin_angle_1, spin_angle_2
             spin_2_mag[i],
             spin_angle_1[i],
             spin_angle_2[i],
-            phi_12[i],
+            phi_1_rand[i],
+            phi_2_rand[i],
             bin_sep,
             bin_inc,
-            bin_phase[i],
+            bin_phase_rand[i],
             bin_orb_a,
             mass_SMBH,
             spin_SMBH,
