@@ -599,8 +599,8 @@ def circular_singles_encounters_prograde_sweep(
     # Find the e> crit_ecc population. These are the interlopers that can perturb the circularized population
     ecc_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orb_ecc_crit).nonzero()[0]
 
-    circ_len = circ_prograde_population_indices.len()
-    ecc_len = ecc_prograde_population_indices.len()
+    circ_len = len(circ_prograde_population_indices)
+    ecc_len = len(ecc_prograde_population_indices)
     if (circ_len == 0) or (ecc_len == 0):
         return disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc
 
