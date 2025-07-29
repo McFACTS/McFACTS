@@ -4,12 +4,13 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as const
 
-from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.dynamics import circular_singles_encounters_prograde, circular_singles_encounters_prograde_sweep
     
 AXIS_TOLERANCE =  0.0000001
 ECCENTRICITY_TOLERANCE = 0.0001 # the eccentricities are much less reliable than the axes
 SPEED_TOLERANCE = 0.80
+
+rng = np.random.RandomState(seed=1)
 
 def generate_data(N: int, circ_proportion: float, rng: np.random.RandomState):
     """Generates random mock data for the simulation functions."""
