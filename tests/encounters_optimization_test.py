@@ -9,8 +9,9 @@ from mcfacts.physics.dynamics import circular_singles_encounters_prograde, circu
     
 AXIS_TOLERANCE =  0.0000001
 ECCENTRICITY_TOLERANCE = 0.0001 # the eccentricities are much less reliable than the axes
+SPEED_TOLERANCE = 0.80
 
-def generate_data(N: int, circ_proportion: float, rng: np.random.Generator):
+def generate_data(N: int, circ_proportion: float, rng: np.random.RandomState):
     """Generates random mock data for the simulation functions."""
     # Mock physical constants
     mock_params = {
@@ -49,26 +50,26 @@ def run_benchmark(N: int, circ_proportion: float):
     print(f"--- Testing: N={N}, C/E Proportion={circ_proportion:.2f} ---")
     
     # Use a fixed seed for the main data generation
-    data_rng = np.random.default_rng(seed=123)
-    data = generate_data(N, circ_proportion, data_rng)
+    rng.seed(123)
+    data = generate_data(N, circ_proportion, rng)
 
-    # We need separate, identically-seeded RNGs for the functions themselves
-    # to ensure they use the same random numbers internally for the test.
-    rng1 = np.random.default_rng(seed=456)
-    rng2 = np.random.default_rng(seed=456)
+    # We need to re-seed the stateful RandomState rng in order to ensure that both function pull from the same stream
+
+    rng.seed(456)
 
     # --- Run Original Function ---
     # Important: Copy data as the functions modify arrays in-place
     data_for_orig = {k: v.copy() if isinstance(v, np.ndarray) else v for k, v in data.items()}
     start_time = time.perf_counter()
-    a_orig, ecc_orig = circular_singles_encounters_prograde(**data_for_orig, rng_here=rng1)
+    a_orig, ecc_orig = circular_singles_encounters_prograde(**data_for_orig, rng_here=rng)
     time_orig = time.perf_counter() - start_time
     print(f"Original took:   {time_orig:.4f} seconds")
 
+    rng.seed(456)
     # --- Run Optimized Function ---
     data_for_opt = {k: v.copy() if isinstance(v, np.ndarray) else v for k, v in data.items()}
     start_time = time.perf_counter()
-    a_opt, ecc_opt = circular_singles_encounters_prograde_sweep(**data_for_opt, rng_here=rng2)
+    a_opt, ecc_opt = circular_singles_encounters_prograde_sweep(**data_for_opt, rng_here=rng)
     time_opt = time.perf_counter() - start_time
     print(f"Optimized took:  {time_opt:.4f} seconds")
 
@@ -87,7 +88,7 @@ def run_benchmark(N: int, circ_proportion: float):
     # otherwise, we haven't set the length check correctly and we're using an ill-suited algorithm
 
     speedup = time_orig / time_opt if time_opt > 0 else float('inf')
-    assert speedup > 0.80, \
+    assert speedup > SPEED_TOLERANCE, \
         "We see a considerable slowdown"
 
 def test_circular_singles_encounters_parity():
