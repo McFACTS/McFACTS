@@ -389,7 +389,8 @@ def circular_singles_encounters_prograde(
         timestep_duration_yr,
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
-        disk_radius_outer
+        disk_radius_outer,
+        rng_here = rng
         ):
     """"Adjust orb ecc due to encounters between 2 single circ pro BH
 
@@ -528,7 +529,7 @@ def circular_singles_encounters_prograde(
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon = (disk_radius_outer * ((disk_bh_pro_masses[circ_prograde_population_indices] /
                (3 * (disk_bh_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * \
-              rng.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+              rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
     # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
     #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
@@ -537,7 +538,7 @@ def circular_singles_encounters_prograde(
     ecc_orb_min = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
     ecc_orb_max = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
     # Generate all possible needed random numbers ahead of time
-    chance_of_enc = rng.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    chance_of_enc = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
     num_poss_ints = 0
     num_encounters = 0
     if len(circ_prograde_population_indices) > 0:
@@ -581,6 +582,173 @@ def circular_singles_encounters_prograde(
         "disk_bh_pro_orbs_a contains values <= 0"
 
     return (disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
+
+
+
+def circular_singles_encounters_prograde_sweep(
+        smbh_mass,
+        disk_bh_pro_orbs_a,
+        disk_bh_pro_masses,
+        disk_bh_pro_orbs_ecc,
+        timestep_duration_yr,
+        disk_bh_pro_orb_ecc_crit,
+        delta_energy_strong,
+        disk_radius_outer,
+        rng_here = rng
+):
+    # Find the e< crit_ecc. population. These are the (circularized) population that can form binaries.
+    circ_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
+    # Find the e> crit_ecc population. These are the interlopers that can perturb the circularized population
+    ecc_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orb_ecc_crit).nonzero()[0]
+
+    circ_len = len(circ_prograde_population_indices)
+    ecc_len = len(ecc_prograde_population_indices)
+    if (circ_len == 0) or (ecc_len == 0):
+        return disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc
+
+    # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
+    epsilon = (disk_radius_outer * ((disk_bh_pro_masses[circ_prograde_population_indices] /
+               (3 * (disk_bh_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * \
+              rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+
+    # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
+    #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
+    orbital_timescales_circ_pops = np.pi*((disk_bh_pro_orbs_a[circ_prograde_population_indices])**(1.5))*(2.e30*smbh_mass*const.G.value)/(const.c.value**(3.0)*3.15e7)
+    N_circ_orbs_per_timestep = timestep_duration_yr/orbital_timescales_circ_pops
+    ecc_orb_min = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
+    ecc_orb_max = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
+    # Generate all possible needed random numbers ahead of time
+    chance_of_enc = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+
+    if (circ_len/(circ_len + ecc_len)) * (ecc_len/(circ_len + ecc_len)) * 100 > 50: # an ad-hoc check to see whether the double loop or sweep will be faster
+        # if True engage the sweep algorithm
+
+        # create the events array
+        # define types to ensure correct sorting at boundary conditions:
+        # START events are processed first, then POINTs, then ENDs
+        START, POINT, END = -1, 0, 1
+        
+        # C = circ_prograde_population_indices.size
+        # ecc_len = ecc_prograde_population_indices.size
+
+        # create a single, flat, contiguous array for all events
+        events = np.empty(circ_len + 2 * ecc_len, dtype=[('radius', 'f8'), ('type', 'i4'), ('rel_idx', 'u4')])
+
+        # add POINT events for each circular object
+        events[:circ_len] = np.array(list(zip(disk_bh_pro_orbs_a[circ_prograde_population_indices], [POINT] * circ_len, np.arange(circ_len))), dtype=events.dtype)
+
+        # Add START and ecc_lenND events for each eccentric object's interval
+        ecc_orb_min = disk_bh_pro_orbs_a[ecc_prograde_population_indices] * (1.0 - disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
+        ecc_orb_max = disk_bh_pro_orbs_a[ecc_prograde_population_indices] * (1.0 + disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
+        events[circ_len:circ_len+ecc_len] = np.array(list(zip(ecc_orb_min, [START] * ecc_len, np.arange(ecc_len))), dtype=events.dtype)
+        events[circ_len+ecc_len:] = np.array(list(zip(ecc_orb_max, [END] * ecc_len, np.arange(ecc_len))), dtype=events.dtype)
+
+        # sort the events by radius
+        # uses numpy sort, very performant
+        events.sort(order=['radius', 'type'])
+
+        # sweep and process
+        active_ecc_indices = set()
+        for radius, type, rel_idx in events:
+            if type == START:
+                active_ecc_indices.add(rel_idx)
+            elif type == END:
+                active_ecc_indices.discard(rel_idx) # Use discard for safety
+            elif type == POINT:
+                # when we hit a POINT event, the `active_ecc_indices` set contains
+                # ALL eccentric particles whose intervals contain this point
+                if not active_ecc_indices:
+                    continue
+
+                circ_rel_idx = rel_idx
+                circ_idx = circ_prograde_population_indices[circ_rel_idx]
+                
+                # sort the indices to ensure deterministic processing order
+                sorted_interlopers = sorted(list(active_ecc_indices))
+
+                # if we remove this sort and instead just iterate directly
+                # over active_ecc_indices, we unlock another 2x+ improvement in performance
+                # but at the cost of genuinely massively deviating values
+
+                for ecc_rel_idx in sorted_interlopers:
+                    ecc_idx = ecc_prograde_population_indices[ecc_rel_idx]
+                    
+                    temp_bin_mass = disk_bh_pro_masses[circ_idx] + disk_bh_pro_masses[ecc_idx]
+                    bh_smbh_mass_ratio = temp_bin_mass / (3.0 * smbh_mass)
+                    mass_ratio_factor = (bh_smbh_mass_ratio)**(1. / 3.)
+                    prob_orbit_overlap = (1. / np.pi) * mass_ratio_factor
+                    prob_enc_per_timestep = min(prob_orbit_overlap * N_circ_orbs_per_timestep[circ_rel_idx], 1.0)
+                    
+                    if chance_of_enc[circ_rel_idx, ecc_rel_idx] < prob_enc_per_timestep:
+                        # apply state change, using the fixed logic
+                        disk_bh_pro_orbs_ecc[circ_idx] = delta_energy_strong * 1.0001
+                        disk_bh_pro_orbs_a[circ_idx] *= (1.0 + delta_energy_strong)
+                        if (disk_bh_pro_orbs_a[circ_idx] > disk_radius_outer):
+                            
+                            disk_bh_pro_orbs_a[circ_idx] = disk_radius_outer - epsilon[circ_rel_idx][ecc_rel_idx]
+                        
+                        disk_bh_pro_orbs_ecc[ecc_idx] *= (1.0 - delta_energy_strong)
+                        disk_bh_pro_orbs_a[ecc_idx] *= (1.0 - delta_energy_strong)
+                        # Once the circular BH is kicked, break from this inner loop
+                        # as it can't have more encounters in this timestep
+                        break 
+    else:
+        # if False, engage the double loop, as this N is too small to make the up-front sort of the sweep algorithm worthwhile
+        
+        num_poss_ints = 0
+        num_encounters = 0
+        if len(circ_prograde_population_indices) > 0:
+            for i, circ_idx in enumerate(circ_prograde_population_indices):
+                for j, ecc_idx in enumerate(ecc_prograde_population_indices):
+                    if (disk_bh_pro_orbs_a[circ_idx] < ecc_orb_max[j] and disk_bh_pro_orbs_a[circ_idx] > ecc_orb_min[j]):
+                        # prob_encounter/orbit =hill sphere size/circumference of circ orbit =2RH/2pi a_circ1
+                        # r_h = a_circ1(temp_bin_mass/3smbh_mass)^1/3 so prob_enc/orb = mass_ratio^1/3/pi
+                        temp_bin_mass = disk_bh_pro_masses[circ_idx] + disk_bh_pro_masses[ecc_idx]
+                        bh_smbh_mass_ratio = temp_bin_mass/(3.0*smbh_mass)
+                        mass_ratio_factor = (bh_smbh_mass_ratio)**(1./3.)
+                        prob_orbit_overlap = (1./np.pi)*mass_ratio_factor
+                        prob_enc_per_timestep = prob_orbit_overlap * N_circ_orbs_per_timestep[i]
+                        if prob_enc_per_timestep > 1:
+                            prob_enc_per_timestep = 1
+                        if chance_of_enc[i][j] < prob_enc_per_timestep:
+                            num_encounters = num_encounters + 1
+                            # if close encounter, pump ecc of circ orbiter to e=0.1 from near circular, and incr a_circ1 by 10%
+                            # drop ecc of a_i by 10% and drop a_i by 10% (P.E. = -GMm/a)
+                            # if already pumped in eccentricity, no longer circular, so don't need to follow other interactions
+                            if disk_bh_pro_orbs_ecc[circ_idx] <= disk_bh_pro_orb_ecc_crit:
+                                disk_bh_pro_orbs_ecc[circ_idx] = delta_energy_strong
+                                disk_bh_pro_orbs_a[circ_idx] = disk_bh_pro_orbs_a[circ_idx]*(1.0 + delta_energy_strong)
+                                # Catch for if orb_a > disk_radius_outer
+                                if (disk_bh_pro_orbs_a[circ_idx] > disk_radius_outer):
+                                    disk_bh_pro_orbs_a[circ_idx] = disk_radius_outer - epsilon[i][j]
+                                disk_bh_pro_orbs_ecc[ecc_idx] = disk_bh_pro_orbs_ecc[ecc_idx]*(1 - delta_energy_strong)
+                                disk_bh_pro_orbs_a[ecc_idx] = disk_bh_pro_orbs_a[ecc_idx]*(1 - delta_energy_strong)
+                        num_poss_ints = num_poss_ints + 1
+                num_poss_ints = 0
+                num_encounters = 0
+
+    # Check finite
+    assert np.isfinite(disk_bh_pro_orbs_a).all(), \
+        "Finite check failed for disk_bh_pro_orbs_a"
+    assert np.isfinite(disk_bh_pro_orbs_ecc).all(), \
+        "Finite check failed for disk_bh_pro_orbs_ecc"
+    assert np.all(disk_bh_pro_orbs_a < disk_radius_outer), \
+        "disk_bh_pro_orbs_a contains values greater than disk_radius_outer"
+    assert np.all(disk_bh_pro_orbs_a > 0), \
+        "disk_bh_pro_orbs_a contains values <= 0"
+
+    return (disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
+
+
+
+
+
+
+
+
+
+
+
 
 
 def circular_singles_encounters_prograde_stars(
@@ -1781,8 +1949,8 @@ def circular_binaries_encounters_circ_prograde(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-        mean_harden_energy_delta,
-        var_harden_energy_delta
+        harden_energy_delta_mu,
+        harden_energy_delta_sigma
         ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
@@ -1808,9 +1976,9 @@ def circular_binaries_encounters_circ_prograde(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
-    var_harden_energy_delta : float
+    harden_energy_delta_sigma : float
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
-    mean_harden_energy_delta : float
+    harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
 
     Returns
@@ -1928,7 +2096,7 @@ def circular_binaries_encounters_circ_prograde(
     # delta_energy_strong (read into this module) refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation)
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(mean_harden_energy_delta, var_harden_energy_delta)))
+    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
@@ -2059,8 +2227,8 @@ def circular_binaries_encounters_circ_prograde_star(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-        mean_harden_energy_delta,
-        var_harden_energy_delta
+        harden_energy_delta_mu,
+        harden_energy_delta_sigma
         ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
@@ -2086,9 +2254,9 @@ def circular_binaries_encounters_circ_prograde_star(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
-    var_harden_energy_delta : float
+    harden_energy_delta_sigma : float
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
-    mean_harden_energy_delta : float
+    harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
 
     Returns
@@ -2199,7 +2367,7 @@ def circular_binaries_encounters_circ_prograde_star(
     # delta_energy_strong (read into this module) refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation)
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(mean_harden_energy_delta, var_harden_energy_delta)))
+    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
@@ -2387,8 +2555,8 @@ def bin_spheroid_encounter(
         nsc_bh_imf_powerlaw_index,
         delta_energy_strong,
         nsc_spheroid_normalization,
-        mean_harden_energy_delta,
-        var_harden_energy_delta
+        harden_energy_delta_mu,
+        harden_energy_delta_sigma
         ):
     """Perturb orbits due to encounters with spheroid (NSC) objects
 
@@ -2412,9 +2580,9 @@ def bin_spheroid_encounter(
     nsc_spheroid_normalization : float
         Normalization factor [unitless] determines the departures from sphericity of
         the initial distribution of perturbers (1.0=spherical)
-    var_harden_energy_delta : float
+    harden_energy_delta_sigma : float
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
-    mean_harden_energy_delta : float
+    harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
 
 
@@ -2547,7 +2715,7 @@ def bin_spheroid_encounter(
     # delta_energy_strong refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation) 
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(mean_harden_energy_delta, var_harden_energy_delta)))
+    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
