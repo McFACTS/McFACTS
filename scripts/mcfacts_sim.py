@@ -1041,16 +1041,28 @@ def main():
             if opts.flag_dynamic_enc > 0:
 
                 # BH-BH encounters
-                blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde(
-                    opts.smbh_mass,
-                    blackholes_pro.orb_a,
-                    blackholes_pro.mass,
-                    blackholes_pro.orb_ecc,
-                    opts.timestep_duration_yr,
-                    opts.disk_bh_pro_orb_ecc_crit,
-                    opts.delta_energy_strong_mu,
-                    opts.disk_radius_outer
-                )
+                if opts.flag_dynamics_sweep:
+                    blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde_sweep(
+                        opts.smbh_mass,
+                        blackholes_pro.orb_a,
+                        blackholes_pro.mass,
+                        blackholes_pro.orb_ecc,
+                        opts.timestep_duration_yr,
+                        opts.disk_bh_pro_orb_ecc_crit,
+                        opts.delta_energy_strong_mu,
+                        opts.disk_radius_outer
+                    )
+                else:
+                    blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde(
+                        opts.smbh_mass,
+                        blackholes_pro.orb_a,
+                        blackholes_pro.mass,
+                        blackholes_pro.orb_ecc,
+                        opts.timestep_duration_yr,
+                        opts.disk_bh_pro_orb_ecc_crit,
+                        opts.delta_energy_strong_mu,
+                        opts.disk_radius_outer
+                    )
 
                 # Star-star encounters
                 rstar_rhill_exponent = 2.0
