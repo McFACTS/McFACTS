@@ -92,10 +92,9 @@ Python can be slow... ::
    |_|_| |_|_|
 
 You may know ways to speed up McFACTS by writing interfaces to compiled languages to handle computationally intensive tasks.
-This sounds awesome!
+This sounds awesome! But, please ask the dev team first so you don't waste your time on something we may not implement.
 
-To ensure McFACTS remains useable, stable, and understandable for future users and our core dev team, we `require` the following conditions be met.
-
+To ensure McFACTS remains useable, stable, and maintainable for future users and our core dev team, we `require` the following conditions be met.
 
 #. Any code written in a language which extends Python (C, Fortran, Rust, etc...) must have a working unit test which checks for accuracy.
 #. As a result, there must be a pure Python version of the function that exists somewhere to do the same math, that we can check our results against.
