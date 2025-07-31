@@ -814,13 +814,13 @@ def circular_singles_encounters_prograde_stars_sweep(
         # uses numpy sort, very performant
         events.sort(order=['radius', 'type'])
 
-        # turn these lists into sets for the time being in order to much more effectively 
-        # search them for the indices
-        # we will turn them back into arrays later for return
-        id_nums_flipped_rotation = set(id_nums_flipped_rotation)
-        id_nums_unbound = set(id_nums_unbound)
+        # for a two-pass system to ensure parity, we collect
+        # the overlaps up front
+        overlaps = {}
 
+        # first we sweep in order to construct the overlaps object
         active_ecc_indices = set()
+
         for radius, type, rel_idx in events:
             if type == START:
                 active_ecc_indices.add(rel_idx)
@@ -833,58 +833,70 @@ def circular_singles_encounters_prograde_stars_sweep(
                     continue
 
                 circ_rel_idx = rel_idx
-                circ_idx = circ_prograde_population_indices[circ_rel_idx]
+
+                if active_ecc_indices: 
+                    sorted_interlopers = sorted(list(active_ecc_indices))
+                    overlaps[circ_rel_idx] = sorted_interlopers
+
+        # turn these lists into sets for the time being in order to much more effectively 
+        # search them for the indices
+        # we will turn them back into arrays later for return
+        id_nums_flipped_rotation = set(id_nums_flipped_rotation)
+        id_nums_unbound = set(id_nums_unbound)
+
+        # now we actualy go through the dictionary of interlopers
+        for circ_rel_idx in range(len(circ_prograde_population_indices)):
+            circ_idx = circ_prograde_population_indices[circ_rel_idx]
                 
-                # sort the indices to ensure deterministic processing order
-                sorted_interlopers = sorted(list(active_ecc_indices))
+            interlopers = overlaps.get(circ_rel_idx, [])
 
-                for ecc_rel_idx in sorted_interlopers:
-                    ecc_idx = ecc_prograde_population_indices[ecc_rel_idx]
+            for ecc_rel_idx in interlopers:
+                ecc_idx = ecc_prograde_population_indices[ecc_rel_idx]
 
-                    if ((disk_star_pro_id_nums[ecc_idx] not in id_nums_flipped_rotation) and
-                        (disk_star_pro_id_nums[circ_idx] not in id_nums_flipped_rotation) and
-                        (disk_star_pro_id_nums[circ_idx] not in id_nums_unbound) and
-                        (disk_star_pro_id_nums[ecc_idx] not in id_nums_unbound)):
+                if ((disk_star_pro_id_nums[ecc_idx] not in id_nums_flipped_rotation) and
+                    (disk_star_pro_id_nums[circ_idx] not in id_nums_flipped_rotation) and
+                    (disk_star_pro_id_nums[circ_idx] not in id_nums_unbound) and
+                    (disk_star_pro_id_nums[ecc_idx] not in id_nums_unbound)):
 
-                        temp_bin_mass = disk_star_pro_masses[circ_idx] + disk_star_pro_masses[ecc_idx]
-                        star_smbh_mass_ratio = temp_bin_mass/(3.0*smbh_mass)
-                        mass_ratio_factor = (star_smbh_mass_ratio)**(1./3.)
-                        prob_orbit_overlap = (1./scipy.constants.pi)*mass_ratio_factor
-                        prob_enc_per_timestep = prob_orbit_overlap * N_circ_orbs_per_timestep[circ_rel_idx]
-                        if prob_enc_per_timestep > 1:
-                            prob_enc_per_timestep = 1
-                        if chance_of_enc[circ_rel_idx][ecc_rel_idx] < prob_enc_per_timestep:
-                            if disk_star_pro_orbs_ecc[circ_idx] <= disk_bh_pro_orb_ecc_crit:
-                                new_orb_a_ecc, new_orb_a_circ, new_ecc_ecc, new_ecc_circ, id_num_out, id_num_flip = encounters_new_orba_ecc(
-                                    smbh_mass,
-                                    disk_star_pro_orbs_a[ecc_idx], disk_star_pro_orbs_a[circ_idx],
-                                    disk_star_pro_masses[ecc_idx], disk_star_pro_masses[circ_idx],
-                                    disk_star_pro_orbs_ecc[ecc_idx], disk_star_pro_orbs_ecc[circ_idx],
-                                    disk_star_pro_radius_rg[ecc_idx], disk_star_pro_radius_rg[circ_idx],
-                                    disk_star_pro_id_nums[ecc_idx], disk_star_pro_id_nums[circ_idx],
-                                    delta_energy_strong[circ_rel_idx][ecc_rel_idx], flag_obj_types=0)
-                                if id_num_out is not None:
-                                    id_nums_unbound.add(id_num_out)
-                                if id_num_flip is not None:
-                                    id_nums_flipped_rotation.add(id_num_flip)
-                                # Check if any stars are outside the disk
-                                if new_orb_a_ecc > disk_radius_outer:
-                                    new_orb_a_ecc = disk_radius_outer - epsilon[circ_rel_idx][ecc_rel_idx]
-                                if new_orb_a_circ > disk_radius_outer:
-                                    new_orb_a_circ = disk_radius_outer - epsilon[circ_rel_idx][ecc_rel_idx]
-                                disk_star_pro_orbs_a[ecc_idx] = new_orb_a_ecc
-                                disk_star_pro_orbs_a[circ_idx] = new_orb_a_circ
-                                disk_star_pro_orbs_ecc[circ_idx] = new_ecc_circ
-                                disk_star_pro_orbs_ecc[ecc_idx] = new_ecc_ecc
+                    temp_bin_mass = disk_star_pro_masses[circ_idx] + disk_star_pro_masses[ecc_idx]
+                    star_smbh_mass_ratio = temp_bin_mass/(3.0*smbh_mass)
+                    mass_ratio_factor = (star_smbh_mass_ratio)**(1./3.)
+                    prob_orbit_overlap = (1./scipy.constants.pi)*mass_ratio_factor
+                    prob_enc_per_timestep = prob_orbit_overlap * N_circ_orbs_per_timestep[circ_rel_idx]
+                    if prob_enc_per_timestep > 1:
+                        prob_enc_per_timestep = 1
+                    if chance_of_enc[circ_rel_idx][ecc_rel_idx] < prob_enc_per_timestep:
+                        if disk_star_pro_orbs_ecc[circ_idx] <= disk_bh_pro_orb_ecc_crit:
+                            new_orb_a_ecc, new_orb_a_circ, new_ecc_ecc, new_ecc_circ, id_num_out, id_num_flip = encounters_new_orba_ecc(
+                                smbh_mass,
+                                disk_star_pro_orbs_a[ecc_idx], disk_star_pro_orbs_a[circ_idx],
+                                disk_star_pro_masses[ecc_idx], disk_star_pro_masses[circ_idx],
+                                disk_star_pro_orbs_ecc[ecc_idx], disk_star_pro_orbs_ecc[circ_idx],
+                                disk_star_pro_radius_rg[ecc_idx], disk_star_pro_radius_rg[circ_idx],
+                                disk_star_pro_id_nums[ecc_idx], disk_star_pro_id_nums[circ_idx],
+                                delta_energy_strong[circ_rel_idx][ecc_rel_idx], flag_obj_types=0)
+                            if id_num_out is not None:
+                                id_nums_unbound.add(id_num_out)
+                            if id_num_flip is not None:
+                                id_nums_flipped_rotation.add(id_num_flip)
+                            # Check if any stars are outside the disk
+                            if new_orb_a_ecc > disk_radius_outer:
+                                new_orb_a_ecc = disk_radius_outer - epsilon[circ_rel_idx][ecc_rel_idx]
+                            if new_orb_a_circ > disk_radius_outer:
+                                new_orb_a_circ = disk_radius_outer - epsilon[circ_rel_idx][ecc_rel_idx]
+                            disk_star_pro_orbs_a[ecc_idx] = new_orb_a_ecc
+                            disk_star_pro_orbs_a[circ_idx] = new_orb_a_circ
+                            disk_star_pro_orbs_ecc[circ_idx] = new_ecc_circ
+                            disk_star_pro_orbs_ecc[ecc_idx] = new_ecc_ecc
 #                             # Look for stars that are inside each other's Hill spheres and if so return them as mergers
-                                if (id_num_flip is None) and (id_num_out is None):
-                                    separation = np.abs(disk_star_pro_orbs_a[circ_idx] - disk_star_pro_orbs_a[ecc_idx])
-                                    center_of_mass = np.average([disk_star_pro_orbs_a[circ_idx], disk_star_pro_orbs_a[ecc_idx]],
-                                                                weights=[disk_star_pro_masses[circ_idx], disk_star_pro_masses[ecc_idx]])
-                                    rhill_poss_encounter = center_of_mass * ((disk_star_pro_masses[circ_idx] + disk_star_pro_masses[ecc_idx]) / (3. * smbh_mass)) ** (1./3.)
-                                    if (separation - rhill_poss_encounter < 0):
-                                        id_nums_poss_touch.append(np.array([disk_star_pro_id_nums[circ_idx], disk_star_pro_id_nums[ecc_idx]]))
-                                        frac_rhill_sep.append(separation / rhill_poss_encounter)
+                            if (id_num_flip is None) and (id_num_out is None):
+                                separation = np.abs(disk_star_pro_orbs_a[circ_idx] - disk_star_pro_orbs_a[ecc_idx])
+                                center_of_mass = np.average([disk_star_pro_orbs_a[circ_idx], disk_star_pro_orbs_a[ecc_idx]],
+                                                            weights=[disk_star_pro_masses[circ_idx], disk_star_pro_masses[ecc_idx]])
+                                rhill_poss_encounter = center_of_mass * ((disk_star_pro_masses[circ_idx] + disk_star_pro_masses[ecc_idx]) / (3. * smbh_mass)) ** (1./3.)
+                                if (separation - rhill_poss_encounter < 0):
+                                    id_nums_poss_touch.append(np.array([disk_star_pro_id_nums[circ_idx], disk_star_pro_id_nums[ecc_idx]]))
+                                    frac_rhill_sep.append(separation / rhill_poss_encounter)
     if not np.all(disk_star_pro_orbs_a > 0):
         zero_mask = ~(disk_star_pro_orbs_a > 0)
         print(disk_star_pro_orbs_a[zero_mask])
