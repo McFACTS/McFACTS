@@ -1078,7 +1078,8 @@ def main():
                     opts.disk_bh_pro_orb_ecc_crit,
                     opts.delta_energy_strong_mu,
                     opts.delta_energy_strong_sigma,
-                    opts.disk_radius_outer
+                    opts.disk_radius_outer,
+                    opts.flag_dynamics_sweep
                 )
 
                 if stars_unbound_id_nums.size > 0:
