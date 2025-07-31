@@ -211,7 +211,7 @@ def cubic_finite_step_root_cardano(x0, y0, OmegaS, sanity = False):
 
     return np.c_[roots_x, roots_y] 
 
-def transition_physical_as_EL(E1, L1, E2, L2, DeltaE, m1, m2, units='geometric', smbh_mass=1e8, sanity=False, cardano = False):
+def transition_physical_as_EL(E1, L1, E2, L2, DeltaE, m1, m2, units='geometric', smbh_mass=1e8, sanity=False, fast_cube = False):
     """Calculates final energy and angular momentum states
 
     Parameters
@@ -288,7 +288,7 @@ def transition_physical_as_EL(E1, L1, E2, L2, DeltaE, m1, m2, units='geometric',
         #   -  Object 1 is moving to tighter orbits (lower energy magnitude), so root of x is increasing in magnitude!
         Omega_trial = Omega2  # np.min([Omega2, Omega2_f, Omega1, Omega1_f])
 
-        if cardano:
+        if fast_cube:
             my_stepsize_roots = cubic_finite_step_root_cardano(x0_alt, y0_alt, Omega_trial / Omega0)
         else: 
             my_stepsize_roots = cubic_finite_step_root(x0_alt, y0_alt, Omega_trial / Omega0)
@@ -317,7 +317,7 @@ def transition_physical_as_EL(E1, L1, E2, L2, DeltaE, m1, m2, units='geometric',
             print("Dimensionless root finder: coordinates (should be close to -1/2, 1)", x0, y0)
         # Slope calculation, based on object 2 ('accepting' object/circular case)
 
-        if cardano:
+        if fast_cube:
             my_roots = cubic_y_root_cardano(x0, y0)
         else:
             my_roots = cubic_y_root(x0, y0)
@@ -339,7 +339,7 @@ def transition_physical_as_EL(E1, L1, E2, L2, DeltaE, m1, m2, units='geometric',
         if sanity:
             print(" Dimensionless root finder part 2: coordinates for eccentric system ", x0_alt, y0_alt)
 
-        if cardano:
+        if fast_cube:
             my_roots_alt = cubic_y_root_cardano(x0_alt, y0_alt)
         else:
             my_roots_alt = cubic_y_root(x0_alt, y0_alt)
@@ -373,7 +373,7 @@ def encounters_new_orba_ecc(smbh_mass,
                             id_num_take,
                             delta_energy_strong,
                             flag_obj_types,
-                            cardano = False):
+                            fast_cube = False):
     """Calculate new orb_a and ecc values for two objects that dynamically interact
 
     Parameters
@@ -456,7 +456,7 @@ def encounters_new_orba_ecc(smbh_mass,
     id_num_unbound = None
     id_num_flipped_rotation = None
 
-    E_give_final, E_take_final, J_give_final, J_take_final = transition_physical_as_EL(E_give_initial, J_give_initial, E_take_initial, J_take_initial, Delta_E, mass_give_geometric, mass_take_geometric, smbh_mass=smbh_mass_geometric, sanity=False, cardano = cardano)
+    E_give_final, E_take_final, J_give_final, J_take_final = transition_physical_as_EL(E_give_initial, J_give_initial, E_take_initial, J_take_initial, Delta_E, mass_give_geometric, mass_take_geometric, smbh_mass=smbh_mass_geometric, sanity=False, fast_cube = fast_cube)
 
     # if object is unbound, don't change parameters so they can be recorded
     # give object (typically eccentric) is unbound
@@ -864,7 +864,7 @@ def circular_singles_encounters_prograde_stars(
         delta_energy_strong_sigma,
         disk_radius_outer,
         rng_here = rng,
-        cardano = False
+        fast_cube = False
         ):
     """"Adjust orb ecc due to encounters between 2 single circ pro stars
 
@@ -1059,7 +1059,7 @@ def circular_singles_encounters_prograde_stars(
                                     disk_star_pro_orbs_ecc[ecc_idx], disk_star_pro_orbs_ecc[circ_idx],
                                     disk_star_pro_radius_rg[ecc_idx], disk_star_pro_radius_rg[circ_idx],
                                     disk_star_pro_id_nums[ecc_idx], disk_star_pro_id_nums[circ_idx],
-                                    delta_energy_strong[i][j], flag_obj_types=0, cardano = cardano)
+                                    delta_energy_strong[i][j], flag_obj_types=0, fast_cube = fast_cube)
                                 if id_num_out is not None:
                                     id_nums_unbound.append(id_num_out)
                                 if id_num_flip is not None:
