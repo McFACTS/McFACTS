@@ -18,7 +18,7 @@ def generate_data_stars(N: int, circ_proportion: float, singleton_proportion: fl
     mock_params = {
         "smbh_mass": 1.0e8,
         "timestep_duration_yr": 1.0e4,
-        "disk_star_pro_orb_ecc_crit": 0.1,
+        "disk_bh_pro_orb_ecc_crit": 0.1,
         "rstar_rhill_exponent": 2, # 2 is the default
         "delta_energy_strong_mu": 0.11,
         "delta_energy_strong_sigma": 0.05,
@@ -30,7 +30,7 @@ def generate_data_stars(N: int, circ_proportion: float, singleton_proportion: fl
     num_ecc = N - num_circ
 
     # Generate eccentricities to match the desired C/E proportion
-    ecc_crit = mock_params["disk_star_pro_orb_ecc_crit"]
+    ecc_crit = mock_params["disk_bh_pro_orb_ecc_crit"]
     e_circ = rng.uniform(0, ecc_crit, size=num_circ)
     e_ecc = rng.uniform(ecc_crit * 1.01, 0.8, size=num_ecc) # Ensure e > e_crit
     
