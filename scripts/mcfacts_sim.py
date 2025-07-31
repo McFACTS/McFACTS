@@ -624,7 +624,7 @@ def main():
                     stars_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
-                    opts.disk_star_eddington_ratio,
+                    opts.disk_bh_eddington_ratio,
                     opts.disk_alpha_viscosity,
                     opts.disk_radius_outer,)
             else:
@@ -1041,16 +1041,28 @@ def main():
             if opts.flag_dynamic_enc > 0:
 
                 # BH-BH encounters
-                blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde(
-                    opts.smbh_mass,
-                    blackholes_pro.orb_a,
-                    blackholes_pro.mass,
-                    blackholes_pro.orb_ecc,
-                    opts.timestep_duration_yr,
-                    opts.disk_bh_pro_orb_ecc_crit,
-                    opts.delta_energy_strong_mu,
-                    opts.disk_radius_outer
-                )
+                if opts.flag_dynamics_sweep:
+                    blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde_sweep(
+                        opts.smbh_mass,
+                        blackholes_pro.orb_a,
+                        blackholes_pro.mass,
+                        blackholes_pro.orb_ecc,
+                        opts.timestep_duration_yr,
+                        opts.disk_bh_pro_orb_ecc_crit,
+                        opts.delta_energy_strong_mu,
+                        opts.disk_radius_outer
+                    )
+                else:
+                    blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde(
+                        opts.smbh_mass,
+                        blackholes_pro.orb_a,
+                        blackholes_pro.mass,
+                        blackholes_pro.orb_ecc,
+                        opts.timestep_duration_yr,
+                        opts.disk_bh_pro_orb_ecc_crit,
+                        opts.delta_energy_strong_mu,
+                        opts.disk_radius_outer
+                    )
 
                 # Star-star encounters
                 rstar_rhill_exponent = 2.0
@@ -1361,8 +1373,8 @@ def main():
                         opts.disk_bh_pro_orb_ecc_crit,
                         opts.delta_energy_strong_mu,
                         opts.disk_radius_outer,
-                        opts.mean_harden_energy_delta,
-                        opts.var_harden_energy_delta
+                        opts.harden_energy_delta_mu,
+                        opts.harden_energy_delta_sigma
                     )
 
                     # Update filing cabinet with new bin_sep
@@ -1444,8 +1456,8 @@ def main():
                         opts.disk_bh_pro_orb_ecc_crit,
                         opts.delta_energy_strong_mu,
                         opts.disk_radius_outer,
-                        opts.mean_harden_energy_delta,
-                        opts.var_harden_energy_delta)
+                        opts.harden_energy_delta_mu,
+                        opts.harden_energy_delta_sigma)
 
                     if (bbh_id_nums_merged.size > 0):
                         # Change merger flag
@@ -2081,8 +2093,8 @@ def main():
                         opts.nsc_imf_bh_powerlaw_index,
                         opts.delta_energy_strong_mu,
                         opts.nsc_spheroid_normalization,
-                        opts.mean_harden_energy_delta,
-                        opts.var_harden_energy_delta
+                        opts.harden_energy_delta_mu,
+                        opts.harden_energy_delta_sigma
                     )
                     # Update filing cabinet with new bin_sep
                     filing_cabinet.update(id_num=blackholes_binary.id_num,

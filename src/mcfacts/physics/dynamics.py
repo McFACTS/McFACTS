@@ -2162,8 +2162,8 @@ def circular_binaries_encounters_circ_prograde(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-        mean_harden_energy_delta,
-        var_harden_energy_delta
+        harden_energy_delta_mu,
+        harden_energy_delta_sigma
         ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
@@ -2189,9 +2189,9 @@ def circular_binaries_encounters_circ_prograde(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
-    var_harden_energy_delta : float
+    harden_energy_delta_sigma : float
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
-    mean_harden_energy_delta : float
+    harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
 
     Returns
@@ -2309,7 +2309,7 @@ def circular_binaries_encounters_circ_prograde(
     # delta_energy_strong (read into this module) refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation)
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(mean_harden_energy_delta, var_harden_energy_delta)))
+    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
@@ -2440,8 +2440,8 @@ def circular_binaries_encounters_circ_prograde_star(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-        mean_harden_energy_delta,
-        var_harden_energy_delta
+        harden_energy_delta_mu,
+        harden_energy_delta_sigma
         ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
@@ -2467,9 +2467,9 @@ def circular_binaries_encounters_circ_prograde_star(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
-    var_harden_energy_delta : float
+    harden_energy_delta_sigma : float
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
-    mean_harden_energy_delta : float
+    harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
 
     Returns
@@ -2580,7 +2580,7 @@ def circular_binaries_encounters_circ_prograde_star(
     # delta_energy_strong (read into this module) refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation)
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(mean_harden_energy_delta, var_harden_energy_delta)))
+    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
@@ -2768,8 +2768,8 @@ def bin_spheroid_encounter(
         nsc_bh_imf_powerlaw_index,
         delta_energy_strong,
         nsc_spheroid_normalization,
-        mean_harden_energy_delta,
-        var_harden_energy_delta
+        harden_energy_delta_mu,
+        harden_energy_delta_sigma
         ):
     """Perturb orbits due to encounters with spheroid (NSC) objects
 
@@ -2793,9 +2793,9 @@ def bin_spheroid_encounter(
     nsc_spheroid_normalization : float
         Normalization factor [unitless] determines the departures from sphericity of
         the initial distribution of perturbers (1.0=spherical)
-    var_harden_energy_delta : float
+    harden_energy_delta_sigma : float
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
-    mean_harden_energy_delta : float
+    harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
 
 
@@ -2928,7 +2928,7 @@ def bin_spheroid_encounter(
     # delta_energy_strong refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation) 
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(mean_harden_energy_delta, var_harden_energy_delta)))
+    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8

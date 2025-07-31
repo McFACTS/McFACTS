@@ -233,6 +233,9 @@ star cluster variables second, and assorted other choices (time resolution etc.)
         default: 0.2735
     nsc_star_metallicity_z_init : float
         default: 0.02    
+    flag_dynamics_sweep : int
+        Switch to turn on/off sweep function for dynamics functions
+        default: 0
 
 
 Output file : output_mergers.dat
