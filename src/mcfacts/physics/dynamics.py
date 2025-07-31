@@ -752,7 +752,8 @@ def circular_singles_encounters_prograde_stars_sweep(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong_mu,
         delta_energy_strong_sigma,
-        disk_radius_outer
+        disk_radius_outer,
+        rng_here = rng
         ):
     # Find the e< crit_ecc. population. These are the (circularized) population that can form binaries.
     circ_prograde_population_indices = np.asarray(disk_star_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
@@ -766,7 +767,7 @@ def circular_singles_encounters_prograde_stars_sweep(
     disk_star_pro_radius_rg = r_g_from_units(smbh_mass, ((10 ** disk_star_pro_radius) * u.Rsun)).value
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
-    epsilon = (disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * rng.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    epsilon = (disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
     # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
     #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
@@ -775,8 +776,8 @@ def circular_singles_encounters_prograde_stars_sweep(
     ecc_orb_min = disk_star_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_star_pro_orbs_ecc[ecc_prograde_population_indices])
     ecc_orb_max = disk_star_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_star_pro_orbs_ecc[ecc_prograde_population_indices])
     # Generate all possible needed random numbers ahead of time
-    chance_of_enc = rng.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
-    delta_energy_strong = np.exp(rng.normal(loc=np.log(delta_energy_strong_mu), scale=np.log(1. + delta_energy_strong_sigma), size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices))))
+    chance_of_enc = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    delta_energy_strong = np.exp(rng_here.normal(loc=np.log(delta_energy_strong_mu), scale=np.log(1. + delta_energy_strong_sigma), size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices))))
     num_poss_ints = 0
     num_encounters = 0
     id_nums_poss_touch = []
@@ -974,7 +975,8 @@ def circular_singles_encounters_prograde_stars(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong_mu,
         delta_energy_strong_sigma,
-        disk_radius_outer
+        disk_radius_outer,
+        rng_here = rng,
         ):
     """"Adjust orb ecc due to encounters between 2 single circ pro stars
 
@@ -1122,7 +1124,7 @@ def circular_singles_encounters_prograde_stars(
     disk_star_pro_radius_rg = r_g_from_units(smbh_mass, ((10 ** disk_star_pro_radius) * u.Rsun)).value
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
-    epsilon = (disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * rng.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    epsilon = (disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
     # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
     #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
@@ -1131,8 +1133,8 @@ def circular_singles_encounters_prograde_stars(
     ecc_orb_min = disk_star_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_star_pro_orbs_ecc[ecc_prograde_population_indices])
     ecc_orb_max = disk_star_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_star_pro_orbs_ecc[ecc_prograde_population_indices])
     # Generate all possible needed random numbers ahead of time
-    chance_of_enc = rng.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
-    delta_energy_strong = np.exp(rng.normal(loc=np.log(delta_energy_strong_mu), scale=np.log(1. + delta_energy_strong_sigma), size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices))))
+    chance_of_enc = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    delta_energy_strong = np.exp(rng_here.normal(loc=np.log(delta_energy_strong_mu), scale=np.log(1. + delta_energy_strong_sigma), size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices))))
     num_poss_ints = 0
     num_encounters = 0
     id_nums_poss_touch = []
