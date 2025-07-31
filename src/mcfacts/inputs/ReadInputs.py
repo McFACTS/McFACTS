@@ -129,12 +129,14 @@ Inifile
         Pile-up of masses caused by cutoff (M_sun)
     "save_snapshots"                : int
         Save snapshots of the disk and NSC at each timestep
-    "mean_harden_energy_delta"      : float
+    "harden_energy_delta_mu"      : float
         The Gaussian mean value for the energy change during a strong interaction
-    "var_harden_energy_delta"       : float
-        The Gaussian variance value for the energy change during a strong interaction
+    "harden_energy_delta_sigma"       : float
+        The Gaussian standard deviation value for the energy change during a strong interaction
     "flag_use_surrogate"            : int
         Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) uses NRSurrogate model from (paper in prep).
+    "flag_dynamics_sweep"           : int
+        Use faster dynamics functions which implement sweep function (1 on/0 off)
 """
 # Things everyone needs
 import configparser as ConfigParser
@@ -207,13 +209,14 @@ INPUT_TYPES = {
     "disk_inner_stable_circ_orb"    : float,
     "mass_pile_up"                  : float,
     "save_snapshots"                : int,
-    "mean_harden_energy_delta"      : float,
-    "var_harden_energy_delta"       : float,
+    "harden_energy_delta_mu"        : float,
+    "harden_energy_delta_sigma"     : float,
     "torque_prescription"           : str,
     "flag_phenom_turb"              : int,
     "phenom_turb_centroid"          : float,
     "phenom_turb_std_dev"           : float,
-    "flag_use_surrogate"            : int
+    "flag_use_surrogate"            : int,
+    "flag_dynamics_sweep"           : int,
 }
 # Ensure none of the data types are bool to avoid issues casting ascii to boolean
 if bool in INPUT_TYPES.values():
