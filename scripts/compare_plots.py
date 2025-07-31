@@ -878,15 +878,15 @@ def main():
 
     # plt.title("In-plane effective Spin vs. Merger radius")
     sur.set(
-        ylabel=r'$\chi_{\rm p}$',
-        xlabel=r'$\log_{10} (R)$ [$R_g$] - (sur)',
+        #ylabel=r'$\chi_{\rm p}$',
+        xlabel=r'Radius$_{sur}$ [$R_g$]',
         ylim=(0, 1),
         axisbelow=True)
 
     sur.grid(True, color='gray', ls='dashed')
 
     if figsize == 'apj_col':
-        sur.legend(fontsize=5)
+        sur.legend(fontsize=4)
     elif figsize == 'apj_page':
         sur.legend()
 
@@ -951,15 +951,15 @@ def main():
 
     # plt.title("In-plane effective Spin vs. Merger radius")
     nosur.set(
-        #ylabel=r'$\chi_{\rm p}$',
-        xlabel=r'$\log_{10} (R)$ [$R_g$] - (nosur)',
+        ylabel=r'$\chi_{\rm p}$',
+        xlabel=r'Radius$_{nosur}$ [$R_g$]',
         ylim=(0, 1),
         axisbelow=True)
 
     nosur.grid(True, color='gray', ls='dashed')
 
     if figsize == 'apj_col':
-        nosur.legend(fontsize=5)
+        nosur.legend(fontsize=4)
     elif figsize == 'apj_page':
         nosur.legend()
 
@@ -1486,7 +1486,7 @@ def main():
     r_kms = np.array(np.linspace(3e3, max_radius, 100))
     r_rg = np.array(np.linspace(5e2, np.max(sur_gen1_orb_a), 100))
     v_kep = np.sqrt((2 * const.G.value * 1.e8 * const.M_sun.value)/ r_kms) / 1e3
-    sur1.plot(r_rg[-99:], v_kep[-99:], label='Escape Velocity [km/s]')
+    sur1.plot(r_rg[-99:], v_kep[-99:], label='SMBH Escape Velocity', color='teal')
     sur1.set_xlim(3e2, 7e4)
     
     # configure scatter plot
@@ -1497,7 +1497,7 @@ def main():
     #sur1.set_xlim(3e2, 7e4)
     sur1.grid(True, color='gray', ls='dashed')
     if figsize == 'apj_col':
-        sur1.legend(fontsize=4)
+        sur1.legend(fontsize=4, loc='upper left')
     elif figsize == 'apj_page':
         sur1.legend()
 
@@ -1581,9 +1581,13 @@ def main():
     nosur1.set_yscale('log')
     nosur1.set_xlim(3e2, 7e4)
     nosur1.grid(True, color='gray', ls='dashed')
+    nosur1.plot(r_rg[-99:], v_kep[-99:], label='SMBH Escape Velocity', color='teal')
+    if figsize == 'apj_col':
+        nosur1.legend(fontsize=4, loc='upper left')
+    elif figsize == 'apj_page':
+        nosur1.legend()
     
     #nosur1.set_xlim(5e2, np.max(sur_gen1_orb_a))
-    nosur1.plot(r_rg[-99:], v_kep[-99:], label='Escape Velocity [km/s]')
     
     #if figsize == 'apj_col':
     #    nosur1.legend(fontsize=5, loc='upper left')
@@ -1876,7 +1880,7 @@ def main():
 
     nosur.set(
         xlabel=r'$v_{kick}^{nosur}$ [km/s]',
-        ylabel='Spin',
+        ylabel='Final Remnant Spin',
         xscale="log",
         axisbelow=True,
         xlim=([2e0,4e3])
@@ -2074,9 +2078,9 @@ def main():
                 )
 
     sur.set(
-        xlabel='Spin (sur)',
-        ylabel='Spin 2',
+        xlabel='Final Remnant Spin$_{sur}$',
         #xscale="log",
+        xlim=(0.38, 1.02),
         axisbelow=True,
         #xlim=([2e0,4e3])
     )
@@ -2136,8 +2140,9 @@ def main():
                 )
 
     nosur.set(
-        xlabel='Spin (nosur)',
+        xlabel='Final Remnant Spin$_{nosur}$',
         ylabel='Spin 2',
+        xlim=(0.38, 1.02),
         #xscale="log",
         axisbelow=True,
         #xlim=([2e0,4e3])

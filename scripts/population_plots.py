@@ -1402,6 +1402,75 @@ def main():
     svf_ax.set_axisbelow(True)
     plt.grid(True, color='gray', ls='dashed')
     plt.savefig(opts.plots_directory + "/v_kick_mass.png", format='png')  # ,dpi=600)
+    
+    # ========================================
+    # SUR - Kick Velocity vs Spin
+    # ========================================
+
+    sur_spin = mergers[:, 4]
+    sur_gen1_spin = sur_spin[merger_g1_mask]
+    sur_gen2_spin = sur_spin[merger_g2_mask]
+    sur_genX_spin = sur_spin[merger_gX_mask]
+    
+    sur_all_kick = mergers[:, 16]
+    sur_gen1_vkick = sur_all_kick[merger_g1_mask]
+    sur_gen2_vkick = sur_all_kick[merger_g2_mask]
+    sur_genX_vkick = sur_all_kick[merger_gX_mask]
+
+    fig, ax = plt.subplots(1, 2, figsize=(4.5,2.5), sharey=True, gridspec_kw={'wspace':0, 'hspace':0})
+    #ax3 = fig.add_subplot(111)
+    
+    sur = ax[0]
+    nosur = ax[1]
+
+    # plot the 1g-1g mergers
+    sur.scatter(sur_gen1_vkick, sur_gen1_spin,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    # plot the 2g+ mergers
+    sur.scatter(sur_gen2_vkick, sur_gen2_spin,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    # plot the 3g+ mergers
+    sur.scatter(sur_genX_vkick, sur_genX_spin,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    sur.set(
+        xlabel=r'$v_{kick}^{nosur}$ [km/s]',
+        ylabel='Spin',
+        xscale="log",
+        axisbelow=True,
+        xlim=([2e0,4e3])
+        #ylim=([0, 1])
+    )
+
+    sur.grid(True, color='gray', ls='dashed')
+
+    if figsize == 'apj_col':
+        sur.legend(fontsize=5)
+    elif figsize == 'apj_page':
+        sur.legend()
+
+    plt.savefig(opts.plots_directory + '/vkick_spin.png', format='png')
+    #plt.close()
 
     # ========================================
     # LVK and LISA Strain vs Freq
