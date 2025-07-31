@@ -114,10 +114,10 @@ def run_benchmark_stars(N: int, circ_proportion: float):
 
 
 
-if __name__ == "__main__":
+
+def test_circular_singles_encounters_parity():
     # Define the set of test cases to run
     test_cases = [
-        # Test scaling with N at a 50/50 C/E split
         (10, 0.5),
         (20, 0.5),
         (30, 0.5),
@@ -127,21 +127,34 @@ if __name__ == "__main__":
         (250, 0.5),   
         (500, 0.5),
         (1000, 0.5),
-        (2000, 0.5),
-        (4000, 0.5),  
-        (8000, 0.5),
-        # (10000, 0.5),  
-        # (15000, 0.5),
-        # (20000, 0.5),
-        # (25000, 0.5),
-        # (30000, 0.5),
-        # (40000, 0.5),
-        # (60000, 0.5),
-        # (80000, 0.5),
-        # (100000, 0.5),
-        # (160000, 0.5),
-        # The C*E product is largest at 0.5, so these should be faster for the original
+        (10, 0.1),
+        (20, 0.1),
+        (30, 0.1),
+        (40, 0.1),
+        (50, 0.1),
+        (100, 0.1),
+        (250, 0.1),   
+        (500, 0.1),
+        (1000, 0.1),
+        (10, 0.9),
+        (20, 0.9),
+        (30, 0.9),
+        (40, 0.9),
+        (50, 0.9),
+        (100, 0.9),
+        (250, 0.9),   
+        (500, 0.9),
+        (1000, 0.9),
     ]
 
     for N, prop in test_cases:
         run_benchmark_stars(N, prop)
+
+######## Main ########
+def main():
+    test_circular_singles_encounters_parity()
+
+######## Execution ########
+if __name__ == "__main__":
+    main()
+
