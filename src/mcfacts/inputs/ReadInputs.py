@@ -136,7 +136,9 @@ Inifile
     "harden_energy_delta_sigma"       : float
         The Gaussian standard deviation value for the energy change during a strong interaction
     "flag_use_surrogate"            : int
-        Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) uses NRSurrogate model from (paper in prep).
+        Switch (0) uses analytical kick prescription from Akiba et al. (2024).
+        Switch (1) uses NRSurrogate model from (paper in prep).
+        Switch (-1) uses precession module from Gerosa & Kesden (2016).
     "flag_dynamics_sweep"           : int
         Use faster dynamics functions which implement sweep function (1 on/0 off)
 """
@@ -310,6 +312,14 @@ def ReadInputs_ini(fname_ini, verbose=0):
             # Adjust disk_radius_outer as needed
             input_variables["disk_radius_outer"] = \
                 input_variables["disk_radius_outer"] * disk_radius_scale
+
+    # Check for precession module
+    if input_variables["flag_use_surrogate"] == -1:
+        try:
+            import precession
+        except Exception as exc:
+            print("Failed to import precession. Try `pip install precession`")
+            raise exc
 
     # Print out the dictionary if we are in verbose mode
     if verbose:
