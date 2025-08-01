@@ -49,6 +49,8 @@ McFACTS Code
 
 Follow the process for installing the code in our `README <https://github.com/McFACTS/McFACTS/blob/main/README.md>`_.
 
+See the `McFACTS style guide <https://github.com/McFACTS/McFACTS/blob/main/docs/source/style.rst>`_ for writing code that conforms with our documentation generator.
+
 Commit Messages
 ***************
 

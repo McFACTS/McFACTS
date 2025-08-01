@@ -13,6 +13,7 @@ A Python package that does the AGN channel for you!
    modules
    contribute
    commitmsg
+   style
 
 
 Indices and tables
