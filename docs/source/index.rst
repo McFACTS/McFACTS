@@ -14,6 +14,7 @@ A Python package that does the AGN channel for you!
    contribute
    commitmsg
    style
+   newio
 
 
 Indices and tables
