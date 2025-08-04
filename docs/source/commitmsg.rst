@@ -2,8 +2,11 @@
 Commit Messages
 ===============
 
-See the `Contributing Guide <https://github.com/McFACTS/McFACTS/blob/main/docs/source/contribute.rst>`_ for more
+See the `Contributing Guide`_ for more
 information on making changes to McFACTS.
+
+.. _`Contributing Guide`: https://github.com/McFACTS/McFACTS/blob/main/docs/source/contribute.rst
+
 
 `Conventional Commits <https://www.conventionalcommits.org/en/v1.0.0/>`_ is a formatting convention that enables
 us to easily
@@ -13,8 +16,9 @@ us to easily
 
 Please follow these guidelines when committing changes as you work on McFACTS.
 
-Formatting
-**********
+Formatting Template
+*******************
+
 .. code-block::
 
    <type>[optional scope]: <description>
@@ -22,6 +26,8 @@ Formatting
    [optional body]
 
    [optional footer(s)]
+
+See `Examples`_ below for...examples.
 
 Message Subject
 ^^^^^^^^^^^^^^^
@@ -63,6 +69,46 @@ The ``[optional body]`` can be used to include additional details when necessary
 ``[optional footer(s)]`` should be used when the change addresses a reported issue, ``Closes #123``).
 
 See References and Resources for examples.
+
+Examples
+***********************
+
+Commit message meeting the minimum requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block::
+
+   style: correct whitespace usage in solve_disk function
+
+Commit message with the optional scope
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block::
+
+   fix(setup): change sign for binary formation under Snoopy criterion
+
+Commit message with an optional scope and body
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block::
+
+   feat(phys): treat disk capture with Luffy and Zaraki methods
+
+   1. follow Luffy et al. 1999 under X conditions
+   2. follow Zaraki et al. 2005 under Y, and Z conditions
+
+Badness 1000
+^^^^^^^^^^^^
+
+.. code-block::
+
+   updated things again
+
+This one does not follow the format, is not descriptive, and leaves me as a reviewer/bug hunter with a few questions:
+
+1. Did you update the spherical cow approximation for calculating the coriolis force?
+2. Was this a simple change to the sign of the integer flag that sets chirality?
+3. What did you do last time since you said "again"?
 
 References and Resources:
 *************************
