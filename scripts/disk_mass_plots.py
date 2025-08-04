@@ -14,6 +14,11 @@ plt.style.use("mcfacts.vis.mcfacts_figures")
 #apj_col or apj_page
 figsize = "apj_col"
 
+# slightly darker (for readability on projecter) mcfacts pink
+mcfacts_pink = "#D47B7C"
+
+color = mcfacts_pink #"tab:blue" for standard matplotlib blue
+
 ######## Arg ########
 def arg():
     import argparse
@@ -68,8 +73,8 @@ def main():
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    plt.plot(np.unique(data[:, 1])/timestep_division, -mass_lost_avg, label='Mean value')
-    plt.fill_between(np.unique(data[:, 1])/timestep_division, -(mass_lost_avg - mass_lost_std), -(mass_lost_avg + mass_lost_std), alpha=0.2, label='Standard deviation')
+    plt.plot(np.unique(data[:, 1])/timestep_division, -mass_lost_avg, label='Mean value', color=color)
+    plt.fill_between(np.unique(data[:, 1])/timestep_division, -(mass_lost_avg - mass_lost_std), -(mass_lost_avg + mass_lost_std), alpha=0.2, label='Standard deviation', color=color)
 
     plt.xlabel("Time [Myr]")
     plt.ylabel(r"$M_{\rm disk}$ lost [$M_\odot$]")
@@ -90,8 +95,8 @@ def main():
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    plt.plot(np.unique(data[:, 1])/timestep_division, mass_gain_avg, label='Mean value')
-    plt.fill_between(np.unique(data[:, 1])/timestep_division, mass_gain_avg - mass_gain_std, mass_gain_avg + mass_gain_std, alpha=0.2, label='Standard deviation')
+    plt.plot(np.unique(data[:, 1])/timestep_division, mass_gain_avg, label='Mean value', color=color)
+    plt.fill_between(np.unique(data[:, 1])/timestep_division, mass_gain_avg - mass_gain_std, mass_gain_avg + mass_gain_std, alpha=0.2, label='Standard deviation', color=color)
 
     plt.xlabel("Time [Myr]")
     plt.ylabel(r"$M_{\rm disk}$ gained [$M_\odot$]")
@@ -112,8 +117,8 @@ def main():
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    plt.plot(np.unique(data[:, 1])/timestep_division, mass_gain_avg_rate, label='Mean value')
-    plt.fill_between(np.unique(data[:, 1])/timestep_division, mass_gain_avg_rate - mass_gain_std_rate, mass_gain_avg_rate + mass_gain_std_rate, alpha=0.2, label='Standard deviation')
+    plt.plot(np.unique(data[:, 1])/timestep_division, mass_gain_avg_rate, label='Mean value', color=color)
+    plt.fill_between(np.unique(data[:, 1])/timestep_division, mass_gain_avg_rate - mass_gain_std_rate, mass_gain_avg_rate + mass_gain_std_rate, alpha=0.2, label='Standard deviation', color=color)
 
     plt.xlabel("Time [Myr]")
     plt.ylabel(r"$M_{\rm disk}$ accretion [$M_\odot$/yr]")
@@ -134,8 +139,8 @@ def main():
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    plt.plot(np.unique(data[:, 1])/timestep_division, -mass_lost_avg_rate, label='Mean value')
-    plt.fill_between(np.unique(data[:, 1])/timestep_division, -(mass_lost_avg_rate - mass_lost_std_rate), -(mass_lost_avg_rate + mass_lost_std_rate), alpha=0.2, label='Standard deviation')
+    plt.plot(np.unique(data[:, 1])/timestep_division, -mass_lost_avg_rate, label='Mean value', color=color)
+    plt.fill_between(np.unique(data[:, 1])/timestep_division, -(mass_lost_avg_rate - mass_lost_std_rate), -(mass_lost_avg_rate + mass_lost_std_rate), alpha=0.2, label='Standard deviation', color=color)
 
     plt.xlabel("Time [Myr]")
     plt.ylabel(r"$M_{\rm disk}$ lost [$M_\odot$/yr]")

@@ -8,10 +8,7 @@ tests: mcfacts_sim
 #### Package ####
 # Version number for the repository
 # This is where you change the version number by hand. Not anywhere else.
-# Alpha begins at 0.1.0
-# Feature-complete Alpha begins at 0.2.0
-# Beta begins at 0.3.0
-VERSION=0.2.1
+VERSION=0.4.0
 
 ### Should work for everyone ###
 # Current directory
@@ -28,6 +25,7 @@ STARS_PLOTS = ${HERE}/scripts/stars_plots.py
 DISK_MASS_PLOTS = ${HERE}/scripts/disk_mass_plots.py
 ORBA_MASS_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
 EM_PLOTS = ${HERE}/scripts/em_plots.py
+COMPARE_SUR = ${HERE}/scripts/compare_plots.py
 
 #### Setup ####
 SEED=3456789108 # put an 8 here
@@ -146,9 +144,9 @@ kaila_stars: plots
 	cd runs; \
 	python ../${STARS_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-stars ${wd}/output_mergers_stars_population.dat \
-	--fname-stars-merge ${wd}/output_mergers_stars_merged.dat \
-	--fname-stars-explode ${wd}/output_mergers_stars_exploded.dat \
+	--fname-stars ${wd}/output_stars_population.dat \
+	--fname-stars-merge ${wd}/output_stars_merged.dat \
+	--fname-stars-explode ${wd}/output_stars_exploded.dat \
 	--plots-directory ${wd}
 
 kaila_stars_movie: clean
@@ -165,18 +163,27 @@ kaila_stars_make_movie: kaila_stars_plots
 	cd runs; \
 	python ../${ORBA_MASS_FRAMES} \
 	--fpath-snapshots ${wd}/gal000/ \
-	--num-timesteps 50 \
-	--plots-directory ${wd}/gal000
+	--fname-stars-merge ${wd}/output_stars_merged.dat \
+	--fname-stars-explode ${wd}/output_stars_exploded.dat \
+	--fname-stars-unbound ${wd}/output_stars_unbound.dat \
+	--fname-bh-unbound ${wd}/output_mergers_unbound.dat \
+	--fname-emri ${wd}/output_mergers_emris.dat \
+	--fname-star-tde ${wd}/output_tdes.dat \
+	--fname-star-plunge ${wd}/output_stars_plunge.dat \
+	--num-timesteps 60 \
+	--timestep-duration-yr 10000 \
+	--plots-directory ${wd}/gal000 \
+	--plot-objects 0
 	rm -fv ${wd}/runs/orba_mass_movie.mp4
-	ffmpeg -f image2 -framerate 5 -i ${wd}/runs/gal000/orba_mass_movie_timestep_%02d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/runs/orba_mass_movie.mp4
+	ffmpeg -f image2 -framerate 5 -i ${wd}/runs/gal000/orba_mass_movie_timestep_%03d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/runs/orba_mass_movie.mp4
 
 kaila_stars_plots: just_plots
 	cd runs; \
 	python ../${STARS_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-stars ${wd}/output_mergers_stars_population.dat \
-	--fname-stars-merge ${wd}/output_mergers_stars_merged.dat \
-	--fname-stars-explode ${wd}/output_mergers_stars_exploded.dat \
+	--fname-stars ${wd}/output_stars_population.dat \
+	--fname-stars-merge ${wd}/output_stars_merged.dat \
+	--fname-stars-explode ${wd}/output_stars_exploded.dat \
 	--plots-directory ${wd}
 
 disk_mass_plots:
@@ -248,6 +255,21 @@ mstar_runs_scale: $(MBINS_SCALE)
 $(MBINS_SCALE): %: %.run_scale
 mstar_runs_fixed: $(MBINS_FIXED)
 $(MBINS_FIXED): %: %.run_fixed
+
+# Compare surrogate plots (In progress)
+compare_sur: 
+	cd runs; \
+	python ../${COMPARE_SUR} --fname-surmergers ${wd}/sur_output_mergers_population.dat --plots-directory ${wd}
+
+nosur_save: mcfacts_sim
+	cd runs; \
+	cp ${wd}/output_mergers_population.dat ../nosur_output_mergers_population.dat
+
+sur_save: mcfacts_sim
+	cd runs; \
+	cp output_mergers_population.dat sur_output_mergers_population.dat; \
+	cp ../nosur_output_mergers_population.dat nosur_output_mergers_population.dat; \
+	rm ../nosur_output_mergers_population.dat
 
 
 #### CLEAN ####

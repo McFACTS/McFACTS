@@ -80,7 +80,10 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
     # But power builds up in band over multiple cycles!
     # So characteristic strain amplitude measured by e.g. LISA is given by h_char^2 = N/8*h_0^2 where N is number of cycles per year & divide by 8 to average over viewing angles
     strain_factor = np.ones(len(nu_gw))
-
+    #count LISA-LIGO binaries
+    gwb = np.count_nonzero (nu_gw > 1.e-6 *u.Hz)
+    # of which count tight binaries (nu_gw >2.e-3 Hz)
+    tight = nu_gw >2.e-3 *u.Hz
     # char amplitude = strain_factor*h0
     #                = sqrt(N/8)*h_0 and N=freq*1yr for approx const. freq. sources over ~~yr.
     strain_factor[nu_gw < (1e-6) * u.Hz] = np.sqrt(nu_gw[nu_gw < (1e-6) * u.Hz] * np.pi * (1e7) / 8)
@@ -92,7 +95,20 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
         delta_nu = np.abs(old_gw_freq - nu_gw)
         delta_nu_delta_timestep = delta_nu/timestep_units
         nu_squared = (nu_gw * nu_gw)
-        strain_factor[nu_gw > (1e-6) * u.Hz] = np.sqrt((nu_squared[nu_gw > (1e-6) * u.Hz] / delta_nu_delta_timestep[nu_gw > (1e-6) * u.Hz]) / 8.)
+        nu_factor = (nu_gw)**(-5./6.)
+        strain_factor[~tight] = np.sqrt((nu_squared[~tight] / delta_nu_delta_timestep[~tight]) / 8.)
+        # If BBH merges within next timestep then nu_gw>2e-3 Hz
+        #  N = (1/8pi)sqrt(5/96)(1/pi)^1/3 (c/r_g_chirp)^5/6 freq^-5/6
+        #for i in range (0,tight):
+        #if nu_gw.any(> 2.e-3 * u.Hz) :
+        #print ('tight', tight)
+        if np.any(tight):
+            num_factor = np.sqrt(5./96.)*(1/(8*np.pi))*(1/np.pi)**(1./3.)
+            #rg_chirp = ((const.G * mass_chirp) / (const.c ** 2.0)).to(u.meter)
+
+            strain_factor[tight] = num_factor * ((const.c/rg_chirp[tight])**(5./6.)) * (nu_gw[tight])**(-5./6.)
+    
+
     # Condition from evolve_gw
     elif (flag_include_old_gw_freq == 0):
         strain_factor[nu_gw > (1e-6) * u.Hz] = 4.e3
