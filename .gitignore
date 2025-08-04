@@ -84,3 +84,12 @@ coverage.xml
 cover/
 
 docs/source/_autosummary
+recipes/emri_1myr.zip
+recipes/emri_1myr/p3_SG_scaled_count_bbh_1.0Myr.png
+recipes/emri_1myr/v_kick_distribution.png
+recipes/emri_1myr/v_kick_vs_radius.png
+.gitignore
+.gitignore
+scripts/rates_vs_z.png
+.gitignore
+scripts/rates_vs_z.pdf
