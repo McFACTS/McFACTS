@@ -7,12 +7,13 @@ This guide will describe the steps and requirements to contribute `your` awesome
 Stay in Touch
 -------------
 
-First, opt-in to everything McFACTS by using this `Google Form <https://docs.google.com/forms/d/e/1FAIpQLSeupzj8ledPslYc0bHbnJHKB7_LKlr8SY3SfbEVyL5AfeFlVg/viewform>`_ to join our mailing list.
+First, opt-in to everything McFACTS by using this `Google Form`_ to join our mailing list.
 
 Report Bugs or Feature Requests
 -------------------------------
 
-Use our `GitHub Issue tracker <https://github.com/McFACTS/McFACTS/issues>`_ to report any bugs you encounter or think of any **cool** features you think would benefit McFACTS.
+Use our GitHub `Issue Tracker`_ to report any bugs you encounter or think
+of any **cool** features you think would benefit McFACTS.
 
 Contributing Code
 -----------------
@@ -25,7 +26,7 @@ Documentation
 Take a look around.
 You can find documentation for our code and modules at our `Read the Docs <https://mcfacts.readthedocs.io>`_.
 
-Input and outputs are documented in `IOdocumentation.txt`.
+Input and outputs are documented in `IOdocumentation.txt`_.
 
 Want to build or browse the docs locally? Run the following:
 
@@ -47,16 +48,16 @@ Want to build or browse the docs locally? Run the following:
 McFACTS Code
 ************
 
-Follow the process for installing the code in our `README <https://github.com/McFACTS/McFACTS/blob/main/README.md>`_.
+Follow the process for installing the code in our `README`_.
 
-See the `McFACTS style guide <https://github.com/McFACTS/McFACTS/blob/main/docs/source/style.rst>`_ for writing code that conforms with our documentation generator.
+See the `Style Guide`_ for writing code that conforms with our documentation generator.
 
 Commit Messages
 ***************
 
-For full details see our `commit guide <https://github.com/McFACTS/McFACTS/blob/main/docs/source/gitcommitmsg.rst>`_.
+For full details see our `Commit Guide`_.
 
-Here is a quick reference for creating `semantic commit messages <https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716>`_ that enable us to easily:
+Here is a quick reference for creating `semantic commit messages`_ that enable us to easily:
 
 #. automatically generate our changelog
 #. review the code's history
@@ -71,7 +72,8 @@ All commits should follow this general format:
 
    [optional footer(s)]
 
-``<description>``: is present tense and gramatically structured to complete the sentence, "If applied, this commit will _____."
+``<description>``: is present tense and gramatically structured to complete the sentence,
+"If applied, this commit will _____."
 
 Generating Pull Requests
 ************************
@@ -79,8 +81,10 @@ Generating Pull Requests
 Pull requests should comply with these requirements:
 
 #. Direct pull requests at the ``mcfacts/main-dev`` branch.
-#. Include all information outlined in the `Pull Request Template <https://github.com/McFACTS/McFACTS/blob/main/.github/PULL_REQUEST_TEMPLATE.md>`_ (automatically populates the description field when initiating a pull request).
-#. Categorize your pull request using one (or more!) option from this `list <https://github.com/McFACTS/McFACTS/labels>`_ of labels.
+#. Include all information outlined in the `Pull Request Template`_ (automatically populates the description field when
+   initiating a pull request).
+#. Categorize your pull request using one (or more!) option from this
+   `list <https://github.com/McFACTS/McFACTS/labels>`_ of labels.
 
 Extending McFACTS with other languages
 **************************************
@@ -93,18 +97,39 @@ Python can be slow... ::
    |_________/     
    |_|_| |_|_|
 
-You may know ways to speed up McFACTS by writing interfaces to compiled languages to handle computationally intensive tasks.
-This sounds awesome! But, please ask the dev team first so you don't waste your time on something we may not implement.
+You may know ways to speed up McFACTS by writing interfaces to compiled languages to handle
+computationally intensive tasks. This sounds awesome! But, please ask the dev team first so you don't waste your time
+on something we may not implement.
 
-To ensure McFACTS remains useable, stable, and maintainable for future users and our core dev team, we `require` the following conditions be met.
+To ensure McFACTS remains useable, stable, and maintainable for future users and our core dev team, we `require` the
+following conditions be met.
 
-#. Any code written in a language which extends Python (C, Fortran, Rust, etc...) must have a working unit test which checks for accuracy.
-#. As a result, there must be a pure Python version of the function that exists somewhere to do the same math, that we can check our results against.
-#. The pure Python version of such a function should be maintained so that when new physics is brought into the extension, not only the extension is modified, but the Python used to test against the extension as well.
-#. Any pull request introducing or modifying an extension to Python in another language must pass the ``test-build`` test.
+#. Any code written in a language which extends Python (C, Fortran, Rust, etc...) must have a working unit test
+   which checks for accuracy.
+#. As a result, there must be a pure Python version of the function that exists somewhere to do the same math, that
+   we can check our results against.
+#. The pure Python version of such a function should be maintained so that when new physics is brought into the
+   extension, not only the extension is modified, but the Python used to test against the extension as well.
+#. Any pull request introducing or modifying an extension to Python in another language must pass the
+   ``test-build`` test.
 
    .. code-block:: bash
 
       make test-build
 
-#. Any pull request introducing or modifying an extension to Python in another language must be reviewed by somebody who understands the language.
+#. Any pull request introducing or modifying an extension to Python in another language must be reviewed by somebody
+   who understands the language.
+
+
+
+..
+   List of link shortcuts
+
+.. _`Google Form`: https://docs.google.com/forms/d/e/1FAIpQLSeupzj8ledPslYc0bHbnJHKB7_LKlr8SY3SfbEVyL5AfeFlVg/viewform
+.. _`README`: https://github.com/McFACTS/McFACTS/blob/main/README.md
+.. _`IOdocumentation.txt`: https://github.com/McFACTS/McFACTS/blob/main/IOdocumentation.txt
+.. _`Style Guide`: https://github.com/McFACTS/McFACTS/blob/main/docs/source/style.rst
+.. _`Commit Guide`: https://github.com/McFACTS/McFACTS/blob/main/docs/source/gitcommitmsg.rst
+.. _`Pull Request Template`: https://github.com/McFACTS/McFACTS/blob/main/.github/PULL_REQUEST_TEMPLATE.md
+.. _`Issue Tracker`: https://github.com/McFACTS/McFACTS/issues
+.. _`semantic commit messages`: https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716
