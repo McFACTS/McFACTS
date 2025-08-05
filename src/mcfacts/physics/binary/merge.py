@@ -15,11 +15,11 @@ from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
 
 def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_ang_mom):
-    """Calculates the effective spin :math:`\\chi_{\rm eff}` associated with a merger.
+    """Calculates the effective spin :math:`\\chi_{\\rm eff}` associated with a merger.
 
     The measured effective spin of a merger is calculated as
 
-    .. math:: \\chi_{\rm eff}=\frac{m_1*\\chi_1*\\cos(\theta_1) + m_2*\\chi_2*\\cos(\theta_2)}/{m_{\rm bin}}
+    .. math:: \\chi_{\\rm eff}=\\frac{m_1\\chi_1\\cos(\\theta_1) + m_2\\chi_2\\cos(\\theta_2)}{m_{\\rm bin}} L_{\\rm bin}
 
     Parameters
     ----------
@@ -67,16 +67,15 @@ def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angl
 def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_orbs_inc):
     """Calculates the precessing spin component :math:`\chi_p` associated with a merger.
 
-    chi_p = max[spin_1_perp, (q(4q+3)/(4+3q))* spin_2_perp]
+    :code:`chi_p = max[spin_1_perp, (q(4q+3)/(4+3q)) * spin_2_perp]` where
 
-    where
+    :code:`spin_1_perp = spin_1 * sin(spin_angle_1)` and
 
-    spin_1_perp = spin_1 * sin(spin_angle_1)
-    spin_2_perp = spin_2 * sin(spin_angle_2)
+    :code:`spin_2_perp = spin_2 * sin(spin_angle_2)`
 
-    are perpendicular to `spin_1
+    are perpendicular to :code:`spin_1` and :code:`spin_2`, respectively,
 
-    and :math:`q=M_2/M_1` where :math:`M_2 < M_1`.
+    and :code:`q = mass_2 / mass_1` where :code:`mass_2 < mass_1`.
 
     Parameters
     ----------
@@ -144,17 +143,18 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius):
     """Normalizes Gravitational wave timescale.
 
     Calculate the normalization for timescale of a merger (in s) due to GW emission.
-    From Peters(1964):
+    From Peters (1964):
 
-    .. math:: t_{gw} \approx (5/256)* c^5/G^3 *a_b^4/(M_{b}^{2}mu_{b})
-    assuming ecc=0.0.
+    .. math:: t_{\\rm gw} \\approx \\frac{5}{256} \\frac{c^5}{G^3} \\frac{a_b^4}{M_b^2\\mu_b}
 
-    For a_b in units of r_g=GM_smbh/c^2 we find
+    assuming eccentricity :math:`e=0.0`.
 
-    .. math:: t_{gw}=(5/256)*(G/c^3)*(a/r_g)^{4} *(M_s^4)/(M_b^{2}mu_b)
+    For :math:`a_b` in units of :math:`r_g=GM_{\\rm SMBH}/c^2` we find
 
-    Put bin_mass_ref in units of 10Msun (is a reference mass).
-    reduced_mass in units of 2.5Msun.
+    .. math:: t_{\\rm gw}=\\frac{5}{256} \\frac{G}{c^3} \\left(\\frac{a_b}{r_g}\\right)^{4} \\frac{M_s^4}{M_b^2\\mu_b}
+
+    Put :code:`bin_mass_ref` in units of :math:`10\\,M_\\odot` (is a reference mass).
+    :code:`reduced_mass` in units of :math:`2.5\\,M_\\odot`.
 
     Parameters
     ----------
@@ -192,8 +192,10 @@ def merged_mass(masses_1, masses_2, spins_1, spins_2):
     """Calculates the final mass of a merged binary.
 
     Using approximations from Tichy \\& Maronetti (2008) where
-    m_final=(M_1+M_2)*[1.0-0.2\nu-0.208\nu^2(a_1+a_2)]
-    where nu is the symmetric mass ratio or nu=q/((1+q)^2)
+
+    .. math:: m_{\\rm final}=(M_1+M_2)[1.0-0.2\\nu-0.208\\nu^2(a_1+a_2)]
+    where :math:`\\nu` is the symmetric mass ratio or :math:`\\nu=q/((1+q)^2)`
+    and :math:`q=M_2/M_1` with :math:`M_2<M_1`
 
     Parameters
     ----------
@@ -234,10 +236,14 @@ def merged_mass(masses_1, masses_2, spins_1, spins_2):
 def merged_spin(masses_1, masses_2, spins_1, spins_2):
     """Calculates the spin magnitude of a merged binary.
 
-    Only depends on M1,M2,a1,a2 and the binary ang mom around its center of mass.
-    Using approximations from Tichy \\& Maronetti(2008) where
-    :math:`a_{final}=0.686(5.04\nu-4.16\nu^2) +0.4[a_{1}/((0.632+1/q)^2)+ a_2/((0.632+q)^2)]`
-    where q=m_2/m_1 and nu=q/((1+q)^2)
+    Only depends on :math:`M_1,M_2,a_1,a_2` and the binary ang mom around its center of mass.
+    Using approximations from Tichy \\& Maronetti (2008)
+
+    .. math::
+
+        a_{\\rm final}=0.686(5.04\\nu-4.16\\nu^2) +0.4[a_1/(0.632+1/q)^2+ a_2/(0.632+q)^2]
+
+    where :math:`q=M_2/M_1` and :math:`nu=q/((1+q)^2)`.
 
     Parameters
     ----------
@@ -306,11 +312,11 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
                      smbh_mass, flag_use_surrogate, disk_aspect_ratio, disk_density, time_passed, galaxy):
-    """Calculates parameters for merged BHs and adds them to blackholes_pro and blackholes_merged
+    """Calculates parameters for merged BHs and adds them to :code:`blackholes_pro` and :code:`blackholes_merged`
 
     This function calculates the new parameters for merged BHs and adds them to the
-    blackholes_pro and blackholes_merged objects. It does NOT delete them from blackholes_binary
-    or update the filing_cabinet with the new information.
+    :code:`blackholes_pro` and :code:`blackholes_merged` objects. It does NOT delete them from :code:`blackholes_binary`
+    or update the :code:`filing_cabinet` with the new information.
 
     Parameters
     ----------
@@ -390,7 +396,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2") - blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-            1000, # binary seperation - in units of mass_1+mass_2 - shawn need to optimize seperation to speed up processing time 
+            1000, # binary seperation - in units of mass_1+mass_2 - shawn need to optimize seperation to speed up processing time
             [0, 0, 1], # binary inclination - cartesian coords
             0, # binary phase angle - radians?
             # the following three None values are any correction needed to the values
