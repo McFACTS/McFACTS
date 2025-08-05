@@ -3,12 +3,12 @@ Installation
 
 To clone and run this application, you'll need `Git <https://git-scm.com>`_ and `Conda <https://docs.conda.io/en/latest/>`_.
 
-The latest development version is available directly from our `GitHub Repo <https://github.com/bmckernan/test_mcfacts>`_. To start, clone the repository:
+The latest development version is available directly from our `GitHub Repo <https://github.com/mcfacts/mcfacts>`_. To start, clone the repository:
 
 .. code-block:: bash
 
-   $ git clone https://github.com/bmckernan/test_mcfacts
-   $ cd test_mcfacts
+   $ git clone https://github.com/McFACTS/McFACTS
+   $ cd McFACTS
 
 Automated Setup
 ---------------
