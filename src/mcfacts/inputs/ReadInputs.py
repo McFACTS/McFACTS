@@ -150,7 +150,7 @@ import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
 from astropy import constants as ct
 
-# Dictionary of types
+#: Dictionary of types for input parameters
 INPUT_TYPES = {
     "disk_model_name"               : str,
     "flag_use_pagn"                 : int,
