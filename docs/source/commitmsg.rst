@@ -19,7 +19,7 @@ Please follow these guidelines when committing changes as you work on McFACTS.
 Formatting Template
 *******************
 
-.. code-block::
+.. code-block:: none
 
    <type>[optional scope]: <description>
 
@@ -75,22 +75,21 @@ Examples
 
 Commit message meeting the minimum requirements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block::
+.. code-block:: none
 
    style: correct whitespace usage in solve_disk function
 
 Commit message with the optional scope
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block::
+.. code-block:: none
 
    fix(setup): change sign for binary formation under Snoopy criterion
 
 Commit message with an optional scope and body
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block::
+.. code-block:: none
 
    feat(phys): treat disk capture with Luffy and Zaraki methods
 
@@ -100,7 +99,7 @@ Commit message with an optional scope and body
 Badness 1000
 ^^^^^^^^^^^^
 
-.. code-block::
+.. code-block:: none
 
    updated things again
 
