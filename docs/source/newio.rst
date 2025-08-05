@@ -8,23 +8,23 @@ Inputs
 If you want to add a new input parameter to McFACTS, it *must* be added
 to the following locations to be properly recognized by the code.
 
-1. ``IOdocumentation.txt``
-2. ``src/mcfacts/inputs/ReadInputs.py``
-3. ``src/mcfacts/inputs/data/model_choice.ini``
+1. :code:`IOdocumentation.txt`
+2. :code:`src/mcfacts/inputs/ReadInputs.py`
+3. :code:`src/mcfacts/inputs/data/model_choice.ini`
 
 
-The IOdocumentation.txt File
---------------------------------
+The :code:`IOdocumentation.txt` File
+------------------------------------
 
 This file is intended as a reference for users to understand the affects of setting a parameter to a given value.
 It should follow this format:
 
-.. code-block::
+.. code-block:: text
 
     <name> : <type>
         <description>
 
-where `<description>` explains how the code uses the assigned value or lists all settings if the parameter is a flag.
+where :code:`<description>` explains how the code uses the assigned value or lists all settings if the parameter is a flag.
 Include the default value where relevant.
 
 .. Warning::
@@ -33,7 +33,7 @@ Include the default value where relevant.
 
 Here are some examples of entries in `IOdocumentation.txt`_
 
-.. code-block::
+.. code-block:: text
 
     timestep_num : int
         Disk lifetime is set by choosing your number of timesteps:
@@ -52,31 +52,20 @@ Here are some examples of entries in `IOdocumentation.txt`_
         Maximum star mass
         default: 300 M_sun
 
-The ReadInputs.py File
---------------------------
+The :code:`ReadInputs.py` File
+------------------------------
 
-**Two** entries are required in `ReadInputs.py`_.
+**Two** entries are required in :py:obj:`mcfacts.inputs.ReadInputs`.
 
-The first goes in the list of parameters in the dostring at the beginning of the file. The entry should
+The first entry goes in the list of parameters in the dostring at the beginning of the file. The entry should
 contain the variable name in double quotes ``("")``, the object type, and a brief description or possible values
-such as:
+as follows:
 
-.. code-block:: python
+.. literalinclude:: ../../src/mcfacts/inputs/ReadInputs.py
+    :caption: Source code snippet of ReadInputs.py
+    :lines: 1-10
 
-    """Define input handling functions for mcfacts_sim
-
-    Inifile
-    -------
-        "disk_model_name"               : str
-            'sirko_goodman' or 'thompson_etal'
-        .
-        .
-        .
-    """
-
-and so on.
-
-The second is in the ``INPUT_TYPES`` dictionary.
+The second entry goes in the :py:obj:`mcfacts.inputs.ReadInputs.INPUT_TYPES` dictionary.
 
 .. code-block:: python
 
@@ -88,14 +77,14 @@ The second is in the ``INPUT_TYPES`` dictionary.
         ...
         }
 
-The data/model_choice.ini File
-----------------------------------
+The Default :code:`model_choice.ini` File
+-----------------------------------------
 
 .. Warning::
     This file should **NEVER** be edited unless adding a new input parameter or changing the default behavior.
 
 This is the initialization file (``*.ini``) that controls the default behavior of McFACTS under the hood.
-Set the value of your new parameter the same way you would in the ini file you use at runtime.
+Set the value of your new parameter the same way you would in the ini file you use at runtime, e.g.:
 
 .. code-block::
 
@@ -113,29 +102,26 @@ McFACTS writes information to a few different files with the following extension
 Data files
 ----------
 
-If you want to add a new value to an existing ``*.dat`` file:
+If you want to add a new column to a ``*.dat`` file:
 
 #. Ensure the relevant Class object contains your new value
-#. Add the column name to the appropriate list in ``src/mcfacts/outputs/columns.py``. This puts the column name
-    in the header for that column in the ``*.dat`` file
-#. Add an entry for the value to the section in `IOdocumentation.txt`_ describing the file
+#. Add the column name to the appropriate list in :py:obj:`mcfacts.outputs.columns`
+#. Add an entry for that value to the corresponding file description in `IOdocumentation.txt`_
 #. Use the value as appropriate in analysis scripts
-
-
 
 Log files
 ---------
 
 The ``mcfacts.log`` file automatically records all values passed as command-line options to ``mcfacts_sim.py`` and all
-parameters set by default and or by the user's ``*.ini`` file. You can choose a differen name for the log file by
+parameters set by default and or by the user's ``*.ini`` file. You can choose a different name for the log file by
 passing the ``--fname-log`` option to ``mcfacts_sim.py``
 
 .. code-block:: bash
 
-    $ python mcfacts_sim.py --fname-log myname.log
+    $ python mcfacts_sim.py --fname-log lincoln.log
 
-The log file will include any any new input parameters you created if you followed the instructions in
-`The ReadInputs.py File`_ above.
+The log file will record the runtime value of any new input parameters you created if you followed the instructions
+in the `Inputs`_ section above.
 
 ..
     Reference shortcuts
