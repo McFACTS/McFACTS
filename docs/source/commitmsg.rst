@@ -52,7 +52,7 @@ The ``type`` and ``scope`` must be lower case.
 
 **[scope] examples:**
 
-* ``phy`` - physics
+* ``phys`` - physics
 * ``io`` - input/output
 * ``vis`` - visualization
 * ``setup``
