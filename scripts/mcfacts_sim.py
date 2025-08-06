@@ -29,6 +29,7 @@ from mcfacts.physics import stellar_interpolation
 from mcfacts.inputs import ReadInputs
 from mcfacts.inputs import data as input_data
 from mcfacts.mcfacts_random_state import reset_random
+#from mcfacts.mcfacts_random_state import RandomGeneratorInherited
 from mcfacts.objects.agnobject import AGNBlackHole, AGNBinaryBlackHole, AGNMergedBlackHole, AGNStar, AGNMergedStar, AGNExplodedStar, AGNFilingCabinet
 from mcfacts.setup import setupdiskblackholes, setupdiskstars, initializediskstars
 from mcfacts.outputs import merger_cols, binary_cols
@@ -246,6 +247,7 @@ def main():
     print("opts.__dict__", opts.__dict__)
     print("opts.smbh_mass", opts.smbh_mass)
     print("opts.fraction_bin_retro", opts.fraction_bin_retro)
+    print()
 
     for galaxy in range(opts.galaxy_num):
         print("Galaxy", galaxy)
@@ -3058,6 +3060,7 @@ def main():
 
         print("End Loop!")
         print("Final Time (yrs) = ", time_passed)
+        print(f"RNG called {rng.call_count} times")
         if opts.verbose:
             print("BH locations at Final Time")
             print(blackholes_pro.orb_a)
@@ -3074,7 +3077,7 @@ def main():
             print("\tNumber of exploded stars = ", stars_explode.num)
             print("\tNumber of stars unbound from disk = ", stars_unbound.num)
             print("\tNumber of stars flipped from pro to retro = ", num_star_flip + num_starbh_flip)
-
+        print()
         # Write out all singletons after AGN episode so we can use as input to another AGN phase
 
         # Assume that all BH binaries break apart
@@ -3138,7 +3141,7 @@ def main():
 
     toc_perf = time.perf_counter()
     fin_perf = toc_perf - tic_perf
-    print("Performance time: %0.2f"%(fin_perf), " [", int(fin_perf/60), 'min -', int(fin_perf % 60), "sec ]")   
+    print("\nPerformance time: %0.2f"%(fin_perf), " [", int(fin_perf/60), 'min -', int(fin_perf % 60), "sec ]")   
 
 if __name__ == "__main__":
     main()
