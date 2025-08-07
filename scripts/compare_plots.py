@@ -482,7 +482,7 @@ def main():
     sur.set_axisbelow=True
 
     if figsize == 'apj_col':
-        sur.legend(loc='lower left', fontsize=4)
+        sur.legend(loc='lower left', fontsize=5)
     elif figsize == 'apj_page':
         sur.legend(loc='lower left')
 
@@ -600,7 +600,7 @@ def main():
     nosur.set_axisbelow=True
 
     if figsize == 'apj_col':
-        nosur.legend(loc='best', fontsize=4)
+        nosur.legend(loc='best', fontsize=5)
     elif figsize == 'apj_page':
         nosur.legend(loc='best')
 
@@ -741,7 +741,7 @@ def main():
     nosur = ax[0]
     
     # 1g-1g mergers
-    sur.scatter(np.log10(sur_gen1_orb_a), sur_gen1_chi_eff,
+    sur.scatter(sur_gen1_orb_a, sur_gen1_chi_eff,
                 s=styles.markersize_gen1,
                 marker=styles.marker_gen1,
                 edgecolor=styles.color_gen1,
@@ -751,7 +751,7 @@ def main():
                 )
 
     # plot the 2g+ mergers
-    sur.scatter(np.log10(sur_gen2_orb_a), sur_gen2_chi_eff,
+    sur.scatter(sur_gen2_orb_a, sur_gen2_chi_eff,
                 s=styles.markersize_gen2,
                 marker=styles.marker_gen2,
                 edgecolor=styles.color_gen2,
@@ -761,7 +761,7 @@ def main():
                 )
 
     # plot the 3g+ mergers
-    sur.scatter(np.log10(sur_genX_orb_a), sur_genX_chi_eff,
+    sur.scatter(sur_genX_orb_a, sur_genX_chi_eff,
                 s=styles.markersize_genX,
                 marker=styles.marker_genX,
                 edgecolor=styles.color_genX,
@@ -770,9 +770,10 @@ def main():
                 label=r'$\geq$3g-Ng'
                 )
 
-    sur.set_xlabel(r'Disk Radius_{sur} $[R_g]$')
+    sur.set_xlabel(r'$Disk Radius_{sur} [R_g]$')
     #sur.set_ylabel(r'$\chi_{\rm eff}$')
-    sur.set_ylim(-1, 1)
+    sur.set_xscale('log')
+    sur.set_ylim(-0.4, 1)
     sur.set_axisbelow=True
 
     if figsize == 'apj_col':
@@ -788,7 +789,7 @@ def main():
     # ========================================
     
     # 1g-1g mergers
-    nosur.scatter(np.log10(nosur_gen1_orb_a), nosur_gen1_chi_eff,
+    nosur.scatter(nosur_gen1_orb_a, nosur_gen1_chi_eff,
                 s=styles.markersize_gen1,
                 marker=styles.marker_gen1,
                 edgecolor=styles.color_gen1,
@@ -798,7 +799,7 @@ def main():
                 )
 
     # plot the 2g+ mergers
-    nosur.scatter(np.log10(nosur_gen2_orb_a), nosur_gen2_chi_eff,
+    nosur.scatter(nosur_gen2_orb_a, nosur_gen2_chi_eff,
                 s=styles.markersize_gen2,
                 marker=styles.marker_gen2,
                 edgecolor=styles.color_gen2,
@@ -808,7 +809,7 @@ def main():
                 )
 
     # plot the 3g+ mergers
-    nosur.scatter(np.log10(nosur_genX_orb_a), nosur_genX_chi_eff,
+    nosur.scatter(nosur_genX_orb_a, nosur_genX_chi_eff,
                 s=styles.markersize_genX,
                 marker=styles.marker_genX,
                 edgecolor=styles.color_genX,
@@ -817,13 +818,14 @@ def main():
                 label=r'$\geq$3g-Ng'
                 )
 
-    nosur.set_xlabel(r'Disk Radius_{nosur} $[R_g]$')
+    nosur.set_xlabel(r'$Disk Radius_{nosur} [R_g]$')
     nosur.set_ylabel(r'$\chi_{\rm eff}$')
-    nosur.set_ylim(-1, 1)
+    nosur.set_xscale('log')
+    nosur.set_ylim(-0.4, 1)
     nosur.set_axisbelow=True
 
     if figsize == 'apj_col':
-        nosur.legend(loc='lower left', fontsize=4)
+        nosur.legend(loc='lower left', fontsize=5)
     elif figsize == 'apj_page':
         nosur.legend(loc='lower left')
 
@@ -841,13 +843,13 @@ def main():
     sur_gen2_chi_p = sur_chi_p[sur_merger_g2_mask]
     sur_genX_chi_p = sur_chi_p[sur_merger_gX_mask]
 
-    fig, ax = plt.subplots(1, 2, figsize=plotting.set_size(figsize), sharey=True)
+    fig, ax = plt.subplots(1, 2, figsize=(5,3), sharey=True)
     #ax1 = fig.add_subplot(111)
     
     sur = ax[1]
     nosur = ax[0]
 
-    sur.scatter(np.log10(sur_gen1_orb_a), sur_gen1_chi_p,
+    sur.scatter(sur_gen1_orb_a, sur_gen1_chi_p,
                 s=styles.markersize_gen1,
                 marker=styles.marker_gen1,
                 edgecolor=styles.color_gen1,
@@ -856,7 +858,7 @@ def main():
                 label='1g-1g')
 
     # plot the 2g+ mergers
-    sur.scatter(np.log10(sur_gen2_orb_a), sur_gen2_chi_p,
+    sur.scatter(sur_gen2_orb_a, sur_gen2_chi_p,
                 s=styles.markersize_gen2,
                 marker=styles.marker_gen2,
                 edgecolor=styles.color_gen2,
@@ -865,7 +867,7 @@ def main():
                 label='2g-1g or 2g-2g')
 
     # plot the 3g+ mergers
-    sur.scatter(np.log10(sur_genX_orb_a), sur_genX_chi_p,
+    sur.scatter(sur_genX_orb_a, sur_genX_chi_p,
                 s=styles.markersize_genX,
                 marker=styles.marker_genX,
                 edgecolor=styles.color_genX,
@@ -873,20 +875,21 @@ def main():
                 alpha=styles.markeralpha_genX,
                 label=r'$\geq$3g-Ng')
     
-    sur.axvline(np.log10(trap_radius), color='k', linestyle='--', zorder=0,
+    sur.axvline(trap_radius, color='k', linestyle='--', zorder=0,
                 label=f'Trap Radius = {trap_radius:.0f} ' + r'$R_g$')
 
     # plt.title("In-plane effective Spin vs. Merger radius")
     sur.set(
         #ylabel=r'$\chi_{\rm p}$',
         xlabel=r'Radius$_{sur}$ [$R_g$]',
+        xscale='log',
         ylim=(0, 1),
         axisbelow=True)
 
     sur.grid(True, color='gray', ls='dashed')
 
     if figsize == 'apj_col':
-        sur.legend(fontsize=4)
+        sur.legend(fontsize=5, loc='upper left')
     elif figsize == 'apj_page':
         sur.legend()
 
@@ -920,7 +923,7 @@ def main():
     #fig = plt.figure(figsize=plotting.set_size(figsize))
     #ax1 = fig.add_subplot(111)
 
-    nosur.scatter(np.log10(nosur_gen1_orb_a), nosur_gen1_chi_p,
+    nosur.scatter(nosur_gen1_orb_a, nosur_gen1_chi_p,
                 s=styles.markersize_gen1,
                 marker=styles.marker_gen1,
                 edgecolor=styles.color_gen1,
@@ -929,7 +932,7 @@ def main():
                 label='1g-1g')
 
     # plot the 2g+ mergers
-    nosur.scatter(np.log10(nosur_gen2_orb_a), nosur_gen2_chi_p,
+    nosur.scatter(nosur_gen2_orb_a, nosur_gen2_chi_p,
                 s=styles.markersize_gen2,
                 marker=styles.marker_gen2,
                 edgecolor=styles.color_gen2,
@@ -938,7 +941,7 @@ def main():
                 label='2g-1g or 2g-2g')
 
     # plot the 3g+ mergers
-    nosur.scatter(np.log10(nosur_genX_orb_a), nosur_genX_chi_p,
+    nosur.scatter(nosur_genX_orb_a, nosur_genX_chi_p,
                 s=styles.markersize_genX,
                 marker=styles.marker_genX,
                 edgecolor=styles.color_genX,
@@ -946,20 +949,21 @@ def main():
                 alpha=styles.markeralpha_genX,
                 label=r'$\geq$3g-Ng')
     
-    nosur.axvline(np.log10(trap_radius), color='k', linestyle='--', zorder=0,
+    nosur.axvline(trap_radius, color='k', linestyle='--', zorder=0,
                 label=f'Trap Radius = {trap_radius:.0f} ' + r'$R_g$')
 
     # plt.title("In-plane effective Spin vs. Merger radius")
     nosur.set(
         ylabel=r'$\chi_{\rm p}$',
         xlabel=r'Radius$_{nosur}$ [$R_g$]',
+        xscale='log',
         ylim=(0, 1),
         axisbelow=True)
 
     nosur.grid(True, color='gray', ls='dashed')
 
     if figsize == 'apj_col':
-        nosur.legend(fontsize=4)
+        nosur.legend(fontsize=5, loc='upper left')
     elif figsize == 'apj_page':
         nosur.legend()
 
@@ -1768,7 +1772,7 @@ def main():
 
     
     # ========================================
-    # SUR - Kick Velocity vs Spin
+    # SUR - Spin vs Kick Velocity
     # ========================================
 
     sur_spin = sur_mergers[:, 4]
@@ -1781,11 +1785,14 @@ def main():
     sur_gen2_vkick = sur_all_kick[sur_merger_g2_mask]
     sur_genX_vkick = sur_all_kick[sur_merger_gX_mask]
 
-    fig, ax = plt.subplots(1, 2, figsize=(4.5,2.5), sharey=True, gridspec_kw={'wspace':0, 'hspace':0})
+    fig, ax = plt.subplots(nrows=2, ncols=2, sharey=True, figsize=(4,5), gridspec_kw={'width_ratios': [3, 1], 'wspace':0, 'hspace':0}, constrained_layout=True) 
+
     #ax3 = fig.add_subplot(111)
     
-    sur = ax[1]
-    nosur = ax[0]
+    sur = ax[1][0]
+    nosur = ax[0][0]
+    sur_hist = ax[1][1]
+    nosur_hist = ax[0][1]
 
     # plot the 1g-1g mergers
     sur.scatter(sur_gen1_vkick, sur_gen1_spin,
@@ -1818,16 +1825,27 @@ def main():
                 )
 
     sur.set(
-        xlabel=r'$v_{kick}^{sur}$ [km/s]',
+        xlabel=r'$v_{kick}$ [km/s]',
+        ylabel=r'$a_{final}^{sur}$',
         xscale="log",
         axisbelow=True,
-        xlim=([2e0,4e3])
+        xlim=([2e0,2e3])
     )
 
     sur.grid(True, color='gray', ls='dashed')
+    spin_bins = np.logspace(np.log10(sur_mergers[:, 4].min()), np.log10(sur_mergers[:, 4].max()), 50)
+    sur_hist_data = [sur_mergers[:, 4][sur_merger_g1_mask], sur_mergers[:, 4][sur_merger_g2_mask], sur_mergers[:, 4][sur_merger_gX_mask]]
+    sur_hist.hist(sur_hist_data, bins=spin_bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation='horizontal')
+    sur_hist.grid(True, color='gray', ls='dashed')
+    sur_hist.yaxis.tick_right()
+    sur_hist.set_xlabel(r'n')
+    sur_hist.set_xlim(0,320)
+    #sur_hist.set_xscale('linear')
+    sur_hist.set_xticks([100,250])
+
 
     if figsize == 'apj_col':
-        sur.legend(fontsize=6)
+        sur.legend(fontsize=5, loc='lower left')
     elif figsize == 'apj_page':
         sur.legend()
 
@@ -1835,7 +1853,7 @@ def main():
     #plt.close()
     
     # ========================================
-    # NOSUR - Kick Velocity vs Spin
+    # NOSUR - Spin vs Kick Velocity
     # ========================================
 
     nosur_spin = nosur_mergers[:, 4]
@@ -1879,20 +1897,29 @@ def main():
                 )
 
     nosur.set(
-        xlabel=r'$v_{kick}^{nosur}$ [km/s]',
-        ylabel='Final Remnant Spin',
+        ylabel=r'$a_{final}^{nosur}$',
         xscale="log",
         axisbelow=True,
-        xlim=([2e0,4e3])
+        xlim=([2e0,2e3]),
+        ylim=(0.45, 1.01)
     )
 
     nosur.grid(True, color='gray', ls='dashed')
+    nosur_hist.grid(True, color='gray', ls='dashed')
+    nosur_hist_data = [nosur_mergers[:, 4][nosur_merger_g1_mask], nosur_mergers[:, 4][nosur_merger_g2_mask], nosur_mergers[:, 4][nosur_merger_gX_mask]]
+    nosur_hist.hist(nosur_hist_data, bins=spin_bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation='horizontal')
+    nosur_hist.yaxis.tick_right()
+    nosur_hist.set_xlim(0,320)
+    nosur_hist.set_xticks([100,250])
+    #nosur_hist.set_xscale('linear')
+
 
     if figsize == 'apj_col':
-        nosur.legend(fontsize=6, loc='lower left')
+        nosur.legend(fontsize=5, loc='lower left')
     elif figsize == 'apj_page':
         nosur.legend()
 
+    plt.tight_layout()
     plt.savefig(opts.plots_directory + '/vkick_spin.png', format='png')
     #plt.close()
     
@@ -2041,7 +2068,7 @@ def main():
     sur_gen2_spin2 = sur_spin2[sur_merger_g2_mask]
     sur_genX_spin2 = sur_spin2[sur_merger_gX_mask]
 
-    fig, ax = plt.subplots(1, 2, figsize=(4.5,2.5), sharey=True, gridspec_kw={'wspace':0, 'hspace':0})
+    fig, ax = plt.subplots(1, 2, figsize=(5, 3), sharey=True, gridspec_kw={'wspace':0, 'hspace':0})
     #ax3 = fig.add_subplot(111)
     
     sur = ax[1]
@@ -2078,7 +2105,7 @@ def main():
                 )
 
     sur.set(
-        xlabel='Final Remnant Spin$_{sur}$',
+        xlabel=r'$a_{final}^{sur}$',
         #xscale="log",
         xlim=(0.38, 1.02),
         axisbelow=True,
@@ -2088,7 +2115,7 @@ def main():
     sur.grid(True, color='gray', ls='dashed')
 
     if figsize == 'apj_col':
-        sur.legend(fontsize=6, loc='upper left')
+        sur.legend(fontsize=5, loc='upper left')
     elif figsize == 'apj_page':
         sur.legend()
 
@@ -2140,8 +2167,8 @@ def main():
                 )
 
     nosur.set(
-        xlabel='Final Remnant Spin$_{nosur}$',
-        ylabel='Spin 2',
+        xlabel=r'$a_{final}^{nosur}$',
+        ylabel=r'$a_2$',
         xlim=(0.38, 1.02),
         #xscale="log",
         axisbelow=True,
@@ -2151,7 +2178,7 @@ def main():
     nosur.grid(True, color='gray', ls='dashed')
 
     if figsize == 'apj_col':
-        nosur.legend(fontsize=6, loc='upper left')
+        nosur.legend(fontsize=5, loc='upper left')
     elif figsize == 'apj_page':
         nosur.legend()
 
