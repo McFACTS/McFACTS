@@ -104,7 +104,7 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     disk_bh_torque_condition : float
         fraction of initial mass required to be accreted before BH spin is torqued 
         fully into alignment with the AGN disk. We don't know for sure but 
-        Bogdanovic et al. says between 0.01=1% and 0.1=10% is what is required
+        (Bogdanovic et al. 2007) says between 0.01=1% and 0.1=10% is what is required
         default : 0.1
     disk_bh_eddington_ratio : float
         Accretion rate of fully embedded stellar mass black hole in units of 

@@ -8,7 +8,7 @@ def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10):
 
 
 def spin_check(gen_1, gen_2, spin_merged):
-    """ Since the T&M '08 perscription generates spin values outside of the expected range for higher mass ratio objects this file checks spin values after merger and if the magnitude is too low, this function resets it to a random distribution between a set range in order to generate results similiar to that of the NRsurrogate model.
+    """ Since the Tichy and Marronetti '08 perscription generates spin values outside of the expected range for higher mass ratio objects this file checks spin values after merger and if the magnitude is too low, this function resets it to a random distribution between a set range in order to generate results similiar to that of the NRsurrogate model.
 
     Parameters
     ----------        

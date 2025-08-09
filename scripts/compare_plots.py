@@ -2285,7 +2285,7 @@ def main():
         sur.legend()
 
     #nosur.savefig(opts.plots_directory + r"/merger_remnant_mass.png", format='png')
-    plt.savefig(opts.plots_directory + r"/spin_final_dist.png", format='png')
+    #plt.savefig(opts.plots_directory + r"/spin_final_dist.png", format='png')
 
 
     # ========================================

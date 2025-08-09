@@ -60,7 +60,7 @@ Inifile
     "disk_bh_torque_condition"      : float
         fraction of initial mass required to be accreted before BH spin is torqued
         fully into alignment with the AGN disk. We don't know for sure but
-        Bogdanovic et al. says between 0.01=1% and 0.1=10% is what is required.
+        (Bogdanovic et al. 2007) says between 0.01=1% and 0.1=10% is what is required.
     "disk_bh_eddington_ratio"       : float
         Eddington ratio for disk bh
     "disk_bh_orb_ecc_max_init"      : float
@@ -81,7 +81,7 @@ Inifile
     "disk_star_torque_condition"    : float
         fraction of initial mass required to be accreted before star spin is torqued
         fully into alignment with the AGN disk. We don't know for sure but
-        Bogdanovic et al. says between 0.01=1% and 0.1=10% is what is required.
+        (Bogdanovic et al. 2007) says between 0.01=1% and 0.1=10% is what is required.
     "disk_star_eddington_ratio"     : float
         assumed accretion rate onto stars from disk gas, in units of Eddington
         accretion rate

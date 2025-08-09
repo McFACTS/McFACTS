@@ -1471,6 +1471,73 @@ def main():
 
     plt.savefig(opts.plots_directory + '/vkick_spin.png', format='png')
     #plt.close()
+    
+    
+    # ========================================
+    # Final Spin vs Spin 2
+    # ========================================
+
+    spin = mergers[:, 4]
+    gen1_spin = spin[merger_g1_mask]
+    gen2_spin = spin[merger_g2_mask]
+    genX_spin = spin[merger_gX_mask]
+    
+    spin2 = mergers[:, 9]
+    gen1_spin2 = spin2[merger_g1_mask]
+    gen2_spin2 = spin2[merger_g2_mask]
+    genX_spin2 = spin2[merger_gX_mask]
+
+    fig, ax = plt.subplots(1, 1, figsize=(5, 3), sharey=True, gridspec_kw={'wspace':0, 'hspace':0})
+    #ax3 = fig.add_subplot(111)
+
+    # plot the 1g-1g mergers
+    ax.scatter(gen1_spin, gen1_spin2,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    # plot the 2g+ mergers
+    ax.scatter(gen2_spin, gen2_spin2,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    # plot the 3g+ mergers
+    ax.scatter(genX_spin, genX_spin2,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    ax.set(
+        xlabel=r'$a_{final}^{sur}$',
+        #xscale="log",
+        xlim=(0.38, 1.02),
+        axisbelow=True,
+        #xlim=([2e0,4e3])
+    )
+
+    ax.grid(True, color='gray', ls='dashed')
+
+    if figsize == 'apj_col':
+        ax.legend(fontsize=5, loc='upper left')
+    elif figsize == 'apj_page':
+        ax.legend()
+
+    plt.savefig(opts.plots_directory + '/spin_final_spin2.png', format='png')
+    #plt.close()
+    
 
     # ========================================
     # LVK and LISA Strain vs Freq

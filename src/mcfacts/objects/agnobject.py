@@ -752,15 +752,15 @@ class AGNBlackHole(AGNObject):
                  gw_strain=empty_arr,
                  bh_num=0,
                  **kwargs):
-        """Creates an instance of AGNStar object.
+        """Creates an instance of AGNBlackHole object.
 
         Parameters
         ----------
-        mass : numpy array
+        mass : numpy.ndarray
             black hole masses [Msun]
-        gw_freq : numpy array
+        gw_freq : numpy.ndarray
             gravitational wave frequency [Hz]
-        gw_strain : numpy array
+        gw_strain : numpy.ndarray
             gravitational wave strain [unitless]
         """
 
@@ -831,6 +831,9 @@ class AGNBlackHole(AGNObject):
             self.gw_strain = np.concatenate([self.gw_strain, np.full(bh_num, -1.5)])
         else:
             self.gw_strain = np.concatenate([self.gw_strain, new_gw_strain])
+        
+        if 'new_spin_final' in kwargs:
+            assert np.all(kwargs['new_spin_final'] >= 0)
 
         super(AGNBlackHole, self).add_objects(obj_num=bh_num, new_mass=new_mass, **kwargs)
 
@@ -1501,6 +1504,9 @@ class AGNMergedBlackHole(AGNObject):
 
         if (num_obj_merge == 0):
             num_obj_merge = new_mass_final.shape[0]
+            assert np.all(self.spin_final >= 0)
+            assert np.all(self.spin_1 >= 0)
+            assert np.all(self.spin_2 >= 0)
 
         self.num += num_obj_merge
 
