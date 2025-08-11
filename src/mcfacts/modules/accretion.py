@@ -412,9 +412,9 @@ def change_bin_spin_magnitudes(bin_spin_1, bin_spin_2, bin_flag_merging, disk_bh
         Binary black holes with updated spins after spinning up at prescribed rate for one timestep
     """
 
-    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio / 1.0  # does nothing?
-    timestep_duration_yr_normalized = timestep_duration_yr / 1.e4  # yrs to yr/10k?
-    disk_bh_torque_condition_normalized = disk_bh_torque_condition / 0.1  # what does this do?
+    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio/1.0  # does nothing?
+    timestep_duration_yr_normalized = timestep_duration_yr/1.e4  # yrs to yr/10k?
+    disk_bh_torque_condition_normalized = disk_bh_torque_condition/0.1  # what does this do?
 
     # Set max allowed spin
     max_allowed_spin = 0.98
@@ -474,9 +474,9 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
     blackholes_binary : AGNBinaryBlackHole
         Binary black holes with updated spin angles after subtracting angle at prescribed rate for one timestep
     """
-    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio / 1.0  # does nothing?
-    timestep_duration_yr_normalized = timestep_duration_yr / 1.e4  # yrs to yr/10k?
-    disk_bh_torque_condition_normalized = disk_bh_torque_condition / 0.1  # what does this do?
+    disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio/1.0  # does nothing?
+    timestep_duration_yr_normalized = timestep_duration_yr/1.e4  # yrs to yr/10k?
+    disk_bh_torque_condition_normalized = disk_bh_torque_condition/0.1  # what does this do?
 
     # Only interested in BH that have not merged
     idx_non_mergers = np.where(binary_flag_merging >= 0)

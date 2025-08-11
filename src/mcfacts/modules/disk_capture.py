@@ -746,7 +746,7 @@ class CaptureProgradeBlackHoles(TimelineActor):
             sm.smbh_mass, sm.nsc_radius_crit, sm.nsc_density_index_inner,
             sm.nsc_density_index_outer, volume_scaling=True)
         bh_mass_captured = setupdiskblackholes.setup_disk_blackholes_masses(
-            1, sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up)
+            1, sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up, sm.nsc_imf_bh_method)
         bh_spin_captured = setupdiskblackholes.setup_disk_blackholes_spins(
             1, sm.nsc_bh_spin_dist_mu, sm.nsc_bh_spin_dist_sigma)
         bh_spin_angle_captured = setupdiskblackholes.setup_disk_blackholes_spin_angles(

@@ -35,7 +35,7 @@ class SingleBlackHolePopulator(GalaxyPopulator):
 
         bh_mass_initial = setupdiskblackholes.setup_disk_blackholes_masses(
             disk_bh_num,
-            sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up)
+            sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up, sm.nsc_imf_bh_method)
 
         bh_spin_initial = setupdiskblackholes.setup_disk_blackholes_spins(
             disk_bh_num,

@@ -1088,8 +1088,7 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
     return ratio_feedback_migration_torque
 
 
-def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio,
-                            disk_alpha_viscosity, disk_radius_outer):
+def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio, disk_alpha_viscosity, disk_radius_outer):
     """Calculates ratio of heating torque to migration torque using Eqn. 28 in Hankla, Jiang & Armitage (2020)
 
     Parameters
@@ -1151,14 +1150,12 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
     # Define kappa (or set up a function to call).
     disk_opacity = disk_opacity_func(bin_orb_a)
 
-    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity,
-                                                                          -1.5) * disk_bh_eddington_ratio * np.sqrt(
-        bin_orb_a) / disk_surface_density_at_location
+    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity, -1.5) * disk_bh_eddington_ratio * np.sqrt(bin_orb_a) / disk_surface_density_at_location
 
     # set ratio = 1 (no migration) for binaries at or beyond the disk outer radius
     ratio_heat_mig_torques_bin_com[bin_orb_a > disk_radius_outer] = 1.0
 
-    assert np.isfinite(ratio_heat_mig_torques_bin_com).all(), \
+    assert np.isfinite(ratio_heat_mig_torques_bin_com).all(),\
         "Finite check failure: ratio_heat_mig_torques_bin_com"
 
     return (ratio_heat_mig_torques_bin_com)
