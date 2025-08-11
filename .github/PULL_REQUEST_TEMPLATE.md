@@ -1,5 +1,5 @@
 <!--
-Thank you for contributing a pull request! Here are a few tips to help you. Please complete 
+Thank you for contributing a pull request! Here are a few tips to help you. Please be detailed where necessary.
 -->
 
 <!--/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\-->

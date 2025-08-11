@@ -8,12 +8,14 @@ Inputs
 If you want to add a new input parameter to McFACTS, it *must* be added
 to the following locations to be properly recognized by the code.
 
-1. :code:`IOdocumentation.txt`
-2. :code:`src/mcfacts/inputs/ReadInputs.py`
-3. :code:`src/mcfacts/inputs/data/model_choice.ini`
+1. `IOdocumentation.txt`_
+2. `ReadInputs.py`_
+3. Default `model_choice.ini`_
 
 
-The :code:`IOdocumentation.txt` File
+.. _sect-iodoc:
+
+The `IOdocumentation.txt`_ File
 ------------------------------------
 
 This file is intended as a reference for users to understand the affects of setting a parameter to a given value.
@@ -52,7 +54,7 @@ Here are some examples of entries in `IOdocumentation.txt`_
         Maximum star mass
         default: 300 M_sun
 
-The :code:`ReadInputs.py` File
+The `ReadInputs.py`_ File
 ------------------------------
 
 **Two** entries are required in :py:obj:`mcfacts.inputs.ReadInputs`.
@@ -77,7 +79,7 @@ The second entry goes in the :py:obj:`mcfacts.inputs.ReadInputs.INPUT_TYPES` dic
         ...
         }
 
-The Default :code:`model_choice.ini` File
+The Default `model_choice.ini`_ File
 -----------------------------------------
 
 .. Warning::
@@ -127,3 +129,4 @@ in the `Inputs`_ section above.
     Reference shortcuts
 .. _`IOdocumentation.txt`: https://github.com/McFACTS/McFACTS/blob/main/IOdocumentation.txt
 .. _`ReadInputs.py`: https://github.com/McFACTS/McFACTS/blob/main/src/mcfacts/inputs/ReadInputs.py
+.. _`model_choice.ini`: https://github.com/McFACTS/McFACTS/blob/main/src/mcfacts/inputs/data/model_choice.ini

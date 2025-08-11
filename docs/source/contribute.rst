@@ -45,6 +45,10 @@ Want to build or browse the docs locally? Run the following:
    # Generate the html version of the docs in ./docs/build/html
    $ make html
 
+.. note::
+
+   If you create a new documentation file, it must be added to the list in `docs/source/index.rst`_.
+
 McFACTS Code
 ************
 
@@ -120,7 +124,19 @@ following conditions be met.
 #. Any pull request introducing or modifying an extension to Python in another language must be reviewed by somebody
    who understands the language.
 
+Data Files
+***********
 
+When adding a data file to the source of McFACTS, you must take these steps:
+
+#. Add the data file to McFACTS requires putting it in the relevant :code:src/mcfacts subdirectory.
+#. Add the data file to `MANIFEST.in`_.
+#. Add the data file to `setup.py`_.
+#. Test that McFACTS runs and the file is accessible by running :code:`make test-build`
+
+Keep in mind that data files distributed alongside McFACTS should be less than a Megabyte.
+GitHub and Pypi offer free services.
+Large data files slow down these services and create bulk which is hard to reduce in the history of a repository.
 
 ..
    List of link shortcuts
@@ -133,3 +149,6 @@ following conditions be met.
 .. _`Pull Request Template`: https://github.com/McFACTS/McFACTS/blob/main/.github/PULL_REQUEST_TEMPLATE.md
 .. _`Issue Tracker`: https://github.com/McFACTS/McFACTS/issues
 .. _`semantic commit messages`: https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716
+.. _`MANIFEST.in`: https://github.com/McFACTS/McFACTS/blob/main/MANIFEST.in
+.. _`setup.py`: https://github.com/McFACTS/McFACTS/blob/main/setup.py
+.. _`docs/source/index.rst`: https://github.com/McFACTS/McFACTS/blob/main/docs/source/index.rst
