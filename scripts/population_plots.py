@@ -1202,7 +1202,50 @@ def main():
     plt.savefig(opts.plots_directory + './gw_strain.png', format='png')
     plt.close()
 
+    # ========================================
+    # EMRI mass distribution
+    # ========================================
+    # Create figure and ax
+    fig, svf_ax = plt.subplots(1, figsize=(plotting.set_size(figsize)[0], 2.9))
 
+    svf_ax.set_xlabel(r'Mass [$M_{\odot}$]')  # , fontsize=20, labelpad=10)
+    svf_ax.set_ylabel(r'n')  # , fontsize=20, labelpad=10)
+
+    #svf_ax.set_xlim(0.5e-7, 1.0e+4)
+    #svf_ax.set_ylim(1.0e-28, 1.0e-15)
+
+    # ----------Finding the rows in which EMRIs signals are either identical or zeroes and removing them----------
+    identical_rows_emris = np.where(emris[:, 5] == emris[:, 6])
+    zero_rows_emris = np.where(emris[:, 6] == 0)
+    emris = np.delete(emris, identical_rows_emris, 0)
+    # emris = np.delete(emris,zero_rows_emris,0)
+    emris[~np.isfinite(emris)] = 1.e-40
+
+    #counts, bins = np.histogram(emris[:, 4])
+    # plt.hist(bins[:-1], bins, weights=counts)
+    #bins = np.arange(int(emris[:, 3].min()), int(emris[:, 3].max()) + 2, 1)
+
+    #plt.hist(counts, bins=bins, align='left', color='b', alpha=styles.markeralpha_gen1, rwidth=0.8, label='EMRI', stacked=True)
+
+
+    svf_ax.scatter(emris[:, 2], emris[:, 3],
+               s=0.4 * styles.markersize_gen1,
+               alpha=styles.markeralpha_gen1
+               )
+
+    svf_ax.set_yscale('log')
+    svf_ax.set_xscale('log')
+
+    #if figsize == 'apj_col':
+    #    plt.legend(fontsize=5, loc="lower right")
+    #elif figsize == 'apj_page':
+    #    plt.legend(loc="upper right")
+
+    svf_ax.set_xlabel(r'Radius [$R_g$]')  # , fontsize=20, labelpad=10)
+    svf_ax.set_ylabel(r'Mass [$M_{\odot}$]')  # , fontsize=20, labelpad=10)
+
+    plt.savefig(opts.plots_directory + './emri_mass.png', format='png')
+    plt.close()
 
 ######## Execution ########
 if __name__ == "__main__":

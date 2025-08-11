@@ -127,6 +127,7 @@ emri_plots: clean
 		--galaxy_num 100 \
 		--fname-ini ../${FNAME_INI_EMRI} \
 		--fname-log mcfacts.log \
+		--save-snapshots \
 		--seed ${SEED}
 	cd runs; \
 	python ../${POPULATION_PLOTS_EXE} --fname-mergers ${wd}/output_mergers_population.dat --plots-directory ${wd}
