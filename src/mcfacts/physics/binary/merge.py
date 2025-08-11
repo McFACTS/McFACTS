@@ -374,7 +374,6 @@ def merge_blackholes_precession(
     bin_sep_r_g,
     bin_ecc,
     smbh_mass,
-    critical_separation = 10,
     ):
     """Use Davide Gerosa's precession package to calculate merged properties
 
@@ -400,8 +399,6 @@ def merge_blackholes_precession(
         Binary eccentricity with :obj:`float` type
     smbh_mass : float
         Mass of supermassive black hole (solMass)
-    critical_separation : float
-        separation in units of mass at which merger calc should be done
 
     Returns
     -------
@@ -455,12 +452,27 @@ def merge_blackholes_precession(
     deltaphi = rng.uniform(low=0.,high=2*np.pi,size=mass_ratio.size)
     # Get binary separation
     bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g)
+    orbital_period_si = np.sqrt(
+        (4 * np.pi**2 * bin_sep_si**3) / \
+        (const.G * (mass_1 * u.solMass + mass_2 * u.solMass))
+    ).si
+    f_GW_si = 2/orbital_period_si
     bin_sep_M = (bin_sep_si * const.c**2 / const.G) / \
         ((mass_1 + mass_2) * u.solMass)
     bin_sep_M = bin_sep_M.si
     bin_sep_M = bin_sep_M.value
-    #print(bin_sep_M)
-    #print(bin_ecc)
+
+    ## Identify the separation at the beginning of the inspiral (20 Hz GW)
+    # Estimate orbital period of 20 Hz (GW) / 10 Hz (orb)
+    orbital_period_inspiral = 1 / (10 * u.Hz)
+    # Identify the separation at 20 Hz, GW
+    separation_inspiral = ((orbital_period_inspiral**2 * \
+        ((mass_1 + mass_2) * u.solMass) * const.G / \
+        (4 * np.pi**2))**(1/3)).si
+    # Estimate the separation in units of M, at 20 Hz
+    critical_separation = ((separation_inspiral * const.c**2 / const.G) / \
+        ((mass_1 + mass_2) * u.solMass)).si.value
+
     # Check for unphysical spins
     chi_eff = precession.eval_chieff(
         theta1,
@@ -473,7 +485,7 @@ def merge_blackholes_precession(
     #### Inspiral ####
     for i in range(mass_1.size):
         # Check separation
-        if bin_sep_M[i] < critical_separation:
+        if bin_sep_M[i] < critical_separation[i]:
             continue
         elif bin_sep_M[i] > 1000:
             bin_sep_M[i] = 1000
@@ -513,7 +525,7 @@ def merge_blackholes_precession(
         # Evolve binary
         try:
             evolve_outputs = precession.inspiral_precav(
-                r=[bin_sep_M[i],critical_separation],
+                r=[bin_sep_M[i],critical_separation[i]],
                 theta1=theta1[i],
                 theta2=theta2[i],
                 deltaphi=deltaphi[i],
@@ -529,7 +541,9 @@ def merge_blackholes_precession(
             # If the spins are not finite, do not evolve binary
             continue
         # Update quantities
-        bin_sep_M[i] = critical_separation
+        bin_sep_M[i] = critical_separation[i]
+        #chi_1[i] = evolve_outputs["chi1"][0,-1]
+        #chi_2[i] = evolve_outputs["chi2"][0,-1]
         theta1[i] = evolve_outputs["theta1"][0,-1]
         theta2[i] = evolve_outputs["theta2"][0,-1]
         deltaphi[i] = evolve_outputs["deltaphi"][0,-1]
@@ -561,6 +575,15 @@ def merge_blackholes_precession(
         chi_1,
         chi_2,
     )
+    bh_thetaL = precession.reminantspindirection(
+        theta1,
+        theta2,
+        deltaphi,
+        bin_sep_M,
+        mass_ratio,
+        chi_1,
+        chi_2,
+    )
     if not np.all(np.isfinite(bh_spin_merged)):
         print(f"chi_eff: {chi_eff}")
         print(f"chi_eff_minus: {chi_eff_minus}")
@@ -574,8 +597,14 @@ def merge_blackholes_precession(
         print(f"chi_1: {chi_1}")
         print(f"chi_2: {chi_2}")
         raise ValueError(f"spins are not finite: {bh_spin_merged}")
+    # bh_thetaL is the angle between the 
+    #  spin of the remnant and the binary angular momentum
+    # Somebody should check if there's something else we should do
+    #  to estimate the angle which is actually calculated here.
+    bh_spin_angle_merged = bh_thetaL
         
-    return bh_mass_merged, bh_spin_merged, bh_v_kick
+    return bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, \
+        mass_1, mass_2, chi_1, chi_2 
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
                      smbh_mass, flag_use_surrogate, disk_aspect_ratio, disk_density, time_passed, galaxy):
@@ -648,9 +677,9 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
         )
         bh_spin_merged = spin_check.spin_check(
-        blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
-        blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
-        bh_spin_merged
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
+            bh_spin_merged
         )
         bh_v_kick = analytical_velo.analytical_kick_velocity(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
@@ -690,7 +719,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         )
     elif flag_use_surrogate == -1:
         # Call Davide's code
-        bh_mass_merged, bh_spin_merged, bh_v_kick = merge_blackholes_precession(
+        bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = merge_blackholes_precession(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
