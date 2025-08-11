@@ -6,6 +6,7 @@ import numpy as np
 import astropy.constants as const
 import astropy.units as u
 from mcfacts.physics.point_masses import si_from_r_g
+from mcfacts.mcfacts_random_state import rng
 
 
 def star_wind_mass_loss(disk_star_pro_masses,
@@ -182,18 +183,22 @@ def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddingto
     return disk_bh_pro_new_masses
 
 
-def change_bh_spin_magnitudes(disk_bh_pro_spins,
-                              disk_bh_eddington_ratio,
-                              disk_bh_torque_condition,
-                              timestep_duration_yr,
-                              disk_bh_pro_orbs_ecc,
-                              disk_bh_pro_orbs_ecc_crit):
+def change_bh_spin(disk_bh_pro_spins,
+                    disk_bh_pro_spin_angles,
+                    disk_bh_eddington_ratio,
+                    disk_bh_torque_condition,
+                    disk_bh_spin_minimum_resolution,
+                    timestep_duration_yr,
+                    disk_bh_pro_orbs_ecc,
+                    disk_bh_pro_orbs_ecc_crit):
     """Updates the spin magnitude of the embedded black holes based on their accreted mass in this timestep.
 
     Parameters
     ----------
     disk_bh_pro_spins : numpy.ndarray
         Initial spins [unitless] of black holes in prograde orbits around SMBH
+    disk_bh_pro_spin_angles : numpy.ndarray
+        Initial spin angles [radian] of black holes in prograde orbits around SMBH with :obj:`float` type
     disk_bh_eddington_ratio : float
         Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
         1.0=embedded BH accreting at Eddington.
@@ -201,9 +206,11 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
         User chosen input set by input file
     disk_bh_torque_condition : float
         Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
+        alignment with the AGN disk. We don't know for sure but (Bogdanovic et al. 2007) says
         between 0.01=1% and 0.1=10% is what is required
         User chosen input set by input file
+    disk_bh_spin_minimum_resolution : float
+        Minimum resolution of spin change followed by code [unitless]
     timestep_duration_yr : float
         Length of timestep [yr]
     disk_bh_pro_orbs_ecc : numpy.ndarray
@@ -215,6 +222,8 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
     -------
     disk_bh_pro_spins_new : numpy.ndarray
         Spin magnitudes [unitless] of black holes after accreting at prescribed rate for one timestep with :obj:`float` type
+    disk_bh_pro_spin_new : numpy.ndarray
+        Spin angles [radian] of black holes after accreting at prescribed rate for one timestep with :obj:`float` type
     """
     # A retrograde BH a=-1 will spin down to a=0 when it accretes a factor sqrt(3/2)=1.22 in mass (Bardeen 1970).
     # Since M_edd/t = 2.3 e-8 M0/yr or 2.3e-4M0/10kyr then M(t)=M0*exp((M_edd/t)*f_edd*time)
@@ -226,96 +235,57 @@ def change_bh_spin_magnitudes(disk_bh_pro_spins,
 
     # Magnitude of spin iteration per normalized timestep
     spin_iteration = (1.e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
-
-    disk_bh_pro_spins_new = disk_bh_pro_spins
-
-    # Singleton BH with orb_ecc > orb_ecc_crit will spin down bc accrete retrograde
-    indices_bh_spin_down = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orbs_ecc_crit).nonzero()[0]
-    # Singleton BH with orb ecc < disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
-    indices_bh_spin_up = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orbs_ecc_crit).nonzero()[0]
-
-    # disk_bh_pro_spins_new[prograde_orb_ang_mom_indices]=disk_bh_pro_spins_new[prograde_orb_ang_mom_indices]+(4.4e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
-    disk_bh_pro_spins_new[indices_bh_spin_up] = disk_bh_pro_spins[indices_bh_spin_up] + spin_iteration
-    # Spin down BH with orb ecc > disk_bh_pro_orbs_ecc_crit
-    disk_bh_pro_spins_new[indices_bh_spin_down] = disk_bh_pro_spins[indices_bh_spin_down] - spin_iteration
-    # Housekeeping: Max possible spins. Do not spin above or below these values
-    disk_bh_pro_spin_max = 0.98
-    disk_bh_pro_spin_min = -0.98
-
-    disk_bh_pro_spins_new[disk_bh_pro_spins_new < disk_bh_pro_spin_min] = disk_bh_pro_spin_min
-    disk_bh_pro_spins_new[disk_bh_pro_spins_new > disk_bh_pro_spin_max] = disk_bh_pro_spin_max
-
-    assert np.isfinite(disk_bh_pro_spins_new).all(), \
-        "Finite check failure: disk_bh_pro_spins_new"
-
-    return disk_bh_pro_spins_new
-
-
-def change_bh_spin_angles(disk_bh_pro_spin_angles,
-                          disk_bh_eddington_ratio,
-                          disk_bh_torque_condition,
-                          disk_bh_spin_minimum_resolution,
-                          timestep_duration_yr,
-                          disk_bh_pro_orbs_ecc,
-                          disk_bh_pro_orbs_ecc_crit):
-    """Updates the spin angles of the embedded black holes based on their accreted mass in this timestep.
-
-    Parameters
-    ----------
-    disk_bh_pro_spin_angles : numpy.ndarray
-        Initial spin angles [radian] of black holes in prograde orbits around SMBH with :obj:`float` type
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
-    disk_bh_torque_condition : float
-        Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
-        between 0.01=1% and 0.1=10% is what is required
-        User chosen input set by input file
-    disk_bh_spin_minimum_resolution : float
-        Minimum resolution of spin change followed by code [unitless]
-    timestep_duration_yr : float
-        Length of timestep [yr]
-    disk_bh_orbs_ecc : numpy.ndarray
-        Orbital eccentricity [unitless] of BH in prograde orbits around SMBH [unitless] with :obj:`float` type
-    disk_bh_orbs_ecc_crit : float
-        Critical value of orbital eccentricity [unitless] below which prograde accretion (& migration & binary formation) occurs
-    Returns
-    -------
-    disk_bh_pro_spin_new : numpy.ndarray
-        Spin angles [radian] of black holes after accreting at prescribed rate for one timestep with :obj:`float` type
-    """
-
-    # Calculate change in spin angle due to accretion during timestep
-    normalized_Eddington_ratio = disk_bh_eddington_ratio/1.0
-    normalized_timestep = timestep_duration_yr/1.e4
-    normalized_spin_torque_condition = disk_bh_torque_condition/0.1
-
     spin_torque_iteration = (6.98e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
-
-    # Assume same angles as before to start
+    
+    # Assume same magnitudes and angles as before to start
+    disk_bh_pro_spins_new = disk_bh_pro_spins
     disk_bh_spin_angles_new = disk_bh_pro_spin_angles
+    
+    # Setting random array of phi angles for each of the progenitors
+    # This is allowed to be randomly set since the phi changes so much in between each timestep that the value is random across the entire run
+    phi_rand = rng.uniform(0, 2 * np.pi, len(disk_bh_pro_spin_angles))
+    
+    # Converting spin magnitudes using the spin_angles
+    disk_bh_pro_spins_x =  disk_bh_pro_spins * np.sin(disk_bh_pro_spin_angles) * np.cos(phi_rand)
+    disk_bh_pro_spins_y =  disk_bh_pro_spins * np.sin(disk_bh_pro_spin_angles) * np.sin(phi_rand)
+    disk_bh_pro_spins_z =  disk_bh_pro_spins * np.cos(disk_bh_pro_spin_angles)
 
+    # Assume spin z-comp are the same as before to start 
+    disk_bh_pro_spins_new_z = disk_bh_pro_spins_z
+    
     # Singleton BH with orb_ecc > orb_ecc_crit will spin down bc accrete retrograde
     indices_bh_spin_down = np.asarray(disk_bh_pro_orbs_ecc > disk_bh_pro_orbs_ecc_crit).nonzero()[0]
     # Singleton BH with orb ecc < disk_star_pro_orbs_ecc_crit will spin up b/c accrete prograde
     indices_bh_spin_up = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orbs_ecc_crit).nonzero()[0]
-
+    
+    # Updating the z-component of the black holes spins 
+    # disk_bh_pro_spins_new[prograde_orb_ang_mom_indices]=disk_bh_pro_spins_new[prograde_orb_ang_mom_indices]+(4.4e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
+    disk_bh_pro_spins_new_z[indices_bh_spin_up] = disk_bh_pro_spins_z[indices_bh_spin_up] + spin_iteration
+    # Spin down BH with orb ecc > disk_bh_pro_orbs_ecc_crit
+    disk_bh_pro_spins_new_z[indices_bh_spin_down] = disk_bh_pro_spins_z[indices_bh_spin_down] - spin_iteration
+    
+    disk_bh_pro_spins_new = np.sqrt(disk_bh_pro_spins_x**2. + disk_bh_pro_spins_y**2. + disk_bh_pro_spins_new_z**2.)
+    
     # Spin up BH are torqued towards zero (ie alignment with disk, so decrease mag of spin angle)
     disk_bh_spin_angles_new[indices_bh_spin_up] = disk_bh_pro_spin_angles[indices_bh_spin_up] - spin_torque_iteration
     # Spin down BH with orb ecc > disk_bh_pro_orbs_ecc_crit are torqued toward anti-alignment with disk, incr mag of spin angle.
     disk_bh_spin_angles_new[indices_bh_spin_down] = disk_bh_pro_spin_angles[indices_bh_spin_down] + spin_torque_iteration
-    # print(disk_bh_spin_angles_new[indices_bh_spin_down])
-
-    # Housekeeping
+    
+    # Housekeeping: Max possible spins. Do not spin above or below these values
     # Max bh spin angle in rads (pi rads = anti-alignment). Do not grow bh spin angle < 0 or > bh_max_spin_angle
+    disk_bh_pro_spin_max = 0.98
+    disk_bh_pro_spin_min = -0.98
+    disk_bh_pro_spins_new[disk_bh_pro_spins_new > disk_bh_pro_spin_max] = disk_bh_pro_spin_max
+    disk_bh_pro_spins_new[disk_bh_pro_spins_new < disk_bh_pro_spin_min] = disk_bh_pro_spin_min
+    
     bh_max_spin_angle = 3.10
     disk_bh_spin_angles_new[disk_bh_spin_angles_new < disk_bh_spin_minimum_resolution] = 0.0
     disk_bh_spin_angles_new[disk_bh_spin_angles_new > bh_max_spin_angle] = bh_max_spin_angle
-
+    # Now that the z-components are updated, we can convert the components back into the magnitude for further calculations
+    
+    assert np.isfinite(disk_bh_pro_spins_new).all(), \
+        "Finite check failure: disk_bh_pro_spins_new"
     assert np.isfinite(disk_bh_spin_angles_new).all(), \
         "Finite check failure: disk_bh_spin_angles_new"
 
-    return disk_bh_spin_angles_new
+    return disk_bh_pro_spins_new, disk_bh_spin_angles_new

@@ -939,25 +939,16 @@ def main():
                                   new_info=[stars_pro.mass,
                                             point_masses.r_g_from_units(opts.smbh_mass, (10 ** stars_pro.log_radius) * u.Rsun).value])
 
-            # Spin up
-            blackholes_pro.spin = accretion.change_bh_spin_magnitudes(
+            # Spin up/down and torque spin angle
+            blackholes_pro.spin, blackholes_pro.spin_angle = accretion.change_bh_spin(
                 blackholes_pro.spin,
-                opts.disk_bh_eddington_ratio,
-                opts.disk_bh_torque_condition,
-                opts.timestep_duration_yr,
-                blackholes_pro.orb_ecc,
-                opts.disk_bh_pro_orb_ecc_crit,
-            )
-
-            # Torque spin angle
-            blackholes_pro.spin_angle = accretion.change_bh_spin_angles(
                 blackholes_pro.spin_angle,
                 opts.disk_bh_eddington_ratio,
                 opts.disk_bh_torque_condition,
                 disk_bh_spin_resolution_min,
                 opts.timestep_duration_yr,
                 blackholes_pro.orb_ecc,
-                opts.disk_bh_pro_orb_ecc_crit
+                opts.disk_bh_pro_orb_ecc_crit,
             )
 
             # Damp orbital eccentricity
@@ -1287,23 +1278,15 @@ def main():
                         disk_bh_eddington_mass_growth_rate,
                         opts.timestep_duration_yr)
 
-                    blackholes_pro.spin[bh_id_mask] = accretion.change_bh_spin_magnitudes(
+                    blackholes_pro.spin[bh_id_mask], blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin(
                         blackholes_pro.spin[bh_id_mask],
-                        opts.disk_bh_eddington_ratio,
-                        opts.disk_bh_torque_condition,
-                        opts.timestep_duration_yr,
-                        blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit,
-                    )
-
-                    blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin_angles(
                         blackholes_pro.spin_angle[bh_id_mask],
                         opts.disk_bh_eddington_ratio,
                         opts.disk_bh_torque_condition,
                         disk_bh_spin_resolution_min,
                         opts.timestep_duration_yr,
                         blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit
+                        opts.disk_bh_pro_orb_ecc_crit,
                     )
 
                     # Update filing cabinet
@@ -2547,23 +2530,15 @@ def main():
                         disk_bh_eddington_mass_growth_rate,
                         opts.timestep_duration_yr)
 
-                    blackholes_pro.spin[bh_id_mask] = accretion.change_bh_spin_magnitudes(
+                    blackholes_pro.spin[bh_id_mask], blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin(
                         blackholes_pro.spin[bh_id_mask],
-                        opts.disk_bh_eddington_ratio,
-                        opts.disk_bh_torque_condition,
-                        opts.timestep_duration_yr,
-                        blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit,
-                    )
-
-                    blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin_angles(
                         blackholes_pro.spin_angle[bh_id_mask],
                         opts.disk_bh_eddington_ratio,
                         opts.disk_bh_torque_condition,
                         disk_bh_spin_resolution_min,
                         opts.timestep_duration_yr,
                         blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit
+                        opts.disk_bh_pro_orb_ecc_crit,
                     )
 
                     # Update filing cabinet
