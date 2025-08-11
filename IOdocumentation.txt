@@ -163,13 +163,15 @@ star cluster variables second, and assorted other choices (time resolution etc.)
         If there is an interaction then energy de is added to circularized BH and taken from eccentric BH.
         Eccentricity of circularized BH is increased by de and eccentricity of interloper is decreased by de.
         default : 0
-    delta_energy_strong : float
+    delta_energy_strong_mu : float
         Average change in orbital energy/eccentricity of BH post-encounter between a circularized and eccentric BH.
         For de = 0.1, the circularized BH increases semi-major axis a_circ to (1+de)a_circ 
         and increases eccentricity e_crit to e_crit+de
         The eccentric BH decreases semi-major axis a_ecc to (1-de)a_ecc 
         and decreases eccentricity e to e-de.
         default : 0.1
+    delta_energy_strong_sigma : float
+        Standard deviation for Gaussian with mean of delta_energy_strong_mu
     mass_pile_up : float
         Mass pile up term <nsc_bh_inf_max_mass> Units of M_sun. Default is user set 
         Used to make a uniform pile up in mass between [mass_pile_up, nsc_bh_inf_max_mass] for masses selected
@@ -231,6 +233,9 @@ star cluster variables second, and assorted other choices (time resolution etc.)
         default: 0.2735
     nsc_star_metallicity_z_init : float
         default: 0.02    
+    flag_dynamics_sweep : int
+        Switch to turn on/off sweep function for dynamics functions
+        default: 0
 
 
 Output file : output_mergers.dat

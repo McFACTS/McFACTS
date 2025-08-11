@@ -327,7 +327,7 @@ def bin_contact_check(bin_mass_1, bin_mass_2, bin_sep, bin_flag_merging, smbh_ma
     # We assume bh are not spinning when in contact. TODO: Consider spin in future.
     contact_condition = (point_masses.r_schwarzschild_of_m(bin_mass_1) +
                          point_masses.r_schwarzschild_of_m(bin_mass_2))
-    contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition)
+    contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition).value
     mask_condition = (bin_sep <= contact_condition)
 
     # If binary separation <= contact condition, set binary separation to contact condition

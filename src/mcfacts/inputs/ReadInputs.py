@@ -51,6 +51,8 @@ Inifile
     "nsc_imf_bh_mass_max"           : float
         Initial mass distribution for stellar bh is assumed to be Pareto
         with high mass cutoff--mass of cutoff (M_sun)
+    "nsc_imf_bh_method"                 : str
+        The name of an IMF method ('uniform', 'default', 'gaussian' or filename for samples)
     "nsc_bh_spin_dist_mu"           : float
         Initial spin distribution for stellar bh is assumed to be Gaussian
         --mean of spin dist
@@ -116,9 +118,11 @@ Inifile
         Critical eccentricity (limiting eccentricity, below which assumed circular orbit)
     "flag_dynamic_enc"              : int
         Switch (1) turns dynamical encounters between embedded BH on.
-    "delta_energy_strong"           : float
+    "delta_energy_strong_mu"           : float
         Average energy change per strong interaction.
         de can be 20% in cluster interactions. May be 10% on average (with gas)
+    "delta_energy_strong_sigma"     : float
+        Standard deviation for de Gaussian
     "inner_disk_outer_radius"       : float
         Outer radius of the inner disk (Rg)
     "disk_inner_stable_circ_orb"    : float
@@ -127,12 +131,16 @@ Inifile
         Pile-up of masses caused by cutoff (M_sun)
     "save_snapshots"                : int
         Save snapshots of the disk and NSC at each timestep
-    "mean_harden_energy_delta"      : float
+    "harden_energy_delta_mu"      : float
         The Gaussian mean value for the energy change during a strong interaction
-    "var_harden_energy_delta"       : float
-        The Gaussian variance value for the energy change during a strong interaction
+    "harden_energy_delta_sigma"       : float
+        The Gaussian standard deviation value for the energy change during a strong interaction
     "flag_use_surrogate"            : int
-        Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) uses NRSurrogate model from (paper in prep).
+        Switch (0) uses analytical kick prescription from Akiba et al. (2024).
+        Switch (1) uses NRSurrogate model from (paper in prep).
+        Switch (-1) uses precession module from Gerosa & Kesden (2016).
+    "flag_dynamics_sweep"           : int
+        Use faster dynamics functions which implement sweep function (1 on/0 off)
 """
 # Things everyone needs
 import configparser as ConfigParser
@@ -172,6 +180,7 @@ INPUT_TYPES = {
     "nsc_imf_bh_mode"               : float,
     "nsc_imf_bh_powerlaw_index"     : float,
     "nsc_imf_bh_mass_max"           : float,
+    "nsc_imf_bh_method"             : str,
     "nsc_bh_spin_dist_mu"           : float,
     "nsc_bh_spin_dist_sigma"        : float,
     "disk_bh_torque_condition"      : float,
@@ -199,18 +208,20 @@ INPUT_TYPES = {
     "disk_radius_capture_outer"     : float,
     "disk_bh_pro_orb_ecc_crit"      : float,
     "flag_dynamic_enc"              : int,
-    "delta_energy_strong"           : float,
+    "delta_energy_strong_mu"        : float,
+    "delta_energy_strong_sigma"     : float,
     "inner_disk_outer_radius"       : float,
     "disk_inner_stable_circ_orb"    : float,
     "mass_pile_up"                  : float,
     "save_snapshots"                : int,
-    "mean_harden_energy_delta"      : float,
-    "var_harden_energy_delta"       : float,
+    "harden_energy_delta_mu"        : float,
+    "harden_energy_delta_sigma"     : float,
     "torque_prescription"           : str,
     "flag_phenom_turb"              : int,
     "phenom_turb_centroid"          : float,
     "phenom_turb_std_dev"           : float,
-    "flag_use_surrogate"            : int
+    "flag_use_surrogate"            : int,
+    "flag_dynamics_sweep"           : int,
 }
 # Ensure none of the data types are bool to avoid issues casting ascii to boolean
 if bool in INPUT_TYPES.values():
@@ -301,6 +312,14 @@ def ReadInputs_ini(fname_ini, verbose=0):
             # Adjust disk_radius_outer as needed
             input_variables["disk_radius_outer"] = \
                 input_variables["disk_radius_outer"] * disk_radius_scale
+
+    # Check for precession module
+    if input_variables["flag_use_surrogate"] == -1:
+        try:
+            import precession
+        except Exception as exc:
+            print("Failed to import precession. Try `pip install precession`")
+            raise exc
 
     # Print out the dictionary if we are in verbose mode
     if verbose:
