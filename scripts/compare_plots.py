@@ -1489,9 +1489,13 @@ def main():
     max_radius = np.max(sur_gen1_orb_a) * (const.G.value * 1.e8 * const.M_sun.value/ const.c.value**2)
     r_kms = np.array(np.linspace(3e3, max_radius, 100))
     r_rg = np.array(np.linspace(5e2, np.max(sur_gen1_orb_a), 100))
-    v_kep = np.sqrt((2 * const.G.value * 1.e8 * const.M_sun.value)/ r_kms) / 1e3
-    sur1.plot(r_rg[-99:], v_kep[-99:], label='SMBH Escape Velocity', color='teal')
+    v_esc = np.sqrt((2 * const.G.value * 1.e8 * const.M_sun.value)/ r_kms) / 1e3
+    sur1.plot(r_rg[-99:], v_esc[-99:], label='SMBH Escape Velocity', color='teal')
     sur1.set_xlim(3e2, 7e4)
+    
+    # plotting keplarian velocity [km/s]
+    #v_kep = np.sqrt((const.G.value * 1.e8 * const.M_sun.value)/ r_kms) / 1e3
+    #ur1.plot(r_rg[-99:], v_kep[-99:], label='SMBH Keplarian Velocity', color='red')
     
     # configure scatter plot
     sur1.set_ylabel(r'$v_{kick}^{sur}$ [km/s]')
@@ -1585,7 +1589,7 @@ def main():
     nosur1.set_yscale('log')
     nosur1.set_xlim(3e2, 7e4)
     nosur1.grid(True, color='gray', ls='dashed')
-    nosur1.plot(r_rg[-99:], v_kep[-99:], label='SMBH Escape Velocity', color='teal')
+    nosur1.plot(r_rg[-99:], v_esc[-99:], label='SMBH Escape Velocity', color='teal')
     if figsize == 'apj_col':
         nosur1.legend(fontsize=4, loc='upper left')
     elif figsize == 'apj_page':
