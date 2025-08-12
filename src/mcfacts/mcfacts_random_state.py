@@ -21,7 +21,10 @@ class RandomGeneratorInherited(np.random.RandomState):
         self.call_count = 0
 
     def uniform(self, low: float = 0.0, high: float = 1.0, size: Optional[Union[int, tuple]] = None) -> Union[float, np.ndarray]:
-        self.call_count += 1
+        if size is None:
+            self.call_count += 1
+        else:
+            self.call_count += np.sum(size)
         return super().uniform(low, high, size)
 
     def shuffle(self, x: Union[np.ndarray, list]) -> None:
@@ -29,16 +32,25 @@ class RandomGeneratorInherited(np.random.RandomState):
         return super().shuffle(x)
 
     def normal(self, loc: float = 0.0, scale: float = 1.0, size: Optional[Union[int, tuple]] = None) -> Union[float, np.ndarray]:
-        self.call_count += 1
+        if size is None:
+            self.call_count += 1
+        else:
+            self.call_count += np.sum(size)
         return super().normal(loc, scale, size)
 
     def choice(self, a: Union[int, np.ndarray, list], size: Optional[Union[int, tuple]] = None, 
                replace: bool = True, p: Optional[np.ndarray] = None) -> Union[Any, np.ndarray]:
-        self.call_count += 1
+        if size is None:
+            self.call_count += 1
+        else:
+            self.call_count += np.sum(size)
         return super().choice(a, size, replace, p)
 
     def pareto(self, a: float, size: Optional[Union[int, tuple]] = None) -> Union[float, np.ndarray]:
-        self.call_count += 1
+        if size is None:
+            self.call_count += 1
+        else:
+            self.call_count += np.sum(size)
         return super().pareto(a, size)
 
     # UNCOMMENT to switch to the Generator class
