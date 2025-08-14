@@ -10,7 +10,7 @@ to the following locations to be properly recognized by the code.
 
 1. `IOdocumentation.txt`_
 2. `ReadInputs.py`_
-3. Default `model_choice.ini`_
+3. `mcfacts_default.ini`_
 
 
 .. _sect-iodoc:
@@ -79,7 +79,7 @@ The second entry goes in the :py:obj:`mcfacts.inputs.ReadInputs.INPUT_TYPES` dic
         ...
         }
 
-The Default `model_choice.ini`_ File
+The `mcfacts_default.ini`_ File
 -----------------------------------------
 
 .. Warning::
@@ -129,4 +129,4 @@ in the `Inputs`_ section above.
     Reference shortcuts
 .. _`IOdocumentation.txt`: https://github.com/McFACTS/McFACTS/blob/main/IOdocumentation.txt
 .. _`ReadInputs.py`: https://github.com/McFACTS/McFACTS/blob/main/src/mcfacts/inputs/ReadInputs.py
-.. _`model_choice.ini`: https://github.com/McFACTS/McFACTS/blob/main/src/mcfacts/inputs/data/model_choice.ini
+.. _`mcfacts_default.ini`: https://github.com/McFACTS/McFACTS/blob/main/src/mcfacts/inputs/data/mcfacts_default.ini

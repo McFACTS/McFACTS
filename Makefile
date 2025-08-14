@@ -30,7 +30,7 @@ COMPARE_SUR = ${HERE}/scripts/compare_plots.py
 #### Setup ####
 SEED=3456789108 # put an 8 here
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
-FNAME_INI= ${HERE}/recipes/model_choice_old.ini
+FNAME_INI= ${HERE}/recipes/model_choice.ini
 FNAME_INI_MSTAR_SCALE= ${HERE}/recipes/paper_3/p3_scale.ini
 FNAME_INI_MSTAR_FIXED= ${HERE}/recipes/paper_3/p3_fixed.ini
 MSTAR_RUNS_WKDIR_SCALE = ${HERE}/runs_mstar_bins_scale

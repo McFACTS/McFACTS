@@ -40,7 +40,7 @@ from mcfacts.outputs import emri_cols, bh_surviving_cols, bh_cols, \
 # This one isn't used anywhere
 
 # Do not change this line EVER
-DEFAULT_INI = impresources.files(input_data) / "model_choice.ini"
+DEFAULT_INI = impresources.files(input_data) / "mcfacts_default.ini"
 # Feature in testing do not use unless you know what you're doing.
 
 assert DEFAULT_INI.is_file()
