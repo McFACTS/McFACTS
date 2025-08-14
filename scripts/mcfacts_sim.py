@@ -240,13 +240,11 @@ def main():
         tdes_save_name = f"{basename}_tdes{extension}"
         disk_mass_cycled_save_name = f"{basename}_diskmasscycled{extension}"
 
-        with open(os.path.join(opts.work_directory, disk_mass_cycled_save_name), "w") as file:
-            file.write("galaxy timestep mass_gained mass_lost\n")
-
     print("opts.__dict__", opts.__dict__)
     print("opts.smbh_mass", opts.smbh_mass)
     print("opts.fraction_bin_retro", opts.fraction_bin_retro)
 
+    print()
     for galaxy in range(opts.galaxy_num):
         print("Galaxy", galaxy)
         # Set random number generator for this run with incremented seed
@@ -384,7 +382,7 @@ def main():
             captured_stars_masses = disk_capture_stars.setup_captured_stars_masses(captured_star_mass_total, opts.disk_star_mass_min_init, opts.disk_star_mass_max_init, opts.nsc_imf_star_powerlaw_index)
             captured_stars_orbs_a = disk_capture_stars.setup_captured_stars_orbs_a(len(captured_stars_masses), time_final, opts.smbh_mass, disk_surface_density, opts.disk_star_mass_min_init, opts.disk_star_mass_max_init, opts.nsc_imf_star_powerlaw_index)
             captured_stars = disk_capture_stars.distribute_captured_stars(captured_stars_masses, captured_stars_orbs_a, opts.timestep_num, opts.timestep_duration_yr)
-
+            print(f"Capturing ~{int(np.rint(len(captured_stars_masses)/opts.timestep_num))} NSC stars per timestep / ~{int(np.rint(len(captured_stars_masses) / time_final * 1e5))} NSC stars per 0.1 Myr")
         # Writing initial parameters to file
         if opts.flag_add_stars:
             stars.to_txt(os.path.join(opts.work_directory, f"gal{galaxy_zfilled_str}/initial_params_star.dat"))
@@ -3049,6 +3047,7 @@ def main():
             print("\tNumber of exploded stars = ", stars_explode.num)
             print("\tNumber of stars unbound from disk = ", stars_unbound.num)
             print("\tNumber of stars flipped from pro to retro = ", num_star_flip + num_starbh_flip)
+        print()
 
         # Write out all singletons after AGN episode so we can use as input to another AGN phase
 
@@ -3109,7 +3108,7 @@ def main():
                 with open(os.path.join(opts.work_directory, disk_mass_cycled_save_name), "a") as file:
                     np.savetxt(file, temp_mass_cycled)
             else:
-                np.savetxt(os.path.join(opts.work_directory, disk_mass_cycled_save_name), temp_mass_cycled, "galaxy timestep mass_gained mass_lost")
+                np.savetxt(os.path.join(opts.work_directory, disk_mass_cycled_save_name), temp_mass_cycled, header="galaxy timestep mass_gained mass_lost")
 
     toc_perf = time.perf_counter()
     fin_perf = toc_perf - tic_perf
