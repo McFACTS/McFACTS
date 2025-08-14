@@ -76,21 +76,21 @@ Try a default McFACTS run and make some visualizations:
 $ make plots
 
 # Invoking the Python Script
-$ python scripts/mcfacts_sim.py --fname-ini ./recipes/model_choice_old.ini --seed 3456789108
+$ python scripts/mcfacts_sim.py --fname-ini ./recipes/model_choice.ini --seed 3456789108
 ```
 
 Output and figures will be placed in `McFACTS/runs/`.
 
 ### Changing things up
 
-Our default inputs are located at `./recipes/model_choice_old.ini`. Edit this file or create your own `model_choice.ini` file with your chosen values.
+Our default inputs are located at `./recipes/model_choice.ini`. Edit this file or create your own `my_model.ini` file with your chosen values.
 
 If using the `Makefile`, modify the `FNAME_INI` variable with the correct path to your ini file. Run `make plots` again.
 
 If invoking the python script directly, pass the correct path to your file to the `--fname-ini` options:
 
 ```bash
-python scripts/mcfacts_sim.py --fname-ini <./path/to/my.ini>
+python scripts/mcfacts_sim.py --fname-ini <./path/to/my_model.ini>
 ```
 
 For reproducibility, choose and pass an integer to the `--seed` flag.
