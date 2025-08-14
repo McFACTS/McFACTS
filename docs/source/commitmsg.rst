@@ -49,6 +49,7 @@ The ``type`` and ``scope`` must be lower case.
 * ``ci`` – continuous integration related
 * ``build`` – changes that affect the build system or external dependencies
 * ``revert`` – reverts a previous commit
+* ``merge`` - use when manually merging two branches
 
 **[scope] examples:**
 
