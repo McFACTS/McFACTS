@@ -44,7 +44,7 @@ def init_single_stars(opts, disk_aspect_ratio, galaxy, id_start_val=None):
                                                                                     disk_radius_outer=opts.disk_radius_outer,
                                                                                     smbh_mass=opts.smbh_mass,
                                                                                     P_m=1.35,
-                                                                                    P_r=1.)
+                                                                                    P_r=2.)
     else:
         masses_stars = setupdiskstars.setup_disk_stars_masses(star_num=star_num_initial,
                                                               disk_star_mass_min_init=opts.disk_star_mass_min_init,
