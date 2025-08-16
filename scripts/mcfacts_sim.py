@@ -3101,6 +3101,7 @@ def main():
         # Assume that all BH binaries break apart
         # Note: eccentricity will relax, ignore
         # Inclination assumed 0deg
+        bbh_ionized_id_nums = np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + blackholes_binary.num * 2, 1)
         blackholes_pro.add_blackholes(
             new_mass=np.concatenate([blackholes_binary.mass_1, blackholes_binary.mass_1]),
             new_spin=np.concatenate([blackholes_binary.spin_1, blackholes_binary.spin_2]),
@@ -3113,12 +3114,12 @@ def main():
             new_galaxy=np.full(blackholes_binary.num * 2, galaxy),
             new_time_passed=np.full(blackholes_binary.num * 2, time_passed),
             new_gen=np.concatenate([blackholes_binary.gen_1, blackholes_binary.gen_2]),
-            new_id_num=np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + blackholes_binary.num * 2, 1)
+            new_id_num=bbh_ionized_id_nums
         )
 
         # Update filing_cabinet
         filing_cabinet.add_objects(
-            new_id_num=np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + blackholes_binary.num * 2, 1),
+            new_id_num=bbh_ionized_id_nums,
             new_category=np.zeros(blackholes_binary.num * 2),
             new_orb_a=np.concatenate([blackholes_binary.orb_a_1, blackholes_binary.orb_a_2]),
             new_mass=np.concatenate([blackholes_binary.mass_1, blackholes_binary.mass_1]),

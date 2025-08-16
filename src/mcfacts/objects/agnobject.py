@@ -48,7 +48,7 @@ attr_merged_bh = ["id_num", "galaxy", "bin_orb_a", "mass_final",
                   "gen_1", "gen_2",
                   "chi_eff", "chi_p", "v_kick",
                   "mass_1_20Hz", "mass_2_20Hz", "spin_1_20Hz", "spin_2_20Hz",
-                   "lum_shock", "lum_jet", "time_merged"]
+                  "lum_shock", "lum_jet", "time_merged"]
 
 attr_filing_cabinet = ["id_num", "category", "orb_a", "mass", "orb_ecc", "size",
                        "direction", "disk_inner_outer"]
@@ -2092,7 +2092,7 @@ class AGNFilingCabinet(AGNObject):
                 getattr(self, attr)[id_mask] = new_info
             except:
                 raise AttributeError("Attempting to set {} for IDS {} to {}. Check that inputs are correct.".format(attr, id_num_arr, new_info))
-        
+
         else:
             raise TypeError("attr must be a list, array, or string.")
 
