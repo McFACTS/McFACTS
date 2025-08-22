@@ -671,7 +671,7 @@ def circular_singles_encounters_prograde(
                             disk_bh_pro_orbs_ecc[circ_idx] = delta_energy_strong
                             disk_bh_pro_orbs_a[circ_idx] = disk_bh_pro_orbs_a[circ_idx]*(1.0 + delta_energy_strong)
                             # Catch for if orb_a > disk_radius_outer
-                            if (disk_bh_pro_orbs_a[circ_idx] > disk_radius_outer):
+                            if (disk_bh_pro_orbs_a[circ_idx] >= disk_radius_outer):
                                 disk_bh_pro_orbs_a[circ_idx] = disk_radius_outer - epsilon[i][j]
                             disk_bh_pro_orbs_ecc[ecc_idx] = disk_bh_pro_orbs_ecc[ecc_idx]*(1 - delta_energy_strong)
                             disk_bh_pro_orbs_a[ecc_idx] = disk_bh_pro_orbs_a[ecc_idx]*(1 - delta_energy_strong)
@@ -791,7 +791,7 @@ def circular_singles_encounters_prograde_sweep(
                         # apply state change, using the fixed logic
                         disk_bh_pro_orbs_ecc[circ_idx] = delta_energy_strong * 1.0001
                         disk_bh_pro_orbs_a[circ_idx] *= (1.0 + delta_energy_strong)
-                        if (disk_bh_pro_orbs_a[circ_idx] > disk_radius_outer):
+                        if (disk_bh_pro_orbs_a[circ_idx] >= disk_radius_outer):
                             
                             disk_bh_pro_orbs_a[circ_idx] = disk_radius_outer - epsilon[circ_rel_idx][ecc_rel_idx]
                         
