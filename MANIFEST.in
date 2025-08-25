@@ -5,3 +5,9 @@ include src/mcfacts/vis/mcfacts_figures.mplstyle
 include src/mcfacts/inputs/data/*.txt
 include src/mcfacts/inputs/data/*.ini
 include src/mcfacts/vis/data/*.txt
+include src/mcfacts/inputs/data/LSST_filters/LSST_r.dat
+include src/mcfacts/inputs/data/LSST_filters/LSST_g.dat
+include src/mcfacts/inputs/data/LSST_filters/LSST_i.dat
+include src/mcfacts/inputs/data/LSST_filters/LSST_u.dat
+include src/mcfacts/inputs/data/LSST_filters/LSST_y.dat
+include src/mcfacts/inputs/data/LSST_filters/LSST_z.dat

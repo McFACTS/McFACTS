@@ -73,7 +73,7 @@ def change_bin_spin_magnitudes(bin_spin_1, bin_spin_2, bin_flag_merging, disk_bh
         User chosen input set by input file
     disk_bh_torque_condition : float
         Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
+        alignment with the AGN disk. We don't know for sure but (Bogdanovic et al. 2007) says
         between 0.01=1% and 0.1=10% is what is required
         User chosen input set by input file
     timestep_duration_yr : float
@@ -136,7 +136,7 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
         User chosen input set by input file
     disk_bh_torque_condition : float
         Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
+        alignment with the AGN disk. We don't know for sure but (Bogdanovic et al. 2007) says
         between 0.01=1% and 0.1=10% is what is required
         User chosen input set by input file
     timestep_duration_yr : float
@@ -327,7 +327,7 @@ def bin_contact_check(bin_mass_1, bin_mass_2, bin_sep, bin_flag_merging, smbh_ma
     # We assume bh are not spinning when in contact. TODO: Consider spin in future.
     contact_condition = (point_masses.r_schwarzschild_of_m(bin_mass_1) +
                          point_masses.r_schwarzschild_of_m(bin_mass_2))
-    contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition)
+    contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition).value
     mask_condition = (bin_sep <= contact_condition)
 
     # If binary separation <= contact condition, set binary separation to contact condition

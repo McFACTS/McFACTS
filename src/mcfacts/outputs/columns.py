@@ -24,6 +24,10 @@ emri_cols = [
 bh_surviving_cols = [
     "galaxy", "orb_a", "mass", "spin", "spin_angle", "gen", "id_num"
 ]
+bh_cols = [
+    "galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "spin",
+    "spin_angle", "orb_inc", "orb_ang_mom", "gen", "id_num"
+    ]
 population_cols = [
     "galaxy", "bin_orb_a", "mass_final", "chi_eff", "spin_final",
     "spin_angle_final", "mass_1", "mass_2", "spin_1", "spin_2",

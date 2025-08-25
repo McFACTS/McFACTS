@@ -2,12 +2,13 @@ import numpy as np
 from astropy.constants import G
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.setup import setupdiskblackholes
+import scipy
 
 
 def setup_disk_stars_orb_a(star_num, disk_radius_outer, disk_inner_stable_circ_orb):
     """Generates initial single star semi-major axes
 
-    BH semi-major axes are distributed randomly uniformly through disk of radial size :math:`\\mathtt{disk_outer_radius}`
+    Star semi-major axes are distributed randomly with an x^2 distribution through disk of radial size :math:`\\mathtt{disk_outer_radius}`
 
     Parameters
     ----------
@@ -69,6 +70,19 @@ def setup_disk_stars_masses(star_num,
     masses = (x_vals**(1./(-nsc_imf_star_powerlaw_index+1)))
 
     return (masses)
+
+
+def setup_disk_stars_mass_avg(disk_star_mass_min_init,
+                              disk_star_mass_max_init,
+                              nsc_imf_star_powerlaw_index):
+
+    unnormed_imf_func = lambda m, idx: m ** -idx
+    unnormed_imf, unnormed_imf_err = scipy.integrate.quad(unnormed_imf_func, disk_star_mass_min_init, disk_star_mass_max_init, args=(nsc_imf_star_powerlaw_index,))
+    imf_norm_const = 1./unnormed_imf
+    normed_imf_func = lambda m, idx: imf_norm_const * m * m ** -idx
+    star_mass_average, err = scipy.integrate.quad(normed_imf_func, disk_star_mass_min_init, disk_star_mass_max_init, args=(nsc_imf_star_powerlaw_index,))
+
+    return (star_mass_average)
 
 
 def setup_disk_stars_radius(masses):
