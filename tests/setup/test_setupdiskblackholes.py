@@ -5,7 +5,7 @@ import pytest
 # McFACTS modules
 import conftest as provider
 from conftest import InputParameterSet
-from mcfacts.mcfacts_random_state import reset_random
+from mcfacts.utilities.random_state import reset_random
 from mcfacts.setup import setupdiskblackholes
 
 # Set the seed using our test seed value to ensure values match expected results

@@ -2,9 +2,13 @@
 Module for handling the formation of binaries.
 """
 import numpy as np
+from numpy.random import Generator
 
-from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.gw import gw_strain_freq
+from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.utilities.random_state import rng
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
+from mcfacts.objects.timeline import TimelineActor
+from mcfacts.modules.gw import gw_strain_freq
 
 
 def close_encounters_check(id_nums,
@@ -64,9 +68,9 @@ def close_encounters_check(id_nums,
     separations = np.diff(fc_can_encounter.orb_a)
 
     if (len(separations) > 0):
-        R_Hill_possible_encounter = (fc_can_encounter.orb_a[:-1] + separations/2.0) * \
-            pow(((fc_can_encounter.mass[:-1] + fc_can_encounter.mass[1:]) /
-                 (smbh_mass * 3.0)), (1.0/3.0))
+        R_Hill_possible_encounter = (fc_can_encounter.orb_a[:-1] + separations / 2.0) * \
+                                    pow(((fc_can_encounter.mass[:-1] + fc_can_encounter.mass[1:]) /
+                                         (smbh_mass * 3.0)), (1.0 / 3.0))
 
         # compare separations to mutual Hill spheres - negative values mean possible binary formation
         minimum_formation_criteria = separations - R_Hill_possible_encounter
@@ -105,7 +109,8 @@ def close_encounters_check(id_nums,
                             # And the implicit partner of this thing isn't already an implicit partner we've counted
                             if (idx_poss_encounter[idx_seq] + 1 not in checked_encounter_index + 1):
                                 # Then you can count it as a real binary
-                                checked_encounter_index = np.append(checked_encounter_index, idx_poss_encounter[idx_seq])
+                                checked_encounter_index = np.append(checked_encounter_index,
+                                                                    idx_poss_encounter[idx_seq])
             final_encounter_indices = np.array([checked_encounter_index, checked_encounter_index + 1])
             encounter_id_nums = fc_can_encounter.id_num[final_encounter_indices]
 
@@ -117,6 +122,143 @@ def close_encounters_check(id_nums,
         encounter_id_nums = np.array([])
 
     return (encounter_id_nums)
+
+
+def binary_check(
+        disk_bh_pro_orbs_a,
+        disk_bh_pro_masses,
+        smbh_mass,
+        disk_bh_pro_orbs_ecc,
+        disk_bh_pro_orb_ecc_crit
+):
+    """Calculates which prograde BH will form binaries in this timestep.
+
+    Takes as inputs the singleton BH locations,masses & orbital eccentricities,
+    and takes the candidate binary population from BH with orbital eccentricities
+    damped to < orb_ecc_crit. Among this damped population, checks if their
+    separations are less than the mutual Hill sphere of any 2 adjacent BH. If this
+    is the case, determine the smallest separation pairs (in units of their mutual
+    Hill sphere) to form a set of actual binaries (this module does handle cases where
+    3 or more bodies *might* form some set of binaries which would be mutually exclusive;
+    however it does not handle or even flag the implied triple system dynamics).
+    Returns a 2xN array of the relevant binary indices, for further handling to form actual
+    binaries & assign additional parameters (e.g. angular momentum of the binary).
+
+    Parameters
+    ----------
+    disk_bh_pro_orbs_a : float array
+        Semi-major axes around the SMBH [r_{g,SMBH}] of prograde singleton BH at start of timestep
+    disk_bh_pro_masses : float array
+        Initial masses [M_sun] of bh in prograde orbits around SMBH
+    smbh_mass : float
+        Mass [M_sun] of the SMBH
+    disk_bh_pro_orbs_ecc : float array
+        Orbital ecc [unitless] of singleton BH after damping during timestep
+    disk_bh_pro_orb_ecc_crit : float
+        Critical eccentricity [unitless] allowing bin formation and migration
+
+    Returns
+    -------
+    disk_bin_bhbh_pro_indices : [2,N] int array
+        array of indices corresponding to locations in disk_bh_pro_orbs_a,
+        disk_bh_pro_masses, etc. which corresponds to binaries that form in
+        this timestep. it has a length of the number of binaries to form (N)
+        and a width of 2.
+
+    Notes
+    -----
+    Internal variable names not standardized. Fix later.
+    """
+
+    # First check for BH with sufficiently damped orbital eccentricity
+    # (orb_ecc<=orb_ecc_crit (usually 0.01)).
+    # This population is the sub-set of prograde BH from which we CAN form
+    # binaries.
+
+    # Singleton BH with orb ecc < e_crit (candidates for binary formation)
+    indices_bh_can_form_bins = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
+    # Indices of those candidates for binary formation
+    allowed_to_form_bins = np.array(indices_bh_can_form_bins)
+    # Sort the location of the candidates
+    sorted_bh_locations = np.sort(disk_bh_pro_orbs_a[allowed_to_form_bins])
+    # Sort the indices of all singleton BH (the superset)
+    sorted_bh_location_indices_superset = np.argsort(disk_bh_pro_orbs_a)
+    # Set the condition for membership in candidate array to be searched/tested
+    condition = np.isin(sorted_bh_location_indices_superset, allowed_to_form_bins)
+    # Here is the subset of indices that can be tested for binarity
+    subset = np.extract(condition, sorted_bh_location_indices_superset)
+
+    # Find the distances between [r1,r2,r3,r4,..] as [r2-r1,r3-r2,r4-r3,..]=[delta1,delta2,delta3..]
+    # Note length of separations is 1 less than disk_bh_pro_orbs_a
+    # This is the set of separations between the sorted candidate BH
+    separations = np.diff(sorted_bh_locations)
+
+    # Now compute mutual hill spheres of all possible candidate binaries if can test
+    if len(separations) > 0:
+        R_Hill_possible_binaries = (sorted_bh_locations[:-1] + separations / 2.0) * \
+                                   pow(((disk_bh_pro_masses[subset[:-1]] +
+                                         disk_bh_pro_masses[subset[1:]]) /
+                                        (smbh_mass * 3.0)), (1.0 / 3.0))
+        # compare separations to mutual Hill spheres - negative values mean possible binary formation
+        minimum_formation_criteria = separations - R_Hill_possible_binaries
+
+        # collect indices of possible real binaries (where separation is less than mutual Hill sphere)
+        index_formation_criteria = np.where(minimum_formation_criteria < 0)
+
+        # Here's the index of the array of candidates
+        test_idx = index_formation_criteria[0]
+
+        # If we actually have any candidates this time step
+        if np.size(test_idx) > 0:
+            # Start with real index (from full singleton array) of 1st candidate binary component (implicit + 1 partner since separations are ordered )
+            bin_indices = np.array([subset[test_idx[0]], subset[test_idx[0] + 1]])
+            # If only 1 binary this timestep, return this binary!
+            disk_bin_bhbh_pro_indices = np.array([subset[test_idx], subset[test_idx + 1]])
+
+            for i in range(len(test_idx)):
+                # If more than 1 binary
+                if i > 0:
+                    # append nth binary indices formed this timestep
+                    bin_indices = np.append(bin_indices, [subset[test_idx[i]], subset[test_idx[i] + 1]])
+
+                    # Check to see if repeat binaries among the set of binaries formed (e.g. (1,2)(2,3) )
+                    # If repeats, only form a binary from the pair with smallest fractional Hill sphere separation
+
+                    # Compute separation/R_Hill for all
+                    sequences_to_test = (separations[test_idx]) / (R_Hill_possible_binaries[test_idx])
+                    # sort sep/R_Hill for all 'binaries' that need checking & store indices
+                    sorted_sequences = np.sort(sequences_to_test)
+                    # Sort the indices for the test
+                    sorted_sequences_indices = np.argsort(sequences_to_test)
+
+                    # Assume the smallest sep/R_Hill should form a binary, so
+                    if len(sorted_sequences) > 0:
+                        # Index of smallest sorted fractional Hill radius binary so far
+                        checked_binary_index = np.array([test_idx[sorted_sequences_indices[0]]])
+                    else:
+                        checked_binary_index = []
+                    for j in range(len(sorted_sequences)):
+                        # if we haven't already counted it
+                        if (test_idx[sorted_sequences_indices[j]] not in checked_binary_index):
+                            # and it isn't the implicit partner of something we've already counted
+                            if (test_idx[sorted_sequences_indices[j]] not in checked_binary_index + 1):
+                                # and the implicit partner of this thing isn't already counted
+                                if (test_idx[sorted_sequences_indices[j]] + 1 not in checked_binary_index):
+                                    # and the implicit partner of this thing isn't already an implicit partner we've counted
+                                    if (test_idx[sorted_sequences_indices[j]] + 1 not in checked_binary_index + 1):
+                                        # then you can count it as a real binary
+                                        checked_binary_index = np.append(checked_binary_index, test_idx[sorted_sequences_indices[j]])
+                    disk_bin_bhbh_pro_indices = np.array([subset[checked_binary_index], subset[checked_binary_index + 1]])
+
+        else:
+            # No binaries from candidates this time step
+            disk_bin_bhbh_pro_indices = []
+
+    else:
+        # No candidate for binarity testing yet
+        disk_bin_bhbh_pro_indices = []
+
+    return disk_bin_bhbh_pro_indices
 
 
 def divide_types_encounters(id_nums, encounter_categories, filing_cabinet):
@@ -173,7 +315,8 @@ def divide_types_encounters(id_nums, encounter_categories, filing_cabinet):
     return (tuple(results))
 
 
-def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, id_start_val, fraction_bin_retro, smbh_mass, agn_redshift, disk_bh_pro_orb_ecc_crit):
+def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, id_start_val, fraction_bin_retro,
+                      smbh_mass, agn_redshift, disk_bh_pro_orb_ecc_crit):
     """Create new BH binaries with appropriate parameters.
 
     We take the semi-maj axis, masses, spins, spin angles and generations
@@ -214,7 +357,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
     """
 
     bin_num = bh_pro_id_num_binary.shape[1]
-    id_nums = np.arange(id_start_val+1, id_start_val + 1 + bin_num, 1)
+    id_nums = np.arange(id_start_val + 1, id_start_val + 1 + bin_num, 1)
     orb_a_1 = np.zeros(bin_num)
     orb_a_2 = np.zeros(bin_num)
     mass_1 = np.zeros(bin_num)
@@ -274,7 +417,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
         else:
             # return a 1 or -1 in the ratio 
             # (1-fraction_bin_retro: fraction_bin_retro)
-            bin_orb_ang_mom[i] = rng.choice(a=[1, -1], p=[1-fraction_bin_retro, fraction_bin_retro])
+            bin_orb_ang_mom[i] = rng.choice(a=[1, -1], p=[1 - fraction_bin_retro, fraction_bin_retro])
 
     gw_strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                         old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
@@ -318,3 +461,83 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
         "blackholes_binary.bin_orb_a has values <= 0"
 
     return (blackholes_binary, id_nums)
+
+
+class BinaryBlackHoleFormation(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Binary Black Hole Formation" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+        sm = self.settings
+
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+
+        encounter_indices = binary_check(
+            blackholes_pro.orb_a,
+            blackholes_pro.mass,
+            sm.smbh_mass,
+            blackholes_pro.orb_ecc,
+            sm.disk_bh_pro_orb_ecc_crit
+        )
+
+        if len(encounter_indices) == 0:
+            self.log("No binaries formed")
+
+            return
+
+        primary_ids = np.array([blackholes_pro.unique_id[index] for index in encounter_indices[0]])
+        secondary_ids = np.array([blackholes_pro.unique_id[index] for index in encounter_indices[1]])
+
+        mass_1 = blackholes_pro.get_attribute("mass", primary_ids)
+        mass_2 = blackholes_pro.get_attribute("mass", secondary_ids)
+
+        orb_a_1 = blackholes_pro.get_attribute("orb_a", primary_ids)
+        orb_a_2 = blackholes_pro.get_attribute("orb_a", secondary_ids)
+
+        bin_sep = np.abs(orb_a_1 - orb_a_2)
+        bin_orb_a = orb_a_1 + ((bin_sep * mass_2) / (mass_1 + mass_2))
+
+        bin_orb_ang_mom = np.full(len(primary_ids), 1)
+
+        if sm.fraction_bin_retro > 0:
+            bin_orb_ang_mom = [random_generator.choice(a=[1, -1], p=[1 - sm.fraction_bin_retro, sm.fraction_bin_retro]) for _ in range(primary_ids.size)]
+
+        gw_strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+                                            old_gw_freq=-1, smbh_mass=sm.smbh_mass, agn_redshift=sm.agn_redshift,
+                                            flag_include_old_gw_freq=0)
+
+        new_binaries = AGNBinaryBlackHoleArray(
+            unique_id_1=primary_ids,
+            unique_id_2=secondary_ids,
+            orb_a_1=orb_a_1,
+            orb_a_2=orb_a_2,
+            mass_1=mass_1,
+            mass_2=mass_2,
+            spin_1=blackholes_pro.get_attribute("spin", primary_ids),
+            spin_2=blackholes_pro.get_attribute("spin", secondary_ids),
+            spin_angle_1=blackholes_pro.get_attribute("spin_angle", primary_ids),
+            spin_angle_2=blackholes_pro.get_attribute("spin_angle", secondary_ids),
+            bin_sep=bin_sep,
+            bin_orb_a=bin_orb_a,
+            time_to_merger_gw=np.zeros(primary_ids.size),
+            flag_merging=np.zeros(primary_ids.size, dtype=np.int_),
+            time_merged=np.zeros(primary_ids.size, dtype=np.float_),
+            bin_ecc=np.array([random_generator.uniform() for _ in range(primary_ids.size)], dtype=np.float_),
+            gen_1=blackholes_pro.get_attribute("gen", primary_ids),
+            gen_2=blackholes_pro.get_attribute("gen", secondary_ids),
+            bin_orb_ang_mom=np.array(bin_orb_ang_mom, dtype=np.float_),
+            bin_orb_inc=np.zeros(primary_ids.size, dtype=np.float_),
+            bin_orb_ecc=np.full(primary_ids.size, sm.initial_binary_orbital_ecc, dtype=np.float_),
+            gw_freq=gw_freq,
+            gw_strain=gw_strain,
+        )
+
+        filing_cabinet.create_or_append_array(sm.bbh_array_name, new_binaries)
+
+        blackholes_pro.remove_all(primary_ids)
+        blackholes_pro.remove_all(secondary_ids)
+
+        self.log(f"Binaries created: {primary_ids.size}")

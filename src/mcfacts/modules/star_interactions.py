@@ -4,11 +4,10 @@ Module for calculating the final variables of two merging stars.
 
 import numpy as np
 
-from mcfacts.physics import stellar_interpolation
+from mcfacts.modules import stellar_interpolation
 
 
 def add_merged_stars(id_nums_mergers, stars, id_start_val, disk_bh_pro_orb_ecc_crit, disk_star_initial_mass_cutoff):
-
     merge_num = id_nums_mergers.shape[1]
     id_nums = np.arange(id_start_val + 1, id_start_val + 1 + merge_num, 1)
     # Merged mass is just masses added together. Any over disk_star_initial_mass_cutoff get set to disk_star_initial_mass_cutoff

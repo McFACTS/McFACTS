@@ -1,9 +1,9 @@
-"""
-Module for calculating the orbital and binary eccentricity damping.
-"""
-
 import numpy as np
-from mcfacts.mcfacts_random_state import rng
+from numpy.random import Generator
+
+from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.objects.agn_object_array import AGNBlackHoleArray, FilingCabinet
+from mcfacts.objects.timeline import TimelineActor
 
 
 def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk_surf_density_func,
@@ -101,10 +101,12 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
 
     # Modest orb eccentricities: e < 2h (experience simple exponential damping): mask entries > 2*aspect_ratio;
     # only show BH with e<2h
-    modest_ecc_prograde_indices = np.asarray(prograde_disk_bh_pro_orbs_ecc <= 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
+    modest_ecc_prograde_indices = \
+        np.asarray(prograde_disk_bh_pro_orbs_ecc <= 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
 
     # Large orb eccentricities: e > 2h (experience more complicated damping)
-    large_ecc_prograde_indices = np.asarray(prograde_disk_bh_pro_orbs_ecc > 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
+    large_ecc_prograde_indices = \
+        np.asarray(prograde_disk_bh_pro_orbs_ecc > 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
 
     # print('modest ecc indices', modest_ecc_prograde_indices)
     # print('large ecc indices', large_ecc_prograde_indices)
@@ -142,11 +144,13 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
             print("e_h_ratio:", e_h_ratio[index_nan])
             print("orb_a:", disk_bh_pro_orbs_a[index_nan])
             print("h/r:", disk_aspect_ratio[index_nan])
-            print("locns",normalized_bh_locations)
-            print("mass ratio",normalized_mass_ratio)
-            print("ecc",prograde_disk_bh_pro_orbs_ecc)
-            print("aspect_ratio",disk_aspect_ratio)
-            print("at that value", normalized_bh_locations[index_nan],normalized_disk_surf_density_func[index_nan],normalized_mass_ratio[index_nan],normalized_aspect_ratio[index_nan],prograde_disk_bh_pro_orbs_ecc[index_nan])
+            print("locns", normalized_bh_locations)
+            print("mass ratio", normalized_mass_ratio)
+            print("ecc", prograde_disk_bh_pro_orbs_ecc)
+            print("aspect_ratio", disk_aspect_ratio)
+            print("at that value", normalized_bh_locations[index_nan], normalized_disk_surf_density_func[index_nan],
+                  normalized_mass_ratio[index_nan], normalized_aspect_ratio[index_nan],
+                  prograde_disk_bh_pro_orbs_ecc[index_nan])
             raise TypeError("Encountered a nan in `t_damp`")
 
     new_disk_bh_pro_orbs_ecc[modest_ecc_prograde_indices] = disk_bh_pro_orbs_ecc[modest_ecc_prograde_indices] * np.exp(
@@ -164,7 +168,8 @@ def orbital_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, 
     return new_disk_bh_pro_orbs_ecc
 
 
-def orbital_bin_ecc_damping(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_ecc, bin_orb_ecc, disk_surf_density_func, disk_aspect_ratio_func, timestep_duration_yr,
+def orbital_bin_ecc_damping(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_ecc, bin_orb_ecc, disk_surf_density_func,
+                            disk_aspect_ratio_func, timestep_duration_yr,
                             disk_bh_pro_orb_ecc_crit):
     """Calculates damping of BBH orbital eccentricities according to a prescription.
 
@@ -380,10 +385,12 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
 
     # Modest orb eccentricities: e < 2h (experience simple exponential damping): mask entries > 2*aspect_ratio;
     # only show BH with e<2h
-    modest_ecc_prograde_indices = np.asarray(prograde_disk_bh_pro_orbs_ecc <= 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
+    modest_ecc_prograde_indices = \
+        np.asarray(prograde_disk_bh_pro_orbs_ecc <= 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
 
     # Large orb eccentricities: e > 2h (experience more complicated damping)
-    large_ecc_prograde_indices = np.asarray(prograde_disk_bh_pro_orbs_ecc > 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
+    large_ecc_prograde_indices = \
+        np.asarray(prograde_disk_bh_pro_orbs_ecc > 2.0 * disk_aspect_ratio_func(disk_bh_pro_orbs_a)).nonzero()[0]
 
     # print('modest ecc indices', modest_ecc_prograde_indices)
     # print('large ecc indices', large_ecc_prograde_indices)
@@ -417,22 +424,67 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
 
     # print("Old ecc, New ecc",disk_bh_pro_orbs_ecc,new_disk_bh_pro_orbs_ecc)
     # Check new eccentricities
-    assert np.isfinite(new_disk_bh_pro_orbs_ecc).all(),\
+    assert np.isfinite(new_disk_bh_pro_orbs_ecc).all(), \
         "Finite check failed for new_disk_bh_pro_orbs_ecc"
 
     return new_disk_bh_pro_orbs_ecc
 
 
-def ionized_orb_ecc(num_bh, orb_ecc_max):
-    """Calculate new eccentricity for each component of an ionized binary.
+class ProgradeBlackHoleDamping(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Prograde Black Hole Damping" if name is None else name, settings)
 
-    Parameters
-    ----------
-    num_bh : int
-        Number of BHs (num of ionized binaries * 2)
-    orb_ecc_max : float
-        Maximum allowed orb_ecc
-    """
-    orb_eccs = rng.uniform(low=0.0, high=orb_ecc_max, size=num_bh)
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
 
-    return (orb_eccs)
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+
+        # TODO: Consider move based on cause leading to physical effect?
+        # Is this dampening due to accretion, or should it be moved to a different module?
+        blackholes_pro.orb_ecc = orbital_ecc_damping(
+            sm.smbh_mass,
+            blackholes_pro.orb_a,
+            blackholes_pro.mass,
+            agn_disk.disk_surface_density,
+            agn_disk.disk_aspect_ratio,
+            blackholes_pro.orb_ecc,
+            sm.timestep_duration_yr,
+            sm.disk_bh_pro_orb_ecc_crit,
+        )
+
+        blackholes_pro.consistency_check()
+
+        # TODO: Stars
+
+
+class BinaryBlackHoleDamping(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Binary Black Hole Damping" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBlackHoleArray)
+
+        blackholes_binary.bin_orb_ecc = orbital_bin_ecc_damping(
+            sm.smbh_mass,
+            blackholes_binary.mass_1,
+            blackholes_binary.mass_2,
+            blackholes_binary.bin_orb_a,
+            blackholes_binary.bin_ecc,
+            blackholes_binary.bin_orb_ecc,
+            agn_disk.disk_surface_density,
+            agn_disk.disk_aspect_ratio,
+            sm.timestep_duration_yr,
+            sm.disk_bh_pro_orb_ecc_crit
+        )
+
+        blackholes_binary.consistency_check()

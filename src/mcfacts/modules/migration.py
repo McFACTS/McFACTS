@@ -2,16 +2,22 @@
 Module for calculating the timescale of migrations.
 """
 
-import numpy as np
 import astropy.constants as const
 import astropy.units as u
-import scipy.interpolate
-from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.point_masses import si_from_r_g
+import numpy as np
 import scipy
+import scipy.interpolate
+from numpy.random import Generator
+
+from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.utilities import unit_conversion
+from mcfacts.utilities.random_state import rng
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
+from mcfacts.objects.timeline import TimelineActor
 
 
-def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func, disk_dlog10temp_dlog10R_func):
+def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func,
+                          disk_dlog10temp_dlog10R_func):
     """Return the Paardekooper (2010) torque coefficient for Type 1 migration
         Paardekooper_Coeff = [-0.85+0.9dTdR +dSigmadR]
     """
@@ -53,7 +59,8 @@ def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dl
     return Torque_paardekooper_coeff
 
 
-def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_surf_density_func, disk_aspect_ratio_func):
+def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_surf_density_func,
+                      disk_aspect_ratio_func):
     """Calculates the normalized torque from e.g. Grishin et al. '24
     Gamma_0 = (q/h)^2 * Sigma* a^4 * Omega^2
         where q= mass_of_bh/smbh_mass, h= disk aspect ratio at location of bh (a_bh),
@@ -102,13 +109,14 @@ def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_su
     else:
         disk_aspect_ratio = disk_aspect_ratio_func(orbs_a)[migration_indices]
     # find mass ratios
-    mass_ratios = (masses[migration_indices]/smbh_mass)
+    mass_ratios = (masses[migration_indices] / smbh_mass)
     # Convert orb_a of migrating BH to meters. r_g =GM_smbh/c^2.
-    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a).to("m").value
+    orb_a_in_meters = unit_conversion.si_from_r_g(smbh_mass, new_orbs_a).to("m").value
     # Omega of migrating BH
-    Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg/((orb_a_in_meters)**(3.0)))
+    Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg / ((orb_a_in_meters) ** (3.0)))
     # Normalized torque = (q/h)^2 * Sigma * a^4 * Omega^2
-    normalized_torque = ((mass_ratios/disk_aspect_ratio)**(2.0))*disk_surface_density*((orb_a_in_meters)**(4.0))*(Omega_bh**(2.0))
+    normalized_torque = ((mass_ratios / disk_aspect_ratio) ** (2.0)) * disk_surface_density * (
+            (orb_a_in_meters) ** (4.0)) * (Omega_bh ** (2.0))
     # Check for nans
     nan_mask = np.isnan(normalized_torque)
     if any(nan_mask):
@@ -164,13 +172,13 @@ def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migr
     # If things will migrate then copy over the orb_a of objects that will migrate
     new_orbs_a = orbs_a[migration_indices].copy()
 
-    orb_a_si = si_from_r_g(smbh_mass, new_orbs_a).to("m")
+    orb_a_si = unit_conversion.si_from_r_g(smbh_mass, new_orbs_a).to("m")
     migration_torque_si = migration_torque * u.newton * u.meter
     # Omega of migrating BH in s^-1
-    Omega_bh = np.sqrt(const.G * smbh_mass_si/((orb_a_si)**(3.0)))
-    bh_masses = u.Msun*masses[migration_indices]
+    Omega_bh = np.sqrt(const.G * smbh_mass_si / ((orb_a_si) ** (3.0)))
+    bh_masses = u.Msun * masses[migration_indices]
     # Normalized torque = (q/h)^2 * Sigma * a^4 * Omega^2 (in units of seconds)
-    torque_mig_timescale = (bh_masses*Omega_bh*((orb_a_si)**(2.0))/(2.0*migration_torque_si)).to("s")
+    torque_mig_timescale = (bh_masses * Omega_bh * ((orb_a_si) ** (2.0)) / (2.0 * migration_torque_si)).to("s")
     # Check for zeros
     torque_mig_timescale[migration_torque == 0] = 0.
 
@@ -194,7 +202,9 @@ def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migr
     return torque_mig_timescale.value
 
 
-def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func, disk_temp_func, orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func, disk_dlog10temp_dlog10R_func):
+def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func, disk_temp_func,
+                           orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func,
+                           disk_dlog10temp_dlog10R_func):
     """Return the Jimenez & Masset (2017) torque coefficient for Type 1 migration
         Jimenez-Masset_torque = [0.46 + 0.96dSigmadR -1/8dTdR]/gamma
                                 +[-2.34 -0.1dSigmadR +1.5dTdR]*factor
@@ -212,7 +222,7 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
     """
     # Constants
     # Define adiabatic index (assume monatomic gas)
-    gamma = 5./3.
+    gamma = 5. / 3.
     # Stefan-Boltzmann constant
     sigma_SB = scipy.constants.Stefan_Boltzmann
     smbh_mass_in_kg = smbh_mass * u.Msun.to("kg")
@@ -234,9 +244,9 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
         disk_aspect_ratio = disk_aspect_ratio_func(orbs_a)[migration_indices]
 
     # Convert migrating orbs_a to meters
-    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a).to("m").value
+    orb_a_in_meters = unit_conversion.si_from_r_g(smbh_mass, new_orbs_a).to("m").value
     # Omega of migrating BH in s^-1
-    Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg/((orb_a_in_meters)**(3.0)))
+    Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg / ((orb_a_in_meters) ** (3.0)))
     log_new_orbs_a = np.log10(new_orbs_a)
 
     # Evaluate disk surf density at only migrating BH
@@ -251,13 +261,15 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
     # Evaluate opacity at the migrating orb_a values
     opacity_migrators = disk_opacity_func(new_orbs_a)
 
-    xfactor_1 = (16./3.)*gamma*(gamma-1.0)*sigma_SB*(temp_migrators**(4.0))
-    xfactor_2 = opacity_migrators * (disk_surf_d_mig**(2.0))*(disk_aspect_ratio**(2.0))*(orb_a_in_meters**(2.0))*(Omega_bh**(3.0))
-    xfactor = xfactor_1/xfactor_2
-    sqrtfactor = np.sqrt(xfactor/2)
-    factor = (sqrtfactor + 1.0/gamma)/(sqrtfactor + 1.0)
+    xfactor_1 = (16. / 3.) * gamma * (gamma - 1.0) * sigma_SB * (temp_migrators ** (4.0))
+    xfactor_2 = opacity_migrators * (disk_surf_d_mig ** (2.0)) * (disk_aspect_ratio ** (2.0)) * (
+            orb_a_in_meters ** (2.0)) * (Omega_bh ** (3.0))
+    xfactor = xfactor_1 / xfactor_2
+    sqrtfactor = np.sqrt(xfactor / 2)
+    factor = (sqrtfactor + 1.0 / gamma) / (sqrtfactor + 1.0)
 
-    Torque_jimenezmasset_coeff = (0.46 + 0.96 * dlogSigmadlogR - 1.8 * dlogTempdlogR)/gamma + (-2.34 - 0.1*dlogSigmadlogR + 1.5 * dlogTempdlogR) * factor
+    Torque_jimenezmasset_coeff = (0.46 + 0.96 * dlogSigmadlogR - 1.8 * dlogTempdlogR) / gamma + (
+            -2.34 - 0.1 * dlogSigmadlogR + 1.5 * dlogTempdlogR) * factor
 
     assert np.isfinite(Torque_jimenezmasset_coeff).all(), \
         "Finite check failure: Torque_jimenezmasset_coeff"
@@ -265,7 +277,9 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
     return Torque_jimenezmasset_coeff
 
 
-def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func, disk_temp_func, disk_bh_eddington_ratio, orbs_a, orbs_ecc, orb_ecc_crit, bh_masses, flag_thermal_feedback, disk_dlog10pressure_dlog10R_func):
+def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func,
+                                         disk_temp_func, disk_bh_eddington_ratio, orbs_a, orbs_ecc, orb_ecc_crit,
+                                         bh_masses, flag_thermal_feedback, disk_dlog10pressure_dlog10R_func):
     """Return the Jimenez & Masset (2017) thermal torque coefficient for Type 1 migration
         Jimenez-Masset_thermal_torque_coeff = Torque_hot*(4mu_thermal/(1+4.*mu_thermal))+ Torque_cold*(2mu_thermal/(1+2.*mu_thermal))
             Given   Torque_hot=thermal_factor*(L/L_c)
@@ -296,7 +310,7 @@ def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk
 
     # Constants
     # Define adiabatic index (assume monatomic gas)
-    gamma = 5.0/3.0
+    gamma = 5.0 / 3.0
     # kappa electron scattering
     kappa_e_scattering = 0.7
     # Stefan-Boltzmann constant
@@ -321,25 +335,25 @@ def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk
 
     # Convert migrating orbs_a to meters
     # Convert orb_a of migrating BH to meters. r_g =GM_smbh/c^2.
-    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a).to("m").value
+    orb_a_in_meters = unit_conversion.si_from_r_g(smbh_mass, new_orbs_a).to("m").value
     # Omega of migrating BH in s^-1
-    Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg/((orb_a_in_meters)**(3.0)))
+    Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg / ((orb_a_in_meters) ** (3.0)))
 
     # Height of disk in meters  H=orb_a_in_meters*disk_aspect_ratio
-    disk_height_in_meters = orb_a_in_meters*disk_aspect_ratio
+    disk_height_in_meters = orb_a_in_meters * disk_aspect_ratio
     # disk_height_in_meters_squared
     disk_height_m_sq = disk_height_in_meters * disk_height_in_meters
     # sound speed at location of migrating BH in m/s  (c_s = H*Omega_bh)
-    sound_speed = disk_height_in_meters*Omega_bh
+    sound_speed = disk_height_in_meters * Omega_bh
 
     # BH masses in kg
-    bh_masses_in_kg = bh_masses[migration_indices]*u.Msun.to("kg")
+    bh_masses_in_kg = bh_masses[migration_indices] * u.Msun.to("kg")
     # Bondi radii for migrating BH
-    r_bondi = scipy.constants.G*bh_masses_in_kg/(sound_speed**2.0)
+    r_bondi = scipy.constants.G * bh_masses_in_kg / (sound_speed ** 2.0)
     # If r_bondi for a migrating BH is > disk_height, set effective Bondi radius to disk height
     effective_bondi_radius = np.where(r_bondi < disk_height_in_meters, r_bondi, disk_height_in_meters)
     # Luminosity of migrating BH
-    lum = disk_bh_eddington_ratio*4.0*np.pi*scipy.constants.G*bh_masses_in_kg*scipy.constants.c/kappa_e_scattering
+    lum = disk_bh_eddington_ratio * 4.0 * np.pi * scipy.constants.G * bh_masses_in_kg * scipy.constants.c / kappa_e_scattering
 
     log_new_orbs_a = np.log10(new_orbs_a)
 
@@ -357,33 +371,35 @@ def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk
     # Evaluate opacity at the migrating orb_a values
     opacity_migrators = disk_opacity_func(new_orbs_a)
 
-    xfactor_1 = (16./3.)*gamma*(gamma-1.0)*sigma_SB*(temp_migrators**(4.0))
-    xfactor_2 = opacity_migrators*(disk_surf_d_mig**(2.0))*(disk_aspect_ratio**(2.0))*(orb_a_in_meters**(2.0))*(Omega_bh**(3.0))
-    xfactor = xfactor_1/xfactor_2
+    xfactor_1 = (16. / 3.) * gamma * (gamma - 1.0) * sigma_SB * (temp_migrators ** (4.0))
+    xfactor_2 = opacity_migrators * (disk_surf_d_mig ** (2.0)) * (disk_aspect_ratio ** (2.0)) * (
+            orb_a_in_meters ** (2.0)) * (Omega_bh ** (3.0))
+    xfactor = xfactor_1 / xfactor_2
 
     # Critical Luminosity of migrating BH
-    lum_crit = 4.0*np.pi*scipy.constants.G*bh_masses_in_kg*disk_surf_d_mig*xfactor*disk_sound_speed/gamma
+    lum_crit = 4.0 * np.pi * scipy.constants.G * bh_masses_in_kg * disk_surf_d_mig * xfactor * disk_sound_speed / gamma
 
     # mu_thermal = Xi/c_s*r_Bondi and Xi=x*H^2*Omega so mu_thermal = x*H^2*Omega/c_s*r_Bondi = x*H/r_B (where r_B<=H)
-    mu_thermal = xfactor*disk_height_in_meters/effective_bondi_radius
+    mu_thermal = xfactor * disk_height_in_meters / effective_bondi_radius
     # Saturate the torque
     mu_thermal = np.where(mu_thermal < 1.0, mu_thermal, 1.0)
 
     # lambda (length) = sqrt(2 Xi/3gamma Omega) =sqrt(2/3 x H^2) since Xi=x*H^2*Omega
-    length = np.sqrt(2.0*xfactor*disk_height_m_sq/3.0)
+    length = np.sqrt(2.0 * xfactor * disk_height_m_sq / 3.0)
 
     # x_crit = (dP/dr)*H^2/(3 gamma R)
-    x_crit = dlogPressuredlogR*disk_height_m_sq/(3.0*gamma*orb_a_in_meters)
+    x_crit = dlogPressuredlogR * disk_height_m_sq / (3.0 * gamma * orb_a_in_meters)
     # Thermal torque calculation
-    thermal_factor = 1.61*((gamma-1)/gamma)*(x_crit/length)
-    Torque_hot = thermal_factor*lum/lum_crit
+    thermal_factor = 1.61 * ((gamma - 1) / gamma) * (x_crit / length)
+    Torque_hot = thermal_factor * lum / lum_crit
     Torque_cold = -thermal_factor
 
-    Thermal_torque_coeff = Torque_hot * (4.0*mu_thermal/(1.0+4.0*mu_thermal)) + Torque_cold*(2.0*mu_thermal/(1.0+2.0*mu_thermal))
+    Thermal_torque_coeff = Torque_hot * (4.0 * mu_thermal / (1.0 + 4.0 * mu_thermal)) + Torque_cold * (
+            2.0 * mu_thermal / (1.0 + 2.0 * mu_thermal))
 
     # decay factor of (1- exp(-length*tau/H) where tau is optical depth) and tau=kappa*Sigma/2
-    optical_depth = disk_surf_d_mig*opacity_migrators/2.0
-    exp_factor = length * optical_depth/disk_height_in_meters
+    optical_depth = disk_surf_d_mig * opacity_migrators / 2.0
+    exp_factor = length * optical_depth / disk_height_in_meters
     decay_factor = (1 - np.exp(-exp_factor))
 
     Thermal_torque_coeff = Thermal_torque_coeff * decay_factor
@@ -394,8 +410,11 @@ def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk
     return Thermal_torque_coeff
 
 
-def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, torque_mig_timescale, disk_feedback_ratio,
-                             disk_radius_trap, disk_radius_anti_trap, disk_radius_outer, timestep_duration_yr, flag_phenom_turb, phenom_turb_centroid, phenom_turb_std_dev, bh_min_mass, torque_prescription):
+def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, torque_mig_timescale,
+                             disk_feedback_ratio,
+                             disk_radius_trap, disk_radius_anti_trap, disk_radius_outer, timestep_duration_yr,
+                             flag_phenom_turb, phenom_turb_centroid, phenom_turb_std_dev, bh_min_mass,
+                             torque_prescription):
     """Calculates how far an object migrates in an AGN gas disk in a single timestep given a torque migration timescale
     calculated elsewhere (e.g. torque_migration_timescale)
     Returns their new locations after migration over one timestep.
@@ -457,8 +476,8 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
     tau = np.abs(torque_mig_timescale)
 
     # Normalized masses of migrators (normalized to BH minimum mass)
-    normalized_migrating_masses = masses[migration_indices]/bh_min_mass
-    normalized_mig_masses_sq = normalized_migrating_masses**2.0
+    normalized_migrating_masses = masses[migration_indices] / bh_min_mass
+    normalized_mig_masses_sq = normalized_migrating_masses ** 2.0
 
     # ratio of timestep to tau_mig (timestep in years so convert)
     dt = timestep_duration_yr * (1 * u.yr).to(u.s).value / tau
@@ -468,17 +487,22 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
     migration_distance[torque_mig_timescale == 0.] = 0.
 
     # Calculate epsilon for trap radius --amount to adjust from disk_radius_trap for objects that will be set to disk_radius_trap
-    epsilon_trap_radius = disk_radius_trap * ((masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass)))**(1. / 3.)) * rng.uniform(size=migration_indices.size)
+    epsilon_trap_radius = disk_radius_trap * (
+            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
+        size=migration_indices.size)
 
     # Calculate epsilon for outer edge of disk
-    epsilon_outer_radius = disk_radius_outer * ((masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass)))**(1. / 3.)) * rng.uniform(size=migration_indices.size)
+    epsilon_outer_radius = disk_radius_outer * (
+            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
+        size=migration_indices.size)
 
     if flag_phenom_turb == 1:
         # Only need to perturb migrators for now
         # size_of_turbulent_array = np.size(migration_indices)
         # Assume migration is always inwards (true for 'old' and for 'jimenez_masset' for M_smbh>10^8Msun)
         # Calc migration distance as modified by turbulence.
-        migration_distance = migration_distance*(1.0 + rng.normal(phenom_turb_centroid, phenom_turb_std_dev, size=migration_indices.size))/normalized_mig_masses_sq
+        migration_distance = migration_distance * (1.0 + rng.normal(phenom_turb_centroid, phenom_turb_std_dev,
+                                                                    size=migration_indices.size)) / normalized_mig_masses_sq
 
     if torque_prescription == 'old' or torque_prescription == 'paardekooper':
         # Assume migration is always inwards (true for 'old' and for 'jimenez_masset' for M_smbh>10^8Msun)
@@ -493,21 +517,28 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         mask_mig_in = disk_feedback_ratio < 1
         if (np.sum(mask_mig_in) > 0):
             # If outside trap migrate inwards
-            temp_orbs_a = new_orbs_a[mask_mig_in & mask_out_trap] - migration_distance[mask_mig_in & mask_out_trap] * (1 - disk_feedback_ratio[mask_mig_in & mask_out_trap])
+            temp_orbs_a = new_orbs_a[mask_mig_in & mask_out_trap] - migration_distance[mask_mig_in & mask_out_trap] * (
+                    1 - disk_feedback_ratio[mask_mig_in & mask_out_trap])
             # If migration takes object inside trap, fix at trap
-            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_mig_in & mask_out_trap][temp_orbs_a <= disk_radius_trap]
+            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - \
+                                                           epsilon_trap_radius[mask_mig_in & mask_out_trap][
+                                                               temp_orbs_a <= disk_radius_trap]
             new_orbs_a[mask_mig_in & mask_out_trap] = temp_orbs_a
 
             # If inside trap, migrate outwards
-            temp_orbs_a = new_orbs_a[mask_mig_in & mask_in_trap] + migration_distance[mask_mig_in & mask_in_trap] * (1 - disk_feedback_ratio[mask_mig_in & mask_in_trap])
+            temp_orbs_a = new_orbs_a[mask_mig_in & mask_in_trap] + migration_distance[mask_mig_in & mask_in_trap] * (
+                    1 - disk_feedback_ratio[mask_mig_in & mask_in_trap])
             # If migration takes object outside trap, fix at trap
-            temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + epsilon_trap_radius[mask_mig_in & mask_in_trap][temp_orbs_a >= disk_radius_trap]
+            temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + \
+                                                           epsilon_trap_radius[mask_mig_in & mask_in_trap][
+                                                               temp_orbs_a >= disk_radius_trap]
             new_orbs_a[mask_mig_in & mask_in_trap] = temp_orbs_a
 
         # Get mask for objects where feedback_ratio > 1: these migrate outwards
         mask_mig_out = disk_feedback_ratio > 1
         if (np.sum(mask_mig_out) > 0):
-            new_orbs_a[mask_mig_out] = new_orbs_a[mask_mig_out] + migration_distance[mask_mig_out] * (disk_feedback_ratio[mask_mig_out] - 1)
+            new_orbs_a[mask_mig_out] = new_orbs_a[mask_mig_out] + migration_distance[mask_mig_out] * (
+                    disk_feedback_ratio[mask_mig_out] - 1)
 
         # Get mask for objects where feedback_ratio == 1. Shouldn't happen if feedback = 1 (on), but will happen if feedback = 0 (off)
         mask_mig_stay = disk_feedback_ratio == 1
@@ -515,17 +546,23 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             # If outside trap migrate inwards
             temp_orbs_a = new_orbs_a[mask_mig_stay & mask_out_trap] - migration_distance[mask_mig_stay & mask_out_trap]
             # If migration takes object inside trap, fix at trap
-            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_mig_stay & mask_out_trap][temp_orbs_a <= disk_radius_trap]
+            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - \
+                                                           epsilon_trap_radius[mask_mig_stay & mask_out_trap][
+                                                               temp_orbs_a <= disk_radius_trap]
             new_orbs_a[mask_mig_stay & mask_out_trap] = temp_orbs_a
 
             # If inside trap migrate outwards
             temp_orbs_a = new_orbs_a[mask_mig_stay & mask_in_trap] + migration_distance[mask_mig_stay & mask_in_trap]
             # If migration takes object outside trap, fix at trap
-            temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + epsilon_trap_radius[mask_mig_stay & mask_in_trap][temp_orbs_a >= disk_radius_trap]
+            temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + \
+                                                           epsilon_trap_radius[mask_mig_stay & mask_in_trap][
+                                                               temp_orbs_a >= disk_radius_trap]
             new_orbs_a[mask_mig_stay & mask_in_trap] = temp_orbs_a
 
         # Assert that things cannot migrate out of the disk
-        epsilon = disk_radius_outer * ((masses[migration_indices][new_orbs_a > disk_radius_outer] / (3 * (masses[migration_indices][new_orbs_a > disk_radius_outer] + smbh_mass)))**(1. / 3.)) * rng.uniform(size=np.sum(new_orbs_a > disk_radius_outer))
+        epsilon = disk_radius_outer * ((masses[migration_indices][new_orbs_a > disk_radius_outer] / (
+                3 * (masses[migration_indices][new_orbs_a > disk_radius_outer] + smbh_mass))) ** (
+                                               1. / 3.)) * rng.uniform(size=np.sum(new_orbs_a > disk_radius_outer))
         new_orbs_a[new_orbs_a > disk_radius_outer] = disk_radius_outer - epsilon
 
     if torque_prescription == 'jimenez_masset':
@@ -542,7 +579,8 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             # If outside trap migrate inwards
             temp_orbs_a = new_orbs_a[mask_out_trap] - migration_distance[mask_out_trap]
             # If migration takes object inside trap, fix at trap
-            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_out_trap][temp_orbs_a <= disk_radius_trap]
+            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_out_trap][
+                temp_orbs_a <= disk_radius_trap]
             new_orbs_a[mask_out_trap] = temp_orbs_a
             # If inside trap migrate inwards
             temp_orbs_a = new_orbs_a[mask_in_trap] - migration_distance[mask_in_trap]
@@ -562,7 +600,8 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             # If outside trap migrate inwards
             temp_orbs_a = new_orbs_a[mask_out_trap] + migration_distance[mask_out_trap]
             # If migration takes object inside trap, fix at trap
-            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_out_trap][temp_orbs_a <= disk_radius_trap]
+            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_out_trap][
+                temp_orbs_a <= disk_radius_trap]
             new_orbs_a[mask_out_trap] = temp_orbs_a
 
             # If inside trap, but outside anti_trap, migrate outwards
@@ -579,8 +618,8 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             # Trap radius changes as a function of mass.
             # Also new(!) anti-trap radius. Region between trap and anti-trap migrates out, all others migrate inwards
             # Calc new trap radius from Grishin+24
-            disk_radius_trap = disk_radius_trap * (smbh_mass/1.e8)**(-0.97)
-            disk_radius_anti_trap = disk_radius_trap * (smbh_mass/1.e8)**(0.099)
+            disk_radius_trap = disk_radius_trap * (smbh_mass / 1.e8) ** (-0.97)
+            disk_radius_anti_trap = disk_radius_trap * (smbh_mass / 1.e8) ** (0.099)
             # Get masks for objects outside trap, inside trap and inside anti-trap
             mask_out_trap = new_orbs_a > disk_radius_trap
             mask_in_anti_trap = new_orbs_a < disk_radius_anti_trap
@@ -589,13 +628,15 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             # If outside trap migrate inwards
             temp_orbs_a = new_orbs_a[mask_out_trap] - migration_distance[mask_out_trap]
             # If migration takes object inside trap, fix at trap
-            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_out_trap][temp_orbs_a <= disk_radius_trap]
+            temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_out_trap][
+                temp_orbs_a <= disk_radius_trap]
             new_orbs_a[mask_out_trap] = temp_orbs_a
 
             # If inside trap, but outside anti_trap, migrate outwards
             temp_orbs_a = new_orbs_a[mask_in_trap] + migration_distance[mask_in_trap]
             # If migration takes object outside trap, fix at trap
-            temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + epsilon_trap_radius[mask_out_trap][temp_orbs_a <= disk_radius_trap]
+            temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + epsilon_trap_radius[mask_out_trap][
+                temp_orbs_a <= disk_radius_trap]
             new_orbs_a[mask_in_trap] = temp_orbs_a
 
             # If inside anti_trap migrate inwards
@@ -603,7 +644,8 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             new_orbs_a[mask_in_anti_trap] = temp_orbs_a
 
     # Assert that objects cannot migrate out of the disk
-    new_orbs_a[new_orbs_a > disk_radius_outer] = disk_radius_outer - epsilon_outer_radius[new_orbs_a > disk_radius_outer]
+    new_orbs_a[new_orbs_a > disk_radius_outer] = disk_radius_outer - epsilon_outer_radius[
+        new_orbs_a > disk_radius_outer]
 
     # Update orbs_a
     orbs_a[migration_indices] = new_orbs_a
@@ -722,13 +764,16 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
     #   and Omega is the Keplerian orbital frequency around the SMBH
     # Here smbh_mass/disk_bh_mass_pro are both in M_sun, so units cancel
     # c, G and disk_surface_density in SI units
-    tau = ((disk_aspect_ratio ** 2.0) * scipy.constants.c / (3.0 * scipy.constants.G) * (smbh_mass/masses[migration_indices]) / disk_surface_density) / np.sqrt(new_orbs_a)
+    tau = ((disk_aspect_ratio ** 2.0) * scipy.constants.c / (3.0 * scipy.constants.G) * (
+            smbh_mass / masses[migration_indices]) / disk_surface_density) / np.sqrt(new_orbs_a)
     # ratio of timestep to tau_mig (timestep in years so convert)
     dt = timestep_duration_yr * scipy.constants.year / tau
     # migration distance is original locations times fraction of tau_mig elapsed
     migration_distance = new_orbs_a.copy() * dt
     # Calculate epsilon --amount to adjust from disk_radius_trap for objects that will be set to disk_radius_trap
-    epsilon_trap_radius = disk_radius_trap * ((masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass)))**(1. / 3.)) * rng.uniform(size=migration_indices.size)
+    epsilon_trap_radius = disk_radius_trap * (
+            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
+        size=migration_indices.size)
 
     # Get masks for if objects are inside or outside the trap radius
     mask_out_trap = new_orbs_a > disk_radius_trap
@@ -738,21 +783,28 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
     mask_mig_in = disk_feedback_ratio < 1
     if (np.sum(mask_mig_in) > 0):
         # If outside trap migrate inwards
-        temp_orbs_a = new_orbs_a[mask_mig_in & mask_out_trap] - migration_distance[mask_mig_in & mask_out_trap] * (1 - disk_feedback_ratio[mask_mig_in & mask_out_trap])
+        temp_orbs_a = new_orbs_a[mask_mig_in & mask_out_trap] - migration_distance[mask_mig_in & mask_out_trap] * (
+                1 - disk_feedback_ratio[mask_mig_in & mask_out_trap])
         # If migration takes object inside trap, fix at trap
-        temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_mig_in & mask_out_trap][temp_orbs_a <= disk_radius_trap]
+        temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - \
+                                                       epsilon_trap_radius[mask_mig_in & mask_out_trap][
+                                                           temp_orbs_a <= disk_radius_trap]
         new_orbs_a[mask_mig_in & mask_out_trap] = temp_orbs_a
 
         # If inside trap, migrate outwards
-        temp_orbs_a = new_orbs_a[mask_mig_in & mask_in_trap] + migration_distance[mask_mig_in & mask_in_trap] * (1 - disk_feedback_ratio[mask_mig_in & mask_in_trap])
+        temp_orbs_a = new_orbs_a[mask_mig_in & mask_in_trap] + migration_distance[mask_mig_in & mask_in_trap] * (
+                1 - disk_feedback_ratio[mask_mig_in & mask_in_trap])
         # If migration takes object outside trap, fix at trap
-        temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + epsilon_trap_radius[mask_mig_in & mask_in_trap][temp_orbs_a >= disk_radius_trap]
+        temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + \
+                                                       epsilon_trap_radius[mask_mig_in & mask_in_trap][
+                                                           temp_orbs_a >= disk_radius_trap]
         new_orbs_a[mask_mig_in & mask_in_trap] = temp_orbs_a
 
     # Get mask for objects where feedback_ratio > 1: these migrate outwards
     mask_mig_out = disk_feedback_ratio > 1
     if (np.sum(mask_mig_out) > 0):
-        new_orbs_a[mask_mig_out] = new_orbs_a[mask_mig_out] + migration_distance[mask_mig_out] * (disk_feedback_ratio[mask_mig_out] - 1)
+        new_orbs_a[mask_mig_out] = new_orbs_a[mask_mig_out] + migration_distance[mask_mig_out] * (
+                disk_feedback_ratio[mask_mig_out] - 1)
 
     # Get mask for objects where feedback_ratio == 1. Shouldn't happen if feedback = 1 (on), but will happen if feedback = 0 (off)
     mask_mig_stay = disk_feedback_ratio == 1
@@ -760,17 +812,23 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
         # If outside trap migrate inwards
         temp_orbs_a = new_orbs_a[mask_mig_stay & mask_out_trap] - migration_distance[mask_mig_stay & mask_out_trap]
         # If migration takes object inside trap, fix at trap
-        temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - epsilon_trap_radius[mask_mig_stay & mask_out_trap][temp_orbs_a <= disk_radius_trap]
+        temp_orbs_a[temp_orbs_a <= disk_radius_trap] = disk_radius_trap - \
+                                                       epsilon_trap_radius[mask_mig_stay & mask_out_trap][
+                                                           temp_orbs_a <= disk_radius_trap]
         new_orbs_a[mask_mig_stay & mask_out_trap] = temp_orbs_a
 
         # If inside trap migrate outwards
         temp_orbs_a = new_orbs_a[mask_mig_stay & mask_in_trap] + migration_distance[mask_mig_stay & mask_in_trap]
         # If migration takes object outside trap, fix at trap
-        temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + epsilon_trap_radius[mask_mig_stay & mask_in_trap][temp_orbs_a >= disk_radius_trap]
+        temp_orbs_a[temp_orbs_a >= disk_radius_trap] = disk_radius_trap + \
+                                                       epsilon_trap_radius[mask_mig_stay & mask_in_trap][
+                                                           temp_orbs_a >= disk_radius_trap]
         new_orbs_a[mask_mig_stay & mask_in_trap] = temp_orbs_a
 
     # Assert that things cannot migrate out of the disk
-    epsilon = disk_radius_outer * ((masses[migration_indices][new_orbs_a > disk_radius_outer] / (3 * (masses[migration_indices][new_orbs_a > disk_radius_outer] + smbh_mass)))**(1. / 3.)) * rng.uniform(size=np.sum(new_orbs_a > disk_radius_outer))
+    epsilon = disk_radius_outer * ((masses[migration_indices][new_orbs_a > disk_radius_outer] / (
+            3 * (masses[migration_indices][new_orbs_a > disk_radius_outer] + smbh_mass))) ** (
+                                           1. / 3.)) * rng.uniform(size=np.sum(new_orbs_a > disk_radius_outer))
     new_orbs_a[new_orbs_a > disk_radius_outer] = disk_radius_outer - epsilon
 
     # Update orbs_a
@@ -880,3 +938,563 @@ def type1_migration_binary(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_orb
                                     disk_radius_trap, disk_radius_outer, timestep_duration_yr)
 
     return (new_bin_orb_a)
+
+
+def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_func, disk_bh_eddington_ratio,
+                       disk_alpha_viscosity, disk_radius_outer):
+    """Calculate the ratio of radiative feedback torque to migration torque.
+
+    This feedback model uses Eqn. 28 in Hankla, Jiang & Armitage (2020)
+    which yields the ratio of heating torque to migration torque.
+    Heating torque is directed outwards.
+    So, Ratio < 1, slows the inward migration of an object. Ratio > 1 sends the object migrating outwards.
+    The direction & magnitude of migration (effected by feedback) will be executed in type1.py.
+
+    Parameters
+    ----------
+    disk_bh_pro_orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] of prograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    disk_surf_density_func : function
+        Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+        can accept a simple float (constant), but this is deprecated
+    disk_opacity_model : lambda
+        Opacity as a function of radius
+    disk_bh_eddington_ratio : float
+        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
+        1.0=embedded BH accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+        User chosen input set by input file
+    disk_alpha_viscosity : float
+        Disk gas viscocity [units??] alpha parameter
+    disk_radius_outer : float
+            Outer radius [r_{g,SMBH}] of the disk
+
+    Returns
+    -------
+    ratio_feedback_migration_torque : numpy.ndarray
+        Ratio of feedback torque to migration torque with :obj:`float` type
+
+    Notes
+    -----
+    The ratio of torque due to heating to Type 1 migration torque is calculated as
+    R   = Gamma_heat/Gamma_mig
+        ~ 0.07 (speed of light/ Keplerian vel.)(Eddington ratio)(1/optical depth)(1/alpha)^3/2
+    where Eddington ratio can be >=1 or <1 as needed,
+    optical depth (tau) = Sigma* kappa
+    alpha = disk viscosity parameter (e.g. alpha = 0.01 in Sirko & Goodman 2003)
+    kappa = 10^0.76 cm^2 g^-1=5.75 cm^2/g = 0.575 m^2/kg for most of Sirko & Goodman disk model (see Fig. 1 & sec 2)
+    but e.g. electron scattering opacity is 0.4 cm^2/g
+    So tau = Sigma*0.575 where Sigma is in kg/m^2.
+    Since v_kep = c/sqrt(a(r_g)) then
+    R   ~ 0.07 (a(r_g))^{1/2}(Edd_ratio) (1/tau) (1/alpha)^3/2
+    So if assume a=10^3r_g, Sigma=7.e6kg/m^2, alpha=0.01, tau=0.575*Sigma (SG03 disk model), Edd_ratio=1,
+    R   ~5.5e-4 (a/10^3r_g)^(1/2) (Sigma/7.e6) v.small modification to in-migration at a=10^3r_g
+        ~0.243 (R/10^4r_g)^(1/2) (Sigma/5.e5)  comparable.
+        >1 (a/2x10^4r_g)^(1/2)(Sigma/) migration is *outward* at >=20,000r_g in SG03
+        >10 (a/7x10^4r_g)^(1/2)(Sigma/) migration outwards starts to runaway in SG03
+    """
+
+    # get disk surface density at black hole orbital semi-major axes
+    disk_surface_density = disk_surf_density_func(disk_bh_pro_orbs_a)
+
+    # Define kappa (or set up a function to call).
+    disk_opacity = disk_opacity_func(disk_bh_pro_orbs_a)
+
+    ratio_feedback_migration_torque = 0.07 * (1 / disk_opacity) * (disk_alpha_viscosity ** -1.5) * \
+                                      disk_bh_eddington_ratio * np.sqrt(disk_bh_pro_orbs_a) / disk_surface_density
+
+    # set ratio = 1 (no migration) for black holes at or beyond the disk outer radius
+    ratio_feedback_migration_torque[np.where(disk_bh_pro_orbs_a >= disk_radius_outer)] = 1.
+
+    assert np.isfinite(ratio_feedback_migration_torque).all(), \
+        "Finite check failure: ratio_feedback_migration_torque"
+
+    return ratio_feedback_migration_torque
+
+
+def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_opacity_func, disk_stars_eddington_ratio,
+                          disk_alpha_viscosity, disk_radius_outer):
+    """Calculate the ratio of radiative feedback torque to migration torque.
+
+    This feedback model uses Eqn. 28 in Hankla, Jiang & Armitage (2020)
+    which yields the ratio of heating torque to migration torque.
+    Heating torque is directed outwards.
+    So, Ratio < 1, slows the inward migration of an object. Ratio > 1 sends the object
+    migrating outwards.
+    The direction & magnitude of migration (effected by feedback) will be executed in type1.py.
+
+    Parameters
+    ----------
+    disk_bh_pro_orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] of prograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    disk_surf_density_func : function
+        Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+        can accept a simple float (constant), but this is deprecated
+    disk_opacity_model : lambda
+        Opacity as a function of radius
+    disk_bh_eddington_ratio : float
+        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
+        1.0=embedded BH accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+        User chosen input set by input file
+    disk_alpha_viscosity : float
+        Disk gas viscocity [units??] alpha parameter
+    disk_radius_outer : float
+            Outer radius [r_{g,SMBH}] of the disk
+
+
+    Returns
+    -------
+    ratio_feedback_to_mig : numpy.ndarray
+        Ratio of feedback torque to migration torque with :obj:`float` type
+
+    Notes
+    -----
+    The ratio of torque due to heating to Type 1 migration torque is calculated as
+    R   = Gamma_heat/Gamma_mig
+        ~ 0.07 (speed of light/ Keplerian vel.)(Eddington ratio)(1/optical depth)(1/alpha)^3/2
+    where Eddington ratio can be >=1 or <1 as needed,
+    optical depth (tau) = Sigma* kappa
+    alpha = disk viscosity parameter (e.g. alpha = 0.01 in Sirko & Goodman 2003)
+    kappa = 10^0.76 cm^2 g^-1=5.75 cm^2/g = 0.575 m^2/kg for most of Sirko & Goodman
+      disk model (see Fig. 1 & sec 2)
+    but e.g. electron scattering opacity is 0.4 cm^2/g
+    So tau = Sigma*0.575 where Sigma is in kg/m^2.
+    Since v_kep = c/sqrt(a(r_g)) then
+    R   ~ 0.07 (a(r_g))^{1/2}(Edd_ratio) (1/tau) (1/alpha)^3/2
+    So if assume a=10^3r_g, Sigma=7.e6kg/m^2, alpha=0.01, tau=0.575*Sigma (SG03 disk model),
+      Edd_ratio=1,
+    R   ~5.5e-4 (a/10^3r_g)^(1/2) (Sigma/7.e6) v.small modification to in-migration at a=10^3r_g
+        ~0.243 (R/10^4r_g)^(1/2) (Sigma/5.e5)  comparable.
+        >1 (a/2x10^4r_g)^(1/2)(Sigma/) migration is *outward* at >=20,000r_g in SG03
+        >10 (a/7x10^4r_g)^(1/2)(Sigma/) migration outwards starts to runaway in SG03
+    """
+
+    # get disk surface density at black hole orbital semi-major axes
+    disk_surface_density = disk_surf_density_func(disk_stars_pro_orbs_a)
+
+    # Define kappa (or set up a function to call).
+    disk_opacity = disk_opacity_func(disk_stars_pro_orbs_a)
+
+    ratio_feedback_migration_torque = 0.07 * (1 / disk_opacity) * (disk_alpha_viscosity ** -1.5) * \
+                                      disk_stars_eddington_ratio * np.sqrt(disk_stars_pro_orbs_a) / disk_surface_density
+
+    # set ratio = 1 (no migration) for stars beyond the disk outer radius
+    ratio_feedback_migration_torque[np.where(disk_stars_pro_orbs_a > disk_radius_outer)] = 1
+
+    assert np.isfinite(ratio_feedback_migration_torque).all(), \
+        "Finite check failure: ratio_feedback_migration_torque"
+
+    return ratio_feedback_migration_torque
+
+
+def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio, disk_alpha_viscosity, disk_radius_outer):
+    """Calculates ratio of heating torque to migration torque using Eqn. 28 in Hankla, Jiang & Armitage (2020)
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black holes
+    disk_surf_density_func : function
+        Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+        can accept a simple float (constant), but this is deprecated
+    disk_opacity_model : lambda
+        Opacity as a function of radius
+    disk_bh_eddington_ratio : float
+        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
+        1.0=embedded BH accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+        User chosen input set by input file
+    disk_alpha_viscosity : float
+        Disk gas viscocity [units??] alpha parameter
+    disk_radius_outer : float
+            Outer radius [r_{g,SMBH}] of the disk
+
+    Returns
+    -------
+    ratio_feedback_to_mig : float array
+        Ratio of feedback torque to migration torque [unitless]
+
+    Notes
+    -----
+    This feedback model uses Eqn. 28 in Hankla, Jiang & Armitage (2020)
+    which yields the ratio of heating torque to migration torque.
+    Heating torque is directed outwards.
+    So, Ratio <1, slows the inward migration of an object. Ratio>1 sends the object migrating outwards.
+    The direction & magnitude of migration (effected by feedback) will be executed in type1.py.
+
+    The ratio of torque due to heating to Type 1 migration torque is calculated as
+    R   = Gamma_heat/Gamma_mig
+        ~ 0.07 (speed of light/ Keplerian vel.)(Eddington ratio)(1/optical depth)(1/alpha)^3/2
+    where Eddington ratio can be >=1 or <1 as needed,
+    optical depth (tau) = Sigma* kappa
+    alpha = disk_alpha_viscosity (e.g. alpha = 0.01 in Sirko & Goodman 2003)
+    kappa = 10^0.76 cm^2 g^-1=5.75 cm^2/g = 0.575 m^2/kg for most of Sirko & Goodman disk model (see Fig. 1 & sec 2)
+    but e.g. electron scattering opacity is 0.4 cm^2/g
+    So tau = Sigma*0.575 where Sigma is in kg/m^2.
+    Since v_kep = c/sqrt(a(r_g)) then
+    R   ~ 0.07 (a(r_g))^{1/2}(Edd_ratio) (1/tau) (1/alpha)^3/2
+    So if assume a=10^3r_g, Sigma=7.e6kg/m^2, alpha=0.01, tau=0.575*Sigma (SG03 disk model), Edd_ratio=1,
+    R   ~5.5e-4 (a/10^3r_g)^(1/2) (Sigma/7.e6) v.small modification to in-migration at a=10^3r_g
+        ~0.243 (R/10^4r_g)^(1/2) (Sigma/5.e5)  comparable.
+        >1 (a/2x10^4r_g)^(1/2)(Sigma/) migration is *outward* at >=20,000r_g in SG03
+        >10 (a/7x10^4r_g)^(1/2)(Sigma/) migration outwards starts to runaway in SG03
+    """
+
+    # Making sure that surface density is a float or a function (from old function)
+    if not isinstance(disk_surface_density, float):
+        disk_surface_density_at_location = disk_surface_density(bin_orb_a)
+    else:
+        raise AttributeError("disk_surface_density is a float")
+
+    # Define kappa (or set up a function to call).
+    disk_opacity = disk_opacity_func(bin_orb_a)
+
+    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity, -1.5) * disk_bh_eddington_ratio * np.sqrt(bin_orb_a) / disk_surface_density_at_location
+
+    # set ratio = 1 (no migration) for binaries at or beyond the disk outer radius
+    ratio_heat_mig_torques_bin_com[bin_orb_a > disk_radius_outer] = 1.0
+
+    assert np.isfinite(ratio_heat_mig_torques_bin_com).all(),\
+        "Finite check failure: ratio_heat_mig_torques_bin_com"
+
+    return (ratio_heat_mig_torques_bin_com)
+
+class ProgradeBlackHoleMigration(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Prograde Black Hole Migration" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        # Check to make sure the array exists in the filing cabinet
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+
+        # First if feedback present, find ratio of feedback heating torque to migration torque
+        if sm.flag_thermal_feedback > 0:
+            ratio_heat_mig_torques = feedback_bh_hankla(
+                blackholes_pro.orb_a,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_opacity,
+                sm.disk_bh_eddington_ratio,
+                sm.disk_alpha_viscosity,
+                sm.disk_radius_outer
+            )
+        else:
+            ratio_heat_mig_torques = np.ones(blackholes_pro.num)
+
+        # Set empty variable, we'll fill it based on torque_prescription
+        new_orb_a_bh = None
+
+        # Choose your torque_prescription
+
+        # Old is the original approximation used in v.0.1.0, based off (but not identical to Paardekooper 2010)-usually within factor [0.5-2]
+        if sm.torque_prescription == 'old':
+            # Old migration prescription
+            new_orb_a_bh = type1_migration_single(
+                sm.smbh_mass,
+                blackholes_pro.orb_a,
+                blackholes_pro.mass,
+                blackholes_pro.orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_aspect_ratio,
+                ratio_heat_mig_torques,
+                sm.disk_radius_trap,
+                sm.disk_radius_outer,
+                sm.timestep_duration_yr
+            )
+
+        # Normalized torque (multiplies torque coeff)
+        if sm.torque_prescription == 'paardekooper' or sm.torque_prescription == 'jimenez_masset':
+            normalized_torque_bh = normalized_torque(
+                sm.smbh_mass,
+                blackholes_pro.orb_a,
+                blackholes_pro.mass,
+                blackholes_pro.orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_aspect_ratio
+            )
+
+            torque_bh = None
+            disk_trap_radius = None
+            disk_anti_trap_radius = None
+
+            # Paardekooper torque coeff (default)
+            if sm.torque_prescription == 'paardekooper':
+                paardekooper_torque_coeff_bh = paardekooper10_torque(
+                    blackholes_pro.orb_a,
+                    blackholes_pro.orb_ecc,
+                    sm.disk_bh_pro_orb_ecc_crit,
+                    agn_disk.disk_dlog10surfdens_dlog10R_func,
+                    agn_disk.disk_dlog10temp_dlog10R_func
+                )
+
+                torque_bh = paardekooper_torque_coeff_bh * normalized_torque_bh
+
+                disk_trap_radius = sm.disk_radius_trap
+                disk_anti_trap_radius = sm.disk_radius_trap
+
+            # Jimenez-Masset torque coeff (from Grishin+24)
+            if sm.torque_prescription == 'jimenez_masset':
+                jimenez_masset_torque_coeff_bh = jimenezmasset17_torque(
+                    sm.smbh_mass,
+                    agn_disk.disk_surface_density,
+                    agn_disk.disk_opacity,
+                    agn_disk.disk_aspect_ratio,
+                    agn_disk.temp_func,
+                    blackholes_pro.orb_a,
+                    blackholes_pro.orb_ecc,
+                    sm.disk_bh_pro_orb_ecc_crit,
+                    agn_disk.disk_dlog10surfdens_dlog10R_func,
+                    agn_disk.disk_dlog10temp_dlog10R_func
+                )
+
+                # Thermal torque from JM17 (if flag_thermal_feedback off, this component is 0.)
+                jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
+                    sm.smbh_mass,
+                    agn_disk.disk_surface_density,
+                    agn_disk.disk_opacity,
+                    agn_disk.disk_aspect_ratio,
+                    agn_disk.temp_func,
+                    sm.disk_bh_eddington_ratio,
+                    blackholes_pro.orb_a,
+                    blackholes_pro.orb_ecc,
+                    sm.disk_bh_pro_orb_ecc_crit,
+                    blackholes_pro.mass,
+                    sm.flag_thermal_feedback,
+                    agn_disk.disk_dlog10pressure_dlog10R_func
+                )
+
+                if sm.flag_thermal_feedback == 1:
+                    total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh + jimenez_masset_thermal_torque_coeff_bh
+                else:
+                    total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh
+
+                torque_bh = total_jimenez_masset_torque_bh * normalized_torque_bh
+
+                # Set up trap scaling as a function of mass for Jimenez-Masset (for SG-like disk)
+                # No traps if M_smbh >10^8Msun (approx.)
+                if sm.smbh_mass > 1.e8:
+                    disk_trap_radius = sm.disk_inner_stable_circ_orb
+                    disk_anti_trap_radius = sm.disk_inner_stable_circ_orb
+                if sm.smbh_mass == 1.e8:
+                    disk_trap_radius = sm.disk_radius_trap
+                    disk_anti_trap_radius = sm.disk_radius_trap
+                # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
+                if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
+                    disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
+                    disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
+                # Trap location changes again at low SMBH mass (Grishin+24)
+                if sm.smbh_mass < 1.e6:
+                    disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-0.97)
+                    disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
+
+            # Timescale on which migration happens based on overall torque
+            torque_mig_timescales_bh = torque_mig_timescale(
+                sm.smbh_mass,
+                blackholes_pro.orb_a,
+                blackholes_pro.mass,
+                blackholes_pro.orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                torque_bh
+            )
+
+            # Calculate new bh_orbs_a using torque (here including details from Jimenez & Masset '17 & Grishin+'24)
+            new_orb_a_bh = type1_migration_distance(
+                sm.smbh_mass,
+                blackholes_pro.orb_a,
+                blackholes_pro.mass,
+                blackholes_pro.orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                torque_mig_timescales_bh,
+                ratio_heat_mig_torques,
+                disk_trap_radius,
+                disk_anti_trap_radius,
+                sm.disk_radius_outer,
+                sm.timestep_duration_yr,
+                sm.flag_phenom_turb,
+                sm.phenom_turb_centroid,
+                sm.phenom_turb_std_dev,
+                sm.nsc_imf_bh_mode,
+                sm.torque_prescription
+            )
+
+        # TODO: Reconsider for physicality
+        # I'm not sure why where have this filter/check if we overwrite everything right after?
+        # Was this supposed to be some sort of edge detection?
+        blackholes_pro.orb_a = np.where(blackholes_pro.orb_a > sm.disk_inner_stable_circ_orb, blackholes_pro.orb_a,
+                                        3 * sm.disk_inner_stable_circ_orb)
+
+        blackholes_pro.orb_a = new_orb_a_bh
+
+        blackholes_pro.consistency_check()
+
+        # TODO: Stars
+
+
+class BinaryBlackHoleMigration(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Binary Black Hole Migration" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+        sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
+
+        ratio_heat_mig_torques_bin_com = None
+
+        # First if feedback present, find ratio of feedback heating torque to migration torque
+        if sm.flag_thermal_feedback > 0:
+            ratio_heat_mig_torques_bin_com = bin_com_feedback_hankla(
+                blackholes_binary.bin_orb_a,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_opacity,
+                sm.disk_bh_eddington_ratio,
+                sm.disk_alpha_viscosity,
+                sm.disk_radius_outer
+            )
+        else:
+            ratio_heat_mig_torques_bin_com = np.ones(blackholes_binary.num)
+
+        # Migrate binaries center of mass
+        # Choose torque prescription for binary migration
+        # Old is the original approximation used in v.0.1.0, based off (but not identical to Paardekooper 2010)-usually within factor [0.5-2]
+        if sm.torque_prescription == 'old':
+            blackholes_binary.bin_orb_a = type1_migration_binary(
+                sm.smbh_mass,
+                blackholes_binary.mass_1,
+                blackholes_binary.mass_2,
+                blackholes_binary.bin_orb_a,
+                blackholes_binary.bin_orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_aspect_ratio,
+                ratio_heat_mig_torques_bin_com,
+                sm.disk_radius_trap,
+                sm.disk_radius_outer,
+                sm.timestep_duration_yr
+            )
+
+        if sm.torque_prescription == 'paardekooper' or sm.torque_prescription == 'jimenez_masset':
+            normalized_torque_bh = normalized_torque(
+                sm.smbh_mass,
+                blackholes_binary.bin_orb_a,
+                blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                blackholes_binary.bin_orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_aspect_ratio
+            )
+
+            if np.size(normalized_torque_bh) > 0:
+                torque = None
+                disk_trap_radius = None
+                disk_anti_trap_radius = None
+
+                # Paardekooper torque coeff (default)
+                if sm.torque_prescription == 'paardekooper':
+                    paardekooper_torque_coeff_bh = paardekooper10_torque(
+                        blackholes_binary.bin_orb_a,
+                        blackholes_binary.bin_orb_ecc,
+                        sm.disk_bh_pro_orb_ecc_crit,
+                        agn_disk.disk_dlog10surfdens_dlog10R_func,
+                        agn_disk.disk_dlog10temp_dlog10R_func
+                    )
+
+                    torque = paardekooper_torque_coeff_bh * normalized_torque_bh
+                    disk_trap_radius = sm.disk_radius_trap
+                    disk_anti_trap_radius = sm.disk_radius_trap
+
+                # Jimenez-Masset torque coeff (from Grishin+24)
+                if sm.torque_prescription == 'jimenez_masset':
+                    jimenez_masset_torque_coeff_bh = jimenezmasset17_torque(
+                        sm.smbh_mass,
+                        agn_disk.disk_surface_density,
+                        agn_disk.disk_opacity,
+                        agn_disk.disk_aspect_ratio,
+                        agn_disk.temp_func,
+                        blackholes_binary.bin_orb_a,
+                        blackholes_binary.bin_orb_ecc,
+                        sm.disk_bh_pro_orb_ecc_crit,
+                        agn_disk.disk_dlog10surfdens_dlog10R_func,
+                        agn_disk.disk_dlog10temp_dlog10R_func
+                    )
+                    jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
+                        sm.smbh_mass,
+                        agn_disk.disk_surface_density,
+                        agn_disk.disk_opacity,
+                        agn_disk.disk_aspect_ratio,
+                        agn_disk.temp_func,
+                        sm.disk_bh_eddington_ratio,
+                        blackholes_binary.bin_orb_a,
+                        blackholes_binary.bin_orb_ecc,
+                        sm.disk_bh_pro_orb_ecc_crit,
+                        blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                        sm.flag_thermal_feedback,
+                        agn_disk.disk_dlog10pressure_dlog10R_func
+                    )
+
+                    if sm.flag_thermal_feedback > 0:
+                        total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh + jimenez_masset_thermal_torque_coeff_bh
+                    else:
+                        total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh
+
+                    torque = total_jimenez_masset_torque_bh * normalized_torque_bh
+
+                    # Set up trap scaling as a function of mass for Jimenez-Masset (for SG-like disk)
+                    # No traps if M_smbh >10^8Msun (approx.)
+                    if sm.smbh_mass > 1.e8:
+                        disk_trap_radius = sm.disk_inner_stable_circ_orb
+                        disk_anti_trap_radius = sm.disk_inner_stable_circ_orb
+
+                    if sm.smbh_mass == 1.e8:
+                        disk_trap_radius = sm.disk_radius_trap
+                        disk_anti_trap_radius = sm.disk_radius_trap
+
+                    # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
+                    if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
+                        disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
+                        disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
+
+                    # Trap location changes again at low SMBH mass (Grishin+24)
+                    if sm.smbh_mass < 1.e6:
+                        disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-0.97)
+                        disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
+
+                torque_mig_timescales_bh = torque_mig_timescale(
+                    sm.smbh_mass,
+                    blackholes_binary.bin_orb_a,
+                    blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                    blackholes_binary.bin_orb_ecc,
+                    sm.disk_bh_pro_orb_ecc_crit,
+                    torque
+                )
+
+                # Calculate new bh_orbs_a using torque
+                blackholes_binary.bin_orb_a = type1_migration_distance(
+                    sm.smbh_mass,
+                    blackholes_binary.bin_orb_a,
+                    blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                    blackholes_binary.bin_orb_ecc,
+                    sm.disk_bh_pro_orb_ecc_crit,
+                    torque_mig_timescales_bh,
+                    ratio_heat_mig_torques_bin_com,
+                    disk_trap_radius,
+                    disk_anti_trap_radius,
+                    sm.disk_radius_outer,
+                    sm.timestep_duration_yr,
+                    sm.flag_phenom_turb,
+                    sm.phenom_turb_centroid,
+                    sm.phenom_turb_std_dev,
+                    sm.nsc_imf_bh_mode,
+                    sm.torque_prescription
+                )

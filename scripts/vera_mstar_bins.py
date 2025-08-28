@@ -9,9 +9,9 @@ from astropy import constants as const
 from astropy.cosmology import Planck15 as cosmo
 from basil_core.astro.relations import Neumayer_early_NSC_mass, Neumayer_late_NSC_mass
 from basil_core.astro.relations import SchrammSilvermanSMBH_mass_of_GSM as SMBH_mass_of_GSM
-from mcfacts.physics.point_masses import time_of_orbital_shrinkage
-from mcfacts.physics.point_masses import orbital_separation_evolve_reverse
-from mcfacts.physics.point_masses import si_from_r_g, r_g_from_units
+from mcfacts.modules.point_masses import time_of_orbital_shrinkage
+from mcfacts.modules.point_masses import orbital_separation_evolve_reverse
+from mcfacts.modules.point_masses import si_from_r_g, r_g_from_units
 from mcfacts.inputs.ReadInputs import ReadInputs_ini
 from mcfacts.inputs.ReadInputs import construct_disk_pAGN, construct_disk_direct
 

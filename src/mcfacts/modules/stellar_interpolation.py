@@ -2,13 +2,14 @@
 Module for interpolating stellar radius, luminosity, and effective temperature from a grid.
 """
 
-import numpy as np
-import astropy.units as astropy_u
+from importlib import resources as impresources
+
 import astropy.constants as const
+import astropy.units as astropy_u
+import numpy as np
 
 from mcfacts.inputs import data as mcfacts_input_data
-from mcfacts.physics import point_masses
-from importlib import resources as impresources
+from mcfacts.utilities import unit_conversion
 
 # This is definitely the wrong and lazy way to go about things
 # 0: mass
@@ -141,7 +142,7 @@ def ratio_star_torques(disk_density_func, disk_pressure_grad_func, disk_aspect_r
 
     smbh_mass_si = smbh_mass * astropy_u.Msun
 
-    disk_radius_si = point_masses.si_from_r_g(smbh_mass, disk_radius)
+    disk_radius_si = unit_conversion.si_from_r_g(smbh_mass, disk_radius)
 
     v_phi = (disk_radius_si * ((1./disk_density) * disk_pressure_grad + ((const.G * smbh_mass_si) / (disk_radius_si ** 2)))) ** 0.5
     v_phi = v_phi.to("m/s")
