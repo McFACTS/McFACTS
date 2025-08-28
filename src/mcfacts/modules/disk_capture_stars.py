@@ -1,10 +1,12 @@
+import mcfacts.utilities.random_state
+from mcfacts.modules import stellar_interpolation
 from mcfacts.setup import setupdiskstars
-from mcfacts.physics.point_masses import r_g_from_units
-from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics import stellar_interpolation
 import astropy.constants as const
 import astropy.units as u
 import numpy as np
+
+from mcfacts.utilities import unit_conversion
+from mcfacts.utilities.random_state import rng
 
 
 def stellar_mass_captured_nsc(disk_lifetime, smbh_mass, nsc_density_index_inner, nsc_mass,
@@ -62,7 +64,7 @@ def stellar_mass_captured_nsc(disk_lifetime, smbh_mass, nsc_density_index_inner,
 
     # Gravitational influence radius for disk
     disk_radius_of_gravitational_influence_si = ((const.G * smbh_mass_si) / (disk_velocity_dispersion ** 2)).to("pc")
-    disk_radius_of_gravitational_influence_rg = r_g_from_units(smbh_mass_si, disk_radius_of_gravitational_influence_si)
+    disk_radius_of_gravitational_influence_rg = unit_conversion.r_g_from_units(smbh_mass_si, disk_radius_of_gravitational_influence_si)
 
     # Surface density at the gravitational influence radius
     disk_surface_density_at_rm_rg = disk_surface_density_func(disk_radius_of_gravitational_influence_rg) * u.kg / u.m**2
@@ -153,7 +155,7 @@ def setup_captured_stars_orbs_a(num_stars_captured, disk_lifetime, smbh_mass, di
 
     # Gravitational influence radius for disk
     disk_radius_of_gravitational_influence_si = ((const.G * smbh_mass_si) / (disk_velocity_dispersion ** 2)).to("pc")
-    disk_radius_of_gravitational_influence_rg = r_g_from_units(smbh_mass_si, disk_radius_of_gravitational_influence_si)
+    disk_radius_of_gravitational_influence_rg = unit_conversion.r_g_from_units(smbh_mass_si, disk_radius_of_gravitational_influence_si)
 
     # Surface density at the gravitational influence radius
     disk_surface_density_at_rm_rg = disk_surface_density_func(disk_radius_of_gravitational_influence_rg) * u.kg / u.m**2
@@ -166,7 +168,7 @@ def setup_captured_stars_orbs_a(num_stars_captured, disk_lifetime, smbh_mass, di
     star_radius_avg = (10 ** star_logR_avg) * u.Rsun
 
     radius_tde_si = (star_radius_avg * (smbh_mass_si / star_mass_average_si) ** (1/3)).to("pc")
-    radius_tde_rg = r_g_from_units(smbh_mass_si, radius_tde_si)
+    radius_tde_rg = unit_conversion.r_g_from_units(smbh_mass_si, radius_tde_si)
 
     # given by eqn 46 in WZL2024, Sigma_sun * (m / Msun) ^-1/2
     star_surface_density = ((1.39e11) * (u.gram/u.cm**2) * ((star_mass_average_si / u.Msun) ** -0.5))
@@ -175,7 +177,7 @@ def setup_captured_stars_orbs_a(num_stars_captured, disk_lifetime, smbh_mass, di
     disk_orbital_period = (2 * np.pi * np.sqrt((disk_radius_of_gravitational_influence_si ** 3) / (const.G * smbh_mass_si))).to("second")
 
     star_orb_a_max_si = (disk_radius_of_gravitational_influence_si * ((disk_surface_density_at_rm_rg * disk_lifetime_si) / (star_surface_density * disk_orbital_period)) ** (1./3.)).to("pc")
-    star_orb_a_max_rg = r_g_from_units(smbh_mass_si, star_orb_a_max_si)
+    star_orb_a_max_rg = unit_conversion.r_g_from_units(smbh_mass_si, star_orb_a_max_si)
 
     # Captured stars are distributed between disk_inner_stable_circ_orb and star_orb_a_max with a powerlaw distribution r^-1/4
     x_vals = rng.uniform(low=0, high=1, size=num_stars_captured)

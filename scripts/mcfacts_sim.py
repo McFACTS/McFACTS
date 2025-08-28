@@ -11,7 +11,7 @@ from astropy import units as u
 
 from mcfacts.inputs import ReadInputs
 from mcfacts.inputs import data as input_data
-from mcfacts.modules import accretion, merge, formation, gas_hardening, damping
+from mcfacts.modules import accretion, merge, formation, gas_hardening, damping, disk_capture_stars
 from mcfacts.modules import disk_capture
 from mcfacts.modules import dynamics
 from mcfacts.modules import eccentricity
@@ -28,7 +28,7 @@ from mcfacts.outputs import emri_cols, bh_surviving_cols, bh_cols, \
     population_cols, binary_gw_cols, stars_cols, stars_explode_cols, \
     tde_cols, stars_merge_cols
 
-#binary_field_names = "bin_orb_a1 bin_orb_a2 mass1 mass2 spin1 spin2 theta1 theta2 sep bin_com time_gw merger_flag time_mgr  gen_1 gen_2  bin_ang_mom bin_ecc bin_incl bin_orb_ecc nu_gw h_bin"
+# binary_field_names = "bin_orb_a1 bin_orb_a2 mass1 mass2 spin1 spin2 theta1 theta2 sep bin_com time_gw merger_flag time_mgr  gen_1 gen_2  bin_ang_mom bin_ecc bin_incl bin_orb_ecc nu_gw h_bin"
 # This one isn't used anywhere
 
 # Do not change this line EVER
@@ -41,8 +41,7 @@ FORBIDDEN_ARGS = [
     "disk_radius_outer",
     "disk_radius_max_pc",
     "disk_radius_inner",
-    ]
-
+]
 
 def arg():
     import argparse
@@ -90,7 +89,6 @@ def arg():
                             type=_dtype,
                             metavar=_metavar,
                             )
-
 
     # Parse arguments, using the opts namespace
     # This causes the default inifile values to be overwritten
@@ -163,7 +161,7 @@ def arg():
     # Check ISCO
     if opts.inner_disk_outer_radius < opts.disk_inner_stable_circ_orb:
         warnings.warn(
-            "Warning: inner_disk_outer_radius < disk_inner_stable_circ_orb;\n" +\
+            "Warning: inner_disk_outer_radius < disk_inner_stable_circ_orb;\n" + \
             "Setting opts.inner_disk_outer_radius = disk_inner_stable_circ_orb"
         )
         opts.inner_disk_outer_radius = opts.disk_inner_stable_circ_orb
@@ -176,22 +174,13 @@ def arg():
                 line = "%s = %s\n" % (item, 0)
             elif opts.__dict__[item] == True:
                 line = "%s = %s\n" % (item, 1)
-            else: # everything else
+            else:  # everything else
                 line = "%s = %s\n" % (item, str(opts.__dict__[item]))
             F.write(line)
     return opts
 
+
 def main():
-    """
-    """
-
-    from mcfacts.physics import point_masses
-    from mcfacts.physics import lum
-    from mcfacts.physics import analytical_velo
-
-    from mcfacts.inputs import ReadInputs
-    from mcfacts.inputs import data as input_data
-
     tic_perf = time.perf_counter()
     # Setting up automated input parameters
     # see IOdocumentation.txt for documentation of variable names/types/etc.
@@ -207,7 +196,7 @@ def main():
                                          opts.disk_radius_outer,
                                          opts.disk_model_name,
                                          opts.disk_alpha_viscosity,
-                                         opts.disk_bh_eddington_ratio, 
+                                         opts.disk_bh_eddington_ratio,
                                          disk_radius_max_pc=opts.disk_radius_max_pc,
                                          flag_use_pagn=opts.flag_use_pagn,
                                          verbose=opts.verbose
@@ -232,21 +221,19 @@ def main():
         tdes_save_name = f"{basename}_tdes{extension}"
         disk_mass_cycled_save_name = f"{basename}_diskmasscycled{extension}"
 
-        with open(os.path.join(opts.work_directory, disk_mass_cycled_save_name), "w") as file:
-            file.write("galaxy timestep mass_gained mass_lost\n")
-
     print("opts.__dict__", opts.__dict__)
     print("opts.smbh_mass", opts.smbh_mass)
     print("opts.fraction_bin_retro", opts.fraction_bin_retro)
 
+    print()
     for galaxy in range(opts.galaxy_num):
         print("Galaxy", galaxy)
         # Set random number generator for this run with incremented seed
-        rng = reset_random(opts.seed+galaxy)
+        rng = reset_random(opts.seed + galaxy)
 
         # Make subdirectories for each galaxy
         # Fills run number with leading zeros to stay sequential
-        galaxy_zfilled_str = f"{galaxy:>0{int(np.log10(opts.galaxy_num))+1}}"
+        galaxy_zfilled_str = f"{galaxy:>0{int(np.log10(opts.galaxy_num)) + 1}}"
         try:  # Make subdir, exit if it exists to avoid clobbering.
             os.makedirs(os.path.join(opts.work_directory, f"gal{galaxy_zfilled_str}"), exist_ok=False)
         except FileExistsError:
@@ -254,7 +241,7 @@ def main():
 
         # Housekeeping: Set up time
         time_init = 0.0
-        time_final = opts.timestep_duration_yr*opts.timestep_num
+        time_final = opts.timestep_duration_yr * opts.timestep_num
 
         # Housekeeping for array initialization
         blackholes_binary = AGNBinaryBlackHole()
@@ -269,7 +256,7 @@ def main():
         # e.g 0.02 rad=1deg
         disk_bh_spin_resolution_min = 0.02
         agn_redshift = 0.1
-        #------------------       HARDCODING agn_redshift = 0.1 HERE       -----------------------------------
+        # ------------------       HARDCODING agn_redshift = 0.1 HERE       -----------------------------------
         # This is for computing the gw strain for sources and NOTHING else if you are 
         #   not using our strain this parameter will do nothing. If you are using our strain and you want to put 
         #   your sources at a different distance, scale them to the value here DO NOT CHANGE 
@@ -306,25 +293,25 @@ def main():
         # generate initial BH parameter arrays
         print("Generate initial BH parameter arrays")
         bh_orb_a_initial = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
-                disk_bh_num, opts.disk_radius_outer, opts.disk_inner_stable_circ_orb,
-                opts.smbh_mass, opts.nsc_radius_crit, opts.nsc_density_index_inner,
-                opts.nsc_density_index_outer, volume_scaling=True)
+            disk_bh_num, opts.disk_radius_outer, opts.disk_inner_stable_circ_orb,
+            opts.smbh_mass, opts.nsc_radius_crit, opts.nsc_density_index_inner,
+            opts.nsc_density_index_outer, volume_scaling=True)
         bh_mass_initial = setupdiskblackholes.setup_disk_blackholes_masses(
-                disk_bh_num,
-                opts.nsc_imf_bh_mode,
-                opts.nsc_imf_bh_mass_max,
-                opts.nsc_imf_bh_powerlaw_index,
-                opts.mass_pile_up,
-                opts.nsc_imf_bh_method,
+            disk_bh_num,
+            opts.nsc_imf_bh_mode,
+            opts.nsc_imf_bh_mass_max,
+            opts.nsc_imf_bh_powerlaw_index,
+            opts.mass_pile_up,
+            opts.nsc_imf_bh_method,
         )
         bh_spin_initial = setupdiskblackholes.setup_disk_blackholes_spins(
-                disk_bh_num,
-                opts.nsc_bh_spin_dist_mu, opts.nsc_bh_spin_dist_sigma)
+            disk_bh_num,
+            opts.nsc_bh_spin_dist_mu, opts.nsc_bh_spin_dist_sigma)
         bh_spin_angle_initial = setupdiskblackholes.setup_disk_blackholes_spin_angles(
-                disk_bh_num,
-                bh_spin_initial)
+            disk_bh_num,
+            bh_spin_initial)
         bh_orb_ang_mom_initial = setupdiskblackholes.setup_disk_blackholes_orb_ang_mom(
-                disk_bh_num)
+            disk_bh_num)
         if opts.flag_orb_ecc_damping == 1:
             bh_orb_ecc_initial = setupdiskblackholes.setup_disk_blackholes_eccentricity_uniform(disk_bh_num, opts.disk_bh_orb_ecc_max_init)
         else:
@@ -359,7 +346,7 @@ def main():
         # region Setup Single Stars
         # Initialize stars
         if opts.flag_add_stars:
-            stars, disk_star_num = initializediskstars.init_single_stars(opts, disk_aspect_ratio, galaxy, id_start_val=filing_cabinet.id_max+1)
+            stars, disk_star_num = initializediskstars.init_single_stars(opts, disk_aspect_ratio, galaxy, id_start_val=filing_cabinet.id_max + 1)
         else:
             stars, disk_star_num = AGNStar(), 0
 
@@ -380,7 +367,7 @@ def main():
             captured_stars_masses = disk_capture_stars.setup_captured_stars_masses(captured_star_mass_total, opts.disk_star_mass_min_init, opts.disk_star_mass_max_init, opts.nsc_imf_star_powerlaw_index)
             captured_stars_orbs_a = disk_capture_stars.setup_captured_stars_orbs_a(len(captured_stars_masses), time_final, opts.smbh_mass, disk_surface_density, opts.disk_star_mass_min_init, opts.disk_star_mass_max_init, opts.nsc_imf_star_powerlaw_index)
             captured_stars = disk_capture_stars.distribute_captured_stars(captured_stars_masses, captured_stars_orbs_a, opts.timestep_num, opts.timestep_duration_yr)
-
+            print(f"Capturing ~{int(np.rint(len(captured_stars_masses) / opts.timestep_num))} NSC stars per timestep / ~{int(np.rint(len(captured_stars_masses) / time_final * 1e5))} NSC stars per 0.1 Myr")
         # Writing initial parameters to file
         if opts.flag_add_stars:
             stars.to_txt(os.path.join(opts.work_directory, f"gal{galaxy_zfilled_str}/initial_params_star.dat"))
@@ -632,7 +619,7 @@ def main():
                     disk_opacity,
                     opts.disk_bh_eddington_ratio,
                     opts.disk_alpha_viscosity,
-                    opts.disk_radius_outer,)
+                    opts.disk_radius_outer, )
             else:
                 ratio_heat_mig_torques = np.ones(blackholes_pro.num)
                 ratio_heat_mig_stars_torques = np.ones(stars_pro.num)
@@ -859,21 +846,21 @@ def main():
                     opts.disk_star_mass_min_init,
                     opts.torque_prescription
                 )
-            #Make sure no zeros in orb_a. Get indices of orbs_a that are less than disk_inner_stable_circ_orb
+            # Make sure no zeros in orb_a. Get indices of orbs_a that are less than disk_inner_stable_circ_orb
             # Get indices of objects with orb_ecc <= opts.disk_inner_stable_circ_orb so we can remove them.
-            #plunging_indices = np.asarray(blackholes_pro.orb_a) <= opts.disk_inner_stable_circ_orb).nonzero()[0]
-            #blackholes_pro.orb_a = blackholes_pro.orb_a[~plunging_indices]
-            #blackholes_pro.orb_ecc = blackholes_pro.orb_ecc[~plunging_indices]
-            #blackholes_pro.mass = blackholes_pro.mass[~plunging_indices]
-            #blackholes_pro.spin = blackholes_pro.spin[~plunging_indices]
-            #blackholes_pro.spin_angle = blackholes_pro.spin_angle[~plunging_indices]
-            #blackholes_pro. = blackholes_pro.orb_ecc[~plunging_indices]
+            # plunging_indices = np.asarray(blackholes_pro.orb_a) <= opts.disk_inner_stable_circ_orb).nonzero()[0]
+            # blackholes_pro.orb_a = blackholes_pro.orb_a[~plunging_indices]
+            # blackholes_pro.orb_ecc = blackholes_pro.orb_ecc[~plunging_indices]
+            # blackholes_pro.mass = blackholes_pro.mass[~plunging_indices]
+            # blackholes_pro.spin = blackholes_pro.spin[~plunging_indices]
+            # blackholes_pro.spin_angle = blackholes_pro.spin_angle[~plunging_indices]
+            # blackholes_pro. = blackholes_pro.orb_ecc[~plunging_indices]
 
-            blackholes_pro.orb_a = np.where(blackholes_pro.orb_a > opts.disk_inner_stable_circ_orb, blackholes_pro.orb_a, 3*opts.disk_inner_stable_circ_orb)
+            blackholes_pro.orb_a = np.where(blackholes_pro.orb_a > opts.disk_inner_stable_circ_orb, blackholes_pro.orb_a, 3 * opts.disk_inner_stable_circ_orb)
             if new_orb_a_bh is not None:
                 blackholes_pro.orb_a = new_orb_a_bh
 
-            stars_pro.orb_a = np.where(stars_pro.orb_a > opts.disk_inner_stable_circ_orb, stars_pro.orb_a, 3*opts.disk_inner_stable_circ_orb)
+            stars_pro.orb_a = np.where(stars_pro.orb_a > opts.disk_inner_stable_circ_orb, stars_pro.orb_a, 3 * opts.disk_inner_stable_circ_orb)
             if new_orb_a_star is not None:
                 stars_pro.orb_a = new_orb_a_star
             # Update filing cabinet
@@ -942,27 +929,18 @@ def main():
             filing_cabinet.update(id_num=stars_pro.id_num,
                                   attr=["mass", "size"],
                                   new_info=[stars_pro.mass,
-                                            point_masses.r_g_from_units(opts.smbh_mass, (10 ** stars_pro.log_radius) * u.Rsun).value])
+                                            unit_conversion.r_g_from_units(opts.smbh_mass, (10 ** stars_pro.log_radius) * u.Rsun).value])
 
-            # Spin up
-            blackholes_pro.spin = accretion.change_bh_spin_magnitudes(
+            # Spin up/down and torque spin angle
+            blackholes_pro.spin, blackholes_pro.spin_angle = accretion.change_bh_spin(
                 blackholes_pro.spin,
-                opts.disk_bh_eddington_ratio,
-                opts.disk_bh_torque_condition,
-                opts.timestep_duration_yr,
-                blackholes_pro.orb_ecc,
-                opts.disk_bh_pro_orb_ecc_crit,
-            )
-
-            # Torque spin angle
-            blackholes_pro.spin_angle = accretion.change_bh_spin_angles(
                 blackholes_pro.spin_angle,
                 opts.disk_bh_eddington_ratio,
                 opts.disk_bh_torque_condition,
                 disk_bh_spin_resolution_min,
                 opts.timestep_duration_yr,
                 blackholes_pro.orb_ecc,
-                opts.disk_bh_pro_orb_ecc_crit
+                opts.disk_bh_pro_orb_ecc_crit,
             )
 
             # Damp orbital eccentricity
@@ -1096,7 +1074,7 @@ def main():
                     opts.delta_energy_strong_mu,
                     opts.delta_energy_strong_sigma,
                     opts.disk_radius_outer,
-                    fast_cube = opts.flag_dynamics_sweep
+                    fast_cube=opts.flag_dynamics_sweep
                 )
 
                 if stars_unbound_id_nums.size > 0:
@@ -1299,23 +1277,15 @@ def main():
                         disk_bh_eddington_mass_growth_rate,
                         opts.timestep_duration_yr)
 
-                    blackholes_pro.spin[bh_id_mask] = accretion.change_bh_spin_magnitudes(
+                    blackholes_pro.spin[bh_id_mask], blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin(
                         blackholes_pro.spin[bh_id_mask],
-                        opts.disk_bh_eddington_ratio,
-                        opts.disk_bh_torque_condition,
-                        opts.timestep_duration_yr,
-                        blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit,
-                    )
-
-                    blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin_angles(
                         blackholes_pro.spin_angle[bh_id_mask],
                         opts.disk_bh_eddington_ratio,
                         opts.disk_bh_torque_condition,
                         disk_bh_spin_resolution_min,
                         opts.timestep_duration_yr,
                         blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit
+                        opts.disk_bh_pro_orb_ecc_crit,
                     )
 
                     # Update filing cabinet
@@ -1341,11 +1311,11 @@ def main():
                 # region Binary Reality Check 1
                 # First check that binaries are real (mass and location are not zero)
                 bh_binary_id_num_unphysical = checks.bin_check_params(blackholes_binary.mass_1,
-                                                                             blackholes_binary.mass_2,
-                                                                             blackholes_binary.orb_a_1,
-                                                                             blackholes_binary.orb_a_2,
-                                                                             blackholes_binary.bin_ecc,
-                                                                             blackholes_binary.id_num)
+                                                                      blackholes_binary.mass_2,
+                                                                      blackholes_binary.orb_a_1,
+                                                                      blackholes_binary.orb_a_2,
+                                                                      blackholes_binary.bin_ecc,
+                                                                      blackholes_binary.id_num)
                 if bh_binary_id_num_unphysical.size > 0:
                     blackholes_binary.remove_id_num(bh_binary_id_num_unphysical)
                     filing_cabinet.remove_id_num(bh_binary_id_num_unphysical)
@@ -1426,11 +1396,11 @@ def main():
                     if (bh_binary_id_num_merger.size > 0):
 
                         bh_binary_id_num_unphysical = checks.bin_check_params(blackholes_binary.mass_1,
-                                                                                     blackholes_binary.mass_2,
-                                                                                     blackholes_binary.orb_a_1,
-                                                                                     blackholes_binary.orb_a_2,
-                                                                                     blackholes_binary.bin_ecc,
-                                                                                     blackholes_binary.id_num)
+                                                                              blackholes_binary.mass_2,
+                                                                              blackholes_binary.orb_a_1,
+                                                                              blackholes_binary.orb_a_2,
+                                                                              blackholes_binary.bin_ecc,
+                                                                              blackholes_binary.id_num)
                         if bh_binary_id_num_unphysical.size > 0:
                             blackholes_binary.remove_id_num(bh_binary_id_num_unphysical)
                             filing_cabinet.remove_id_num(bh_binary_id_num_unphysical)
@@ -1496,7 +1466,7 @@ def main():
                         # For now add 2 new orb ecc term of 0.01. inclination is 0.0 as well. TO DO: calculate v_kick and resulting perturbation to orb ecc.
 
                         new_orb_ecc = eccentricity.ionized_orb_ecc(bbh_id_nums_ionized.size * 2, opts.disk_bh_orb_ecc_max_init)
-                        new_id_nums = np.arange(filing_cabinet.id_max+1, filing_cabinet.id_max + 1 + bbh_id_nums_ionized.size * 2, 1)
+                        new_id_nums = np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + bbh_id_nums_ionized.size * 2, 1)
                         blackholes_pro.add_blackholes(
                             new_mass=np.concatenate([
                                 blackholes_binary.at_id_num(bbh_id_nums_ionized, "mass_1"),
@@ -1559,7 +1529,7 @@ def main():
                         if (star_id_nums_fakequasi.size > 0):
                             # if star mass > binary mass the BBH hardens so bin_sep = Rsun and star blows up
                             _, bbh_fakequasi_id_mask = np.where(blackholes_binary.id_num == bbh_id_nums_fakequasi[:, None])
-                            blackholes_binary.bin_sep[bbh_fakequasi_id_mask] = point_masses.r_g_from_units(opts.smbh_mass, 1.*u.Rsun).value
+                            blackholes_binary.bin_sep[bbh_fakequasi_id_mask] = unit_conversion.r_g_from_units(opts.smbh_mass, 1. * u.Rsun).value
                             stars_explode.add_stars(new_id_num_star=star_id_nums_fakequasi,
                                                     new_id_num_bh=bbh_id_nums_fakequasi,
                                                     new_mass_star=stars_pro.at_id_num(star_id_nums_fakequasi, "mass"),
@@ -1608,7 +1578,7 @@ def main():
                             filing_cabinet.remove_id_num(star_id_nums_normal)
 
                             # Accrete BBH and spin up, torque spin angle
-                            blackholes_binary.mass_1[bbh_normal_id_mask], blackholes_binary.mass_2[bbh_normal_id_mask] = evolve.change_bin_mass(
+                            blackholes_binary.mass_1[bbh_normal_id_mask], blackholes_binary.mass_2[bbh_normal_id_mask] = accretion.change_bin_mass(
                                 blackholes_binary.mass_1[bbh_normal_id_mask],
                                 blackholes_binary.mass_2[bbh_normal_id_mask],
                                 blackholes_binary.flag_merging[bbh_normal_id_mask],
@@ -1616,15 +1586,15 @@ def main():
                                 disk_bh_eddington_mass_growth_rate,
                                 opts.timestep_duration_yr)
 
-                            blackholes_binary.spin_1[bbh_normal_id_mask], blackholes_binary.spin_2[bbh_normal_id_mask] = evolve.change_bin_spin_magnitudes(
+                            blackholes_binary.spin_1[bbh_normal_id_mask], blackholes_binary.spin_2[bbh_normal_id_mask] = accretion.change_bin_spin_magnitudes(
                                 blackholes_binary.spin_1[bbh_normal_id_mask],
                                 blackholes_binary.spin_2[bbh_normal_id_mask],
                                 blackholes_binary.flag_merging[bbh_normal_id_mask],
                                 opts.disk_bh_eddington_ratio,
                                 opts.disk_bh_torque_condition,
-                                opts.timestep_duration_yr,)
+                                opts.timestep_duration_yr, )
 
-                            blackholes_binary.spin_angle_1[bbh_normal_id_mask], blackholes_binary.spin_angle_2[bbh_normal_id_mask] = evolve.change_bin_spin_angles(
+                            blackholes_binary.spin_angle_1[bbh_normal_id_mask], blackholes_binary.spin_angle_2[bbh_normal_id_mask] = accretion.change_bin_spin_angles(
                                 blackholes_binary.spin_angle_1[bbh_normal_id_mask],
                                 blackholes_binary.spin_angle_2[bbh_normal_id_mask],
                                 blackholes_binary.flag_merging[bbh_normal_id_mask],
@@ -1645,7 +1615,7 @@ def main():
 
                     # Check for mergers
                     # Check closeness of binary. Are black holes at merger condition separation
-                    blackholes_binary.bin_sep, blackholes_binary.flag_merging = evolve.bin_contact_check(blackholes_binary.mass_1, blackholes_binary.mass_2, blackholes_binary.bin_sep, blackholes_binary.flag_merging, opts.smbh_mass)
+                    blackholes_binary.bin_sep, blackholes_binary.flag_merging = checks.bin_contact_check(blackholes_binary.mass_1, blackholes_binary.mass_2, blackholes_binary.bin_sep, blackholes_binary.flag_merging, opts.smbh_mass)
                     bh_binary_id_num_merger = blackholes_binary.id_num[blackholes_binary.flag_merging < 0]
 
                     if opts.verbose:
@@ -1654,7 +1624,7 @@ def main():
 
                     if (bh_binary_id_num_merger.size > 0):
 
-                        bh_binary_id_num_unphysical = evolve.bin_reality_check(blackholes_binary.mass_1,
+                        bh_binary_id_num_unphysical = checks.bin_reality_check(blackholes_binary.mass_1,
                                                                                blackholes_binary.mass_2,
                                                                                blackholes_binary.orb_a_1,
                                                                                blackholes_binary.orb_a_2,
@@ -1737,11 +1707,11 @@ def main():
                     if (bh_binary_id_num_merger.size > 0):
 
                         bh_binary_id_num_unphysical = checks.bin_check_params(blackholes_binary.mass_1,
-                                                                                     blackholes_binary.mass_2,
-                                                                                     blackholes_binary.orb_a_1,
-                                                                                     blackholes_binary.orb_a_2,
-                                                                                     blackholes_binary.bin_ecc,
-                                                                                     blackholes_binary.id_num)
+                                                                              blackholes_binary.mass_2,
+                                                                              blackholes_binary.orb_a_1,
+                                                                              blackholes_binary.orb_a_2,
+                                                                              blackholes_binary.bin_ecc,
+                                                                              blackholes_binary.id_num)
                         if bh_binary_id_num_unphysical.size > 0:
                             blackholes_binary.remove_id_num(bh_binary_id_num_unphysical)
                             filing_cabinet.remove_id_num(bh_binary_id_num_unphysical)
@@ -1805,7 +1775,7 @@ def main():
                         # Append 2 new BH to arrays of single BH locations, masses, spins, spin angles & gens
                         # For now add 2 new orb ecc term of 0.01. inclination is 0.0 as well. TO DO: calculate v_kick and resulting perturbation to orb ecc.
                         new_orb_ecc = eccentricity.ionized_orb_ecc(bbh_id_nums_ionized.size * 2, opts.disk_bh_orb_ecc_max_init)
-                        new_id_nums = np.arange(filing_cabinet.id_max+1, filing_cabinet.id_max + 1 + bbh_id_nums_ionized.size * 2, 1)
+                        new_id_nums = np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + bbh_id_nums_ionized.size * 2, 1)
                         blackholes_pro.add_blackholes(
                             new_mass=np.concatenate([
                                 blackholes_binary.at_id_num(bbh_id_nums_ionized, "mass_1"),
@@ -1867,7 +1837,7 @@ def main():
                         if (star_id_nums_fakequasi.size > 0):
                             # if star mass > binary mass the BBH hardens so bin_sep = Rsun and star blows up
                             _, bbh_fakequasi_id_mask = np.where(blackholes_binary.id_num == bbh_id_nums_fakequasi[:, None])
-                            blackholes_binary.bin_sep[bbh_fakequasi_id_mask] = point_masses.r_g_from_units(opts.smbh_mass, 1.*u.Rsun).value
+                            blackholes_binary.bin_sep[bbh_fakequasi_id_mask] = unit_conversion.r_g_from_units(opts.smbh_mass, 1. * u.Rsun).value
                             stars_explode.add_stars(new_id_num_star=star_id_nums_fakequasi,
                                                     new_id_num_bh=bbh_id_nums_fakequasi,
                                                     new_mass_star=stars_pro.at_id_num(star_id_nums_fakequasi, "mass"),
@@ -1915,7 +1885,7 @@ def main():
                             filing_cabinet.remove_id_num(star_id_nums_normal)
 
                             # Accrete BBH and spin up, torque spin angle
-                            blackholes_binary.mass_1[bbh_normal_id_mask], blackholes_binary.mass_2[bbh_normal_id_mask] = evolve.change_bin_mass(
+                            blackholes_binary.mass_1[bbh_normal_id_mask], blackholes_binary.mass_2[bbh_normal_id_mask] = accretion.change_bin_mass(
                                 blackholes_binary.mass_1[bbh_normal_id_mask],
                                 blackholes_binary.mass_2[bbh_normal_id_mask],
                                 blackholes_binary.flag_merging[bbh_normal_id_mask],
@@ -1923,15 +1893,15 @@ def main():
                                 disk_bh_eddington_mass_growth_rate,
                                 opts.timestep_duration_yr)
 
-                            blackholes_binary.spin_1[bbh_normal_id_mask], blackholes_binary.spin_2[bbh_normal_id_mask] = evolve.change_bin_spin_magnitudes(
+                            blackholes_binary.spin_1[bbh_normal_id_mask], blackholes_binary.spin_2[bbh_normal_id_mask] = accretion.change_bin_spin_magnitudes(
                                 blackholes_binary.spin_1[bbh_normal_id_mask],
                                 blackholes_binary.spin_2[bbh_normal_id_mask],
                                 blackholes_binary.flag_merging[bbh_normal_id_mask],
                                 opts.disk_bh_eddington_ratio,
                                 opts.disk_bh_torque_condition,
-                                opts.timestep_duration_yr,)
+                                opts.timestep_duration_yr, )
 
-                            blackholes_binary.spin_angle_1[bbh_normal_id_mask], blackholes_binary.spin_angle_2[bbh_normal_id_mask] = evolve.change_bin_spin_angles(
+                            blackholes_binary.spin_angle_1[bbh_normal_id_mask], blackholes_binary.spin_angle_2[bbh_normal_id_mask] = accretion.change_bin_spin_angles(
                                 blackholes_binary.spin_angle_1[bbh_normal_id_mask],
                                 blackholes_binary.spin_angle_2[bbh_normal_id_mask],
                                 blackholes_binary.flag_merging[bbh_normal_id_mask],
@@ -1952,7 +1922,7 @@ def main():
 
                     # Check for mergers
                     # Check closeness of binary. Are black holes at merger condition separation
-                    blackholes_binary.bin_sep, blackholes_binary.flag_merging = evolve.bin_contact_check(blackholes_binary.mass_1, blackholes_binary.mass_2, blackholes_binary.bin_sep, blackholes_binary.flag_merging, opts.smbh_mass)
+                    blackholes_binary.bin_sep, blackholes_binary.flag_merging = checks.bin_contact_check(blackholes_binary.mass_1, blackholes_binary.mass_2, blackholes_binary.bin_sep, blackholes_binary.flag_merging, opts.smbh_mass)
                     bh_binary_id_num_merger = blackholes_binary.id_num[blackholes_binary.flag_merging < 0]
 
                     if opts.verbose:
@@ -1960,7 +1930,7 @@ def main():
                         print(bh_binary_id_num_merger)
 
                     if (bh_binary_id_num_merger.size > 0):
-                        bh_binary_id_num_unphysical = evolve.bin_reality_check(blackholes_binary.mass_1,
+                        bh_binary_id_num_unphysical = checks.bin_reality_check(blackholes_binary.mass_1,
                                                                                blackholes_binary.mass_2,
                                                                                blackholes_binary.orb_a_1,
                                                                                blackholes_binary.orb_a_2,
@@ -2042,11 +2012,11 @@ def main():
 
                 if (bh_binary_id_num_merger.size > 0):
                     bh_binary_id_num_unphysical = checks.bin_check_params(blackholes_binary.mass_1,
-                                                                                 blackholes_binary.mass_2,
-                                                                                 blackholes_binary.orb_a_1,
-                                                                                 blackholes_binary.orb_a_2,
-                                                                                 blackholes_binary.bin_ecc,
-                                                                                 blackholes_binary.id_num)
+                                                                          blackholes_binary.mass_2,
+                                                                          blackholes_binary.orb_a_1,
+                                                                          blackholes_binary.orb_a_2,
+                                                                          blackholes_binary.bin_ecc,
+                                                                          blackholes_binary.id_num)
                     if bh_binary_id_num_unphysical.size > 0:
                         blackholes_binary.remove_id_num(bh_binary_id_num_unphysical)
                         filing_cabinet.remove_id_num(bh_binary_id_num_unphysical)
@@ -2063,11 +2033,11 @@ def main():
 
                     # Update filing cabinet
                     filing_cabinet.update(id_num=bh_binary_id_num_merger,
-                                              attr=["category", "mass", "orb_ecc", "size"],
-                                              new_info=[np.full(bh_binary_id_num_merger.size, 0),
-                                                        blackholes_pro.at_id_num(bh_binary_id_num_merger, "mass"),
-                                                        blackholes_pro.at_id_num(bh_binary_id_num_merger, "orb_ecc"),
-                                                        np.full(bh_binary_id_num_merger.size, -1.5)])
+                                          attr=["category", "mass", "orb_ecc", "size"],
+                                          new_info=[np.full(bh_binary_id_num_merger.size, 0),
+                                                    blackholes_pro.at_id_num(bh_binary_id_num_merger, "mass"),
+                                                    blackholes_pro.at_id_num(bh_binary_id_num_merger, "orb_ecc"),
+                                                    np.full(bh_binary_id_num_merger.size, -1.5)])
                     blackholes_binary.remove_id_num(bh_binary_id_num_merger)
 
                     if opts.verbose:
@@ -2158,11 +2128,11 @@ def main():
                     if (bh_binary_id_num_merger.size > 0):
 
                         bh_binary_id_num_unphysical = checks.bin_check_params(blackholes_binary.mass_1,
-                                                                                     blackholes_binary.mass_2,
-                                                                                     blackholes_binary.orb_a_1,
-                                                                                     blackholes_binary.orb_a_2,
-                                                                                     blackholes_binary.bin_ecc,
-                                                                                     blackholes_binary.id_num)
+                                                                              blackholes_binary.mass_2,
+                                                                              blackholes_binary.orb_a_1,
+                                                                              blackholes_binary.orb_a_2,
+                                                                              blackholes_binary.bin_ecc,
+                                                                              blackholes_binary.id_num)
                         if bh_binary_id_num_unphysical.size > 0:
                             blackholes_binary.remove_id_num(bh_binary_id_num_unphysical)
                             filing_cabinet.remove_id_num(bh_binary_id_num_unphysical)
@@ -2292,13 +2262,13 @@ def main():
 
                     if np.size(normalized_torque_bh) > 0:
                         if opts.torque_prescription == 'paardekooper':
-                            torque = paardekooper_torque_coeff_bh*normalized_torque_bh
+                            torque = paardekooper_torque_coeff_bh * normalized_torque_bh
                             disk_trap_radius = opts.disk_radius_trap
                             disk_anti_trap_radius = opts.disk_radius_trap
                         if opts.torque_prescription == 'jimenez_masset':
-                            torque = total_jimenez_masset_torque_bh*normalized_torque_bh
-                        # Set up trap scaling as a function of mass for Jimenez-Masset (for SG-like disk)
-                        # No traps if M_smbh >10^8Msun (approx.)
+                            torque = total_jimenez_masset_torque_bh * normalized_torque_bh
+                            # Set up trap scaling as a function of mass for Jimenez-Masset (for SG-like disk)
+                            # No traps if M_smbh >10^8Msun (approx.)
                             if opts.smbh_mass > 1.e8:
                                 disk_trap_radius = opts.disk_inner_stable_circ_orb
                                 disk_anti_trap_radius = opts.disk_inner_stable_circ_orb
@@ -2307,12 +2277,12 @@ def main():
                                 disk_anti_trap_radius = opts.disk_radius_trap
                             # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
                             if opts.smbh_mass < 1.e8 and opts.smbh_mass > 1.e6:
-                                disk_trap_radius = opts.disk_radius_trap * (opts.smbh_mass/1.e8)**(-1.225)
-                                disk_anti_trap_radius = opts.disk_radius_trap * (opts.smbh_mass/1.e8)**(0.099)
+                                disk_trap_radius = opts.disk_radius_trap * (opts.smbh_mass / 1.e8) ** (-1.225)
+                                disk_anti_trap_radius = opts.disk_radius_trap * (opts.smbh_mass / 1.e8) ** (0.099)
                             # Trap location changes again at low SMBH mass (Grishin+24)
                             if opts.smbh_mass < 1.e6:
-                                disk_trap_radius = opts.disk_radius_trap * (opts.smbh_mass/1.e8)**(-0.97)
-                                disk_anti_trap_radius = opts.disk_radius_trap * (opts.smbh_mass/1.e8)**(0.099)
+                                disk_trap_radius = opts.disk_radius_trap * (opts.smbh_mass / 1.e8) ** (-0.97)
+                                disk_anti_trap_radius = opts.disk_radius_trap * (opts.smbh_mass / 1.e8) ** (0.099)
 
                         torque_mig_timescales_bh = migration.torque_mig_timescale(
                             opts.smbh_mass,
@@ -2358,7 +2328,7 @@ def main():
                 if (bh_binary_id_num_gw.size > 0):
                     # 1st time around.
                     if num_bbh_gw_tracked == 0:
-                        old_bbh_gw_freq = 9.e-7*np.ones(bh_binary_id_num_gw.size)
+                        old_bbh_gw_freq = 9.e-7 * np.ones(bh_binary_id_num_gw.size)
                     if num_bbh_gw_tracked > 0:
                         old_bbh_gw_freq = blackholes_binary.at_id_num(bh_binary_id_num_gw, "gw_freq")
 
@@ -2372,7 +2342,7 @@ def main():
                         opts.timestep_duration_yr,
                         old_bbh_gw_freq,
                         agn_redshift
-                        )
+                    )
 
                     blackholes_binary_gw.add_binaries(
                         new_id_num=bh_binary_id_num_gw,
@@ -2418,7 +2388,7 @@ def main():
                     # For now add 2 new orb ecc term of 0.01. inclination is 0.0 as well. TO DO: calculate v_kick and resulting perturbation to orb ecc.
 
                     new_orb_ecc = eccentricity.ionized_orb_ecc(bh_binary_id_num_ionization.size * 2, opts.disk_bh_orb_ecc_max_init)
-                    new_id_nums = np.arange(filing_cabinet.id_max+1, filing_cabinet.id_max + 1 + bh_binary_id_num_ionization.size * 2, 1)
+                    new_id_nums = np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + bh_binary_id_num_ionization.size * 2, 1)
                     blackholes_pro.add_blackholes(
                         new_mass=np.concatenate([
                             blackholes_binary.at_id_num(bh_binary_id_num_ionization, "mass_1"),
@@ -2476,11 +2446,11 @@ def main():
                 if (bh_binary_id_num_merger.size > 0):
 
                     bh_binary_id_num_unphysical = checks.bin_check_params(blackholes_binary.mass_1,
-                                                                           blackholes_binary.mass_2,
-                                                                           blackholes_binary.orb_a_1,
-                                                                           blackholes_binary.orb_a_2,
-                                                                           blackholes_binary.bin_ecc,
-                                                                           blackholes_binary.id_num)
+                                                                          blackholes_binary.mass_2,
+                                                                          blackholes_binary.orb_a_1,
+                                                                          blackholes_binary.orb_a_2,
+                                                                          blackholes_binary.bin_ecc,
+                                                                          blackholes_binary.id_num)
                     if bh_binary_id_num_unphysical.size > 0:
                         blackholes_binary.remove_id_num(bh_binary_id_num_unphysical)
                         filing_cabinet.remove_id_num(bh_binary_id_num_unphysical)
@@ -2498,11 +2468,11 @@ def main():
 
                     # Update filing cabinet
                     filing_cabinet.update(id_num=bh_binary_id_num_merger,
-                                           attr=["category", "mass", "orb_ecc", "size"],
-                                           new_info=[np.full(bh_binary_id_num_merger.size, 0),
-                                                        blackholes_pro.at_id_num(bh_binary_id_num_merger, "mass"),
-                                                        blackholes_pro.at_id_num(bh_binary_id_num_merger, "orb_ecc"),
-                                                        np.full(bh_binary_id_num_merger.size, -1.5)])
+                                          attr=["category", "mass", "orb_ecc", "size"],
+                                          new_info=[np.full(bh_binary_id_num_merger.size, 0),
+                                                    blackholes_pro.at_id_num(bh_binary_id_num_merger, "mass"),
+                                                    blackholes_pro.at_id_num(bh_binary_id_num_merger, "orb_ecc"),
+                                                    np.full(bh_binary_id_num_merger.size, -1.5)])
                     blackholes_binary.remove_id_num(bh_binary_id_num_merger)
 
                     if opts.verbose:
@@ -2524,8 +2494,8 @@ def main():
             # If a close encounter within mutual Hill sphere objects will form a binary or otherwise interact
             # check which objects have a close encounter within mutual Hill sphere
             id_nums_check = filing_cabinet.id_num[((filing_cabinet.category == 0) | (filing_cabinet.category == 1)) &  # single BH (0) or star (1)
-                                                   (filing_cabinet.direction == 1) &  # prograde
-                                                   (filing_cabinet.disk_inner_outer == 1)]  # in the outer disk
+                                                  (filing_cabinet.direction == 1) &  # prograde
+                                                  (filing_cabinet.disk_inner_outer == 1)]  # in the outer disk
 
             close_encounters_id_nums = formation.close_encounters_check(id_nums_check,
                                                                         filing_cabinet,
@@ -2598,23 +2568,15 @@ def main():
                         disk_bh_eddington_mass_growth_rate,
                         opts.timestep_duration_yr)
 
-                    blackholes_pro.spin[bh_id_mask] = accretion.change_bh_spin_magnitudes(
+                    blackholes_pro.spin[bh_id_mask], blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin(
                         blackholes_pro.spin[bh_id_mask],
-                        opts.disk_bh_eddington_ratio,
-                        opts.disk_bh_torque_condition,
-                        opts.timestep_duration_yr,
-                        blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit,
-                    )
-
-                    blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin_angles(
                         blackholes_pro.spin_angle[bh_id_mask],
                         opts.disk_bh_eddington_ratio,
                         opts.disk_bh_torque_condition,
                         disk_bh_spin_resolution_min,
                         opts.timestep_duration_yr,
                         blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit
+                        opts.disk_bh_pro_orb_ecc_crit,
                     )
 
                     # Update filing cabinet
@@ -2711,7 +2673,7 @@ def main():
                 bh_gen_captured = [1]
                 bh_orb_ecc_captured = [0.0]
                 bh_orb_inc_captured = [0.0]
-                bh_id_num_captured = np.arange(filing_cabinet.id_max+1, len(bh_mass_captured) + filing_cabinet.id_max+1, 1)
+                bh_id_num_captured = np.arange(filing_cabinet.id_max + 1, len(bh_mass_captured) + filing_cabinet.id_max + 1, 1)
                 # Append captured BH to existing singleton arrays. Assume prograde and 1st gen BH.
                 blackholes_pro.add_blackholes(new_mass=bh_mass_captured,
                                               new_spin=bh_spin_captured,
@@ -2722,8 +2684,8 @@ def main():
                                               new_orb_ecc=bh_orb_ecc_captured,
                                               new_orb_arg_periapse=np.full(bh_mass_captured.size, -1.5),
                                               new_gen=bh_gen_captured,
-                                              new_galaxy=np.full(len(bh_mass_captured),galaxy),
-                                              new_time_passed=np.full(len(bh_mass_captured),time_passed),
+                                              new_galaxy=np.full(len(bh_mass_captured), galaxy),
+                                              new_time_passed=np.full(len(bh_mass_captured), time_passed),
                                               new_id_num=bh_id_num_captured)
                 # Update filing cabinet
                 filing_cabinet.add_objects(new_id_num=bh_id_num_captured,
@@ -2853,7 +2815,7 @@ def main():
                     new_galaxy=blackholes_retro.at_id_num(bh_id_num_retro_inner_disk, "galaxy"),
                     new_time_passed=blackholes_retro.at_id_num(bh_id_num_retro_inner_disk, "time_passed"),
                     new_id_num=blackholes_retro.at_id_num(bh_id_num_retro_inner_disk, "id_num"),
-                    new_gw_freq=9.e-7*np.ones(len(bh_id_num_retro_inner_disk))
+                    new_gw_freq=9.e-7 * np.ones(len(bh_id_num_retro_inner_disk))
                 )
                 # Remove from blackholes_retro and update filing_cabinet
                 blackholes_retro.remove_id_num(bh_id_num_retro_inner_disk)
@@ -2908,7 +2870,7 @@ def main():
 
                 # On 1st run through define old GW freqs (at say 9.e-7 Hz, since evolution change is 1e-6Hz)
                 if blackholes_emris.num == 0:
-                    old_gw_freq = 9.e-7*np.ones(blackholes_inner_disk.num)
+                    old_gw_freq = 9.e-7 * np.ones(blackholes_inner_disk.num)
                 if blackholes_emris.num > 0:
                     old_gw_freq = blackholes_inner_disk.gw_freq
 
@@ -2926,7 +2888,7 @@ def main():
             if (stars_inner_disk.num > 0):
                 # FIX THIS: Return the new evolved bh_orb_ecc_inner_disk as they decay inwards.
                 # Potentially move inner disk behaviour to module that is not dynamics (e.g inner disk module)
-                stars_inner_disk.orb_a = dynamics.bh_near_smbh( # KN: TDEs need their own method here bc drag
+                stars_inner_disk.orb_a = dynamics.bh_near_smbh(  # KN: TDEs need their own method here bc drag
                     opts.smbh_mass,
                     stars_inner_disk.orb_a,
                     stars_inner_disk.mass,
@@ -2942,11 +2904,11 @@ def main():
 
                 # On 1st run through define old GW freqs (at say 9.e-7 Hz, since evolution change is 1e-6Hz)
                 if (stars_tdes.num == 0) and (stars_plunge.num == 0):
-                    old_gw_tde_freq = 9.e-7*np.ones(stars_inner_disk.num)
+                    old_gw_tde_freq = 9.e-7 * np.ones(stars_inner_disk.num)
                 if (stars_tdes.num > 0) or (stars_plunge.num > 0):
-                    old_gw_tde_freq = np.concatenate((tde_gw_freq, 9.e-7*np.ones(np.abs(stars_inner_disk.num - len(tde_gw_freq)))))
+                    old_gw_tde_freq = np.concatenate((tde_gw_freq, 9.e-7 * np.ones(np.abs(stars_inner_disk.num - len(tde_gw_freq)))))
 
-                tde_gw_strain, tde_gw_freq = gw.evolve_emri_gw( # KN: TDEs need their own method here bc drag
+                tde_gw_strain, tde_gw_freq = gw.evolve_emri_gw(  # KN: TDEs need their own method here bc drag
                     stars_inner_disk,
                     opts.timestep_duration_yr,
                     old_gw_tde_freq,
@@ -2970,7 +2932,7 @@ def main():
                                                 new_time_passed=np.full(emri_gw_freq.size, time_passed),
                                                 new_id_num=blackholes_inner_disk.id_num)
 
-            #merger_dist = 1.0
+            # merger_dist = 1.0
             emri_merger_id_num = blackholes_inner_disk.id_num[blackholes_inner_disk.orb_a <= opts.disk_inner_stable_circ_orb]
             star_rlof_smbh_id_num = stars_inner_disk.id_num[stars_inner_disk.orb_a <= opts.disk_inner_stable_circ_orb]
 
@@ -3002,7 +2964,7 @@ def main():
                     new_time_passed=stars_inner_disk.at_id_num(star_rlof_smbh_id_num, "time_passed"),
                     new_gen=stars_inner_disk.at_id_num(star_rlof_smbh_id_num, "gen"),
                     new_id_num=stars_inner_disk.at_id_num(star_rlof_smbh_id_num, "id_num")
-                    )
+                )
                 _, star_inner_disk_mask = np.where(stars_inner_disk.id_num == star_rlof_smbh_id_num[:, None])
                 gw_tde_keep_mask = np.ones(len(tde_gw_freq), dtype=bool)
                 gw_tde_keep_mask[star_inner_disk_mask] = 0
@@ -3015,7 +2977,7 @@ def main():
             # If they're IN the disk prograde, OR if they've circularized:
             # stop treating them with crude retro evolution--it will be sad
             # SF: fix the inc threshhold later to be truly 'in disk' but should be non-stupid as-is!!!
-            inc_threshhold = 5.0 * np.pi/180.0
+            inc_threshhold = 5.0 * np.pi / 180.0
             bh_id_num_flip_to_pro = blackholes_retro.id_num[np.where((np.abs(blackholes_retro.orb_inc) <= inc_threshhold) | (blackholes_retro.orb_ecc == 0.0))]
             if (bh_id_num_flip_to_pro.size > 0):
                 # add to prograde arrays
@@ -3106,7 +3068,7 @@ def main():
             # Iterate the time step
             time_passed = time_passed + opts.timestep_duration_yr
             # Print time passed every 10 timesteps for now
-            time_galaxy_tracker = 10.0*opts.timestep_duration_yr
+            time_galaxy_tracker = 10.0 * opts.timestep_duration_yr
             if time_passed % time_galaxy_tracker == 0:
                 print("Time passed=", time_passed)
 
@@ -3130,6 +3092,7 @@ def main():
             print("\tNumber of exploded stars = ", stars_explode.num)
             print("\tNumber of stars unbound from disk = ", stars_unbound.num)
             print("\tNumber of stars flipped from pro to retro = ", num_star_flip + num_starbh_flip)
+        print()
 
         # Write out all singletons after AGN episode so we can use as input to another AGN phase
 
@@ -3190,11 +3153,12 @@ def main():
                 with open(os.path.join(opts.work_directory, disk_mass_cycled_save_name), "a") as file:
                     np.savetxt(file, temp_mass_cycled)
             else:
-                np.savetxt(os.path.join(opts.work_directory, disk_mass_cycled_save_name), temp_mass_cycled, "galaxy timestep mass_gained mass_lost")
+                np.savetxt(os.path.join(opts.work_directory, disk_mass_cycled_save_name), temp_mass_cycled, header="galaxy timestep mass_gained mass_lost")
 
     toc_perf = time.perf_counter()
     fin_perf = toc_perf - tic_perf
-    print("Performance time: %0.2f"%(fin_perf), " [", int(fin_perf/60), 'min -', int(fin_perf % 60), "sec ]")
+    print("Performance time: %0.2f" % (fin_perf), " [", int(fin_perf / 60), 'min -', int(fin_perf % 60), "sec ]")
+
 
 if __name__ == "__main__":
     main()

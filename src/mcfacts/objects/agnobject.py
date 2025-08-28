@@ -42,6 +42,7 @@ attr_merged_bh = ["id_num", "galaxy", "bin_orb_a", "mass_final",
                   "spin_angle_1", "spin_angle_2",
                   "gen_1", "gen_2",
                   "chi_eff", "chi_p", "v_kick",
+                  "mass_1_20Hz", "mass_2_20Hz", "spin_1_20Hz", "spin_2_20Hz",
                    "lum_shock", "lum_jet", "time_merged"]
 
 attr_filing_cabinet = ["id_num", "category", "orb_a", "mass", "orb_ecc", "size",
@@ -736,15 +737,15 @@ class AGNBlackHole(AGNObject):
                  gw_strain=empty_arr,
                  bh_num=0,
                  **kwargs):
-        """Creates an instance of AGNStar object.
+        """Creates an instance of AGNBlackHole object.
 
         Parameters
         ----------
-        mass : numpy array
+        mass : numpy.ndarray
             black hole masses [Msun]
-        gw_freq : numpy array
+        gw_freq : numpy.ndarray
             gravitational wave frequency [Hz]
-        gw_strain : numpy array
+        gw_strain : numpy.ndarray
             gravitational wave strain [unitless]
         """
 
@@ -815,6 +816,9 @@ class AGNBlackHole(AGNObject):
             self.gw_strain = np.concatenate([self.gw_strain, np.full(bh_num, -1.5)])
         else:
             self.gw_strain = np.concatenate([self.gw_strain, new_gw_strain])
+        
+        if 'new_spin_final' in kwargs:
+            assert np.all(kwargs['new_spin_final'] >= 0)
 
         super(AGNBlackHole, self).add_objects(obj_num=bh_num, new_mass=new_mass, **kwargs)
 
@@ -1302,6 +1306,10 @@ class AGNMergedBlackHole(AGNObject):
                  chi_eff=empty_arr,
                  chi_p=empty_arr,
                  v_kick=empty_arr,
+                 mass_1_20Hz=empty_arr,
+                 mass_2_20Hz=empty_arr,
+                 spin_1_20Hz=empty_arr,
+                 spin_2_20Hz=empty_arr,
                  lum_shock=empty_arr,
                  lum_jet=empty_arr,
                  time_merged=empty_arr,
@@ -1342,6 +1350,14 @@ class AGNMergedBlackHole(AGNObject):
             precessing spin component of the binary prior to merger
         v_kick : numpy array
             kick velocity [km/s] of the remnant BH
+        mass_1_20Hz : numpy array
+            mass of the first component prior to merger in Msun taken once the binary inspiral reaches 20Hz
+        mass_2_20Hz : numpy array
+            mass of the second component prior to merger in Msun taken once the binary inspiral reaches 20Hz
+        spin_1_20Hz : numpy array
+            spin of the first component prior to merger taken once the binary inspiral reaches 20Hz
+        spin_2_20Hz : numpy array
+            spin of the second component prior to merger taken once the binary inspiral reaches 20Hz
         lum_shock: numpy array
             estimated shock luminosity generated post-merger in erg/s
         lum_jet: : numy array
@@ -1372,6 +1388,10 @@ class AGNMergedBlackHole(AGNObject):
         self.chi_eff = chi_eff
         self.chi_p = chi_p
         self.v_kick = v_kick
+        self.mass_1_20Hz = mass_1_20Hz
+        self.mass_2_20Hz = mass_2_20Hz
+        self.spin_1_20Hz = spin_1_20Hz
+        self.spin_2_20Hz = spin_2_20Hz
         self.lum_shock = lum_shock
         self.lum_jet = lum_jet
         self.time_merged = time_merged
@@ -1384,9 +1404,9 @@ class AGNMergedBlackHole(AGNObject):
                        new_mass_final=empty_arr, new_spin_final=empty_arr, new_spin_angle_final=empty_arr,
                        new_mass_1=empty_arr, new_mass_2=empty_arr, new_spin_1=empty_arr, new_spin_2=empty_arr,
                        new_spin_angle_1=empty_arr, new_spin_angle_2=empty_arr, new_gen_1=empty_arr, new_gen_2=empty_arr,
-                       new_chi_eff=empty_arr, new_chi_p=empty_arr, new_v_kick=empty_arr, new_lum_shock=empty_arr, 
-                       new_lum_jet=empty_arr,
-                       new_time_merged=empty_arr, num_obj_merge=0): # add   new_lum_agn = empty_arr, to incoorporate
+                       new_chi_eff=empty_arr, new_chi_p=empty_arr, new_v_kick=empty_arr, new_mass_1_20Hz=empty_arr, 
+                       new_mass_2_20Hz=empty_arr, new_spin_1_20Hz=empty_arr, new_spin_2_20Hz=empty_arr, new_lum_shock=empty_arr, 
+                       new_lum_jet=empty_arr, new_time_merged=empty_arr, num_obj_merge=0): # add   new_lum_agn = empty_arr, to incoorporate
         """
         Add blackholes to the AGNMergedBlackHoles object
 
@@ -1424,6 +1444,14 @@ class AGNMergedBlackHole(AGNObject):
             precessing spin component of the binary prior to merger
         new_v_kick : numpy array
             kick velocity [km/s] of the remnant BH
+        new_mass_1_20Hz : numpy array
+            mass of the first component prior to merger in Msun taken once the binary inspiral reaches 20Hz
+        new_mass_2_20Hz : numpy array
+            mass of the second component prior to merger in Msun taken once the binary inspiral reaches 20Hz
+        new_spin_1_20Hz : numpy array
+            spin of the first component prior to merger taken once the binary inspiral reaches 20Hz
+        new_spin_2_20Hz : numpy array
+            spin of the second component prior to merger taken once the binary inspiral reaches 20Hz
         lum_shock: numpy array
             estimated shock luminosity generated post-merger in erg/s
         new_lum_jet : numpy array
@@ -1451,12 +1479,19 @@ class AGNMergedBlackHole(AGNObject):
         self.chi_eff = np.concatenate([self.chi_eff, new_chi_eff])
         self.chi_p = np.concatenate([self.chi_p, new_chi_p])
         self.v_kick = np.concatenate([self.v_kick, new_v_kick])
+        self.mass_1_20Hz = np.concatenate([self.mass_1_20Hz, new_mass_1_20Hz])
+        self.mass_2_20Hz = np.concatenate([self.mass_2_20Hz, new_mass_2_20Hz])
+        self.spin_1_20Hz = np.concatenate([self.spin_1_20Hz, new_spin_1_20Hz])
+        self.spin_2_20Hz = np.concatenate([self.spin_2_20Hz, new_spin_2_20Hz])
         self.lum_shock = np.concatenate([self.lum_shock, new_lum_shock])
         self.lum_jet = np.concatenate([self.lum_jet, new_lum_jet])
         self.time_merged = np.concatenate([self.time_merged, new_time_merged])
 
         if (num_obj_merge == 0):
             num_obj_merge = new_mass_final.shape[0]
+            assert np.all(self.spin_final >= 0)
+            assert np.all(self.spin_1 >= 0)
+            assert np.all(self.spin_2 >= 0)
 
         self.num += num_obj_merge
 

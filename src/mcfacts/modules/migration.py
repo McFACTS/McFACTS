@@ -1160,7 +1160,6 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
 
     return (ratio_heat_mig_torques_bin_com)
 
-
 class ProgradeBlackHoleMigration(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Prograde Black Hole Migration" if name is None else name, settings)
