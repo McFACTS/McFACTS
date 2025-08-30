@@ -27,6 +27,10 @@ settings = SettingsManager({
     "save_each_timestep": True
 })
 
+def args():
+    # TODO: Handle argument inputs, support legacy .ini files with SnapshotHandler framework
+    pass
+
 def main():
     population_cabinet = FilingCabinet()
 
@@ -102,8 +106,6 @@ def main():
             population_cabinet.create_or_append_array("blackholes_merged", galaxy.filing_cabinet.get_array("blackholes_merged"))
 
     pbar.close()
-
-    snapshot_handler = TxtSnapshotHandler(settings)
 
     snapshot_handler.save_cabinet("./runs", "population", population_cabinet)
 
