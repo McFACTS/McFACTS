@@ -1051,11 +1051,11 @@ class ProcessesBinaryBlackHoleMergers(TimelineActor):
             **blackholes_merged.get_super_dict(),
             mass_final=bh_mass_merged,
             spin_final=bh_spin_merged,
-            spin_angle_final=np.zeros(bh_binary_id_num_merger.size, dtype=np.float_),
+            spin_angle_final=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
             chi_eff=bh_chi_eff_merged,
             chi_p=bh_chi_p_merged,
-            lum_shock=np.array(bh_lum_shock, dtype=np.float_),
-            lum_jet=np.array(bh_lum_jet, dtype=np.float_)
+            lum_shock=np.array(bh_lum_shock, dtype=np.float64),
+            lum_jet=np.array(bh_lum_jet, dtype=np.float64)
         )
 
         next_generation = np.maximum(
@@ -1068,9 +1068,9 @@ class ProcessesBinaryBlackHoleMergers(TimelineActor):
             mass=blackholes_merged.at_id_num(bh_binary_id_num_merger, "mass_final"),
             orb_a=blackholes_merged.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
             spin=blackholes_merged.at_id_num(bh_binary_id_num_merger, "spin_final"),
-            spin_angle=np.zeros(bh_binary_id_num_merger.size, dtype=np.float_),
-            orb_inc=np.zeros(bh_binary_id_num_merger.size, dtype=np.float_),
-            orb_ang_mom=np.ones(bh_binary_id_num_merger.size, dtype=np.float_),
+            spin_angle=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
+            orb_inc=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
+            orb_ang_mom=np.ones(bh_binary_id_num_merger.size, dtype=np.float64),
             orb_arg_periapse=np.full(bh_binary_id_num_merger.size, -1.5),
             orb_ecc=bh_orb_ecc_merged,
             gen=next_generation,

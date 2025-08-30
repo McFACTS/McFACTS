@@ -14,14 +14,14 @@ class AGNObjectArray(ABC):
 
     Attributes:
         unique_id (npt.NDArray[uuid.UUID]): Array of unique identifiers for each AGN object.
-        mass (npt.NDArray[np.float_]): Array of masses for the AGN objects.
-        spin (npt.NDArray[np.float_]): Array of spin magnitudes for the AGN objects.
-        spin_angle (npt.NDArray[np.float_]): Array of spin angles for the AGN objects.
-        orb_a (npt.NDArray[np.float_]): Array of orbital semi-major axes.
-        orb_inc (npt.NDArray[np.float_]): Array of orbital inclinations.
-        orb_ecc (npt.NDArray[np.float_]): Array of orbital eccentricities.
-        orb_ang_mom (npt.NDArray[np.float_]): Array of orbital angular momenta.
-        orb_arg_periapse (npt.NDArray[np.float_]): Array of arguments of periapsis.
+        mass (npt.NDArray[np.float64]): Array of masses for the AGN objects.
+        spin (npt.NDArray[np.float64]): Array of spin magnitudes for the AGN objects.
+        spin_angle (npt.NDArray[np.float64]): Array of spin angles for the AGN objects.
+        orb_a (npt.NDArray[np.float64]): Array of orbital semi-major axes.
+        orb_inc (npt.NDArray[np.float64]): Array of orbital inclinations.
+        orb_ecc (npt.NDArray[np.float64]): Array of orbital eccentricities.
+        orb_ang_mom (npt.NDArray[np.float64]): Array of orbital angular momenta.
+        orb_arg_periapse (npt.NDArray[np.float64]): Array of arguments of periapsis.
 
     Methods:
         __len__(): Returns the number of AGN objects in the array.
@@ -30,14 +30,14 @@ class AGNObjectArray(ABC):
 
     def __init__(self,
                  unique_id: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
-                 mass: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 spin: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 spin_angle: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 orb_a: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 orb_inc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 orb_ecc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 orb_ang_mom: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 orb_arg_periapse: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 mass: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_angle: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 orb_a: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 orb_inc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 orb_ecc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 orb_ang_mom: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 orb_arg_periapse: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  gen: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
                  skip_consistency_check: bool = False):
 
@@ -238,12 +238,12 @@ class AGNObjectArray(ABC):
 
 class AGNBlackHoleArray(AGNObjectArray):
     def __init__(self,
-                 gw_freq: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 gw_strain: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 gw_freq: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 gw_strain: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs):
 
-        self.gw_freq: npt.NDArray[np.float_] = gw_freq if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float_)
-        self.gw_strain: npt.NDArray[np.float_] = gw_strain if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float_)
+        self.gw_freq: npt.NDArray[np.float64] = gw_freq if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float64)
+        self.gw_strain: npt.NDArray[np.float64] = gw_strain if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float64)
 
         # Call init last so consistency check passes.
         super().__init__(**kwargs)
@@ -270,12 +270,12 @@ class AGNBlackHoleArray(AGNObjectArray):
 
 class AGNStarArray(AGNObjectArray):
     def __init__(self,
-                 star_x: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 star_y: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 star_z: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 log_radius: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 log_teff: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 log_luminosity: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 star_x: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 star_y: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 star_z: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 log_radius: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 log_teff: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 log_luminosity: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs):
         self.star_x = star_x
         self.star_y = star_y
@@ -319,25 +319,25 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
     def __init__(self,
                  unique_id_1: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  unique_id_2: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
-                 mass_1: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 mass_2: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 orb_a_1: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 orb_a_2: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 spin_1: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 spin_2: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 spin_angle_1: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 spin_angle_2: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 bin_sep: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 bin_orb_a: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 time_to_merger_gw: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 mass_1: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 mass_2: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 orb_a_1: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 orb_a_2: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_1: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_2: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_angle_1: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_angle_2: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 bin_sep: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 bin_orb_a: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 time_to_merger_gw: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  flag_merging: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
-                 time_merged: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 bin_ecc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 time_merged: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 bin_ecc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  gen_1: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
                  gen_2: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
-                 bin_orb_ang_mom: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 bin_orb_inc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 bin_orb_ecc: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 bin_orb_ang_mom: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 bin_orb_inc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 bin_orb_ecc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs
                  ):
         self.unique_id_2 = unique_id_2
@@ -499,13 +499,13 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
 
 class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
     def __init__(self,
-                 mass_final: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 spin_final: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 spin_angle_final: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 chi_eff: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 chi_p: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 lum_shock: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
-                 lum_jet: npt.NDArray[np.float_] = np.array([], dtype=np.float_),
+                 mass_final: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_final: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_angle_final: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 chi_eff: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 chi_p: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 lum_shock: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 lum_jet: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs):
 
         self.mass_final = mass_final
