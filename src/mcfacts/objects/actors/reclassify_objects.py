@@ -129,6 +129,7 @@ class InnerDiskFilter(TimelineActor):
                 agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
+        # TODO: For some reason, I was only sorting out retrograde inner disk orbiters? Things break if we don't sort out prograde orbiters as well.
         if sm.bh_retrograde_array_name in filing_cabinet:
             blackholes_retro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
 
@@ -140,10 +141,22 @@ class InnerDiskFilter(TimelineActor):
                 blackholes_inner_disk.keep_only(bh_id_num_retro_inner_disk)
 
                 # Remove from blackholes_retro and update filing_cabinet
-
                 filing_cabinet.create_or_append_array(sm.bh_inner_disk_array_name, blackholes_inner_disk)
                 blackholes_retro.remove_all(bh_id_num_retro_inner_disk)
 
+        if sm.bh_prograde_array_name in filing_cabinet:
+            blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+
+            bh_id_num_pro_inner_disk = blackholes_pro.id_num[blackholes_pro.orb_a < sm.inner_disk_outer_radius]
+
+            if bh_id_num_pro_inner_disk.size > 0:
+                # Add BH to inner_disk_arrays
+                blackholes_inner_disk = blackholes_pro.copy()
+                blackholes_inner_disk.keep_only(bh_id_num_pro_inner_disk)
+
+                # Remove from blackholes_prograde and update filing_cabinet
+                filing_cabinet.create_or_append_array(sm.bh_inner_disk_array_name, blackholes_inner_disk)
+                blackholes_pro.remove_all(bh_id_num_pro_inner_disk)
 
 class FlipRetroProFilter(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
