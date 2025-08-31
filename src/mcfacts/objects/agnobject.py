@@ -32,7 +32,8 @@ attr_exploded_star = ["galaxy", "id_num_star", "id_num_bh", "orb_a_star", "orb_a
 attr_immortal_star = ["id_num", "orb_a", "orb_a_initial", "mass", "mass_initial",
                       "orb_inc", "orb_ecc", "orb_arg_periapse", "orb_ang_mom",
                       "gen", "galaxy", "time_passed",
-                      "star_X", "star_Y", "star_Z", "log_radius", "log_teff", "log_luminosity"]
+                      "star_X", "star_Y", "star_Z", "log_radius", "log_teff", "log_luminosity",
+                      "source"]
 
 attr_binary_bh = ["id_num", "orb_a_1", "orb_a_2", "mass_1", "mass_2", #"mass_total",
                   "spin_1", "spin_2", "spin_angle_1", "spin_angle_2",
@@ -1797,6 +1798,7 @@ class AGNImmortalStar(AGNObject):
                  star_X=empty_arr,
                  star_Y=empty_arr,
                  star_Z=empty_arr,
+                 source=empty_arr,
                  star_num=0,
                  **kwargs):
         """Creates an instance of the AGNStar class. This is a subclass
@@ -1822,6 +1824,9 @@ class AGNImmortalStar(AGNObject):
             helium fraction of stars
         star_Z : numpy array
             metals fraction of stars
+        source : numpy array
+            how the star becomes immortal
+            0: accretion. 1: merger.
         star_num : int, optional
             number of stars, by default 0
         smbh_mass : float
@@ -1842,6 +1847,7 @@ class AGNImmortalStar(AGNObject):
         self.log_radius = log_radius
         self.log_luminosity = log_luminosity
         self.log_teff = log_teff
+        self.source = source
 
         if (np.any(star_X + star_Y + star_Z > 1.)):
             raise ValueError("star_X, star_Y, and star_Z must sum to 1 or less.")
@@ -1874,6 +1880,7 @@ class AGNImmortalStar(AGNObject):
                   new_X=empty_arr,
                   new_Y=empty_arr,
                   new_Z=empty_arr,
+                  new_source=empty_arr,
                   star_num=0,
                   **kwargs):
         """
@@ -1891,6 +1898,9 @@ class AGNImmortalStar(AGNObject):
             helium mass fraction of new stars
         new_Z : numpy array
             metals mass fraction of new stars
+        new_source : numpy array
+            how the new stars become immortal
+            0: accretion. 1: merger.
         obj_num : int, optional
             number of objects to be added, by default None
         """
@@ -1910,6 +1920,7 @@ class AGNImmortalStar(AGNObject):
         self.log_radius = np.concatenate([self.log_radius, new_log_radius])
         self.log_teff = np.concatenate([self.log_teff, new_log_teff])
         self.log_luminosity = np.concatenate([self.log_luminosity, new_log_luminosity])
+        self.source = np.concatenate([self.source, new_source])
 
         super(AGNImmortalStar, self).add_objects(obj_num=star_num, **kwargs)
 
