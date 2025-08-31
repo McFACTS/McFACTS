@@ -938,7 +938,8 @@ def main():
 
             # Save immortal stars
             if len(stars_pro.mass == opts.disk_star_initial_mass_cutoff) > 0:
-                stars_immortal_id_nums = stars_pro.id_num[stars_pro.mass == opts.disk_star_initial_mass_cutoff]
+                stars_all_immortal_id_nums = stars_pro.id_num[stars_pro.mass == opts.disk_star_initial_mass_cutoff]
+                stars_immortal_id_nums = stars_all_immortal_id_nums[~np.isin(stars_all_immortal_id_nums, stars_immortal.id_num)]
                 _, id_mask_immortal = np.where(stars_all_id_nums == stars_immortal_id_nums[:, None])
                 stars_immortal.add_stars(new_id_num=stars_immortal_id_nums,
                                          new_mass=stars_pro.at_id_num(stars_immortal_id_nums, "mass"),
@@ -955,6 +956,7 @@ def main():
                                          new_orb_ecc=stars_pro.at_id_num(stars_immortal_id_nums, "orb_ecc"),
                                          new_orb_inc=stars_pro.at_id_num(stars_immortal_id_nums, "orb_inc"),
                                          new_orb_arg_periapse=stars_pro.at_id_num(stars_immortal_id_nums, "orb_arg_periapse"),
+                                         new_source=np.full(stars_immortal_id_nums.size, 0),
                                          new_gen=stars_pro.at_id_num(stars_immortal_id_nums, "gen"),
                                          new_galaxy=np.full(stars_immortal_id_nums.size, galaxy),
                                          new_time_passed=np.full(stars_immortal_id_nums.size, time_passed))
@@ -2907,18 +2909,19 @@ def main():
                                       new_info=stars_inner_disk.orb_a)
 
                 # On 1st run through define old GW freqs (at say 9.e-7 Hz, since evolution change is 1e-6Hz)
-                if (stars_tdes.num == 0) and (stars_plunge.num == 0):
-                    old_gw_tde_freq = 9.e-7*np.ones(stars_inner_disk.num)
-                if (stars_tdes.num > 0) or (stars_plunge.num > 0):
-                    old_gw_tde_freq = np.concatenate((tde_gw_freq, 9.e-7*np.ones(np.abs(stars_inner_disk.num - len(tde_gw_freq)))))
-
-                tde_gw_strain, tde_gw_freq = emri.evolve_emri_gw( # KN: TDEs need their own method here bc drag
-                    stars_inner_disk,
-                    opts.timestep_duration_yr,
-                    old_gw_tde_freq,
-                    opts.smbh_mass,
-                    agn_redshift
-                )
+                # if (stars_tdes.num == 0) and (stars_plunge.num == 0):
+                #     old_gw_tde_freq = 9.e-7*np.ones(stars_inner_disk.num)
+                # if (stars_tdes.num > 0) or (stars_plunge.num > 0):
+                #     old_gw_tde_freq = np.concatenate((tde_gw_freq, 9.e-7*np.ones(np.abs(stars_inner_disk.num - len(tde_gw_freq)))))
+                # print("stars_inner_disk.num",stars_inner_disk.num)
+                # print("old_gw_tde_freq",old_gw_tde_freq)
+                # tde_gw_strain, tde_gw_freq = emri.evolve_emri_gw( # KN: TDEs need their own method here bc drag
+                #     stars_inner_disk,
+                #     opts.timestep_duration_yr,
+                #     old_gw_tde_freq,
+                #     opts.smbh_mass,
+                #     agn_redshift
+                # )
 
             if blackholes_inner_disk.num > 0:
                 blackholes_emris.add_blackholes(new_mass=blackholes_inner_disk.mass,
@@ -2970,9 +2973,9 @@ def main():
                     new_id_num=stars_inner_disk.at_id_num(star_rlof_smbh_id_num, "id_num")
                     )
                 _, star_inner_disk_mask = np.where(stars_inner_disk.id_num == star_rlof_smbh_id_num[:, None])
-                gw_tde_keep_mask = np.ones(len(tde_gw_freq), dtype=bool)
-                gw_tde_keep_mask[star_inner_disk_mask] = 0
-                tde_gw_freq = tde_gw_freq[gw_tde_keep_mask]
+                #gw_tde_keep_mask = np.ones(len(tde_gw_freq), dtype=bool)
+                #gw_tde_keep_mask[star_inner_disk_mask] = 0
+                #tde_gw_freq = tde_gw_freq[gw_tde_keep_mask]
                 stars_inner_disk.remove_id_num(star_rlof_smbh_id_num)
                 filing_cabinet.remove_id_num(star_rlof_smbh_id_num)
 
