@@ -471,6 +471,75 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
     return (bin_spin_angle_1, bin_spin_angle_2)
 
 
+def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_pro_spins, disk_bh_pro_spin_angle,
+                                disk_sound_speed, disk_density, disk_aspect_ratio, migration_velocity,
+                                disk_bh_torque_condition, smbh_mass, timestep_duration_yr):
+    smbh_kg = (smbh_mass * u.Msun).to(u.kg) # solar mass to kg
+    sound_speed = disk_sound_speed(disk_bh_pro_orb_a) * (u.m / u.s) # m/s
+    density = disk_density(disk_bh_pro_orb_a) * (u.kg / u.m**3) # kg/cm^3
+
+    pro_orb_a = (disk_bh_pro_orb_a * const.G * smbh_kg) / (const.c ** 2)
+    pro_orb_mass = (disk_bh_pro_masses * u.Msun).to(u.kg) # kg
+
+    timestep = (timestep_duration_yr * u.yr).to(u.s) # seconds
+
+    radius_schwarzschild = (2 * const.G * pro_orb_mass) / const.c ** 2 # m
+
+    spin_component = disk_bh_pro_spins * (radius_schwarzschild / 2)
+
+    comp_1_part_a = (1 - ((4 * (spin_component ** 2)) / (radius_schwarzschild ** 2))) ** (1 / 3)
+    comp_1_part_b = (1 + ((2 * spin_component) / radius_schwarzschild)) ** (1 / 3)
+    comp_1_part_c = (1 - ((2 * spin_component) / radius_schwarzschild)) ** (1 / 3)
+    radius_comp_1 = 1 + (comp_1_part_a * (comp_1_part_b + comp_1_part_c))
+    radius_comp_2 = ((3 * ((4 * (spin_component ** 2)) / (radius_schwarzschild ** 2))) + (radius_comp_1 ** 2)) ** (1 / 3)
+
+    radius_isco = (radius_schwarzschild / 2) * (3 + radius_comp_2 - (((3 - radius_comp_1) * (3 + radius_comp_1 + (2 * radius_comp_2))) ** 0.5))
+    radius_isco = radius_isco / ((radius_schwarzschild / 2)) # "Normalize"
+    radii_bondi = (2 * const.G * pro_orb_mass) / (sound_speed ** 2) # Only using sound speed in this bondi radii approximation
+
+    shear_velocity = radii_bondi * np.sqrt(const.G * smbh_kg / pro_orb_a ** 3) #  m/s
+
+    radii_hill = pro_orb_a * (pro_orb_mass / (3 * smbh_kg)) ** (1/3)
+    f_c = 10
+    radii_c = np.minimum(radii_hill, radii_bondi)
+    disk_height = disk_aspect_ratio(disk_bh_pro_orb_a) * pro_orb_a
+    radii_h = np.minimum(radii_hill, disk_height)
+    #sigma_gas =  (disk_sound_speed**2 + radii_hill**2 * mig_velocity**2 + (spin * r * mig_velocity)**2)**0.5
+
+    #R_acc = const.G * pro_orb_mass / sigma_gas**2
+
+    mdot = (f_c * radii_h * radii_c * density * (sound_speed**2 + migration_velocity**2 + shear_velocity**2)**0.5)
+    delta_m = mdot * timestep
+
+    # According to Barry, eddington is ~2x10^-3 of unit spin per timestep
+    spin_magnitude_change = (0.3849 * (1 / pro_orb_mass) * (
+                (1 + (2 * np.sqrt((3 * radius_isco) - 2))) / np.sqrt(1 - (2 / (3 * radius_isco)))) - (
+                                         (2 * disk_bh_pro_spins) / pro_orb_mass)) * delta_m
+
+    spin_magnitude_change[~np.isfinite(spin_magnitude_change)] = 0
+
+    final_mass = (disk_bh_pro_masses * u.Msun).to(u.kg) + delta_m  # kg
+    final_mass = final_mass.to(u.Msun).value
+
+    # Final spin = old spin + change in spin
+    final_spin_magnitude = disk_bh_pro_spins + spin_magnitude_change
+
+    eddington_ratio = delta_m / pro_orb_mass
+    normalized_spin_torque_condition = disk_bh_torque_condition / 0.1
+    spin_torque_iteration = (6.98e-3 * eddington_ratio.value * normalized_spin_torque_condition * (timestep_duration_yr * 1e4))
+    final_spin_angle = disk_bh_pro_spin_angle + spin_torque_iteration
+
+    final_spin_angle[final_spin_magnitude >= 1] = 0.
+    final_spin_magnitude[final_spin_magnitude >= 1] = 0.998
+
+    assert np.isfinite(final_spin_magnitude).all(), \
+        "final_spin_magnitude has non finite values"
+    assert np.all(final_spin_magnitude < 1), \
+        "final_spin_magnitude has values >= 0.98"
+    assert np.all(final_mass >= 0), \
+        "final_mass has values <= 0"
+
+    return final_mass, final_spin_magnitude.value, final_spin_angle
 
 class ProgradeBlackHoleAccretion(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
