@@ -81,7 +81,7 @@ def main():
             ProgradeBlackHoleAccretion(target_array=innerdisk_array),
             ProgradeBlackHoleDamping(target_array=innerdisk_array),
             SingleBlackHoleDynamics(target_array=innerdisk_array),
-            InnerBlackHoleDynamics(target_array=innerdisk_array)
+            InnerBlackHoleDynamics(target_array=innerdisk_array),
             SingleBlackHoleRealityCheck(),
         ]
 
