@@ -3376,6 +3376,32 @@ def bin_ionization_check(bin_mass_1, bin_mass_2, bin_orb_a, bin_sep, bin_id_num,
 
     return (bh_id_nums)
 
+class InnerBlackHoleDynamics(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
+        super().__init__("Inner Black Hole Dynamics" if name is None else name, settings)
+        self.target_array = target_array
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        # region inner disk gw evolution
+        if self.target_array not in filing_cabinet:
+            return
+
+        inner_bh = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
+
+        # TODO: also get bh_near_smbh to return updated ecc and add here
+        inner_bh.orb_a = bh_near_smbh(
+            sm.smbh_mass,
+            inner_bh.orb_a,
+            inner_bh.mass,
+            inner_bh.orb_ecc,
+            sm.timestep_duration_yr,
+            sm.disk_radius_outer,
+            sm.disk_inner_stable_circ_orb
+        )
+        # endregion
 
 class SingleBlackHoleDynamics(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
@@ -3387,7 +3413,7 @@ class SingleBlackHoleDynamics(TimelineActor):
         sm = self.settings
 
         # region BH-BH encounters
-        if sm.bh_prograde_array_name not in filing_cabinet:
+        if self.target_array not in filing_cabinet:
             return
 
         blackholes_pro = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)

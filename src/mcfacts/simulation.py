@@ -12,7 +12,7 @@ from mcfacts.objects.timeline import SimulationTimeline
 from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion
 from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
 from mcfacts.modules.disk_capture import RecaptureRetrogradeBlackHoles, RecaptureBinaryBlackHoles, CaptureProgradeBlackHoles
-from mcfacts.modules.dynamics import SingleBlackHoleDynamics, BinaryBlackHoleDynamics
+from mcfacts.modules.dynamics import InnerBlackHoleDynamics, SingleBlackHoleDynamics, BinaryBlackHoleDynamics
 from mcfacts.modules.gas_hardening import BinaryBlackHoleGasHardening
 from mcfacts.modules.formation import BinaryBlackHoleFormation
 from mcfacts.modules.merge import ProcessesBinaryBlackHoleMergers
@@ -69,14 +69,14 @@ def main():
         innerdisk_array = galaxy.settings.bh_inner_disk_array_name
 
         innerdisk_dynamics = [
-            ProgradeBlackHoleMigration(),
-            ProgradeBlackHoleAccretion(),
-            ProgradeBlackHoleDamping(),
-            RecaptureRetrogradeBlackHoles(),
+            #ProgradeBlackHoleMigration(),
+            #ProgradeBlackHoleAccretion(),
+            #ProgradeBlackHoleDamping(),
+            #RecaptureRetrogradeBlackHoles(),
             SingleBlackHoleDynamics(target_array=innerdisk_array),
-            CaptureProgradeBlackHoles(),
-            SingleBlackHoleRealityCheck(),
-            # TODO: Inner disk GW evolve class
+            #CaptureProgradeBlackHoles(),
+            #SingleBlackHoleRealityCheck(),
+            InnerBlackHoleDynamics(target_array=innerdisk_array)
         ]
 
         singleton_dynamics = [
