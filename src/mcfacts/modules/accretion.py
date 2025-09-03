@@ -541,6 +541,61 @@ def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_p
 
     return final_mass, final_spin_magnitude.value, final_spin_angle
 
+
+class ProgradeBlackHoleBondi(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Prograde Black Hole Bondi Accretion" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+
+        mass_edd = change_bh_mass(
+            blackholes_pro.mass,
+            sm.disk_bh_eddington_ratio,
+            sm.disk_bh_eddington_mass_growth_rate,
+            sm.timestep_duration_yr
+        )
+
+        spin_edd, spin_angle_edd = change_bh_spin(
+            blackholes_pro.spin,
+            blackholes_pro.spin_angle,
+            sm.disk_bh_eddington_ratio,
+            sm.disk_bh_torque_condition,
+            sm.disk_bh_spin_resolution_min,
+            sm.timestep_duration_yr,
+            blackholes_pro.orb_ecc,
+            sm.disk_bh_pro_orb_ecc_crit,
+        )
+
+        mass_bondi, spin_bondi, spin_angle_bondi = accretion.prograde_bh_accretion_bondi(
+            blackholes_pro.mass,
+            blackholes_pro.orb_a,
+            blackholes_pro.spin,
+            blackholes_pro.spin_angle,
+            agn_disk.disk_sound_speed,
+            agn_disk.disk_density,
+            agn_disk.disk_aspect_ratio,
+            migration_velocity,
+            sm.disk_bh_torque_condition,
+            sm.smbh_mass,
+            sm.timestep_duration_yr
+        )
+
+        bondi_fraction = 1e-4
+
+        blackholes_pro.mass = mass_edd + mass_bondi * bondi_fraction
+        blackholes_pro.spin = spin_edd + spin_bondi * bondi_fraction
+        blackholes_pro.spin_angle = spin_angle_edd + spin_angle_bondi * bondi_fraction
+
+        blackholes_pro.consistency_check()
+
+
 class ProgradeBlackHoleAccretion(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Prograde Black Hole Accretion" if name is None else name, settings)
