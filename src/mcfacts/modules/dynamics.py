@@ -3322,6 +3322,7 @@ def bh_near_smbh(
     assert np.isfinite(new_disk_bh_pro_orbs_a).all(), \
         "Finite check failure: new_disk_bh_pro_orbs_a"
 
+    # TODO: Update eccentricity as well
     return new_disk_bh_pro_orbs_a
 
 
@@ -3377,8 +3378,9 @@ def bin_ionization_check(bin_mass_1, bin_mass_2, bin_orb_a, bin_sep, bin_id_num,
 
 
 class SingleBlackHoleDynamics(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
+    def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
         super().__init__("Single Black Hole Dynamics" if name is None else name, settings)
+        self.target_array = target_array
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
@@ -3388,7 +3390,7 @@ class SingleBlackHoleDynamics(TimelineActor):
         if sm.bh_prograde_array_name not in filing_cabinet:
             return
 
-        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+        blackholes_pro = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
         blackholes_pro.orb_a, blackholes_pro.orb_ecc = circular_singles_encounters_prograde(
             sm.smbh_mass,

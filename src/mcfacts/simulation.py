@@ -65,12 +65,26 @@ def main():
         # Create timeline to run main simulation
         dynamics_timeline = SimulationTimeline("Dynamics", timesteps=60, timestep_length=galaxy.settings.timestep_duration_yr)
 
+        prograde_array = galaxy.settings.bh_prograde_array_name
+        innerdisk_array = galaxy.settings.bh_inner_disk_array_name
+
+        innerdisk_dynamics = [
+            ProgradeBlackHoleMigration(),
+            ProgradeBlackHoleAccretion(),
+            ProgradeBlackHoleDamping(),
+            RecaptureRetrogradeBlackHoles(),
+            SingleBlackHoleDynamics(target_array=innerdisk_array),
+            CaptureProgradeBlackHoles(),
+            SingleBlackHoleRealityCheck(),
+            # TODO: Inner disk GW evolve class
+        ]
+
         singleton_dynamics = [
             ProgradeBlackHoleMigration(),
             ProgradeBlackHoleAccretion(),
             ProgradeBlackHoleDamping(),
             RecaptureRetrogradeBlackHoles(),
-            SingleBlackHoleDynamics(),
+            SingleBlackHoleDynamics(target_array=prograde_array),
             CaptureProgradeBlackHoles(),
             SingleBlackHoleRealityCheck()
         ]
@@ -86,6 +100,7 @@ def main():
             BinaryBlackHoleRealityCheck()
         ]
 
+        dynamics_timeline.add_timeline_actors(innerdisk_dynamics)
         dynamics_timeline.add_timeline_actors(singleton_dynamics)
         dynamics_timeline.add_timeline_actors(binary_dynamics)
 
