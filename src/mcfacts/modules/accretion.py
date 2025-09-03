@@ -597,37 +597,38 @@ class ProgradeBlackHoleBondi(TimelineActor):
 
 
 class ProgradeBlackHoleAccretion(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
+    def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
         super().__init__("Prograde Black Hole Accretion" if name is None else name, settings)
+        self.target_array = target_array
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
-        if sm.bh_prograde_array_name not in filing_cabinet:
+        if self.target_array not in filing_cabinet:
             return
 
-        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+        blackholes_array = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
-        blackholes_pro.mass = change_bh_mass(
-            blackholes_pro.mass,
+        blackholes_array.mass = change_bh_mass(
+            blackholes_array.mass,
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_eddington_mass_growth_rate,
             sm.timestep_duration_yr
         )
 
-        blackholes_pro.spin, blackholes_pro.spin_angle = change_bh_spin(
-            blackholes_pro.spin,
-            blackholes_pro.spin_angle,
+        blackholes_array.spin, blackholes_array.spin_angle = change_bh_spin(
+            blackholes_array.spin,
+            blackholes_array.spin_angle,
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_torque_condition,
             sm.disk_bh_spin_resolution_min,
             sm.timestep_duration_yr,
-            blackholes_pro.orb_ecc,
+            blackholes_array.orb_ecc,
             sm.disk_bh_pro_orb_ecc_crit,
         )
 
-        blackholes_pro.consistency_check()
+        blackholes_array.consistency_check()
 
         # TODO: Stars
 

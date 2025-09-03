@@ -94,7 +94,8 @@ defaults = {
     "stars_merged_array_name": "stars_merged",
     "bbh_array_name": "blackholes_binary",
     "bbh_gw_array_name": "blackholes_binary_gw",
-    "bbh_merged_array_name": "blackholes_merged"
+    "bbh_merged_array_name": "blackholes_merged",
+    "emri_array_name": "blackholes_emri"
 }
 
 # Static values that we do not want the user to change (Sorry user)

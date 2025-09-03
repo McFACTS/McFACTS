@@ -431,32 +431,33 @@ def bin_ecc_damping(smbh_mass, disk_bh_pro_orbs_a, disk_bh_pro_orbs_masses, disk
 
 
 class ProgradeBlackHoleDamping(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
+    def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
         super().__init__("Prograde Black Hole Damping" if name is None else name, settings)
+        self.target_array = target_array
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
-        if sm.bh_prograde_array_name not in filing_cabinet:
+        if self.target_array not in filing_cabinet:
             return
 
-        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+        blackholes_array = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
         # TODO: Consider move based on cause leading to physical effect?
         # Is this dampening due to accretion, or should it be moved to a different module?
-        blackholes_pro.orb_ecc = orbital_ecc_damping(
+        blackholes_array.orb_ecc = orbital_ecc_damping(
             sm.smbh_mass,
-            blackholes_pro.orb_a,
-            blackholes_pro.mass,
+            blackholes_array.orb_a,
+            blackholes_array.mass,
             agn_disk.disk_surface_density,
             agn_disk.disk_aspect_ratio,
-            blackholes_pro.orb_ecc,
+            blackholes_array.orb_ecc,
             sm.timestep_duration_yr,
             sm.disk_bh_pro_orb_ecc_crit,
         )
 
-        blackholes_pro.consistency_check()
+        blackholes_array.consistency_check()
 
         # TODO: Stars
 

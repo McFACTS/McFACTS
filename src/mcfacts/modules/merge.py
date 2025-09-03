@@ -952,7 +952,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
     return (blackholes_merged, blackholes_pro)
 
 
-class ProcessesBinaryBlackHoleMergers(TimelineActor):
+class ProcessBinaryBlackHoleMergers(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Binary Black Hole Merging" if name is None else name, settings)
 
@@ -1083,3 +1083,32 @@ class ProcessesBinaryBlackHoleMergers(TimelineActor):
         filing_cabinet.create_or_append_array(sm.bbh_merged_array_name, blackholes_merged)
 
         blackholes_binary.remove_all(bh_binary_id_num_merger)
+
+
+class ProcessEMRIMergers(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Process EMRI Mergers" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if sm.bh_inner_disk_array_name not in filing_cabinet:
+            return
+
+        innerdisk_array = filing_cabinet.get_array(sm.bh_inner_disk_array_name, AGNBlackHoleArray)
+
+        # TODO: Check both orb_a and periapsis to see if < SMBH ISCO
+
+        merged_ids = innerdisk_array.unique_id[innerdisk_array.orb_a <= sm.disk_inner_stable_circ_orb]
+
+        emris = innerdisk_array.copy()
+        emris.keep_only(merged_ids)
+
+        innerdisk_array.remove_all(merged_ids)
+
+        filing_cabinet.create_or_append_array(sm.emri_array_name, emris)
+
+        innerdisk_array.consistency_check()
+        emris.consistency_check()
+
+

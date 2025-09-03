@@ -3387,16 +3387,16 @@ class SingleBlackHoleDynamics(TimelineActor):
         sm = self.settings
 
         # region BH-BH encounters
-        if sm.bh_prograde_array_name not in filing_cabinet:
+        if self.target_array not in filing_cabinet:
             return
 
-        blackholes_pro = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
+        blackholes_array = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
-        blackholes_pro.orb_a, blackholes_pro.orb_ecc = circular_singles_encounters_prograde(
+        blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde(
             sm.smbh_mass,
-            blackholes_pro.orb_a,
-            blackholes_pro.mass,
-            blackholes_pro.orb_ecc,
+            blackholes_array.orb_a,
+            blackholes_array.mass,
+            blackholes_array.orb_ecc,
             sm.timestep_duration_yr,
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong,

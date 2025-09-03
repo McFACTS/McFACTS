@@ -11,11 +11,11 @@ from mcfacts.objects.snapshot import TxtSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion
 from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
-from mcfacts.modules.disk_capture import RecaptureRetrogradeBlackHoles, RecaptureBinaryBlackHoles, CaptureProgradeBlackHoles
+from mcfacts.modules.disk_capture import EvolveRetrogradeBlackHoles, RecaptureBinaryBlackHoles, CaptureNSCProgradeBlackHoles
 from mcfacts.modules.dynamics import SingleBlackHoleDynamics, BinaryBlackHoleDynamics
 from mcfacts.modules.gas_hardening import BinaryBlackHoleGasHardening
 from mcfacts.modules.formation import BinaryBlackHoleFormation
-from mcfacts.modules.merge import ProcessesBinaryBlackHoleMergers
+from mcfacts.modules.merge import ProcessBinaryBlackHoleMergers, ProcessEMRIMergers
 from mcfacts.modules.migration import ProgradeBlackHoleMigration
 from mcfacts.objects.actors.reality_checks import SingleBlackHoleRealityCheck, BinaryBlackHoleRealityCheck
 from mcfacts.modules.gw import BinaryBlackHoleEvolveGW
@@ -24,7 +24,8 @@ settings = SettingsManager({
     "verbose": False,
     "override_files": True,
     "save_state": True,
-    "save_each_timestep": True
+    "save_each_timestep": True,
+    "disk_inner_stable_circ_orb": 11 # TODO: Fix ReadInput AGNDisk iterp for small radii objects
 })
 
 def args():
@@ -65,29 +66,37 @@ def main():
         # Create timeline to run main simulation
         dynamics_timeline = SimulationTimeline("Dynamics", timesteps=60, timestep_length=galaxy.settings.timestep_duration_yr)
 
+        dynamics_timeline.add_timeline_actor(EvolveRetrogradeBlackHoles())
+        dynamics_timeline.add_timeline_actor(FlipRetroProFilter())
+        dynamics_timeline.add_timeline_actor(InnerDiskFilter())
+        dynamics_timeline.add_timeline_actor(SingleBlackHoleRealityCheck())
+
+        dynamics_timeline.add_timeline_actor(ProcessEMRIMergers())
+
         prograde_array = galaxy.settings.bh_prograde_array_name
         innerdisk_array = galaxy.settings.bh_inner_disk_array_name
 
         innerdisk_dynamics = [
-            ProgradeBlackHoleMigration(),
-            ProgradeBlackHoleAccretion(),
-            ProgradeBlackHoleDamping(),
-            RecaptureRetrogradeBlackHoles(),
+            ProgradeBlackHoleMigration(target_array=innerdisk_array),
+            ProgradeBlackHoleAccretion(target_array=innerdisk_array),
+            ProgradeBlackHoleDamping(target_array=innerdisk_array),
             SingleBlackHoleDynamics(target_array=innerdisk_array),
-            CaptureProgradeBlackHoles(),
             SingleBlackHoleRealityCheck(),
             # TODO: Inner disk GW evolve class
         ]
 
+        dynamics_timeline.add_timeline_actors(innerdisk_dynamics)
+
         singleton_dynamics = [
-            ProgradeBlackHoleMigration(),
-            ProgradeBlackHoleAccretion(),
-            ProgradeBlackHoleDamping(),
-            RecaptureRetrogradeBlackHoles(),
+            ProgradeBlackHoleMigration(target_array=prograde_array),
+            ProgradeBlackHoleAccretion(target_array=prograde_array),
+            ProgradeBlackHoleDamping(target_array=prograde_array),
             SingleBlackHoleDynamics(target_array=prograde_array),
-            CaptureProgradeBlackHoles(),
+            CaptureNSCProgradeBlackHoles(),
             SingleBlackHoleRealityCheck()
         ]
+
+        dynamics_timeline.add_timeline_actors(singleton_dynamics)
 
         binary_dynamics = [
             BinaryBlackHoleDamping(),
@@ -96,19 +105,13 @@ def main():
             BinaryBlackHoleGasHardening(reality_merge_checks=True),
             RecaptureBinaryBlackHoles(),
             BinaryBlackHoleEvolveGW(),
-            ProcessesBinaryBlackHoleMergers(),
+            ProcessBinaryBlackHoleMergers(),
             BinaryBlackHoleRealityCheck()
         ]
 
-        dynamics_timeline.add_timeline_actors(innerdisk_dynamics)
-        dynamics_timeline.add_timeline_actors(singleton_dynamics)
         dynamics_timeline.add_timeline_actors(binary_dynamics)
 
         dynamics_timeline.add_timeline_actor(BinaryBlackHoleFormation())
-
-        # Misc Disk Checks
-        dynamics_timeline.add_timeline_actor(InnerDiskFilter())
-        dynamics_timeline.add_timeline_actor(FlipRetroProFilter())
 
         galaxy.run(dynamics_timeline, agn_disk)
 

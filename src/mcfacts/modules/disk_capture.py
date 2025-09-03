@@ -107,6 +107,7 @@ def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_
     return disk_bh_retro_orbs_ecc_new
 
 
+# TODO: Move into migration.py
 def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs_a, disk_bh_retro_orbs_ecc,
                              disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
                              disk_inner_stable_circ_orb, disk_surf_density_func, timestep_duration_yr,
@@ -726,7 +727,7 @@ def bin_recapture(bin_mass_1_all, bin_mass_2_all, bin_orb_a_all, bin_orb_inc_all
     return (bin_orb_inc_all)
 
 
-class CaptureProgradeBlackHoles(TimelineActor):
+class CaptureNSCProgradeBlackHoles(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Capture Prograde Black Holes" if name is None else name, settings)
 
@@ -769,9 +770,9 @@ class CaptureProgradeBlackHoles(TimelineActor):
         blackholes_pro.add_objects(captured_blackholes)
 
 
-class RecaptureRetrogradeBlackHoles(TimelineActor):
+class EvolveRetrogradeBlackHoles(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
-        super().__init__("Capture Retrograde Black Holes" if name is None else name, settings)
+        super().__init__("Evolve Retrograde Black Holes" if name is None else name, settings)
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):

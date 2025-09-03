@@ -1006,6 +1006,12 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
     # set ratio = 1 (no migration) for black holes at or beyond the disk outer radius
     ratio_feedback_migration_torque[np.where(disk_bh_pro_orbs_a >= disk_radius_outer)] = 1.
 
+    # print("--------")
+    # print(disk_bh_pro_orbs_a)
+    # print(disk_opacity)
+    # print(disk_surface_density)
+    # print(ratio_feedback_migration_torque)
+
     assert np.isfinite(ratio_feedback_migration_torque).all(), \
         "Finite check failure: ratio_feedback_migration_torque"
 
@@ -1161,23 +1167,24 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
     return (ratio_heat_mig_torques_bin_com)
 
 class ProgradeBlackHoleMigration(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
+    def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
         super().__init__("Prograde Black Hole Migration" if name is None else name, settings)
+        self.target_array = target_array
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
         # Check to make sure the array exists in the filing cabinet
-        if sm.bh_prograde_array_name not in filing_cabinet:
+        if self.target_array not in filing_cabinet:
             return
 
-        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+        blackholes_array = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
         # First if feedback present, find ratio of feedback heating torque to migration torque
         if sm.flag_thermal_feedback > 0:
             ratio_heat_mig_torques = feedback_bh_hankla(
-                blackholes_pro.orb_a,
+                blackholes_array.orb_a,
                 agn_disk.disk_surface_density,
                 agn_disk.disk_opacity,
                 sm.disk_bh_eddington_ratio,
@@ -1185,7 +1192,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.disk_radius_outer
             )
         else:
-            ratio_heat_mig_torques = np.ones(blackholes_pro.num)
+            ratio_heat_mig_torques = np.ones(blackholes_array.num)
 
         # Set empty variable, we'll fill it based on torque_prescription
         new_orb_a_bh = None
@@ -1197,9 +1204,9 @@ class ProgradeBlackHoleMigration(TimelineActor):
             # Old migration prescription
             new_orb_a_bh = type1_migration_single(
                 sm.smbh_mass,
-                blackholes_pro.orb_a,
-                blackholes_pro.mass,
-                blackholes_pro.orb_ecc,
+                blackholes_array.orb_a,
+                blackholes_array.mass,
+                blackholes_array.orb_ecc,
                 sm.disk_bh_pro_orb_ecc_crit,
                 agn_disk.disk_surface_density,
                 agn_disk.disk_aspect_ratio,
@@ -1213,9 +1220,9 @@ class ProgradeBlackHoleMigration(TimelineActor):
         if sm.torque_prescription == 'paardekooper' or sm.torque_prescription == 'jimenez_masset':
             normalized_torque_bh = normalized_torque(
                 sm.smbh_mass,
-                blackholes_pro.orb_a,
-                blackholes_pro.mass,
-                blackholes_pro.orb_ecc,
+                blackholes_array.orb_a,
+                blackholes_array.mass,
+                blackholes_array.orb_ecc,
                 sm.disk_bh_pro_orb_ecc_crit,
                 agn_disk.disk_surface_density,
                 agn_disk.disk_aspect_ratio
@@ -1228,8 +1235,8 @@ class ProgradeBlackHoleMigration(TimelineActor):
             # Paardekooper torque coeff (default)
             if sm.torque_prescription == 'paardekooper':
                 paardekooper_torque_coeff_bh = paardekooper10_torque(
-                    blackholes_pro.orb_a,
-                    blackholes_pro.orb_ecc,
+                    blackholes_array.orb_a,
+                    blackholes_array.orb_ecc,
                     sm.disk_bh_pro_orb_ecc_crit,
                     agn_disk.disk_dlog10surfdens_dlog10R_func,
                     agn_disk.disk_dlog10temp_dlog10R_func
@@ -1248,8 +1255,8 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     agn_disk.disk_opacity,
                     agn_disk.disk_aspect_ratio,
                     agn_disk.temp_func,
-                    blackholes_pro.orb_a,
-                    blackholes_pro.orb_ecc,
+                    blackholes_array.orb_a,
+                    blackholes_array.orb_ecc,
                     sm.disk_bh_pro_orb_ecc_crit,
                     agn_disk.disk_dlog10surfdens_dlog10R_func,
                     agn_disk.disk_dlog10temp_dlog10R_func
@@ -1263,10 +1270,10 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     agn_disk.disk_aspect_ratio,
                     agn_disk.temp_func,
                     sm.disk_bh_eddington_ratio,
-                    blackholes_pro.orb_a,
-                    blackholes_pro.orb_ecc,
+                    blackholes_array.orb_a,
+                    blackholes_array.orb_ecc,
                     sm.disk_bh_pro_orb_ecc_crit,
-                    blackholes_pro.mass,
+                    blackholes_array.mass,
                     sm.flag_thermal_feedback,
                     agn_disk.disk_dlog10pressure_dlog10R_func
                 )
@@ -1298,9 +1305,9 @@ class ProgradeBlackHoleMigration(TimelineActor):
             # Timescale on which migration happens based on overall torque
             torque_mig_timescales_bh = torque_mig_timescale(
                 sm.smbh_mass,
-                blackholes_pro.orb_a,
-                blackholes_pro.mass,
-                blackholes_pro.orb_ecc,
+                blackholes_array.orb_a,
+                blackholes_array.mass,
+                blackholes_array.orb_ecc,
                 sm.disk_bh_pro_orb_ecc_crit,
                 torque_bh
             )
@@ -1308,9 +1315,9 @@ class ProgradeBlackHoleMigration(TimelineActor):
             # Calculate new bh_orbs_a using torque (here including details from Jimenez & Masset '17 & Grishin+'24)
             new_orb_a_bh = type1_migration_distance(
                 sm.smbh_mass,
-                blackholes_pro.orb_a,
-                blackholes_pro.mass,
-                blackholes_pro.orb_ecc,
+                blackholes_array.orb_a,
+                blackholes_array.mass,
+                blackholes_array.orb_ecc,
                 sm.disk_bh_pro_orb_ecc_crit,
                 torque_mig_timescales_bh,
                 ratio_heat_mig_torques,
@@ -1328,12 +1335,12 @@ class ProgradeBlackHoleMigration(TimelineActor):
         # TODO: Reconsider for physicality
         # I'm not sure why where have this filter/check if we overwrite everything right after?
         # Was this supposed to be some sort of edge detection?
-        blackholes_pro.orb_a = np.where(blackholes_pro.orb_a > sm.disk_inner_stable_circ_orb, blackholes_pro.orb_a,
+        blackholes_array.orb_a = np.where(blackholes_array.orb_a > sm.disk_inner_stable_circ_orb, blackholes_array.orb_a,
                                         3 * sm.disk_inner_stable_circ_orb)
 
-        blackholes_pro.orb_a = new_orb_a_bh
+        blackholes_array.orb_a = new_orb_a_bh
 
-        blackholes_pro.consistency_check()
+        blackholes_array.consistency_check()
 
         # TODO: Stars
 
