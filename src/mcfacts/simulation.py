@@ -12,7 +12,7 @@ from mcfacts.objects.timeline import SimulationTimeline
 from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion
 from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
 from mcfacts.modules.disk_capture import EvolveRetrogradeBlackHoles, RecaptureBinaryBlackHoles, CaptureNSCProgradeBlackHoles
-from mcfacts.modules.dynamics import SingleBlackHoleDynamics, BinaryBlackHoleDynamics
+from mcfacts.modules.dynamics import InnerBlackHoleDynamics, SingleBlackHoleDynamics, BinaryBlackHoleDynamics
 from mcfacts.modules.gas_hardening import BinaryBlackHoleGasHardening
 from mcfacts.modules.formation import BinaryBlackHoleFormation
 from mcfacts.modules.merge import ProcessBinaryBlackHoleMergers, ProcessEMRIMergers
@@ -81,8 +81,8 @@ def main():
             ProgradeBlackHoleAccretion(target_array=innerdisk_array),
             ProgradeBlackHoleDamping(target_array=innerdisk_array),
             SingleBlackHoleDynamics(target_array=innerdisk_array),
+            InnerBlackHoleDynamics(target_array=innerdisk_array)
             SingleBlackHoleRealityCheck(),
-            # TODO: Inner disk GW evolve class
         ]
 
         dynamics_timeline.add_timeline_actors(innerdisk_dynamics)
