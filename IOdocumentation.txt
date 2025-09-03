@@ -12,15 +12,15 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     smbh_mass : float
         supermassive black hole mass in units of solar masses
             default : 1.e8
-    flag_use_pagn : int
-        Switch pAGN program on (1) or off (0)
-        Gangardt, Daria et al. 2024      
-            default : 1  
     disk_model_name : string
         McFACTS comes with the following example options for disk models:
         sirko_goodman: from Sirko & Goodman 2003
         thompson_etal: from Thompson, Quataert & Murray 2005
-
+    flag_use_pagn : int
+        Switch pAGN program on (1) or off (0)
+        Gangardt, Daria et al. 2024      
+            default : 1  
+    
         If user sets pAGN to on (1), only sirko_goodman and thompson_etal are available to use   
             this variable sets the model used by pAGN Sirko & Goodman 2003 or Thompson, Quataert, and Murray 2005
         If user sets pAGN to off (0), tabulated models will be used. Options included are sirko_goodman and thompson_etal
@@ -33,12 +33,12 @@ star cluster variables second, and assorted other choices (time resolution etc.)
            units of gravitational radii (R_g=GM_SMBH/c^2).
            McFACTS assumes the innermost specified radius in the disk surface density
            input file is the inner edge of the disk, and the outermost specified 
-           radius is the outer edge.
+           radius is the outer edge.!!!I don't think this is true
            User must also supply the disk aspect ratio as a function of radius
            in a file called name_aspect_ratio.txt
         User must specify name_opacity.txt as a function of radius
            Both files must have surface density & aspect ratio specified at the
-               SAME set of radii.
+               SAME set of radii.!!! I don't think this is true
            Here name = disk_model_name
            default : 'sirko_goodman'
     disk_radius_trap : float
@@ -52,9 +52,39 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     disk_radius_outer : float
         Cut-off disk model at this radius (measured in units of R_g=GM_SMBH/c^2)
             default: 50000.0 
+    disk_radius_max_pc : float
+        I don't know what this does!!!
+            default: 0.
     disk_alpha_viscosity : float
         Disk viscosity parameter
             default: 0.01
+    inner_disk_outer_radius : float
+        Outer radius of the inner disk in units of gravitational radii (R_g=GM_SMBH/c^2).
+        Inside this radius, the orbital evolution of objects is assumed to be GW dominated;
+        Outside of this radius, evolution is gas dominated. Set to radius where 10Msun BH
+        decays onto SMBH in ~40Myr
+            default : 50.0
+    disk_inner_stable_circ_orb : float
+        Innermost stable circular orbit around SMBH in units of gravitational radii (R_g=GM_SMBH/c^2).
+            default : 6.0
+    torque_prescription : string
+        What analytical fits are we using for the gas torque prescription for migration?
+        Options are 'old' : a simplified version of paardekooper (deprecated)
+        'paardekooper' : !!!Cite (torques from 2d sims)
+        'jimenez_masset' : !!!Cite (torques from 3d sims)
+            default : 'paardekooper'
+    flag_phenom_turb : bool
+        Use a mocked up random noise generator to add a phenomenological turbulence component
+        to the migration torques (1=yes, 0=no)
+            default : 0
+    phenom_turb_centroid : float
+        If flag_phenom_turb = 1, perturbations are Gaussian; this sets the central value of the
+        Gaussian.
+            default : 0.
+    phenom_turb_std_dev : float
+        If flag_phenom_turb = 1, perturbations are Gaussian; this sets the std dev of the
+        Gaussian.
+            default : 1.0
 
     nsc_radius_outer : float
         Outer radius of Nuclear Star Cluster in units of pc. (Typically 1-10pc in scale from observations)
@@ -84,129 +114,126 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     disk_aspect_ratio_avg : float
         Average height of disk out to r_disk_outer. Approx. 3% for Sirko & Goodman.
             default: 0.03
+    nsc_spheroid_normalization : float
+        Normalization factor determines the departures from sphericity of the initial distribution of perturbers
+            default : 1.0
 
     nsc_imf_bh_mode : float
         Initial mass function of BH is assumed to be a Pareto function
         Mode of initial BH mass distribution in solar masses (peak of Pareto fn)
-        default : 10.0
+            default : 10.0
     nsc_imf_bh_powerlaw_index : float
         Initial Pareto (powerlaw) index for BH mass function
-        default : 2.0
+            default : 2.0
     nsc_imf_bh_mass_max : float
         Maximum mass of initial BH mass distribution 
-        default : 40.0
+            default : 40.0
+    nsc_imf_bh_method : string
+        What is the functio of the BH IMF? Pareto is 'default' I think???!!! Other choices???
+        !!! 'default'
     nsc_bh_spin_dist_mu : float
         Mean of Gaussian initial dimensionless spin magnitude distribution (zero is pure dynamics)
-        default : 0.0
+            default : 0.0
     nsc_bh_spin_dist_sigma : float
         standard deviation of initial dimensionless spin magnitude distribution (small is good)
-        default : 0.1
+            default : 0.1
     disk_bh_torque_condition : float
         fraction of initial mass required to be accreted before BH spin is torqued 
         fully into alignment with the AGN disk. We don't know for sure but 
         Bogdanovic et al. says between 0.01=1% and 0.1=10% is what is required
-        default : 0.1
+            default : 0.1
     disk_bh_eddington_ratio : float
         Accretion rate of fully embedded stellar mass black hole in units of 
         Eddington accretion rate. 1.0=embedded BH accreting at Eddington.
         Super-Eddington accretion rates are permitted.
-        default : 1.0
+            default : 1.0
     disk_bh_orb_ecc_max_init : float
         this is the initial eccentricity of a single orbiter around SMBH
         want to eventually turn this into some physically motivated thing
         for now assuming uniform distribution [0.0 .. max_initial_eccentricity]
-        default : 0.3
+            default : 0.3
     timestep_duration_yr : float
         McFACTS evolves populations once per timestep according to chosen physics
         Choose a timestep that allows some things to happen, but not everything
         to happen in one timestep. Migration timescale across your disk is a
         good fiducial: 10kyr=1.e4 is a reasonable choice in a Sirko & Goodman
         disk with a lot of 10Msun BH. Timestep is in units of years.
-        default : 1.e4
+            default : 1.e4
     timestep_num : int
         Disk lifetime is set by choosing your number of timesteps:
         lifetime = timestep * number_of_timesteps
         choosing default settings gives 1Myr lifetime
-        default : 100
+            default : 100
 
     galaxy_num : int
         Number of iterations of code. 
         Choosing default settings gives 1 run. Quick test for n_iterations = 30.
-        default : 1            
+            default : 1            
     flag_thermal_feedback : int
         Switch to incorporate a feedback model from accreting embedded BH. Changes migration rates.
         feedback = 1 makes all BH subject to gas torque modification due to feedback 
         feedback = 0 means no BH gas torque modifications (Type I migration only).
         Feedback model right now is Hanka et al. 2022
-        default : 1
+            default : 1
     flag_orb_ecc_damping : int
         Switch to incorporate orbital eccentricity damping.
         orb_ecc_damping = 1 gives all BH an initial orb eccentricity 
         which must be damped to <crit_ecc before it can form a binary. Means there's usually a delay before binaries form.
         orb_ecc_damping = 0 gives all BH the value of crit_ecc (usually 0.01) for initial orb eccentricity. Means 
         binaries can form straight away (they're all assumed circularized)
-        default : 1
+            default : 1
 
     capture_time_yr : int
         Time between disk captures in units of years. From Secunda+2021, capture time is 1 per 0.1Myr.
-        default : 1.e5
+            default : 1.e5
     disk_radius_capture_outer : int
         Outer radius at which capture can occur in units of R_g=GM_SMBH/c^2. From Fabj+20, ~2000R_g is reasonable.
-        default : 2.e3
+            default : 2.e3
     disk_bh_pro_orb_ecc_crit : int
         Value of critical eccentricity below which it is assumed circularized in its orbit & can migrate/form binaries.
-        default : 0.01
+            default : 0.01
     flag_dynamic_enc : int
         Switch to allow for dynamical interactions. 
         If dynamic_enc = 1 then interactions between circularized BH (e<crit_ecc) and eccentric BH (e>crit_ecc) are followed.
         Calculates probability of interaction per timestep. 
         If there is an interaction then energy de is added to circularized BH and taken from eccentric BH.
         Eccentricity of circularized BH is increased by de and eccentricity of interloper is decreased by de.
-        default : 0
+            default : 0
     delta_energy_strong_mu : float
         Average change in orbital energy/eccentricity of BH post-encounter between a circularized and eccentric BH.
         For de = 0.1, the circularized BH increases semi-major axis a_circ to (1+de)a_circ 
         and increases eccentricity e_crit to e_crit+de
         The eccentric BH decreases semi-major axis a_ecc to (1-de)a_ecc 
         and decreases eccentricity e to e-de.
-        default : 0.1
+            default : 0.1
     delta_energy_strong_sigma : float
         Standard deviation for Gaussian with mean of delta_energy_strong_mu
     mass_pile_up : float
         Mass pile up term <nsc_bh_inf_max_mass> Units of M_sun. Default is user set 
         Used to make a uniform pile up in mass between [mass_pile_up, nsc_bh_inf_max_mass] for masses selected
         from nsc_bh_imf_powerlaw_index beyond nsc_bh_inf_max_mass. E.g default [35,40] pile up of masses.
-        default : 35.0
-    inner_disk_outer_radius : float
-        Outer radius of the inner disk in units of gravitational radii (R_g=GM_SMBH/c^2).
-        default : 50.0
+            default : 35.0
     disk_radius_max_pc : float
         Maximum disk size in units of parsecs (0. for off)
-        default : -0.25
-    disk_inner_stable_circ_orb : float
-        Innermost stable circular orbit around SMBH in units of gravitational radii (R_g=GM_SMBH/c^2).
-        deafult : 6.0
-    nsc_spheroid_normalization : float
-        Normalization factor determines the departures from sphericity of the initial distribution of perturbers
-        default : 1.0
+            default : -0.25
     save_snapshots : int
         Saving the snapshots of each object being per time step. Deafult is 0 [off] 
-        default : 0
+            default : 0
     flag_use_surrogate : int
         Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) uses NRsurrogate (Published by Varma+2019 and modified by Keeffe Mitman) to individually solve for each merger's kick velocity.
-        default : 0
+            default : 0
     flag_add_stars : int
         Switch stars on (1) or off (0)
-        default: 0
+            default: 0
     flag_initial_stars_BH_immortal : int
         Switch to turn initially drawn stars with mass greater than disk_star_initial_mass_cutoff into BH (1), otherwise stars above disk_star_initial_mass_cutoff are held at disk_star_initial_mass_cutoff (0)
-        default: 0
+            default: 0
     flag_coalesce_initial_stars : int
         Switch to coalesce initially drawn stars that are within each other's Hill spheres (1) or not (0)
-        default: 0
+            default: 0
     disk_star_initial_mass_cutoff : float
         Maximum star mass
-        default: 300 M_sun
+            default: 300 M_sun
     disk_star_scale_factor : float
         Factor by which to scale the number of stars in the disk at the beginning relative to the number of BH
         default: 0.5e-2
