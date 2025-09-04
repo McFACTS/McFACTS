@@ -1,5 +1,6 @@
 import matplotlib.ticker as mticker
 import numpy as np
+import os
 from matplotlib import pyplot as plt
 
 from mcfacts.inputs.settings_manager import SettingsManager
@@ -25,7 +26,9 @@ def make_gen_masks(gen_obj1, gen_obj2):
     return g1_mask, g2_mask, gX_mask
 
 
-def num_mergers_vs_mass(settings, figsize, mass_final, merger_g1_mask, merger_g2_mask, merger_gX_mask):
+def num_mergers_vs_mass(settings, figsize, save_dir, merger_masks, mass_final):
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = merger_masks
+
     fig = plt.figure(figsize=plotting.set_size(figsize))
     counts, bins = np.histogram(mass_final)
     bins = np.arange(int(mass_final.min()), int(mass_final.max()) + 2, 1)
@@ -54,7 +57,80 @@ def num_mergers_vs_mass(settings, figsize, mass_final, merger_g1_mask, merger_g2
     elif figsize == 'apj_page':
         plt.legend()
 
-    plt.savefig("./runs" + r"/merger_remnant_mass.png", format='png', dpi=300)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, "merger_remnant_mass.png"), format='png', dpi=300)
+    plt.close()
+
+def merger_vs_radius(settings, figsize, save_dir, merger_masks, mass, orb_a):
+    # for i in range(len(mergers[:, 1])):
+    #     if mergers[i, 1] < 10.0:
+    #         mergers[i, 1] = 10.0
+
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = merger_masks
+
+    # Separate generational subpopulations
+    gen1_orb_a = orb_a[merger_g1_mask]
+    gen2_orb_a = orb_a[merger_g2_mask]
+    genX_orb_a = orb_a[merger_gX_mask]
+    gen1_mass = mass[merger_g1_mask]
+    gen2_mass = mass[merger_g2_mask]
+    genX_mass = mass[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_mass,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_mass,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_mass,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axvline(settings.disk_radius_trap, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {settings.disk_radius_trap:.0f} ' + r'$R_g$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Remnant Mass [$M_\odot$]')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.ylim(15, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, "merger_mass_v_radius.png"), format='png', dpi=300)
+    plt.close()
 
 
 def main():
@@ -67,6 +143,8 @@ def main():
         "disk_inner_stable_circ_orb": 16
     })
 
+    plt.style.use("mcfacts.vis.mcfacts_figures")
+
     figsize = "apj_col"
 
     snapshot_handler = TxtSnapshotHandler(settings)
@@ -75,10 +153,14 @@ def main():
 
     mergers = population_cabinet["blackholes_merged"]
     mass_final = mergers["mass_final"]
+    orb_a = mergers["orb_a"]
 
-    merger_g1_mask, merger_g2_mask, merger_gX_mask = make_gen_masks(mergers["gen_1"], mergers["gen_2"])
+    merger_masks = (make_gen_masks(mergers["gen_1"], mergers["gen_2"])) # Man, I hate python
 
-    num_mergers_vs_mass(settings, figsize, mass_final, merger_g1_mask, merger_g2_mask, merger_gX_mask)
+    plots_dir = "./runs/plots"
+
+    num_mergers_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final)
+    merger_vs_radius(settings, figsize, plots_dir, merger_masks, mass_final, orb_a)
 
 
 if __name__ == "__main__":
