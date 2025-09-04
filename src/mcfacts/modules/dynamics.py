@@ -3263,11 +3263,16 @@ def bh_near_smbh(
         disk_inner_stable_circ_orb,
 ):
     """Evolve semi-major axis of single BH near SMBH according to Peters64
+    also eccentricity
 
     Test whether there are any BH near SMBH. 
     Flag if anything within min_safe_distance (default=50r_g) of SMBH.
     Time to decay into SMBH can be parameterized from Peters(1964) as:
     .. math:: t_{gw} =38Myr (1-e^2)(7/2) (a/50r_{g})^4 (M_{smbh}/10^8M_{sun})^3 (m_{bh}/10M_{sun})^{-1}
+    Time to eccentricity decay to zero from Peters(1964) as an annoying piecewise function:
+    .. math:: t_{e_0} =t_{gw} * f(e_0) where f(e_0)=(1-e_0^2)^4/(1+ (121/304)e_0^2)^(870/2299) if e_0<0.8
+    .. math:: f(e_0) = (768/425) * (1-e_0^2)^3.5 if e_0>0.95
+    .. math:: f(e_0) = some other function if 0.8 < e_0 < 0.95
 
     Parameters
     ----------
@@ -3306,6 +3311,8 @@ def bh_near_smbh(
         unit_conversion.si_from_r_g(smbh_mass * u.solMass, disk_bh_pro_orbs_a),
         0 * u.m,
     )
+    # Estimate the decay time to zero eccentricity
+
     # Estimate the number of timesteps to decay
     decay_timesteps = decay_time_arr.to('yr').value / timestep_duration_yr
     # Estimate decrement
