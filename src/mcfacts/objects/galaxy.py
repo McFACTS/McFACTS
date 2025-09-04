@@ -12,7 +12,6 @@ from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
 from mcfacts.utilities.random_state import reset_random
 from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet
 from mcfacts.objects.timeline import SimulationTimeline
-from mcfacts.outputs.standard_out import pickle_state
 
 
 class GalaxyPopulator(ABC):

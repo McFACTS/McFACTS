@@ -25,7 +25,7 @@ settings = SettingsManager({
     "override_files": True,
     "save_state": True,
     "save_each_timestep": True,
-    "disk_inner_stable_circ_orb": 11 # TODO: Fix ReadInput AGNDisk iterp for small radii objects
+    "disk_inner_stable_circ_orb": 16 # TODO: Fix ReadInput AGNDisk iterp for small radii objects
 })
 
 def args():

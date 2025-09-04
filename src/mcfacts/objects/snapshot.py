@@ -1,10 +1,12 @@
 import os
+import uuid
 from abc import ABC, abstractmethod
 from os import PathLike
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
@@ -22,7 +24,7 @@ class SnapshotHandler(ABC):
         return NotImplemented
 
     @abstractmethod
-    def load_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> FilingCabinet:
+    def load_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> Any:
         return NotImplemented
 
     @abstractmethod
@@ -86,11 +88,11 @@ class TxtSnapshotHandler(SnapshotHandler):
                 type_array.append(self.get_fully_qualified_type(value[0]))
 
             header = "".join(
-                f"{key + '::' + str(type_array[i]) :<{(37 if key.startswith('unique_id') else 33) - (2 if i == 0 else 0)}}"
+                f"{key + '::' + str(type_array[i]) :<{(37 if key.startswith('unique_id') else 33)}}"
                 for i, key in enumerate(super_dict.keys())
             )
 
-            np.savetxt(final_path, np.column_stack(tuple(super_dict.values())), fmt='%-32s', header=header)
+            np.savetxt(final_path, np.column_stack(tuple(super_dict.values())), fmt='%-32s', header=header, comments='')
 
         # Handle the 'everything else' dictionary stored in the filing cabinet
         if len(everything_else) == 0:
@@ -104,18 +106,66 @@ class TxtSnapshotHandler(SnapshotHandler):
         temp_array = np.column_stack(tuple([temp_keys, temp_values, temp_types]))
 
         everything_else_header = "".join(
-            f"{key:<{(37 if key.startswith('unique_id') else 26) - (2 if i == 0 else 0)}}"
+            f"{key:<{(37 if key.startswith('unique_id') else 26)}}"
             for i, key in enumerate(["key", "value", "type"])
         )
 
-        np.savetxt(everything_else_path, temp_array, fmt='%-25s', header=everything_else_header)
+        np.savetxt(everything_else_path, temp_array, fmt='%-25s', header=everything_else_header, comments='')
 
 
-    def load_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> FilingCabinet:
-        pass
+    def load_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> dict:
+        directory = Path(file_path)
+
+        if not directory.exists():
+            raise FileNotFoundError(f"Directory not found: {file_path}")
+
+        agn_objects = dict()
+        everything_else = dict() # TODO: Handle everything else dictionary
+
+        for file in directory.iterdir():
+            if not file.is_file():
+                continue
+            if not file.name.startswith(f"{file_name}_"):
+                continue
+            if not file.name.endswith(".txt"):
+                continue
+
+            array_name = file.name[len(file_name + "_"):].rstrip(".txt")
+
+            if not array_name:
+                continue
+
+            try:
+                data = pd.read_csv(file, sep=r"\s+", dtype=str, engine='python')
+            except Exception as ex:
+                print(f"Failed to load {file}: {ex}")
+                continue
+
+            if len(data) == 0:
+                continue
+
+            column_dict = dict()
+
+            for series_name, series in data.items():
+                key, value = str(series_name).split('::')
+
+                if value == "uuid.UUID":
+                    array = np.array([uuid.UUID(v) for v in series], dtype=uuid.UUID)
+                elif value.startswith("numpy."):
+                    array = np.array(series, np.dtype(value.split('.')[1]))
+                else:
+                    array = np.array(series)
+
+                column_dict[key] = array
+
+            agn_objects[array_name] = column_dict
+
+        return agn_objects
+
 
     def save_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike, settings: SettingsManager = None):
         pass
+
 
     def load_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
         pass
