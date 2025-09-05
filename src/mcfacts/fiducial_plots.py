@@ -494,9 +494,9 @@ def kick_velocity_hist(settings, figsize, save_dir, merger_masks, v_kick):
 
     kick_bins = np.logspace(np.log10(v_kick.min()), np.log10(v_kick.max()), 50)
     hist_kick_data = [v_kick[merger_g1_mask], v_kick[merger_g2_mask], v_kick[merger_gX_mask]]
-
     hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
     hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
     plt.hist(hist_kick_data, bins=kick_bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
 
     # plot the distribution of mergers as a function of generation
@@ -517,6 +517,419 @@ def kick_velocity_hist(settings, figsize, save_dir, merger_masks, v_kick):
         os.makedirs(save_dir)
 
     plt.savefig(os.path.join(save_dir, "v_kick_distribution.png"), format='png', dpi=300)
+    plt.close()
+
+
+def kick_velocity_vs_radius(settings, figsize, save_dir, merger_masks, orb_a, v_kick):
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = merger_masks
+    gen1_vkick = v_kick[merger_g1_mask]
+    gen2_vkick = v_kick[merger_g2_mask]
+    genX_vkick = v_kick[merger_gX_mask]
+    gen1_orb_a = orb_a[merger_g1_mask]
+    gen2_orb_a = orb_a[merger_g2_mask]
+    genX_orb_a = orb_a[merger_gX_mask]
+
+    # figsize is hardcoded here. don't change, shrink everything illegibly
+    fig, axs = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=(5.5, 3),
+                            gridspec_kw={'width_ratios': [3, 1], 'wspace': 0, 'hspace': 0})
+
+    plot = axs[0]
+    hist = axs[1]
+
+    # plot 1g-1g mergers
+    plot.scatter(gen1_orb_a, gen1_vkick,
+                 s=styles.markersize_gen1,
+                 marker=styles.marker_gen1,
+                 edgecolor=styles.color_gen1,
+                 facecolors="none",
+                 alpha=styles.markeralpha_gen1,
+                 label='1g-1g'
+                 )
+
+    # plot 2g-mg mergers
+    plot.scatter(gen2_orb_a, gen2_vkick,
+                 s=styles.markersize_gen2,
+                 marker=styles.marker_gen2,
+                 edgecolor=styles.color_gen2,
+                 facecolors="none",
+                 alpha=styles.markeralpha_gen2,
+                 label='2g-1g or 2g-2g'
+                 )
+
+    # plot 3g-ng mergers
+    plot.scatter(genX_orb_a, genX_vkick,
+                 s=styles.markersize_genX,
+                 marker=styles.marker_genX,
+                 edgecolor=styles.color_genX,
+                 facecolors="none",
+                 alpha=styles.markeralpha_genX,
+                 label=r'$\geq$3g-Ng'
+                 )
+
+    # plot trap radius
+    plot.axvline(settings.disk_radius_trap, color='k', linestyle='--', zorder=0,
+                 label=f'Trap Radius = {settings.disk_radius_trap} ' + r'$R_g$')
+
+    # configure scatter plot
+    plot.set_ylabel(r'$v_{kick}$ [km/s]')
+    plot.set_xlabel(r'Radius [$R_g$]')
+    plot.set_xscale('log')
+    plot.set_yscale('log')
+    plot.grid(True, color='gray', ls='dashed')
+    if figsize == 'apj_col':
+        plot.legend(fontsize=6, loc='lower right')
+        plot.legend(fontsize=6, loc='lower right')
+    elif figsize == 'apj_page':
+        plot.legend()
+
+    # calculate mean kick velocity for all mergers
+    mean_kick = np.mean(v_kick)
+
+    kick_bins = np.logspace(np.log10(v_kick.min()), np.log10(v_kick.max()), 50)
+    hist_kick_data = [v_kick[merger_g1_mask], v_kick[merger_g2_mask], v_kick[merger_gX_mask]]
+    hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    # configure histogram
+    hist.hist(hist_kick_data, bins=kick_bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label,
+              stacked=True, orientation='horizontal')
+    hist.axhline(mean_kick, color='black', linewidth=1, linestyle='dashdot',
+                 label=r'$\langle v_{kick}\rangle $ =' + f"{mean_kick:.2f}")
+    hist.grid(True, color='gray', ls='dashed')
+    hist.set_yscale('log')
+    hist.yaxis.tick_right()
+    hist.set_xlabel(r'n')
+
+    if figsize == 'apj_col':
+        hist.legend(fontsize=6, loc='best')
+    elif figsize == 'apj_page':
+        hist.legend()
+
+    # plt.title(r"v$_{kick} vs. semi-major axis with distribution of v$_{kick}$")
+    plt.tight_layout()
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, 'v_kick_vs_radius.png'), format='png', dpi=300)
+    plt.close()
+
+
+def kick_velocity_vs_chi_eff(settings, figsize, save_dir, merger_masks, chi_eff, v_kick):
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = merger_masks
+    gen1_vkick = v_kick[merger_g1_mask]
+    gen2_vkick = v_kick[merger_g2_mask]
+    genX_vkick = v_kick[merger_gX_mask]
+    gen1_chi_eff = chi_eff[merger_g1_mask]
+    gen2_chi_eff = chi_eff[merger_g2_mask]
+    genX_chi_eff = chi_eff[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax3 = fig.add_subplot(111)
+    ax3.scatter(gen1_chi_eff, gen1_vkick,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    ax3.scatter(gen2_chi_eff, gen2_vkick,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    ax3.scatter(genX_chi_eff, genX_vkick,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    mean_chieff_gen_1 = np.mean(gen1_vkick)
+    mean_chieff_gen_2 = np.mean(gen2_vkick)
+    mean_chieff_gen_X = np.mean(genX_vkick)
+    # ax3.axhline(mean_chieff_gen_1, color='gold', linestyle='--', zorder=0,
+    #             label= f"{mean_chieff_gen_1:.2f}")
+    # ax3.axhline(mean_chieff_gen_2, color='purple', linestyle='--', zorder=0,
+    #             label= f"{mean_chieff_gen_2:.2f}")
+    # ax3.axhline(mean_chieff_gen_X, color='red', linestyle='--', zorder=0,
+    #             label= f"{mean_chieff_gen_X:.2f}")
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'$\chi_{eff}$')
+    plt.ylabel(r'$v_{kick}$ [km/s]')
+    # plt.xscale('log')
+    plt.yscale('log')
+
+    plt.grid(True, color='gray', ls='dashed')
+
+    if figsize == 'apj_col':
+        ax3.legend(fontsize=5, loc='lower right')
+        ax3.legend(fontsize=5, loc='lower right')
+    # elif figsize == 'apj_page':
+    #     ax3.legend()
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, "v_kick_vs_chi_eff.png"), format='png')
+    plt.close()
+
+
+def spin_vs_mass(settings, figsize, save_dir, merger_masks, mass, spin):
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = merger_masks
+    gen1_mass = mass[merger_g1_mask]
+    gen2_mass = mass[merger_g2_mask]
+    genX_mass = mass[merger_gX_mask]
+    gen1_spin = spin[merger_g1_mask]
+    gen2_spin = spin[merger_g2_mask]
+    genX_spin = spin[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_mass, gen1_spin,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_mass, gen2_spin,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_mass, genX_spin,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Remnant Mass [$M_\odot$]')
+    plt.ylabel(r'$a_{final}$')
+    plt.xscale('log')
+    # plt.yscale('log')
+    plt.xlim(9, 140)
+    plt.ylim(0.41, 1.01)
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.grid(True, color='gray', ls='dashed')
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, 'spin_v_mass.png'), format='png', dpi=300)
+    plt.close()
+
+
+def spin_vs_radius(settings, figsize, save_dir, merger_masks, orb_a, spin):
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = merger_masks
+    gen1_orb_a = orb_a[merger_g1_mask]
+    gen2_orb_a = orb_a[merger_g2_mask]
+    genX_orb_a = orb_a[merger_gX_mask]
+    gen1_spin = spin[merger_g1_mask]
+    gen2_spin = spin[merger_g2_mask]
+    genX_spin = spin[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_spin,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_spin,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_spin,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axvline(settings.disk_radius_trap, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {settings.disk_radius_trap} ' + r'$R_g$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.ylabel(r'$a_{final}$')
+    plt.xscale('log')
+    #plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=4, loc = 'lower right')
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, 'spin_vs_radius.png'), format='png', dpi=300)
+    plt.close()
+
+
+def spin_vs_kick(settings, figsize, save_dir, merger_masks, v_kick, spin):
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = merger_masks
+    gen1_vkick = v_kick[merger_g1_mask]
+    gen2_vkick = v_kick[merger_g2_mask]
+    genX_vkick = v_kick[merger_gX_mask]
+    gen1_spin = spin[merger_g1_mask]
+    gen2_spin = spin[merger_g2_mask]
+    genX_spin = spin[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_vkick, gen1_spin,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_vkick, gen2_spin,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_vkick, genX_spin,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axvline(v_kick.mean(), color='k', linestyle='--', zorder=0,
+                label=f'Analytical Kick Velocity = {v_kick.mean()} ' + r'$[km/s]$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'$v_{kick}$ [km/s]')
+    plt.ylabel(r'$a_{final}$')
+    plt.xscale('log')
+    plt.ylim(0.4, 1.01)
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=4)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, 'spin_vs_kick.png'), format='png', dpi=300)
+    plt.close()
+
+
+def kick_velocity_vs_mass(settings, figsize, save_dir, merger_masks, mass, v_kick):
+    merger_g1_mask, merger_g2_mask, merger_gX_mask = merger_masks
+    gen1_vkick = v_kick[merger_g1_mask]
+    gen2_vkick = v_kick[merger_g2_mask]
+    genX_vkick = v_kick[merger_gX_mask]
+    gen1_mass = mass[merger_g1_mask]
+    gen2_mass = mass[merger_g2_mask]
+    genX_mass = mass[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_mass, gen1_vkick,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_mass, gen2_vkick,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_mass, genX_vkick,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axhline(v_kick.mean(), color='k', linestyle='--', zorder=0,
+                label=f'Analytical Kick Velocity = {v_kick.mean()} ' + r'$[km/s]$')
+
+    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.xlabel(r'Remnant Mass [$M_\odot$]')
+    plt.ylabel(r'$v_{kick}$ [km/s]')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(9, 100)
+    #plt.ylim(0.51, 1.01)
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=4)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(18, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, "v_kick_mass.png"), format='png', dpi=300)  # ,dpi=600)
     plt.close()
 
 
@@ -547,6 +960,7 @@ def main():
     chi_p = mergers["chi_p"]
     time_merged = mergers["time_merged"]
     v_kick = mergers["v_kick"]
+    spin_final = mergers["spin_final"]
 
     merger_masks = (make_gen_masks(mergers["gen_1"], mergers["gen_2"])) # Man, I hate python
 
@@ -559,6 +973,12 @@ def main():
     time_vs_merger(settings, figsize, plots_dir, merger_masks, mass_final, time_merged)
     mass_1_vs_mass_2(settings, figsize, plots_dir, merger_masks, mass_1, mass_2)
     kick_velocity_hist(settings, figsize, plots_dir, merger_masks, v_kick)
+    kick_velocity_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, v_kick)
+    kick_velocity_vs_chi_eff(settings, figsize, plots_dir, merger_masks, chi_eff, v_kick)
+    spin_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, spin_final)
+    spin_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, spin_final)
+    spin_vs_kick(settings, figsize, plots_dir, merger_masks, v_kick, spin_final)
+    kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
 
 
 if __name__ == "__main__":
