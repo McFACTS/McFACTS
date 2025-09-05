@@ -87,6 +87,7 @@ defaults = {
     # Filing cabinet array names
     "bh_array_name": "blackholes_unsort",
     "bh_inner_disk_array_name": "blackholes_inner_disk",
+    "bh_inner_gw_array_name": "blackholes_inner_gw_only",
     "bh_prograde_array_name": "blackholes_prograde",
     "bh_retrograde_array_name": "blackholes_retrograde",
     "stars_prograde_array_name": "stars_prograde",

@@ -4,6 +4,7 @@ from numpy.random import Generator
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
 from mcfacts.objects.agn_object_array import AGNBlackHoleArray, FilingCabinet
 from mcfacts.objects.timeline import TimelineActor
+from mcfacts.utilities import checks
 
 
 class InitialObjectReclassification(TimelineActor):
@@ -37,7 +38,8 @@ class InitialObjectReclassification(TimelineActor):
         """
         super().__init__("Initial Object Reclassification" if name is None else name, settings)
 
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
         """
         Performs the classification of objects into separate categories and updates the filing cabinet.
 
@@ -157,6 +159,22 @@ class InnerDiskFilter(TimelineActor):
                 # Remove from blackholes_prograde and update filing_cabinet
                 filing_cabinet.create_or_append_array(sm.bh_inner_disk_array_name, blackholes_inner_disk)
                 blackholes_pro.remove_all(bh_id_num_pro_inner_disk)
+
+        if sm.bh_inner_disk_array_name in filing_cabinet:
+            lower_disk_function_bound = filing_cabinet.get_value("lower_disk_function_bound",
+                                                                 checks.find_function_lower_bounds(agn_disk.disk_density))
+
+            blackholes_inner = filing_cabinet.get_array(sm.bh_inner_disk_array_name, AGNBlackHoleArray)
+
+            bh_id_num_gw_only = blackholes_inner.id_num[blackholes_inner.orb_a <= lower_disk_function_bound]
+
+            if bh_id_num_gw_only.size > 0:
+                blackholes_gw_only = blackholes_inner.copy()
+                blackholes_gw_only.keep_only(bh_id_num_gw_only)
+
+                filing_cabinet.create_or_append_array(sm.bh_inner_gw_array_name, blackholes_inner)
+                blackholes_inner.remove_all(bh_id_num_gw_only)
+
 
 class FlipRetroProFilter(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):

@@ -185,3 +185,22 @@ def spin_check(gen_1, gen_2, spin_merged):
     # print("new gen 2: ", gen_2)
     # print("new spin_merged: ", spin_merged)
     return np.array(new_spin_merged)
+
+
+def find_function_lower_bounds(disk_function):
+    upper_bound = 20
+    lower_bound = 5
+
+    final_bound = 6
+
+    for i in range(25):
+        middle = lower_bound + ((upper_bound - lower_bound) / 2)
+
+        if np.isfinite(disk_function(middle)):
+            upper_bound = middle
+            final_bound = middle
+        else:
+            lower_bound = middle
+
+
+    return final_bound

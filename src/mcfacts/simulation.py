@@ -24,8 +24,7 @@ settings = SettingsManager({
     "verbose": False,
     "override_files": True,
     "save_state": True,
-    "save_each_timestep": True,
-    "disk_inner_stable_circ_orb": 16 # TODO: Fix ReadInput AGNDisk iterp for small radii objects
+    "save_each_timestep": True
 })
 
 def args():
@@ -75,6 +74,7 @@ def main():
 
         prograde_array = galaxy.settings.bh_prograde_array_name
         innerdisk_array = galaxy.settings.bh_inner_disk_array_name
+        inner_gw_only_array = galaxy.settings.bh_inner_gw_array_name
 
         innerdisk_dynamics = [
             ProgradeBlackHoleMigration(target_array=innerdisk_array),
@@ -82,6 +82,7 @@ def main():
             ProgradeBlackHoleDamping(target_array=innerdisk_array),
             SingleBlackHoleDynamics(target_array=innerdisk_array),
             InnerBlackHoleDynamics(target_array=innerdisk_array),
+            InnerBlackHoleDynamics(target_array=inner_gw_only_array),
             SingleBlackHoleRealityCheck(),
         ]
 

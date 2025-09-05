@@ -10,7 +10,7 @@ import scipy.interpolate
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
-from mcfacts.utilities import unit_conversion
+from mcfacts.utilities import unit_conversion, checks
 from mcfacts.utilities.random_state import rng
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
@@ -1165,6 +1165,7 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
         "Finite check failure: ratio_heat_mig_torques_bin_com"
 
     return (ratio_heat_mig_torques_bin_com)
+
 
 class ProgradeBlackHoleMigration(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
