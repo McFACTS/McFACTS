@@ -560,8 +560,18 @@ def merge_blackholes_precession(
         Merged mass of remnant
     bh_spin_merged : np.ndarray
         spin magnitudes of merged remnant
+    bh_spin_angle_merged : np.ndarray
+        Spin angle of merged remnant
     bh_v_kick : np.ndarray
         Kick velocity of merged remnant (km/s)
+    mass_1_20hz : np.ndarray
+        Placeholder
+    mass_2_20hz : np.ndarray
+        Placeholder
+    chi_1_20hz : np.ndarray
+        Placeholder
+    chi_2_20hz : np.ndarray
+        Placeholder
     """
     #### Setup ####
     # Import Davide's precession package
@@ -762,6 +772,7 @@ def merge_blackholes_precession(
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
                      smbh_mass, flag_use_surrogate, disk_aspect_ratio, disk_density, time_passed, galaxy):
+    # TODO: Vectorize this function, lists should be modified on the outside after this function returns new values
     """Calculates parameters for merged BHs and adds them to blackholes_pro and blackholes_merged
 
     This function calculates the new parameters for merged BHs and adds them to the
@@ -977,17 +988,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
-        )
-
-        bh_spin_merged = merged_spin(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
         )
 
         bh_chi_eff_merged = chi_effective(
@@ -1011,6 +1013,19 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         )
 
         if sm.flag_use_surrogate == 0:
+            bh_spin_merged = merged_spin(
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
+            )
+            bh_spin_merged = checks.spin_check(
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
+                bh_spin_merged
+            )
             bh_v_kick = analytical_kick_velocity(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1019,8 +1034,59 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
             )
+
+            bh_mass_1_20_hz = np.zeros(bh_binary_id_num_merger.size)
+            bh_mass_2_20_hz = np.zeros(bh_binary_id_num_merger.size)
+            bh_spin_1_20_hz = np.zeros(bh_binary_id_num_merger.size)
+            bh_spin_2_20_hz = np.zeros(bh_binary_id_num_merger.size)
+            bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
+
+        elif sm.flag_use_surrogate == 1:
+            # TODO: Take in surrogate.joblib file from user definied option
+            surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
+
+            (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
+             bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) = (
+                evolve_binary.surrogate(
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+                    len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
+                    # phi_1 - randomly set in the function file
+                    len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
+                    # phi_2 - randomly set in the function file
+                    1000,
+                    # binary separation - in units of mass_1+mass_2 -
+                    # shawn need to optimize separation to speed up processing time
+                    [0, 0, 1],  # binary inclination - cartesian coords
+                    len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
+                    # bin_phase - randomly set in the function file
+                    # the following three None values are any correction needed to the values
+                    None,  # bin_orb_a
+                    None,  # mass_smbh
+                    None,  # spin_smbh
+                    surrogate
+                ))
+        elif sm.flag_use_surrogate == -1:
+            # Call Davide's code
+            (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
+             bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) =\
+                merge_blackholes_precession(
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_sep"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_ecc"),
+                    sm.smbh_mass,
+                )
         else:
-            bh_v_kick = 200.
+            raise ValueError(f"Invalid option: flag_use_surrogate = {sm.flag_use_surrogate}")
 
         bh_lum_shock = shock_luminosity(
             sm.smbh_mass,
@@ -1039,23 +1105,29 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             bh_spin_merged,
             bh_v_kick)
 
-        bh_orb_ecc_merged = merged_orb_ecc(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
-            np.full(bh_binary_id_num_merger.size, bh_v_kick),
-            sm.smbh_mass)
+        bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
+                                           np.full(bh_binary_id_num_merger.size, bh_v_kick),
+                                           sm.smbh_mass)
 
         blackholes_merged = blackholes_binary.copy()
         blackholes_merged.keep_only(bh_binary_id_num_merger)
+
+        blackholes_merged.time_merged = np.full(bh_binary_id_num_merger.size, time_passed)
 
         blackholes_merged = AGNMergedBlackHoleArray(
             **blackholes_merged.get_super_dict(),
             mass_final=bh_mass_merged,
             spin_final=bh_spin_merged,
-            spin_angle_final=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
+            spin_angle_final=bh_spin_angle_merged,
             chi_eff=bh_chi_eff_merged,
             chi_p=bh_chi_p_merged,
+            v_kick=bh_v_kick,
             lum_shock=np.array(bh_lum_shock, dtype=np.float64),
-            lum_jet=np.array(bh_lum_jet, dtype=np.float64)
+            lum_jet=np.array(bh_lum_jet, dtype=np.float64),
+            mass_1_20hz=bh_mass_1_20_hz,
+            mass_2_20hz=bh_mass_2_20_hz,
+            spin_1_20hz=bh_spin_1_20_hz,
+            spin_2_20hz=bh_spin_2_20_hz
         )
 
         next_generation = np.maximum(
@@ -1063,6 +1135,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_2")
         ) + int(1)
 
+        # TODO: Track parent unique_ids, maybe a history array?
         new_blackholes = AGNBlackHoleArray(
             unique_id=np.array([uuid_provider(random_generator) for _ in range(bh_binary_id_num_merger.size)], dtype=uuid.UUID),
             mass=blackholes_merged.at_id_num(bh_binary_id_num_merger, "mass_final"),
@@ -1096,15 +1169,23 @@ class ProcessEMRIMergers(TimelineActor):
             return
 
         innerdisk_array = filing_cabinet.get_array(sm.bh_inner_disk_array_name, AGNBlackHoleArray)
+        innerdisk_gw_only_array = filing_cabinet.get_array(sm.bh_inner_gw_array_name, AGNBlackHoleArray)
 
         # TODO: Check both orb_a and periapsis to see if < SMBH ISCO
 
         merged_ids = innerdisk_array.unique_id[innerdisk_array.orb_a <= sm.disk_inner_stable_circ_orb]
+        gw_only_merged_ids = innerdisk_gw_only_array.unique_id[innerdisk_gw_only_array.orb_a <= sm.disk_inner_stable_circ_orb]
 
         emris = innerdisk_array.copy()
+        emris_gw_only = innerdisk_gw_only_array.copy()
+
         emris.keep_only(merged_ids)
+        emris_gw_only.keep_only(gw_only_merged_ids)
 
         innerdisk_array.remove_all(merged_ids)
+        innerdisk_gw_only_array.remove_all(gw_only_merged_ids)
+
+        emris.add_objects(emris_gw_only)
 
         filing_cabinet.create_or_append_array(sm.emri_array_name, emris)
 

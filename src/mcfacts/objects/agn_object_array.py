@@ -504,8 +504,13 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
                  spin_angle_final: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  chi_eff: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  chi_p: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 v_kick: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  lum_shock: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  lum_jet: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 mass_1_20hz: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 mass_2_20hz: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_1_20hz: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 spin_2_20hz: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs):
 
         self.mass_final = mass_final
@@ -513,8 +518,13 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         self.spin_angle_final = spin_angle_final
         self.chi_eff = chi_eff
         self.chi_p = chi_p
+        self.v_kick = v_kick
         self.lum_shock = lum_shock
         self.lum_jet = lum_jet
+        self.mass_1_20hz = mass_1_20hz
+        self.mass_2_20hz = mass_2_20hz
+        self.spin_1_20hz = spin_1_20hz
+        self.spin_2_20hz = spin_2_20hz
 
         super().__init__(**kwargs)
 
@@ -527,8 +537,13 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         super_list["spin_angle_final"] = self.spin_angle_final
         super_list["chi_eff"] = self.chi_eff
         super_list["chi_p"] = self.chi_p
+        super_list["v_kick"] = self.v_kick
         super_list["lum_shock"] = self.lum_shock
         super_list["lum_jet"] = self.lum_jet
+        super_list["mass_1_20hz"] = self.mass_1_20hz
+        super_list["mass_2_20hz"] = self.mass_2_20hz
+        super_list["spin_1_20hz"] = self.spin_1_20hz
+        super_list["spin_2_20hz"] = self.spin_2_20hz
 
         return super_list
 
@@ -544,8 +559,14 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         self.spin_angle_final = np.concatenate((self.spin_angle_final, agn_object_array.spin_angle_final))
         self.chi_eff = np.concatenate((self.chi_eff, agn_object_array.chi_eff))
         self.chi_p = np.concatenate((self.chi_p, agn_object_array.chi_p))
+        self.v_kick = np.concatenate((self.v_kick, agn_object_array.v_kick))
         self.lum_shock = np.concatenate((self.lum_shock, agn_object_array.lum_shock))
         self.lum_jet = np.concatenate((self.lum_jet, agn_object_array.lum_jet))
+        self.mass_1_20hz = np.concatenate((self.mass_1_20hz, agn_object_array.mass_1_20hz))
+        self.mass_2_20hz = np.concatenate((self.mass_2_20hz, agn_object_array.mass_2_20hz))
+        self.spin_1_20hz = np.concatenate((self.spin_1_20hz, agn_object_array.spin_1_20hz))
+        self.spin_2_20hz = np.concatenate((self.spin_2_20hz, agn_object_array.spin_2_20hz))
+
 
 
 class FilingCabinet:
