@@ -573,11 +573,15 @@ class FilingCabinet:
     def __init__(self):
         self.agn_objects: dict[str, AGNObjectArray] = dict()
         self.everything_else: dict[str, Any] = dict()
+        self.ignore_check: list[str] = list()
 
     def list_occurrence(self, unique_id: uuid.UUID) -> list[str]:
         occurrence: list[str] = list()
 
         for key, value in self.agn_objects.items():
+            if key in self.ignore_check:
+                continue
+
             for entry in value.unique_id:
                 if unique_id == entry:
                     occurrence.append(key)
@@ -585,12 +589,25 @@ class FilingCabinet:
         return occurrence
 
     def consistency_check(self):
-        for value in self.agn_objects.values():
+        for key, value in self.agn_objects.items():
+            if key in self.ignore_check:
+                continue
+
             for entry in value.unique_id:
                 occurrence = self.list_occurrence(entry)
 
                 if len(occurrence) > 1:
                     raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. {entry} Found in: {occurrence}")
+
+    def ignore_check_array(self, name: str):
+        if name in self.ignore_check:
+            return
+
+        self.ignore_check.append(name)
+
+    def unignore_check_aray(self, name: str):
+        if name in self.ignore_check:
+            self.ignore_check.remove(name)
 
     def create_or_append_array(self, name: str, agn_object_array: AGNObjectArray):
         if len(agn_object_array) == 0:

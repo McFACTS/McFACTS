@@ -1,12 +1,17 @@
 import matplotlib.ticker as mticker
 import numpy as np
 import os
+
+import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
+from importlib import resources as impresources
 
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.snapshot import TxtSnapshotHandler
 
+import mcfacts.vis.LISA as li
+from mcfacts.vis import data
 from mcfacts.vis import styles
 from mcfacts.vis import plotting
 
@@ -933,6 +938,172 @@ def kick_velocity_vs_mass(settings, figsize, save_dir, merger_masks, mass, v_kic
     plt.close()
 
 
+def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk):
+    # H - hanford, L - Livingston
+    H1 = impresources.files(data) / 'O3-H1-C01_CLEAN_SUB60HZ-1262197260.0_sensitivity_strain_asd.txt'
+    L1 = impresources.files(data) / 'O3-L1-C01_CLEAN_SUB60HZ-1240573680.0_sensitivity_strain_asd.txt'
+
+    # Adjust sep according to your delimiter (e.g., '\t' for tab-delimited files)
+    dfh1 = pd.read_csv(H1, sep='\t', header=None)  # Use header=None if the file doesn't contain header row
+    dfl1 = pd.read_csv(L1, sep='\t', header=None)
+
+    # Using https://github.com/eXtremeGravityInstitute/LISA_Sensitivity/blob/master/LISA.py
+    # Create LISA object
+    lisa = li.LISA()
+
+    #   lisa_freq is the frequency (x-axis) being created
+    #   lisa_sn is the sensitivity curve of LISA
+    lisa_freq = np.logspace(np.log10(1.0e-5), np.log10(1.0e0), 1000)
+    lisa_sn = lisa.Sn(lisa_freq)
+
+    # Create figure and ax
+    fig, axs = plt.subplots(1, 2, figsize=(plotting.set_size(figsize)[0] * 2, 2.9))
+
+    lisa_axs = axs[0]
+
+    lisa_axs.set_xlim(0.5e-7, 1.0e+1)
+    lisa_axs.set_ylim(1.0e-26, 1.0e-15)
+
+    # ----------Finding the rows in which EMRIs signals are either identical or zeroes and removing them----------
+    # identical_rows_emris = np.where(emris[:, 5] == emris[:, 6])
+    # zero_rows_emris = np.where(emris[:, 6] == 0)
+    # emris = np.delete(emris, identical_rows_emris, 0)
+    # # emris = np.delete(emris,zero_rows_emris,0)
+    # emris[~np.isfinite(emris)] = 1.e-40
+
+    # ----------Finding the rows in which LVKs signals are either identical or zeroes and removing them----------
+    # identical_rows_lvk = np.where(lvk[:, 5] == lvk[:, 6])
+    # zero_rows_lvk = np.where(lvk[:, 6] == 0)
+    # lvk = np.delete(lvk, identical_rows_lvk, 0)
+    # # lvk = np.delete(lvk,zero_rows_lvk,0)
+    #lvk[~np.isfinite(lvk)] = 1.e-40
+
+    lvk_g1_mask, lvk_g2_mask, lvk_gX_mask = make_gen_masks(lvk["gen_1"], lvk["gen_2"])
+
+    # ----------Setting the values for the EMRIs and LVKs signals and inverting them----------
+    #inv_freq_emris = 1 / emris[:, 6]
+    # inv_freq_lvk = 1/lvk[:,6]
+    # ma_freq_emris = np.ma.where(freq_emris == 0)
+    # ma_freq_lvk = np.ma.where(freq_lvk == 0)
+    # indices_where_zeros_emris = np.where(freq_emris = 0.)
+    # freq_emris = freq_emris[freq_emris !=0]
+    # freq_lvk = freq_lvk[freq_lvk !=0]
+
+    # inv_freq_emris = 1.0/ma_freq_emris
+    # inv_freq_lvk = 1.0/ma_freq_lvk
+    # timestep =1.e4yr
+    timestep = 1.e4
+    #strain_per_freq_emris = emris[:, 5] # * inv_freq_emris / timestep
+
+    # plot the characteristic detector strains
+    lisa_axs.loglog(lisa_freq, np.sqrt(lisa_freq * lisa_sn),
+                    label='LISA Sensitivity',
+                    linewidth=1,
+                    color='tab:orange',
+                    zorder=0)
+
+    # svf_ax.scatter(emris[:, 6], strain_per_freq_emris,
+    #            s=0.4 * styles.markersize_gen1,
+    #            alpha=styles.markeralpha_gen1
+    #            )
+
+    lisa_axs.scatter(lvk["gw_freq"][lvk_g1_mask], lvk["gw_strain"][lvk_g1_mask],
+                   s=0.4 * styles.markersize_gen1,
+                   marker=styles.marker_gen1,
+                   edgecolor=styles.color_gen1,
+                   facecolor='none',
+                   alpha=styles.markeralpha_gen1,
+                   label='1g-1g'
+                   )
+
+    lisa_axs.scatter(lvk["gw_freq"][lvk_g2_mask], lvk["gw_strain"][lvk_g2_mask],
+                   s=0.4 * styles.markersize_gen2,
+                   marker=styles.marker_gen2,
+                   edgecolor=styles.color_gen2,
+                   facecolor='none',
+                   alpha=styles.markeralpha_gen2,
+                   label='2g-1g or 2g-2g'
+                   )
+
+    lisa_axs.scatter(lvk["gw_freq"][lvk_gX_mask], lvk["gw_strain"][lvk_gX_mask],
+                   s=0.4 * styles.markersize_genX,
+                   marker=styles.marker_genX,
+                   edgecolor=styles.color_genX,
+                   facecolor='none',
+                   alpha=styles.markeralpha_genX,
+                   label=r'$\geq$3g-Ng'
+                   )
+
+    lisa_axs.loglog()
+
+    if figsize == 'apj_col':
+        lisa_axs.legend(fontsize=7, loc="upper right")
+    elif figsize == 'apj_page':
+        lisa_axs.legend(loc="upper right")
+
+    lisa_axs.set_xlabel(r'$\nu_{\rm GW}$ [Hz]')
+    lisa_axs.set_ylabel(r'$h_{\rm char}$')
+
+
+    lvk_axs = axs[1]
+
+    lvk_axs.set_xlim(5e0, 1e4)
+    lvk_axs.set_ylim(2.0e-24, 1.0e-19)
+
+    lvk_axs.loglog(dfh1[0], dfh1[1],
+                   label='LIGO O3, H1 Sens.',
+                   color='tab:blue',
+                   linewidth=1,
+                   zorder=0)
+
+    lvk_axs.loglog(dfl1[0], dfl1[1],
+                   label='LIGO O3, L1 Sens.',
+                   color='tab:orange',
+                   linewidth=1,
+                   zorder=0)
+
+    lvk_axs.scatter(lvk["gw_freq"][lvk_g1_mask], lvk["gw_strain"][lvk_g1_mask],
+                    s=0.4 * styles.markersize_gen1,
+                    marker=styles.marker_gen1,
+                    edgecolor=styles.color_gen1,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen1,
+                    )
+
+    lvk_axs.scatter(lvk["gw_freq"][lvk_g2_mask], lvk["gw_strain"][lvk_g2_mask],
+                    s=0.4 * styles.markersize_gen2,
+                    marker=styles.marker_gen2,
+                    edgecolor=styles.color_gen2,
+                    facecolor='none',
+                    alpha=styles.markeralpha_gen2,
+                    )
+
+    lvk_axs.scatter(lvk["gw_freq"][lvk_gX_mask], lvk["gw_strain"][lvk_gX_mask],
+                    s=0.4 * styles.markersize_genX,
+                    marker=styles.marker_genX,
+                    edgecolor=styles.color_genX,
+                    facecolor='none',
+                    alpha=styles.markeralpha_genX,
+                    )
+
+    if figsize == 'apj_col':
+        lvk_axs.legend(fontsize=7, loc="upper left")
+    elif figsize == 'apj_page':
+        lvk_axs.legend(loc="upper left")
+
+    lvk_axs.set_xlabel(r'$\nu_{\rm GW}$ [Hz]')
+    lvk_axs.yaxis.tick_right()
+    lvk_axs.yaxis.set_label_position("right")
+    lvk_axs.set_ylabel(r'$h_{\rm 0}$', rotation=-90, labelpad=15)
+
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, 'gw_strain.png'), format='png')
+    plt.close()
+
+
 def main():
     # TODO: Handle settings import through arguments
     settings = SettingsManager({
@@ -951,6 +1122,7 @@ def main():
     population_cabinet = snapshot_handler.load_cabinet("./runs", "population")
 
     mergers = population_cabinet["blackholes_merged"]
+    lvk = population_cabinet["blackholes_lvk"]
 
     mass_1 = mergers["mass_1"]
     mass_2 = mergers["mass_2"]
@@ -979,6 +1151,8 @@ def main():
     spin_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, spin_final)
     spin_vs_kick(settings, figsize, plots_dir, merger_masks, v_kick, spin_final)
     kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
+
+    strain_vs_freq(settings, figsize, plots_dir, merger_masks, lvk)
 
 
 if __name__ == "__main__":

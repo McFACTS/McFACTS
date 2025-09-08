@@ -395,6 +395,39 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
 
         blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
 
+        gw_tracked_ids = blackholes_binary.unique_id[blackholes_binary.bin_sep <= sm.min_bbh_gw_separation]
+
+        if gw_tracked_ids.size > 0:
+            num_bbh_gw_tracked = filing_cabinet.get_value("num_bbh_gw_tracked", 0.)
+
+            if num_bbh_gw_tracked == 0:
+                old_bbh_gw_freq = 9.e-7 * np.ones(gw_tracked_ids.size)
+            if num_bbh_gw_tracked > 0:
+                old_bbh_gw_freq = blackholes_binary.get_attribute("gw_freq", gw_tracked_ids)
+
+            filing_cabinet.set_value("num_bbh_gw_tracked", gw_tracked_ids.size)
+
+            bbh_gw_strain, bbh_gw_freq = bbh_gw_params(
+                blackholes_binary.get_attribute("mass_1", gw_tracked_ids),
+                blackholes_binary.get_attribute("mass_2", gw_tracked_ids),
+                blackholes_binary.get_attribute("bin_sep", gw_tracked_ids),
+                sm.smbh_mass,
+                sm.timestep_duration_yr,
+                old_bbh_gw_freq,
+                sm.agn_redshift
+            )
+
+            blackholes_gw = blackholes_binary.copy()
+            blackholes_gw.keep_only(gw_tracked_ids)
+            blackholes_gw.gw_strain = bbh_gw_strain
+            blackholes_gw.gw_freq = bbh_gw_freq
+
+            blackholes_gw.consistency_check()
+
+            filing_cabinet.ignore_check_array(sm.bbh_gw_array_name)
+            filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, blackholes_gw)
+
+
         blackholes_binary.gw_freq, blackholes_binary.gw_strain = evolve_gw(
             blackholes_binary.mass_1,
             blackholes_binary.mass_2,

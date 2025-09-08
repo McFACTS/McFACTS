@@ -111,18 +111,20 @@ def main():
         ]
 
         dynamics_timeline.add_timeline_actors(binary_dynamics)
-
         dynamics_timeline.add_timeline_actor(BinaryBlackHoleFormation())
 
         galaxy.run(dynamics_timeline, agn_disk)
 
-        # Create timeline to cleanup the final bits and bobs at the end of a
-        # cleanup_timeline = SimulationTimeline("Cleanup", timesteps=1, timestep_length=0)
-        # cleanup_timeline.add_timeline_actor(BreakupBinaryBlackHoles())
-        # galaxy.run(cleanup_timeline, agn_disk)
+        population_cabinet.ignore_check_array("blackholes_merged")
+        population_cabinet.ignore_check_array("blackholes_lvk")
 
-        if "blackholes_merged" in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array("blackholes_merged", galaxy.filing_cabinet.get_array("blackholes_merged"))
+        if galaxy.settings.bbh_merged_array_name in galaxy.filing_cabinet:
+            population_cabinet.create_or_append_array("blackholes_merged",
+                                                      galaxy.filing_cabinet.get_array(galaxy.settings.bbh_merged_array_name))
+
+        if galaxy.settings.bbh_gw_array_name in galaxy.filing_cabinet:
+            population_cabinet.create_or_append_array("blackholes_lvk",
+                                                      galaxy.filing_cabinet.get_array(galaxy.settings.bbh_gw_array_name))
 
     pbar.close()
 
