@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 from astropy import units as u
 
+import mcfacts.modules.gw
 from mcfacts.inputs import ReadInputs
 from mcfacts.inputs import data as input_data
 from mcfacts.modules import accretion, merge, formation, gas_hardening, damping, disk_capture_stars
@@ -2854,7 +2855,7 @@ def main():
             if (blackholes_inner_disk.num > 0):
                 # FIX THIS: Return the new evolved bh_orb_ecc_inner_disk as they decay inwards.
                 # Potentially move inner disk behaviour to module that is not dynamics (e.g inner disk module)
-                blackholes_inner_disk.orb_a = dynamics.bh_near_smbh(
+                blackholes_inner_disk.orb_a = gw.bh_near_smbh(
                     opts.smbh_mass,
                     blackholes_inner_disk.orb_a,
                     blackholes_inner_disk.mass,
@@ -2888,7 +2889,7 @@ def main():
             if (stars_inner_disk.num > 0):
                 # FIX THIS: Return the new evolved bh_orb_ecc_inner_disk as they decay inwards.
                 # Potentially move inner disk behaviour to module that is not dynamics (e.g inner disk module)
-                stars_inner_disk.orb_a = dynamics.bh_near_smbh(  # KN: TDEs need their own method here bc drag
+                stars_inner_disk.orb_a = gw.bh_near_smbh(  # KN: TDEs need their own method here bc drag
                     opts.smbh_mass,
                     stars_inner_disk.orb_a,
                     stars_inner_disk.mass,

@@ -65,8 +65,8 @@ defaults = {
     "nsc_imf_bh_method": "default",
 
     # Simulation Parameters
-    "timestep_duration_yr": 1.e4,  # Duration of each timestep (years)
-    "timestep_num": 100,  # Number of timesteps
+    "timestep_duration_yr": 1.e4,  # DEPRECATED:  Duration of each timestep (years)
+    "timestep_num": 100,  # DEPRECATED:  Number of timesteps
     "capture_time_yr": 1.e5,  # Time between disk captures (years)
     "galaxy_num": 1,  # DEPRECATED: Number of iterations of the simulation
     "save_snapshots": 0,  # Whether to save snapshots (0 for off)

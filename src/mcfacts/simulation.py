@@ -1,24 +1,23 @@
-import sys
 from tqdm.auto import tqdm
-from matplotlib import pyplot as plt
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion
+from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
+from mcfacts.modules.disk_capture import EvolveRetrogradeBlackHoles, RecaptureBinaryBlackHoles, \
+    CaptureNSCProgradeBlackHoles
+from mcfacts.modules.dynamics import SingleBlackHoleDynamics, BinaryBlackHoleDynamics
+from mcfacts.modules.formation import BinaryBlackHoleFormation
+from mcfacts.modules.gas_hardening import BinaryBlackHoleGasHardening
+from mcfacts.modules.gw import BinaryBlackHoleEvolveGW, InnerBlackHoleDynamics
+from mcfacts.modules.merge import ProcessBinaryBlackHoleMergers, ProcessEMRIMergers
+from mcfacts.modules.migration import ProgradeBlackHoleMigration
 from mcfacts.objects.actors import InitialObjectReclassification, InnerDiskFilter, FlipRetroProFilter
+from mcfacts.objects.actors.reality_checks import SingleBlackHoleRealityCheck, BinaryBlackHoleRealityCheck
 from mcfacts.objects.agn_object_array import *
 from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator
 from mcfacts.objects.snapshot import TxtSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
-from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion
-from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
-from mcfacts.modules.disk_capture import EvolveRetrogradeBlackHoles, RecaptureBinaryBlackHoles, CaptureNSCProgradeBlackHoles
-from mcfacts.modules.dynamics import InnerBlackHoleDynamics, SingleBlackHoleDynamics, BinaryBlackHoleDynamics
-from mcfacts.modules.gas_hardening import BinaryBlackHoleGasHardening
-from mcfacts.modules.formation import BinaryBlackHoleFormation
-from mcfacts.modules.merge import ProcessBinaryBlackHoleMergers, ProcessEMRIMergers
-from mcfacts.modules.migration import ProgradeBlackHoleMigration
-from mcfacts.objects.actors.reality_checks import SingleBlackHoleRealityCheck, BinaryBlackHoleRealityCheck
-from mcfacts.modules.gw import BinaryBlackHoleEvolveGW
 
 settings = SettingsManager({
     "verbose": False,
@@ -27,9 +26,11 @@ settings = SettingsManager({
     "save_each_timestep": True
 })
 
+
 def args():
     # TODO: Handle argument inputs, support legacy .ini files with SnapshotHandler framework
     pass
+
 
 def main():
     population_cabinet = FilingCabinet()
@@ -52,7 +53,7 @@ def main():
 
         # Create instance of populators
         single_bh_populator = SingleBlackHolePopulator()
-        #single_star_populator = SingleStarPopulator("single_stars")
+        # single_star_populator = SingleStarPopulator("single_stars")
         galaxy.populate([single_bh_populator], agn_disk)
 
         # Create timeline to classify objects created during population
@@ -61,9 +62,10 @@ def main():
         pre_timeline.add_timeline_actor(SingleBlackHoleRealityCheck())
         galaxy.run(pre_timeline, agn_disk)
 
-        #settings=SettingsManager({**settings.settings_overrides, "verbose": True})
+        # settings=SettingsManager({**settings.settings_overrides, "verbose": True})
         # Create timeline to run main simulation
-        dynamics_timeline = SimulationTimeline("Dynamics", timesteps=60, timestep_length=galaxy.settings.timestep_duration_yr)
+        dynamics_timeline = SimulationTimeline("Dynamics", timesteps=50,
+                                               timestep_length=galaxy.settings.timestep_duration_yr)
 
         dynamics_timeline.add_timeline_actor(EvolveRetrogradeBlackHoles())
         dynamics_timeline.add_timeline_actor(FlipRetroProFilter())
@@ -118,17 +120,25 @@ def main():
         population_cabinet.ignore_check_array("blackholes_merged")
         population_cabinet.ignore_check_array("blackholes_lvk")
 
-        if galaxy.settings.bbh_merged_array_name in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array("blackholes_merged",
-                                                      galaxy.filing_cabinet.get_array(galaxy.settings.bbh_merged_array_name))
+        bbh_merged_array = galaxy.settings.bbh_merged_array_name
+        bbh_lvk_array = galaxy.settings.bbh_gw_array_name
 
-        if galaxy.settings.bbh_gw_array_name in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array("blackholes_lvk",
-                                                      galaxy.filing_cabinet.get_array(galaxy.settings.bbh_gw_array_name))
+        if bbh_merged_array in galaxy.filing_cabinet:
+            population_cabinet.create_or_append_array("blackholes_merged",galaxy.filing_cabinet.get_array(bbh_merged_array))
+
+        if bbh_lvk_array in galaxy.filing_cabinet:
+            population_cabinet.create_or_append_array("blackholes_lvk", galaxy.filing_cabinet.get_array(bbh_lvk_array))
+
+        if innerdisk_array in galaxy.filing_cabinet:
+            population_cabinet.create_or_append_array("blackholes_emri", galaxy.filing_cabinet.get_array(innerdisk_array))
+
+        if inner_gw_only_array in galaxy.filing_cabinet:
+            population_cabinet.create_or_append_array("blackholes_emri", galaxy.filing_cabinet.get_array(inner_gw_only_array))
 
     pbar.close()
 
     snapshot_handler.save_cabinet("./runs", "population", population_cabinet)
+
 
 if __name__ == "__main__":
     main()

@@ -16,7 +16,7 @@ from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.modules import stellar_interpolation, accretion
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNStarArray
 from mcfacts.objects.timeline import TimelineActor
-from mcfacts.utilities import unit_conversion, checks, peters
+from mcfacts.utilities import unit_conversion, checks
 from mcfacts.utilities.random_state import rng, uuid_provider
 from mcfacts.utilities.unit_conversion import r_g_from_units, r_schwarzschild_of_m, si_from_r_g
 
@@ -3253,86 +3253,6 @@ def bin_spheroid_encounter(
     return (bin_sep_all, bin_ecc_all, bin_orb_ecc_all, bin_orb_inc_all)
 
 
-def bh_near_smbh(
-        smbh_mass,
-        disk_bh_pro_orbs_a,
-        disk_bh_pro_masses,
-        disk_bh_pro_orbs_ecc,
-        timestep_duration_yr,
-        inner_disk_outer_radius,
-        disk_inner_stable_circ_orb,
-):
-    """Evolve semi-major axis of single BH near SMBH according to Peters64
-    also eccentricity
-
-    Test whether there are any BH near SMBH. 
-    Flag if anything within min_safe_distance (default=50r_g) of SMBH.
-    Time to decay into SMBH can be parameterized from Peters(1964) as:
-    .. math:: t_{gw} =38Myr (1-e^2)(7/2) (a/50r_{g})^4 (M_{smbh}/10^8M_{sun})^3 (m_{bh}/10M_{sun})^{-1}
-    Time to eccentricity decay to zero from Peters(1964) as an annoying piecewise function:
-    .. math:: t_{e_0} =t_{gw} * f(e_0) where f(e_0)=(1-e_0^2)^4/(1+ (121/304)e_0^2)^(870/2299) if e_0<0.8
-    .. math:: f(e_0) = (768/425) * (1-e_0^2)^3.5 if e_0>0.95
-    .. math:: f(e_0) = some other function if 0.8 < e_0 < 0.95
-
-    Parameters
-    ----------
-    smbh_mass : float
-        Mass [M_sun] of supermassive black hole
-    disk_bh_pro_orbs_a : numpy.ndarray
-        Orbital semi-major axes [r_{g,SMBH}] of prograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
-    disk_bh_pro_masses : numpy.ndarray
-        Masses [M_sun] of prograde singleton BH at start of timestep with :obj:`float` type
-    disk_bh_pro_orbs_ecc : numpy.ndarray
-        Orbital eccentricity [unitless] of singleton prograde BH with :obj:`float` type
-    timestep_duration_yr : float
-        Length of timestep [yr]
-    inner_disk_outer_radius : float
-        Outer radius of the inner disk [r_{g,SMBH}]
-    disk_inner_stable_circ_orb : float
-        Innermost stable circular orbit around the SMBH [r_{g,SMBH}]
-
-    Returns
-    -------
-    disk_bh_pro_orbs_a : numpy.ndarray
-        Semi-major axis [r_{g,SMBH}] of prograde singleton BH at end of timestep assuming only GW evolution
-    """
-    num_bh = disk_bh_pro_orbs_a.shape[0]
-    # Calculate min_safe_distance in r_g
-    min_safe_distance = max(disk_inner_stable_circ_orb, inner_disk_outer_radius)
-
-    # Create a new bh_pro_orbs array
-    new_disk_bh_pro_orbs_a = disk_bh_pro_orbs_a.copy()
-    # Estimate the eccentricity factor for orbital decay time
-    ecc_factor_arr = (1.0 - (disk_bh_pro_orbs_ecc) ** (2.0)) ** (7 / 2)
-    # Estimate the orbital decay time of each bh
-    decay_time_arr = peters.time_of_orbital_shrinkage(
-        smbh_mass * u.solMass,
-        disk_bh_pro_masses * u.solMass,
-        unit_conversion.si_from_r_g(smbh_mass * u.solMass, disk_bh_pro_orbs_a),
-        0 * u.m,
-    )
-    # Estimate the decay time to zero eccentricity
-
-    # Estimate the number of timesteps to decay
-    decay_timesteps = decay_time_arr.to('yr').value / timestep_duration_yr
-    # Estimate decrement
-    decrement_arr = (1.0 - (1. / decay_timesteps))
-    # Fix decrement
-    decrement_arr[decay_timesteps == 0.] = 0.
-    # Estimate new location
-    new_location_r_g = decrement_arr * disk_bh_pro_orbs_a
-    # Check location
-    new_location_r_g[new_location_r_g < 1.] = 1.
-    # Only update when less than min_safe_distance
-    new_disk_bh_pro_orbs_a[disk_bh_pro_orbs_a < min_safe_distance] = new_location_r_g
-
-    assert np.isfinite(new_disk_bh_pro_orbs_a).all(), \
-        "Finite check failure: new_disk_bh_pro_orbs_a"
-
-    # TODO: Update eccentricity as well
-    return new_disk_bh_pro_orbs_a
-
-
 def bin_ionization_check(bin_mass_1, bin_mass_2, bin_orb_a, bin_sep, bin_id_num, smbh_mass):
     """Tests whether binary has been ionized beyond some limit
 
@@ -3383,32 +3303,6 @@ def bin_ionization_check(bin_mass_1, bin_mass_2, bin_orb_a, bin_sep, bin_id_num,
 
     return (bh_id_nums)
 
-class InnerBlackHoleDynamics(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
-        super().__init__("Inner Black Hole Dynamics" if name is None else name, settings)
-        self.target_array = target_array
-
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
-                agn_disk: AGNDisk, random_generator: Generator):
-        sm = self.settings
-
-        # region inner disk gw evolution
-        if self.target_array not in filing_cabinet:
-            return
-
-        inner_bh = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
-
-        # TODO: also get bh_near_smbh to return updated ecc and add here
-        inner_bh.orb_a = bh_near_smbh(
-            sm.smbh_mass,
-            inner_bh.orb_a,
-            inner_bh.mass,
-            inner_bh.orb_ecc,
-            sm.timestep_duration_yr,
-            sm.disk_radius_outer,
-            sm.disk_inner_stable_circ_orb
-        )
-        # endregion
 
 class SingleBlackHoleDynamics(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):

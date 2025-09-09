@@ -10,7 +10,7 @@ from astropy.units import cds
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
-from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray, AGNBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, peters
 
@@ -298,7 +298,7 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
     return sep_initial * u.m
 
 
-def evolve_emri_gw(blackholes_inner_disk, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift):
+def evolve_emri_gw(mass, orb_a, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift):
     """Evaluates the EMRI gravitational wave frequency and strain at the end of each timestep_duration_yr
 
     Parameters
@@ -324,8 +324,8 @@ def evolve_emri_gw(blackholes_inner_disk, timestep_duration_yr, old_gw_freq, smb
     #     old_gw_freq = np.append(old_gw_freq, (9.e-7) * u.Hz)
 
     char_strain, nu_gw = gw_strain_freq(mass_1=smbh_mass,
-                                        mass_2=blackholes_inner_disk.mass,
-                                        obj_sep=blackholes_inner_disk.orb_a,
+                                        mass_2=mass,
+                                        obj_sep=orb_a,
                                         timestep_duration_yr=timestep_duration_yr,
                                         old_gw_freq=old_gw_freq,
                                         smbh_mass=smbh_mass,
@@ -383,6 +383,86 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius):
     return time_gw_normalization.si.value
 
 
+def bh_near_smbh(
+        smbh_mass,
+        disk_bh_pro_orbs_a,
+        disk_bh_pro_masses,
+        disk_bh_pro_orbs_ecc,
+        timestep_duration_yr,
+        inner_disk_outer_radius,
+        disk_inner_stable_circ_orb,
+):
+    """Evolve semi-major axis of single BH near SMBH according to Peters64
+    also eccentricity
+
+    Test whether there are any BH near SMBH.
+    Flag if anything within min_safe_distance (default=50r_g) of SMBH.
+    Time to decay into SMBH can be parameterized from Peters(1964) as:
+    .. math:: t_{gw} =38Myr (1-e^2)(7/2) (a/50r_{g})^4 (M_{smbh}/10^8M_{sun})^3 (m_{bh}/10M_{sun})^{-1}
+    Time to eccentricity decay to zero from Peters(1964) as an annoying piecewise function:
+    .. math:: t_{e_0} =t_{gw} * f(e_0) where f(e_0)=(1-e_0^2)^4/(1+ (121/304)e_0^2)^(870/2299) if e_0<0.8
+    .. math:: f(e_0) = (768/425) * (1-e_0^2)^3.5 if e_0>0.95
+    .. math:: f(e_0) = some other function if 0.8 < e_0 < 0.95
+
+    Parameters
+    ----------
+    smbh_mass : float
+        Mass [M_sun] of supermassive black hole
+    disk_bh_pro_orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] of prograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    disk_bh_pro_masses : numpy.ndarray
+        Masses [M_sun] of prograde singleton BH at start of timestep with :obj:`float` type
+    disk_bh_pro_orbs_ecc : numpy.ndarray
+        Orbital eccentricity [unitless] of singleton prograde BH with :obj:`float` type
+    timestep_duration_yr : float
+        Length of timestep [yr]
+    inner_disk_outer_radius : float
+        Outer radius of the inner disk [r_{g,SMBH}]
+    disk_inner_stable_circ_orb : float
+        Innermost stable circular orbit around the SMBH [r_{g,SMBH}]
+
+    Returns
+    -------
+    disk_bh_pro_orbs_a : numpy.ndarray
+        Semi-major axis [r_{g,SMBH}] of prograde singleton BH at end of timestep assuming only GW evolution
+    """
+    num_bh = disk_bh_pro_orbs_a.shape[0]
+    # Calculate min_safe_distance in r_g
+    min_safe_distance = max(disk_inner_stable_circ_orb, inner_disk_outer_radius)
+
+    # Create a new bh_pro_orbs array
+    new_disk_bh_pro_orbs_a = disk_bh_pro_orbs_a.copy()
+    # Estimate the eccentricity factor for orbital decay time
+    ecc_factor_arr = (1.0 - (disk_bh_pro_orbs_ecc) ** (2.0)) ** (7 / 2)
+    # Estimate the orbital decay time of each bh
+    decay_time_arr = peters.time_of_orbital_shrinkage(
+        smbh_mass * u.solMass,
+        disk_bh_pro_masses * u.solMass,
+        unit_conversion.si_from_r_g(smbh_mass * u.solMass, disk_bh_pro_orbs_a),
+        0 * u.m,
+    )
+    # Estimate the decay time to zero eccentricity
+
+    # Estimate the number of timesteps to decay
+    decay_timesteps = decay_time_arr.to('yr').value / timestep_duration_yr
+    # Estimate decrement
+    decrement_arr = (1.0 - (1. / decay_timesteps))
+    # Fix decrement
+    decrement_arr[decay_timesteps == 0.] = 0.
+    # Estimate new location
+    new_location_r_g = decrement_arr * disk_bh_pro_orbs_a
+    # Check location
+    new_location_r_g[new_location_r_g < 1.] = 1.
+    # Only update when less than min_safe_distance
+    new_disk_bh_pro_orbs_a[disk_bh_pro_orbs_a < min_safe_distance] = new_location_r_g
+
+    assert np.isfinite(new_disk_bh_pro_orbs_a).all(), \
+        "Finite check failure: new_disk_bh_pro_orbs_a"
+
+    # TODO: Update eccentricity as well
+    return new_disk_bh_pro_orbs_a
+
+
 class BinaryBlackHoleEvolveGW(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Binary Black Hole Evolve GW" if name is None else name, settings)
@@ -395,48 +475,82 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
 
         blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
 
-        gw_tracked_ids = blackholes_binary.unique_id[blackholes_binary.bin_sep <= sm.min_bbh_gw_separation]
+        gw_tracked_mask = blackholes_binary.bin_sep <= sm.min_bbh_gw_separation
+        gw_tracked_ids = blackholes_binary.unique_id[gw_tracked_mask]
 
         if gw_tracked_ids.size > 0:
-            num_bbh_gw_tracked = filing_cabinet.get_value("num_bbh_gw_tracked", 0.)
-
-            if num_bbh_gw_tracked == 0:
-                old_bbh_gw_freq = 9.e-7 * np.ones(gw_tracked_ids.size)
-            if num_bbh_gw_tracked > 0:
-                old_bbh_gw_freq = blackholes_binary.get_attribute("gw_freq", gw_tracked_ids)
-
-            filing_cabinet.set_value("num_bbh_gw_tracked", gw_tracked_ids.size)
-
             bbh_gw_strain, bbh_gw_freq = bbh_gw_params(
                 blackholes_binary.get_attribute("mass_1", gw_tracked_ids),
                 blackholes_binary.get_attribute("mass_2", gw_tracked_ids),
                 blackholes_binary.get_attribute("bin_sep", gw_tracked_ids),
                 sm.smbh_mass,
                 sm.timestep_duration_yr,
-                old_bbh_gw_freq,
+                blackholes_binary.get_attribute("gw_freq", gw_tracked_ids), # old_bbh_gw_freq
                 sm.agn_redshift
             )
 
+            blackholes_binary.gw_freq[gw_tracked_mask] = bbh_gw_freq
+            blackholes_binary.gw_strain[gw_tracked_mask] = bbh_gw_strain
+
             blackholes_gw = blackholes_binary.copy()
             blackholes_gw.keep_only(gw_tracked_ids)
-            blackholes_gw.gw_strain = bbh_gw_strain
-            blackholes_gw.gw_freq = bbh_gw_freq
 
             blackholes_gw.consistency_check()
+            blackholes_binary.consistency_check()
 
             filing_cabinet.ignore_check_array(sm.bbh_gw_array_name)
             filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, blackholes_gw)
 
-
-        blackholes_binary.gw_freq, blackholes_binary.gw_strain = evolve_gw(
-            blackholes_binary.mass_1,
-            blackholes_binary.mass_2,
-            blackholes_binary.bin_sep,
+        blackholes_binary.gw_freq[~gw_tracked_mask], blackholes_binary.gw_strain[~gw_tracked_mask] = evolve_gw(
+            blackholes_binary.mass_1[~gw_tracked_mask],
+            blackholes_binary.mass_2[~gw_tracked_mask],
+            blackholes_binary.bin_sep[~gw_tracked_mask],
             sm.smbh_mass,
             sm.agn_redshift
         )
 
         blackholes_binary.consistency_check()
+
+
+class InnerBlackHoleDynamics(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
+        super().__init__("Inner Black Hole Dynamics" if name is None else name, settings)
+        self.target_array = target_array
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        if self.target_array not in filing_cabinet:
+            return
+
+        inner_bh = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
+
+        # TODO: also get bh_near_smbh to return updated ecc and add here
+        inner_bh.orb_a = bh_near_smbh(
+            sm.smbh_mass,
+            inner_bh.orb_a,
+            inner_bh.mass,
+            inner_bh.orb_ecc,
+            sm.timestep_duration_yr,
+            sm.disk_radius_outer,
+            sm.disk_inner_stable_circ_orb
+        )
+
+        zero_strain_mask = inner_bh.gw_strain == 0
+        inner_bh.gw_strain[zero_strain_mask] = 9.e-7
+
+        emri_gw_strain, emri_gw_freq = evolve_emri_gw(
+            inner_bh.mass,
+            inner_bh.orb_a,
+            sm.timestep_duration_yr,
+            inner_bh.gw_freq,
+            sm.smbh_mass,
+            sm.agn_redshift
+        )
+
+        inner_bh.gw_freq = emri_gw_freq
+        inner_bh.gw_strain = emri_gw_strain
 
 
 
