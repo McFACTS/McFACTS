@@ -172,7 +172,7 @@ class InnerDiskFilter(TimelineActor):
                 blackholes_gw_only = blackholes_inner.copy()
                 blackholes_gw_only.keep_only(bh_id_num_gw_only)
 
-                filing_cabinet.create_or_append_array(sm.bh_inner_gw_array_name, blackholes_inner)
+                filing_cabinet.create_or_append_array(sm.bh_inner_gw_array_name, blackholes_gw_only)
                 blackholes_inner.remove_all(bh_id_num_gw_only)
 
 
