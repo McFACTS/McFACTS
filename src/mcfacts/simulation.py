@@ -42,9 +42,16 @@ def main():
 
     pbar = tqdm(total=n_galaxy, position=0, leave=True)
 
+    # i = 0
+
     for galaxy_id in range(n_galaxy):
         pbar.set_description(f"Running Galaxy {galaxy_id}")
         pbar.update(1)
+
+        # i = i +1
+        #
+        # if i != 93:
+        #     continue
 
         galaxy_seed = 223849053863469657747974663531730220530 - galaxy_id
 

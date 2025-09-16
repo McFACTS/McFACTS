@@ -3319,16 +3319,27 @@ class SingleBlackHoleDynamics(TimelineActor):
 
         blackholes_array = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
-        blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde(
+        blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde_sweep(
             sm.smbh_mass,
             blackholes_array.orb_a,
             blackholes_array.mass,
             blackholes_array.orb_ecc,
             sm.timestep_duration_yr,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong,
+            sm.delta_energy_strong_mu,
             sm.disk_radius_outer
         )
+
+        # blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde(
+        #     sm.smbh_mass,
+        #     blackholes_array.orb_a,
+        #     blackholes_array.mass,
+        #     blackholes_array.orb_ecc,
+        #     sm.timestep_duration_yr,
+        #     sm.disk_bh_pro_orb_ecc_crit,
+        #     sm.delta_energy_strong,
+        #     sm.disk_radius_outer
+        # )
         # endregion
 
 

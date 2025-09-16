@@ -35,6 +35,7 @@ defaults = {
     "flag_use_surrogate": False, # TODO: Add description
     "mean_harden_energy_delta": 0.9,
     "var_harden_energy_delta": 0.025,
+    "delta_energy_strong_mu": 0.1,
 
     # Star stuff
     "flag_add_stars": True,  # Enable or disable stars
