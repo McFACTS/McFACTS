@@ -745,8 +745,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
         disk_density,
-        disk_aspect_ratio,
-        smbh_mass,
         bh_spin_merged,
         bh_v_kick)
 

@@ -50,24 +50,20 @@ def shock_luminosity(smbh_mass,
     """
     r_hill_rg = bin_orb_a * ((mass_final / smbh_mass) / 3)**(1/3) 
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
-    r_hill_cm = r_hill_m.cgs
+
     r_hill_rg_scale = 10**3 * ((65 / 10**9) / 3)**(1/3) 
-    #print(r_hill_rg_scale)
+
     disk_height_rg = disk_aspect_ratio(bin_orb_a) * bin_orb_a
     disk_height_m = si_from_r_g(smbh_mass, disk_height_rg)
-    disk_height_cm = disk_height_m.cgs
 
-    v_hill = (4 / 3) * np.pi * r_hill_cm**3  
-    v_hill_gas = abs(v_hill - (2 / 3) * np.pi * ((r_hill_cm - disk_height_cm)**2) * (3 * r_hill_cm - (r_hill_cm - disk_height_cm)))
+    v_hill = (4 / 3) * np.pi * r_hill_m**3  
+    v_hill_gas = abs(v_hill - (2 / 3) * np.pi * ((r_hill_m - disk_height_m)**2) * (3 * r_hill_m - (r_hill_m - disk_height_m)))
     
     disk_density_si = disk_density(bin_orb_a) * (u.kg / u.m**3)
-    disk_density_cgs = disk_density_si.cgs
 
-    msolar = ct.M_sun.cgs
-    r_hill_mass = (disk_density_cgs * v_hill_gas) 
-    # for scaling:
-    #rg = bin_orb_a * (ct.G.cgs * smbh_mass * ct.M_sun.cgs / ct.c.cgs**2) / u.cm
-    #print(rg)
+    msolar = ct.M_sun
+    r_hill_mass = (disk_density_si * v_hill_gas) 
+
     v_kick = v_kick  * (u.km / u.s)
     v_kick_scale = 100. * (u.km / u.s)
     E = 1e47 * (r_hill_mass / msolar) * (v_kick / v_kick_scale)**2  # Energy of the shock
@@ -78,8 +74,6 @@ def shock_luminosity(smbh_mass,
 def jet_luminosity(mass_final,
         bin_orb_a,
         disk_density,
-        disk_aspect_ratio,
-        smbh_mass,
         spin_final,
         v_kick):
     """
@@ -106,14 +100,13 @@ def jet_luminosity(mass_final,
     """
 
     disk_density_si = disk_density(bin_orb_a) * (u.kg / u.m**3)
-    disk_density_cgs = disk_density_si.cgs
 
     v_kick = v_kick * (u.km / u.s)
     v_kick_scale = 200. * (u.km / u.s)
 
-    mass_scale = 100 * u.M_sun
-    density_scale = 10e-10 * (u.g / u.cm *3)
+    mass_scale = 100
+    density_scale = 1e-7 * (u.kg / u.m**3)
     eta = spin_final**2
 
-    Ljet = 2.5e45 * (eta / 0.1) * (mass_final / mass_scale)**2 * (v_kick / v_kick_scale)**-3 * (disk_density_cgs / density_scale)  # Jet luminosity
+    Ljet = 2.5e45 * (eta / 0.1) * (mass_final / mass_scale)**2 * (v_kick / v_kick_scale)**-3 * (disk_density_si / density_scale)  # Jet luminosity
     return Ljet.value
