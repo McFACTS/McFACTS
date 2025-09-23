@@ -124,12 +124,20 @@ following conditions be met.
 #. Any pull request introducing or modifying an extension to Python in another language must be reviewed by somebody
    who understands the language.
 
+Additionally, several filetypes (E.g. :code:`.dat`) are excluded in the :code:`.gitignore` file, and therefore may be
+missed with a :code:`git status` or :code:`git add --all command`. They scan still be committed to the repository if
+they are added manually with 
+
+   .. code-block:: bash
+   
+      git add -f [PATH/TO/FILE.dat]
+
 Data Files
 ***********
 
 When adding a data file to the source of McFACTS, you must take these steps:
 
-#. Add the data file to McFACTS requires putting it in the relevant :code:src/mcfacts subdirectory.
+#. Add the data file to McFACTS requires putting it in the relevant :code:`src/mcfacts` subdirectory.
 #. Add the data file to `MANIFEST.in`_.
 #. Add the data file to `setup.py`_.
 #. Test that McFACTS runs and the file is accessible by running :code:`make test-build`

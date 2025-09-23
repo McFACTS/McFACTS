@@ -30,6 +30,9 @@ Navigate to the :code:`McFACTS/` directory and run
 
    python -m pip install --editable .
 
+See the :code:`pip install` `documentation <https://pip.pypa.io/en/stable/cli/pip_install/>`_ for more information
+on all the available features.
+
 Done! Below are some extra commands that you might find helpful:
 
 Running McFACTS
