@@ -151,7 +151,7 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
     return sep_initial * u.m
 
 
-def si_from_r_g(smbh_mass, distance_rg):
+def si_from_r_g(smbh_mass, distance_rg, r_g_defined = None):
     """Calculate the SI distance from r_g
 
     Parameters
@@ -166,27 +166,35 @@ def si_from_r_g(smbh_mass, distance_rg):
     distance : numpy.ndarray
         Distance in SI with :obj:`astropy.units.quantity.Quantity` type
     """
-    # Calculate c and G in SI
-    c = const.c.to('m/s')
-    G = const.G.to('m^3/(kg s^2)')
-    # Assign units to smbh mass
-    if hasattr(smbh_mass, 'unit'):
-        smbh_mass = smbh_mass.to('solMass')
+
+    # if r_g_defined is not None, we just calculate the 
+    # distance from the provided value
+
+    # def fast_si_from_r_g(distance_r_g):
+    if r_g_defined is not None:
+        return (r_g_defined * distance_r_g).to("meter")
     else:
-        smbh_mass = smbh_mass * u.solMass
-    # convert smbh mass to kg
-    smbh_mass = smbh_mass.to('kg')
-    # Calculate r_g in SI
-    r_g = G*smbh_mass/(c ** 2)
-    # Calculate distance
-    distance = (distance_rg * r_g).to("meter")
+        # Calculate c and G in SI
+        c = const.c.to('m/s')
+        G = const.G.to('m^3/(kg s^2)')
+        # Assign units to smbh mass
+        if hasattr(smbh_mass, 'unit'):
+            smbh_mass = smbh_mass.to('solMass')
+        else:
+            smbh_mass = smbh_mass * u.solMass
+        # convert smbh mass to kg
+        smbh_mass = smbh_mass.to('kg')
+        # Calculate r_g in SI
+        r_g = G*smbh_mass/(c ** 2)
+        # Calculate distance
+        distance = (distance_rg * r_g).to("meter")
 
-    assert np.isfinite(distance).all(), \
-        "Finite check failure: distance"
-    assert np.all(distance > 0).all(), \
-        "distance contains values <= 0"
+        assert np.isfinite(distance).all(), \
+            "Finite check failure: distance"
+        assert np.all(distance > 0).all(), \
+            "distance contains values <= 0"
 
-    return distance
+        return distance
 
 
 def r_g_from_units(smbh_mass, distance):
