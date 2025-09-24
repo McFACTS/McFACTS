@@ -3313,34 +3313,33 @@ class SingleBlackHoleDynamics(TimelineActor):
                 agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
-        # region BH-BH encounters
         if self.target_array not in filing_cabinet:
             return
 
         blackholes_array = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
-        blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde_sweep(
-            sm.smbh_mass,
-            blackholes_array.orb_a,
-            blackholes_array.mass,
-            blackholes_array.orb_ecc,
-            sm.timestep_duration_yr,
-            sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong_mu,
-            sm.disk_radius_outer
-        )
-
-        # blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde(
-        #     sm.smbh_mass,
-        #     blackholes_array.orb_a,
-        #     blackholes_array.mass,
-        #     blackholes_array.orb_ecc,
-        #     sm.timestep_duration_yr,
-        #     sm.disk_bh_pro_orb_ecc_crit,
-        #     sm.delta_energy_strong,
-        #     sm.disk_radius_outer
-        # )
-        # endregion
+        if sm.flag_dynamics_sweep:
+            blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde_sweep(
+                sm.smbh_mass,
+                blackholes_array.orb_a,
+                blackholes_array.mass,
+                blackholes_array.orb_ecc,
+                sm.timestep_duration_yr,
+                sm.disk_bh_pro_orb_ecc_crit,
+                sm.delta_energy_strong_mu,
+                sm.disk_radius_outer
+            )
+        else:
+            blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde(
+                sm.smbh_mass,
+                blackholes_array.orb_a,
+                blackholes_array.mass,
+                blackholes_array.orb_ecc,
+                sm.timestep_duration_yr,
+                sm.disk_bh_pro_orb_ecc_crit,
+                sm.delta_energy_strong_mu,
+                sm.disk_radius_outer
+            )
 
 
 class SingleStarDynamics(TimelineActor):
@@ -3367,7 +3366,7 @@ class SingleStarDynamics(TimelineActor):
             sm.rstar_rhill_exponent_ratio,
             sm.timestep_duration_yr,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong,
+            sm.delta_energy_strong_mu,
             sm.disk_radius_outer
         )
 
@@ -3454,7 +3453,7 @@ class SingleBlackHoleStarDynamics(TimelineActor):
             blackholes_pro.id_num,
             sm.timestep_duration_yr,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong,
+            sm.delta_energy_strong_mu,
             sm.disk_radius_outer
         )
 
@@ -3560,7 +3559,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
             blackholes_binary.bin_orb_ecc[non_merge_mask],
             sm.timestep_duration_yr,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong,
+            sm.delta_energy_strong_mu,
             sm.disk_radius_outer,
             sm.mean_harden_energy_delta,
             sm.var_harden_energy_delta
@@ -3594,7 +3593,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
             blackholes_binary.bin_orb_ecc[non_merge_mask],
             sm.timestep_duration_yr,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong,
+            sm.delta_energy_strong_mu,
             sm.disk_radius_outer
         )
 
@@ -3625,7 +3624,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
             blackholes_binary.bin_orb_inc[non_merge_mask],
             time_passed,
             sm.nsc_imf_bh_powerlaw_index,
-            sm.delta_energy_strong,
+            sm.delta_energy_strong_mu,
             sm.nsc_spheroid_normalization,
             sm.mean_harden_energy_delta,
             sm.var_harden_energy_delta
