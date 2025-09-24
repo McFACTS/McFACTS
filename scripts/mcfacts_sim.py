@@ -2876,7 +2876,8 @@ def main():
                     old_gw_freq = blackholes_inner_disk.gw_freq
 
                 emri_gw_strain, emri_gw_freq = gw.evolve_emri_gw(
-                    blackholes_inner_disk,
+                    blackholes_inner_disk.mass,
+                    blackholes_inner_disk.orb_a,
                     opts.timestep_duration_yr,
                     old_gw_freq,
                     opts.smbh_mass,
