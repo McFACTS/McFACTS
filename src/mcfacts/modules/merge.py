@@ -1165,7 +1165,11 @@ class ProcessEMRIMergers(TimelineActor):
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
+        # TODO: Process both arrays so only one needs to exist to allow EMRIs to merge.
         if sm.bh_inner_disk_array_name not in filing_cabinet:
+            return
+
+        if sm.bh_inner_gw_array_name not in filing_cabinet:
             return
 
         innerdisk_array = filing_cabinet.get_array(sm.bh_inner_disk_array_name, AGNBlackHoleArray)
