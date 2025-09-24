@@ -190,13 +190,12 @@ class FlipRetroProFilter(TimelineActor):
         if sm.bh_prograde_array_name not in filing_cabinet:
             return
 
-        blackholes_pro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
         blackholes_retro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
 
         inc_threshhold = 5.0 * np.pi / 180.0
 
-        bh_id_num_flip_to_pro = blackholes_retro.id_num[
-            np.where((np.abs(blackholes_retro.orb_inc) <= inc_threshhold) | (blackholes_retro.orb_ecc == 0.0))]
+        bh_id_num_flip_to_pro = blackholes_retro.id_num[np.where((np.abs(blackholes_retro.orb_inc) <= inc_threshhold) | (blackholes_retro.orb_ecc == 0.0))]
 
         blackholes_flipped = blackholes_retro.copy()
         blackholes_flipped.keep_only(bh_id_num_flip_to_pro)

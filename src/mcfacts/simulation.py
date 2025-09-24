@@ -23,7 +23,8 @@ settings = SettingsManager({
     "verbose": False,
     "override_files": True,
     "save_state": True,
-    "save_each_timestep": True
+    "save_each_timestep": True,
+    "flag_use_pagn": True
 })
 
 
@@ -75,7 +76,7 @@ def main():
                                                timestep_length=galaxy.settings.timestep_duration_yr)
 
         dynamics_timeline.add_timeline_actor(EvolveRetrogradeBlackHoles())
-        dynamics_timeline.add_timeline_actor(FlipRetroProFilter())
+
         dynamics_timeline.add_timeline_actor(InnerDiskFilter())
         dynamics_timeline.add_timeline_actor(SingleBlackHoleRealityCheck())
 
@@ -121,6 +122,7 @@ def main():
 
         dynamics_timeline.add_timeline_actors(binary_dynamics)
         dynamics_timeline.add_timeline_actor(BinaryBlackHoleFormation())
+        dynamics_timeline.add_timeline_actor(FlipRetroProFilter())
 
         galaxy.run(dynamics_timeline, agn_disk)
 
