@@ -1118,8 +1118,10 @@ def main():
     figsize = "apj_col"
 
     snapshot_handler = TxtSnapshotHandler(settings)
+    file_path = "./runs"
+    plots_dir = "./runs/plots"
 
-    population_cabinet = snapshot_handler.load_cabinet("./runs", "population")
+    population_cabinet = snapshot_handler.load_cabinet(file_path, "population")
 
     mergers = population_cabinet["blackholes_merged"]
     lvk = population_cabinet["blackholes_lvk"]
@@ -1135,8 +1137,6 @@ def main():
     spin_final = mergers["spin_final"]
 
     merger_masks = (make_gen_masks(mergers["gen_1"], mergers["gen_2"])) # Man, I hate python
-
-    plots_dir = "./runs/plots"
 
     num_mergers_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final)
     merger_vs_radius(settings, figsize, plots_dir, merger_masks, mass_final, orb_a)
