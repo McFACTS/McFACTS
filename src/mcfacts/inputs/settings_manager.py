@@ -3,15 +3,24 @@ from typing import Any
 from mcfacts.inputs import ReadInputs
 
 defaults = {
-    # IO Options
+    # IO Parameters
     "verbose": False, # Print all debug messages
-    "show_timeline_progress": False, # Shows a progress bar for the active timeline
+    "show_timeline_progress": True, # Shows a progress bar for the active timeline
     "override_files": False, # Override any output files that exist, throws errors otherwise
     "save_state": False, # Pickle and save the entire state of a galaxy after each population or timeline is run
     "save_each_timestep": False, # Pickle and save the state of a galaxy for each timestep during a simulation timeline
+    "save_snapshots": 0, # :: DEPRECIATED :: Whether to save snapshots (0 for off)
 
-    # Black Hole and Disk Parameters
+    # Simulation Parameters
+    "timestep_duration_yr": 1.e4,  # :: DEPRECATED ::  Duration of each timestep (years)
+    "timestep_num": 100,  # :: DEPRECATED ::   Number of timesteps
+    "capture_time_yr": 1.e5,  # Time between disk captures (years)
+    "galaxy_num": 1,  # :: DEPRECATED ::  Number of iterations of the simulation
+
+    # AGN Parameters
     "smbh_mass": 1.e8,  # Supermassive black hole mass (solar masses)
+
+    # Disk Parameters
     "flag_use_pagn": True,  # Enable or disable the pAGN program
     "disk_model_name": "sirko_goodman",  # Disk model options: sirko_goodman, thompson_etal
     "disk_radius_trap": 700.0,  # Migration trap radius (gravitational radii)
@@ -26,19 +35,27 @@ defaults = {
     "inner_disk_outer_radius": 50.0,  # Outer radius of the inner disk (gravitational radii)
     "disk_radius_max_pc": 0.,  # Maximum disk size in parsecs (negative for off)
     "disk_inner_stable_circ_orb": 6.0,  # Innermost stable circular orbit (gravitational radii)
+    "torque_prescription": "paardekooper",  # Torque prescription ('old','paardekooper','jimenez_masset': Paaardekooper default; Jimenez-Masset option)
+    "flag_phenom_turb": False,  # Phenomenological turbulence
+    "phenom_turb_centroid": 0.,  # Centroid of Gaussian w.r.t. to migrating BH. (default = 0.)
+    "phenom_turb_std_dev": 1.0,  # Variance of Gaussian around Centroid (default=0.1)
+
+    # Black Hole Parameters
+    "mass_pile_up": 35.0,  # Mass pile-up term (solar masses)
     "initial_binary_orbital_ecc": 0.01, # The initial common orbital eccentricity around the SMBH to be assumed of a binary when it forms
     "fraction_bin_retro": 0, # Fraction of formed binaries that should be retrograde orbiters
-    "torque_prescription": "paardekooper", # Torque prescription ('old','paardekooper','jimenez_masset': Paaardekooper default; Jimenez-Masset option)
-    "flag_phenom_turb": False, # Phenomenological turbulence
-    "phenom_turb_centroid":  0., # Centroid of Gaussian w.r.t. to migrating BH. (default = 0.)
-    "phenom_turb_std_dev": 1.0, # Variance of Gaussian around Centroid (default=0.1)
-    "flag_use_surrogate": False, # TODO: Add description
-    "mean_harden_energy_delta": 0.9,
-    "var_harden_energy_delta": 0.025,
-    "delta_energy_strong_mu": 0.1,
+    "flag_use_surrogate": False, # (flag_use_surrogate = False) Use analytical kick prescription from Akiba et al. (2024). (flag_use_surrogate = True) uses NRsurrogate (Published by Varma+2019 and modified by Keeffe Mitman) to individually solve for each merger's kick velocity.
+    "mean_harden_energy_delta": 0.9, # Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    "var_harden_energy_delta": 0.025, # Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    "delta_energy_strong_mu": 0.1, # Mean of Delta Energy per Strong interaction (can be up to 20%,0.2)
+    "delta_energy_strong": 0.1,  # ::DEPRECIATED:: Change in orbital energy/eccentricity post-interaction
+    "flag_thermal_feedback": True,  # Enable thermal feedback for BH torque modifications
+    "flag_orb_ecc_damping": True,  # Enable orbital eccentricity damping
+    "flag_dynamic_enc": True,  # Enable dynamical interactions
+    "flag_dynamics_sweep": True,  # Switch to turn on/off sweep function for dynamics functions
 
-    # Star stuff
-    "flag_add_stars": True,  # Enable or disable stars
+    # Star Parameters
+    "flag_add_stars": False,  # Enable or disable stars
     "disk_star_mass_min_init": 5.0,
     "disk_star_mass_max_init": 40,
     "rstar_rhill_exponent_ratio": 2.0,
@@ -65,21 +82,7 @@ defaults = {
     "nsc_star_metallicity_z_init": 0.0088,
     "nsc_imf_bh_method": "default",
 
-    # Simulation Parameters
-    "timestep_duration_yr": 1.e4,  # DEPRECATED:  Duration of each timestep (years)
-    "timestep_num": 100,  # DEPRECATED:  Number of timesteps
-    "capture_time_yr": 1.e5,  # Time between disk captures (years)
-    "galaxy_num": 1,  # DEPRECATED: Number of iterations of the simulation
-    "save_snapshots": 0,  # Whether to save snapshots (0 for off)
-
-    # Feedback and Interaction Switches
-    "flag_thermal_feedback": 1,  # Enable thermal feedback for BH torque modifications
-    "flag_orb_ecc_damping": 1,  # Enable orbital eccentricity damping
-    "flag_dynamic_enc": 1,  # Enable dynamical interactions
-    "delta_energy_strong": 0.1,  # Change in orbital energy/eccentricity post-interaction
-    "mass_pile_up": 35.0,  # Mass pile-up term (solar masses)
-
-    # Values that should not be changed (See static_settings below)
+    # Static values, these should not be changed by the user (See static_settings below)
     "disk_bh_eddington_mass_growth_rate": 2.3e-8,
     "disk_bh_spin_resolution_min": 0.02,
     "min_bbh_gw_separation": 2.0,
