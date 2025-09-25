@@ -250,7 +250,6 @@ def change_bh_spin(disk_bh_pro_spins,
     spin_torque_iteration = (6.98e-3*normalized_Eddington_ratio*normalized_spin_torque_condition*normalized_timestep)
 
     # Assume same magnitudes and angles as before to start
-    disk_bh_pro_spins_new = disk_bh_pro_spins
     disk_bh_spin_angles_new = disk_bh_pro_spin_angles
 
     # Setting random array of phi angles for each of the progenitors
@@ -290,10 +289,12 @@ def change_bh_spin(disk_bh_pro_spins,
     disk_bh_pro_spin_min = -0.98
     disk_bh_pro_spins_new[disk_bh_pro_spins_new > disk_bh_pro_spin_max] = disk_bh_pro_spin_max
     disk_bh_pro_spins_new[disk_bh_pro_spins_new < disk_bh_pro_spin_min] = disk_bh_pro_spin_min
+    disk_bh_pro_spins_new[~np.isfinite(disk_bh_pro_spins_new)] = disk_bh_pro_spin_max
 
     bh_max_spin_angle = 3.10
     disk_bh_spin_angles_new[disk_bh_spin_angles_new < disk_bh_spin_minimum_resolution] = 0.0
     disk_bh_spin_angles_new[disk_bh_spin_angles_new > bh_max_spin_angle] = bh_max_spin_angle
+    disk_bh_spin_angles_new[~np.isfinite(disk_bh_spin_angles_new)] = bh_max_spin_angle
     # Now that the z-components are updated, we can convert the components back into the magnitude for further calculations
 
     assert np.isfinite(disk_bh_pro_spins_new).all(), \
@@ -473,7 +474,7 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
 
 def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_pro_spins, disk_bh_pro_spin_angle,
                                 disk_sound_speed, disk_density, disk_aspect_ratio, migration_velocity,
-                                disk_bh_torque_condition, smbh_mass, timestep_duration_yr):
+                                disk_bh_torque_condition, disk_bh_spin_minimum_resolution, smbh_mass, timestep_duration_yr):
     smbh_kg = (smbh_mass * u.Msun).to(u.kg) # solar mass to kg
     sound_speed = disk_sound_speed(disk_bh_pro_orb_a) * (u.m / u.s) # m/s
     density = disk_density(disk_bh_pro_orb_a) * (u.kg / u.m**3) # kg/cm^3
@@ -508,7 +509,17 @@ def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_p
 
     #R_acc = const.G * pro_orb_mass / sigma_gas**2
 
+    assert np.isfinite(sound_speed).all, \
+        "sound_speed has non finite values"
+    assert np.isfinite(migration_velocity).all, \
+        "migration_velocity has non finite values"
+    assert np.isfinite(shear_velocity).all, \
+        "shear_velocity has non finite values"
+
     mdot = (f_c * radii_h * radii_c * density * (sound_speed**2 + migration_velocity**2 + shear_velocity**2)**0.5)
+
+    mdot = np.where(~np.isfinite(mdot), 0, mdot)
+
     delta_m = mdot * timestep
 
     # According to Barry, eddington is ~2x10^-3 of unit spin per timestep
@@ -527,10 +538,19 @@ def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_p
     eddington_ratio = delta_m / pro_orb_mass
     normalized_spin_torque_condition = disk_bh_torque_condition / 0.1
     spin_torque_iteration = (6.98e-3 * eddington_ratio.value * normalized_spin_torque_condition * (timestep_duration_yr * 1e4))
+
     final_spin_angle = disk_bh_pro_spin_angle + spin_torque_iteration
 
-    final_spin_angle[final_spin_magnitude >= 1] = 0.
-    final_spin_magnitude[final_spin_magnitude >= 1] = 0.998
+    disk_bh_pro_spin_max = 0.98
+    disk_bh_pro_spin_min = -0.98
+    final_spin_magnitude[final_spin_magnitude > disk_bh_pro_spin_max] = disk_bh_pro_spin_max
+    final_spin_magnitude[final_spin_magnitude < disk_bh_pro_spin_min] = disk_bh_pro_spin_min
+    final_spin_magnitude[~np.isfinite(final_spin_magnitude)] = disk_bh_pro_spin_max
+
+    bh_max_spin_angle = 3.10
+    final_spin_angle[final_spin_angle < disk_bh_spin_minimum_resolution] = 0.0
+    final_spin_angle[final_spin_angle > bh_max_spin_angle] = bh_max_spin_angle
+    final_spin_angle[~np.isfinite(final_spin_angle)] = bh_max_spin_angle
 
     assert np.isfinite(final_spin_magnitude).all(), \
         "final_spin_magnitude has non finite values"
@@ -538,62 +558,66 @@ def prograde_bh_accretion_bondi(disk_bh_pro_masses, disk_bh_pro_orb_a, disk_bh_p
         "final_spin_magnitude has values >= 0.98"
     assert np.all(final_mass >= 0), \
         "final_mass has values <= 0"
+    assert np.isfinite(final_mass).all(), \
+        "final_mass has non finite values"
+    assert np.isfinite(final_spin_angle).all(), \
+        "final_spin_angle has non finite values"
 
     return final_mass, final_spin_magnitude.value, final_spin_angle
 
 
 class ProgradeBlackHoleBondi(TimelineActor):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
+    def __init__(self, name: str = None, settings: SettingsManager = None, target_array: str = ""):
         super().__init__("Prograde Black Hole Bondi Accretion" if name is None else name, settings)
+        self.target_array = target_array
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
-        if sm.bh_prograde_array_name not in filing_cabinet:
+        if self.target_array not in filing_cabinet:
             return
 
-        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+        blackholes_array = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
         mass_edd = change_bh_mass(
-            blackholes_pro.mass,
+            blackholes_array.mass,
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_eddington_mass_growth_rate,
             sm.timestep_duration_yr
         )
 
         spin_edd, spin_angle_edd = change_bh_spin(
-            blackholes_pro.spin,
-            blackholes_pro.spin_angle,
+            blackholes_array.spin,
+            blackholes_array.spin_angle,
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_torque_condition,
             sm.disk_bh_spin_resolution_min,
             sm.timestep_duration_yr,
-            blackholes_pro.orb_ecc,
+            blackholes_array.orb_ecc,
             sm.disk_bh_pro_orb_ecc_crit,
         )
 
-        mass_bondi, spin_bondi, spin_angle_bondi = accretion.prograde_bh_accretion_bondi(
-            blackholes_pro.mass,
-            blackholes_pro.orb_a,
-            blackholes_pro.spin,
-            blackholes_pro.spin_angle,
+        mass_bondi, spin_bondi, spin_angle_bondi = prograde_bh_accretion_bondi(
+            blackholes_array.mass,
+            blackholes_array.orb_a,
+            blackholes_array.spin,
+            blackholes_array.spin_angle,
             agn_disk.disk_sound_speed,
             agn_disk.disk_density,
             agn_disk.disk_aspect_ratio,
-            migration_velocity,
+            blackholes_array.migration_velocity,
             sm.disk_bh_torque_condition,
+            sm.disk_bh_spin_resolution_min,
             sm.smbh_mass,
             sm.timestep_duration_yr
         )
 
-        bondi_fraction = 1e-4
+        blackholes_array.mass = mass_edd + (mass_bondi * sm.bondi_fraction)
+        blackholes_array.spin = spin_edd + (spin_bondi * sm.bondi_fraction)
+        blackholes_array.spin_angle = spin_angle_edd + (spin_angle_bondi * sm.bondi_fraction)
 
-        blackholes_pro.mass = mass_edd + mass_bondi * bondi_fraction
-        blackholes_pro.spin = spin_edd + spin_bondi * bondi_fraction
-        blackholes_pro.spin_angle = spin_angle_edd + spin_angle_bondi * bondi_fraction
-
-        blackholes_pro.consistency_check()
+        blackholes_array.consistency_check()
 
 
 class ProgradeBlackHoleAccretion(TimelineActor):

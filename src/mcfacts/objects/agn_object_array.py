@@ -38,6 +38,7 @@ class AGNObjectArray(ABC):
                  orb_ecc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  orb_ang_mom: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  orb_arg_periapse: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 migration_velocity: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  gen: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
                  skip_consistency_check: bool = False):
 
@@ -56,6 +57,7 @@ class AGNObjectArray(ABC):
         self.orb_ecc = orb_ecc
         self.orb_ang_mom = orb_ang_mom
         self.orb_arg_periapse = orb_arg_periapse
+        self.migration_velocity = np.full(len(unique_id), 0., dtype=np.float64) if len(migration_velocity) == 0 else migration_velocity
 
         # TODO: One of our modules is passing a float for this value, it should be int. Not game-breaking, but we should ensure type sameness
         self.gen: npt.NDArray[np.int_] = np.full(len(unique_id), int(1), dtype=np.int_) if len(gen) == 0 else gen
@@ -213,6 +215,7 @@ class AGNObjectArray(ABC):
             "orb_ecc": self.orb_ecc,
             "orb_ang_mom": self.orb_ang_mom,
             "orb_arg_periapse": self.orb_arg_periapse,
+            "migration_velocity": self.migration_velocity,
             "gen": self.gen
         }
 
@@ -231,6 +234,7 @@ class AGNObjectArray(ABC):
         self.orb_ecc = np.concatenate((self.orb_ecc, agn_object_array.orb_ecc))
         self.orb_ang_mom = np.concatenate((self.orb_ang_mom, agn_object_array.orb_ang_mom))
         self.orb_arg_periapse = np.concatenate((self.orb_arg_periapse, agn_object_array.orb_arg_periapse))
+        self.migration_velocity = np.concatenate((self.migration_velocity, agn_object_array.migration_velocity))
 
     def __len__(self):
         return len(self.unique_id)

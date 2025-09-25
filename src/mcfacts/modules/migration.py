@@ -1339,11 +1339,13 @@ class ProgradeBlackHoleMigration(TimelineActor):
         blackholes_array.orb_a = np.where(blackholes_array.orb_a > sm.disk_inner_stable_circ_orb, blackholes_array.orb_a,
                                         3 * sm.disk_inner_stable_circ_orb)
 
+        delta_distance = np.abs(new_orb_a_bh - blackholes_array.orb_a)
+        delta_distance_meters = unit_conversion.si_from_r_g(sm.smbh_mass, delta_distance)
+        blackholes_array.migration_velocity = (delta_distance_meters / (timestep_length * u.yr).to(u.s)).value
+
         blackholes_array.orb_a = new_orb_a_bh
 
         blackholes_array.consistency_check()
-
-        # TODO: Stars
 
 
 class BinaryBlackHoleMigration(TimelineActor):

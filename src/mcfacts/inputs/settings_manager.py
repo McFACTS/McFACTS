@@ -5,7 +5,7 @@ from mcfacts.inputs import ReadInputs
 defaults = {
     # IO Parameters
     "verbose": False, # Print all debug messages
-    "show_timeline_progress": True, # Shows a progress bar for the active timeline
+    "show_timeline_progress": False, # Shows a progress bar for the active timeline
     "override_files": False, # Override any output files that exist, throws errors otherwise
     "save_state": False, # Pickle and save the entire state of a galaxy after each population or timeline is run
     "save_each_timestep": False, # Pickle and save the state of a galaxy for each timestep during a simulation timeline
@@ -53,6 +53,7 @@ defaults = {
     "flag_orb_ecc_damping": True,  # Enable orbital eccentricity damping
     "flag_dynamic_enc": True,  # Enable dynamical interactions
     "flag_dynamics_sweep": True,  # Switch to turn on/off sweep function for dynamics functions
+    "bondi_fraction": 1e-5, # Duty cycle / fraction of bondi accretion onto population.
 
     # Star Parameters
     "flag_add_stars": False,  # Enable or disable stars

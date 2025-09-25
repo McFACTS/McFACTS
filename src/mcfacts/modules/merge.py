@@ -1026,6 +1026,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
                 bh_spin_merged
             )
+
             bh_v_kick = analytical_kick_velocity(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1146,6 +1147,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             orb_ang_mom=np.ones(bh_binary_id_num_merger.size, dtype=np.float64),
             orb_arg_periapse=np.full(bh_binary_id_num_merger.size, -1.5),
             orb_ecc=bh_orb_ecc_merged,
+            migration_velocity=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
             gen=next_generation,
         )
 

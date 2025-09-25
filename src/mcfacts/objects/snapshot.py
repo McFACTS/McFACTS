@@ -77,22 +77,26 @@ class TxtSnapshotHandler(SnapshotHandler):
 
             keys = super_dict.keys()
             type_array = []
+            spacing_array = []
 
             for key in keys:
-                value = super_dict[key]
+                values = super_dict[key]
 
-                if len(value) == 0:
-                    type_array.append(f"numpy.{value.dtype}")
-                    continue
+                type_str = f"numpy.{values.dtype}" if len(values) == 0 else f"{self.get_fully_qualified_type(values[0])}"
+                final_type_str = f"{key}::{type_str}"
+                type_array.append(final_type_str)
 
-                type_array.append(self.get_fully_qualified_type(value[0]))
+                if len(values) == 0:
+                    spacing_array.append(len(final_type_str))
+                else:
+                    longest = max([str(x) for x in values], key=len)
+                    spacing_array.append(max(len(longest), len(final_type_str)) + 1)
 
             header = "".join(
-                f"{key + '::' + str(type_array[i]) :<{(37 if key.startswith('unique_id') else 33)}}"
-                for i, key in enumerate(super_dict.keys())
+                f"{str(type_array[i]) :<{spacing_array[i]}}" for i, key in enumerate(super_dict.keys())
             )
 
-            np.savetxt(final_path, np.column_stack(tuple(super_dict.values())), fmt='%-32s', header=header, comments='')
+            np.savetxt(final_path, np.column_stack(tuple(super_dict.values())), fmt=[f"%-{space - 1}s" for space in spacing_array], header=header, comments='')
 
         # Handle the 'everything else' dictionary stored in the filing cabinet
         if len(everything_else) == 0:

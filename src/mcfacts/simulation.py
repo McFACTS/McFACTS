@@ -1,7 +1,9 @@
+import warnings
+
 from tqdm.auto import tqdm
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
-from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion
+from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion, ProgradeBlackHoleBondi
 from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
 from mcfacts.modules.disk_capture import EvolveRetrogradeBlackHoles, RecaptureBinaryBlackHoles, \
     CaptureNSCProgradeBlackHoles
@@ -88,6 +90,7 @@ def main():
 
         innerdisk_dynamics = [
             ProgradeBlackHoleMigration(target_array=innerdisk_array),
+            #ProgradeBlackHoleBondi(target_array=innerdisk_array),
             ProgradeBlackHoleAccretion(target_array=innerdisk_array),
             ProgradeBlackHoleDamping(target_array=innerdisk_array),
             SingleBlackHoleDynamics(target_array=innerdisk_array),
@@ -100,6 +103,7 @@ def main():
 
         singleton_dynamics = [
             ProgradeBlackHoleMigration(target_array=prograde_array),
+            #ProgradeBlackHoleBondi(target_array=prograde_array),
             ProgradeBlackHoleAccretion(target_array=prograde_array),
             ProgradeBlackHoleDamping(target_array=prograde_array),
             SingleBlackHoleDynamics(target_array=prograde_array),

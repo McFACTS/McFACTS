@@ -763,6 +763,7 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
             orb_ang_mom=np.ones(bh_mass_captured.size),
             orb_ecc=np.zeros(bh_mass_captured.size),
             orb_arg_periapse=np.zeros(bh_mass_captured.size),
+            migration_velocity=np.zeros(bh_mass_captured.size),
             gen=np.ones(bh_mass_captured.size, dtype=np.int_)
         )
 
