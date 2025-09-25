@@ -9,7 +9,7 @@ from astropy import constants as const
 from astropy import units as u
 from numpy.random import Generator
 
-from mcfacts.external.sxs import fit_modeler, evolve_binary
+
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray, AGNBlackHoleArray, AGNMergedBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
@@ -862,6 +862,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
 
     elif flag_use_surrogate == 1:
+        from mcfacts.external.sxs import fit_modeler, evolve_binary
+
         #bh_v_kick = 200 #evolve_binary.velocity()
         surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
         bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
@@ -1043,6 +1045,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
 
         elif sm.flag_use_surrogate == 1:
+            from mcfacts.external.sxs import fit_modeler, evolve_binary
+
             # TODO: Take in surrogate.joblib file from user definied option
             surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
 
