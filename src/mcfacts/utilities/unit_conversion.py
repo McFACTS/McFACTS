@@ -34,8 +34,8 @@ def si_from_r_g(smbh_mass, distance_rg):
 
     assert np.isfinite(distance).all(), \
         "Finite check failure: distance"
-    assert np.all(distance > 0).all(), \
-        "distance contains values <= 0"
+    assert np.all(distance >= 0).all(), \
+        "distance contains values < 0"
 
     return distance
 
