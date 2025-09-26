@@ -13,7 +13,7 @@ from numpy.random import Generator
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray, AGNBlackHoleArray, AGNMergedBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
-from mcfacts.utilities import unit_conversion, checks
+from mcfacts.utilities import unit_conversion, checks, peters
 from mcfacts.utilities.random_state import uuid_provider, rng
 from mcfacts.utilities.unit_conversion import si_from_r_g
 
@@ -1043,7 +1043,6 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             bh_spin_1_20_hz = np.zeros(bh_binary_id_num_merger.size)
             bh_spin_2_20_hz = np.zeros(bh_binary_id_num_merger.size)
             bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
-
         elif sm.flag_use_surrogate == 1:
             from mcfacts.external.sxs import fit_modeler, evolve_binary
 
@@ -1134,6 +1133,25 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             spin_1_20hz=bh_spin_1_20_hz,
             spin_2_20hz=bh_spin_2_20_hz
         )
+
+        blackholes_merged.bin_sep = 2 * (blackholes_merged.mass_1 + blackholes_merged.mass_2) / sm.smbh_mass
+
+        bbh_gw_freq, bbh_gw_strain = peters.gw_strain_freq_no_prior(
+            blackholes_merged.mass_1,
+            blackholes_merged.mass_2,
+            blackholes_merged.bin_sep,
+            sm.smbh_mass,
+            sm.agn_redshift,
+            final_lvk=True
+        )
+
+        blackholes_merged.gw_freq = bbh_gw_freq
+        blackholes_merged.gw_strain = bbh_gw_strain
+
+        blackholes_merged.consistency_check()
+
+        filing_cabinet.ignore_check_array(sm.bbh_gw_array_name)
+        filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, blackholes_merged)
 
         next_generation = np.maximum(
             blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_1"),

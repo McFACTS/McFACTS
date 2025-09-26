@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 import pandas as pd
+import astropy.constants as const
 from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
 from importlib import resources as impresources
@@ -938,7 +939,7 @@ def kick_velocity_vs_mass(settings, figsize, save_dir, merger_masks, mass, v_kic
     plt.close()
 
 
-def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk):
+def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
     # H - hanford, L - Livingston
     H1 = impresources.files(data) / 'O3-H1-C01_CLEAN_SUB60HZ-1262197260.0_sensitivity_strain_asd.txt'
     L1 = impresources.files(data) / 'O3-L1-C01_CLEAN_SUB60HZ-1240573680.0_sensitivity_strain_asd.txt'
@@ -1002,10 +1003,10 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk):
                     color='tab:orange',
                     zorder=0)
 
-    # svf_ax.scatter(emris[:, 6], strain_per_freq_emris,
-    #            s=0.4 * styles.markersize_gen1,
-    #            alpha=styles.markeralpha_gen1
-    #            )
+    lisa_axs.scatter(emri["gw_freq"], emri["gw_strain"],
+               s=0.4 * styles.markersize_gen1,
+               alpha=styles.markeralpha_gen1
+               )
 
     lisa_axs.scatter(lvk["gw_freq"][lvk_g1_mask], lvk["gw_strain"][lvk_g1_mask],
                    s=0.4 * styles.markersize_gen1,
@@ -1033,6 +1034,14 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk):
                    alpha=styles.markeralpha_genX,
                    label=r'$\geq$3g-Ng'
                    )
+
+    # stall_sep = 0.5 * ((const.G * (1e8 * const.M_sun)) / (const.c ** 2))
+    #
+    # gw_freq_stall = (((const.G * ((lvk["mass_1"] + lvk["mass_2"]) * const.M_sun) / (stall_sep ** 3)) ** 0.5) / np.pi).value
+    #
+    # lisa_axs.vlines(np.mean(gw_freq_stall), 1.0e-26, 1.0e-15, colors="red", alpha=0.5, linewidth=1, linestyle="--", label="Stalling Avg.")
+    #
+    # lisa_axs.axvspan(np.min(gw_freq_stall), np.max(gw_freq_stall), alpha=0.5, color='red', label="Stalling Range")
 
     lisa_axs.loglog()
 
@@ -1096,7 +1105,6 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk):
     lvk_axs.yaxis.set_label_position("right")
     lvk_axs.set_ylabel(r'$h_{\rm 0}$', rotation=-90, labelpad=15)
 
-
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -1125,6 +1133,7 @@ def main():
 
     mergers = population_cabinet["blackholes_merged"]
     lvk = population_cabinet["blackholes_lvk"]
+    emri = population_cabinet["blackholes_emri"]
 
     mass_1 = mergers["mass_1"]
     mass_2 = mergers["mass_2"]
@@ -1152,7 +1161,7 @@ def main():
     spin_vs_kick(settings, figsize, plots_dir, merger_masks, v_kick, spin_final)
     kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
 
-    strain_vs_freq(settings, figsize, plots_dir, merger_masks, lvk)
+    strain_vs_freq(settings, figsize, plots_dir, merger_masks, lvk, emri)
 
 
 if __name__ == "__main__":

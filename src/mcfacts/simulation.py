@@ -26,7 +26,8 @@ settings = SettingsManager({
     "override_files": True,
     "save_state": True,
     "save_each_timestep": True,
-    "flag_use_pagn": True
+    "flag_use_pagn": True,
+    "stalling_separation": 0.0
 })
 
 

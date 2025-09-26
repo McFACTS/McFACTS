@@ -8,7 +8,7 @@ from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.utilities.random_state import rng
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
-from mcfacts.modules.gw import gw_strain_freq
+from mcfacts.utilities.peters import gw_strain_freq
 
 
 def close_encounters_check(id_nums,
@@ -419,7 +419,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
             # (1-fraction_bin_retro: fraction_bin_retro)
             bin_orb_ang_mom[i] = rng.choice(a=[1, -1], p=[1 - fraction_bin_retro, fraction_bin_retro])
 
-    gw_strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+    gw_strain, strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                         old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
                                         flag_include_old_gw_freq=0)
 
@@ -505,7 +505,7 @@ class BinaryBlackHoleFormation(TimelineActor):
         if sm.fraction_bin_retro > 0:
             bin_orb_ang_mom = [random_generator.choice(a=[1, -1], p=[1 - sm.fraction_bin_retro, sm.fraction_bin_retro]) for _ in range(primary_ids.size)]
 
-        gw_strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+        gw_strain, strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                             old_gw_freq=-1, smbh_mass=sm.smbh_mass, agn_redshift=sm.agn_redshift,
                                             flag_include_old_gw_freq=0)
 

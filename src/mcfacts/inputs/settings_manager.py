@@ -54,6 +54,7 @@ defaults = {
     "flag_dynamic_enc": True,  # Enable dynamical interactions
     "flag_dynamics_sweep": True,  # Switch to turn on/off sweep function for dynamics functions
     "bondi_fraction": 1e-5, # Duty cycle / fraction of bondi accretion onto population.
+    "stalling_separation": 0.0,
 
     # Star Parameters
     "flag_add_stars": False,  # Enable or disable stars

@@ -3537,7 +3537,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
         blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBlackHoleArray)
 
-        non_merge_mask = blackholes_binary.flag_merging < 0
+        non_merge_mask = blackholes_binary.flag_merging >= 0
 
         # Soften / harden binaries due to encounters with circular singletons (e.g. Leigh et al. 2018)
         (
@@ -3571,7 +3571,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
         if self.reality_merge_checks:
             checks.binary_reality_check(sm, filing_cabinet, self.log)
             checks.flag_binary_mergers(sm, filing_cabinet)
-            non_merge_mask = blackholes_binary.flag_merging < 0
+            non_merge_mask = blackholes_binary.flag_merging >= 0
 
         # Soften / ionize binaries due to encounters with eccentric singletons
         (
@@ -3603,7 +3603,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
         if self.reality_merge_checks:
             checks.binary_reality_check(sm, filing_cabinet, self.log)
             checks.flag_binary_mergers(sm, filing_cabinet)
-            non_merge_mask = blackholes_binary.flag_merging < 0
+            non_merge_mask = blackholes_binary.flag_merging >= 0
 
         # Spheroid encounters
         # FIX THIS: Replace nsc_imf_bh below with nsc_imf_stars_ since pulling from stellar MF

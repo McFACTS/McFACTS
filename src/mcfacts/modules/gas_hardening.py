@@ -119,6 +119,29 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
     return (bin_sep, bin_flag_merging, bin_time_merged, bin_time_to_merger_gw)
 
 
+def gas_hardening_baruteau(mass_1, mass_2, bin_sep, flag_merging, smbh_mass, stalling_separation, timestep_duration_yr):
+    array_length = len(mass_1)
+
+    flag_not_merging_stalling = np.array([(flag_merging[i] >= 0 and bin_sep[i] > stalling_separation)
+                                 for i in range(array_length)])
+
+    # If all binaries are merging or stallin, do no work and return
+    if sum(flag_not_merging_stalling) == 0:
+        return bin_sep
+
+    binary_mass = mass_1[flag_not_merging_stalling] + mass_2[flag_not_merging_stalling]
+    bin_period = 0.32 * np.power(bin_sep[flag_not_merging_stalling], 1.5) * np.power(smbh_mass/1.e8, 1.5) * np.power(binary_mass/10.0, -0.5)
+
+    num_orbits_in_timestep = np.zeros(len(bin_period))
+    num_orbits_in_timestep[bin_period > 0] = timestep_duration_yr / bin_period[bin_period > 0]
+    scaled_num_orbits = num_orbits_in_timestep / 1000.0
+
+    new_bin_sep = np.zeros(array_length)
+    new_bin_sep[~flag_not_merging_stalling] = bin_sep[~flag_not_merging_stalling]
+    new_bin_sep[flag_not_merging_stalling] = np.maximum(bin_sep[flag_not_merging_stalling] * (0.5 ** scaled_num_orbits), stalling_separation)
+
+    return new_bin_sep
+
 class BinaryBlackHoleGasHardening(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
         super().__init__("Binary Black Hole Gas Hardening" if name is None else name, settings)
@@ -135,18 +158,14 @@ class BinaryBlackHoleGasHardening(TimelineActor):
 
         time_gw_normalization = filing_cabinet.get_value("time_gw_normalization", mcfacts.modules.gw.normalize_tgw(sm.smbh_mass, sm.inner_disk_outer_radius))
 
-        blackholes_binary.bin_sep, blackholes_binary.flag_merging, blackholes_binary.time_merged, blackholes_binary.time_to_merger_gw = bin_harden_baruteau(
+        blackholes_binary.bin_sep = gas_hardening_baruteau(
             blackholes_binary.mass_1,
             blackholes_binary.mass_2,
             blackholes_binary.bin_sep,
-            blackholes_binary.bin_ecc,
-            blackholes_binary.time_to_merger_gw,
             blackholes_binary.flag_merging,
-            blackholes_binary.time_merged,
             sm.smbh_mass,
+            sm.stalling_separation,
             sm.timestep_duration_yr,
-            time_gw_normalization,
-            time_passed,
         )
 
         if not self.reality_merge_checks:
