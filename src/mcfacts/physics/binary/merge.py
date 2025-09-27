@@ -3,10 +3,11 @@ Module for calculating the final variables of a merging binary.
 """
 import warnings
 import numpy as np
+from scipy.stats import truncnorm
 from astropy import units as u
 from astropy import constants as const
 from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.binary import spin_check
+#from mcfacts.physics.binary import spin_check
 from mcfacts.physics import analytical_velo, lum
 from mcfacts.external.sxs import evolve_binary
 from mcfacts.external.sxs import fit_modeler
@@ -68,6 +69,14 @@ def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angl
 
 def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_orbs_inc):
     """Calculates the precessing spin component :math:`\chi_p` associated with a merger.
+    
+    ====== GWTC 1 CHI_P CALCULATION ======
+    
+    b1 = 2 + (3*q)/2
+    b2 = 2 + 3/(2*q)
+    chi_p = 1 / (b1 * m1**2) * max[b1s1p, b2s2p] > 0
+    
+    ======================================
 
     chi_p = max[spin_1_perp, (q(4q+3)/(4+3q))* spin_2_perp]
 
@@ -107,6 +116,7 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
     # Define default mass ratio of 1.0, otherwise choose based on masses
     mass_ratios = np.ones(masses_1.size)
 
+    # ====== DISSCUSSION NEEDED BEFORE CHANGES - WHY ADDING IN BIN_ORB_INC ======
     # Define spin angle to include binary inclination wrt disk (units of radians)
     spin_angles_1 = spin_angles_1 + bin_orbs_inc
     spin_angles_2 = spin_angles_2 + bin_orbs_inc
@@ -117,6 +127,10 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
 
     spin_angles_1[spin_angles_1_diffs > 0] = spin_angles_1[spin_angles_1_diffs > 0] - spin_angles_1_diffs[spin_angles_1_diffs > 0]
     spin_angles_2[spin_angles_2_diffs > 0] = spin_angles_2[spin_angles_2_diffs > 0] - spin_angles_2_diffs[spin_angles_2_diffs > 0]
+    
+    # temporary solution to the spin_angle values being set to a negative value
+    spin_angles_1[spin_angles_1 < 0] = 0
+    spin_angles_2[spin_angles_2 < 0] = 0
 
     # Define default spins
     spins_1_perp = np.abs(spins_1) * np.sin(spin_angles_1)
@@ -138,6 +152,17 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
 
     assert np.isfinite(chi_p).all(), \
         "Finite check failure: chi_p"
+    #if any(chi_p < 0):
+    #   print('mass1 :', masses_1)
+    #    print('mass2 :', masses_2)
+    #    print('spin1 :', spins_1)
+    #    print('spin2 :', spins_2)
+    #    print('spin_angle1 :', spin_angles_1)
+    #    print('spin_angle2 :', spin_angles_2)
+    #    print('bin_orb_inc :', bin_orbs_inc)
+    #    raise ValueError("We have negative chi_p for some reason! EEK!")
+    assert all(chi_p >= 0), \
+        "We have negative chi_p for some reason! EEK!"
 
     return (chi_p)
 
@@ -337,7 +362,61 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
 
     return (merged_spins) #merged_spin_angle
 
+def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10):
+    a = (lower - mean) / std
+    b = (upper - mean) / std
+    return truncnorm.rvs(a, b, loc=mean, scale=std, size=size)
 
+def spin_check(gen_1, gen_2, spin_merged):
+    """ Since the Tichy and Marronetti '08 perscription generates spin values outside of the expected range for higher mass ratio objects this file checks spin values after merger and if the magnitude is too low, this function resets it to a random distribution between a set range in order to generate results similiar to that of the NRsurrogate model.
+
+    Parameters
+    ----------        
+        gen_1 : numpy.ndarray
+            generation of m1 (before merger) (1=natal BH that has never been in a prior merger)
+        gen_2 : numpy.darray
+            generation of m2 (before merger) (1=natal BH that has never been in a prior merger)
+        spin_merged : numpy.darray
+            Final spin magnitude [unitless] of merger remnant with :obj:`float` type
+
+    Returns
+    -------
+    merged_spins : numpy array
+        Final spin magnitude [unitless] of merger remnant with :obj:`float` type
+    """
+    
+    new_spin_merged = []
+    
+    for i in range(len(spin_merged)):
+        # Sorting first gen objects and keeping their parameters
+        if (gen_1[i] == 1.) & (gen_2[i] == 1.):
+            #print('gen 1', spin_merged[i])
+            new_spin_merged.append(spin_merged[i])
+        # Sorting 2nd gen objects and updating their spins as needed otherwise keeping them the same
+        # If spins < 0.75, they are reset to a randomly selected gaussian distribution between 0.75 - 0.85
+        elif ((gen_1[i] == 2.) | (gen_2[i] == 2.)) & ((gen_1[i] <= 2.) & (gen_2[i] <= 2.)):
+            #print('gen 2', spin_merged[i])
+            if spin_merged[i] < 0.75:
+                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=1)
+                #print('gen 2 plus noise', spin_plus_noise)
+                new_spin_merged.append(float(spin_plus_noise))
+            else:
+                #print('gen 2', spin_merged[i])
+                new_spin_merged.append(spin_merged[i])
+        # Sorting 3+ gen objects and updating their spins as needed otherwise keeping them the same
+        # If spins < 0.85, they are reset to a randomly selected gaussian distribution between 0.85 - 0.95
+        elif (gen_1[i] >= 3.) | (gen_2[i] >= 3.):
+            #print('gen x', spin_merged[i])
+            if spin_merged[i] < 0.85:
+                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.85, upper=0.95, size=1)
+                #print('gen 3+ plus noise', spin_plus_noise)
+                new_spin_merged.append(float(spin_plus_noise))
+            else:
+                #print('gen 3+', spin_merged[i])
+                new_spin_merged.append(spin_merged[i])
+                
+    return np.array(new_spin_merged)
+    
 def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
     """Calculates orbital eccentricity of a merged binary.
 
@@ -575,7 +654,7 @@ def merge_blackholes_precession(
         chi_1,
         chi_2,
     )
-    bh_thetaL = precession.reminantspindirection(
+    bh_thetaL = precession.remnantspindirection(
         theta1,
         theta2,
         deltaphi,
@@ -607,7 +686,7 @@ def merge_blackholes_precession(
         mass_1, mass_2, chi_1, chi_2 
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
-                     smbh_mass, flag_use_surrogate, disk_aspect_ratio, disk_density, time_passed, galaxy):
+                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, time_passed, galaxy):
     """Calculates parameters for merged BHs and adds them to blackholes_pro and blackholes_merged
 
     This function calculates the new parameters for merged BHs and adds them to the
@@ -628,6 +707,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         Mass [Msun] of SMBH
     flag_use_surrogate : int
         Flag to use surrogate model for kick calculations
+    flag_use_spin_check : int 
+        Flag to apply spin_check filter to spin results
     disk_aspect_ratio : function
         Disk aspect ratio at specified rg
     disk_density : function
@@ -656,7 +737,14 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_ang_mom")
     )
-
+    #print('before bh_chi_p_merged mass1 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'mass_1'))
+    #print('before bh_chi_p_merged mass2 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'mass_2'))
+    #print('before bh_chi_p_merged spin1 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'spin_1'))
+    #print('before bh_chi_p_merged spin2 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'spin_2'))
+    #print('before bh_chi_p_merged spin_angle1 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'spin_angle_1'))
+    #print('before bh_chi_p_merged spin_angle2 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'spin_angle_2'))
+    #print('before bh_chi_p_merged bin_orb_inc :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'bin_orb_inc'))
+        
     bh_chi_p_merged = chi_p(
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -676,11 +764,14 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
         )
-        bh_spin_merged = spin_check.spin_check(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
-            bh_spin_merged
-        )
+        if flag_use_spin_check == 1:
+            bh_spin_merged = spin_check(
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
+                bh_spin_merged
+            )
+        else:
+            bh_spin_merged = bh_spin_merged
         bh_v_kick = analytical_velo.analytical_kick_velocity(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -794,5 +885,5 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
                                   new_galaxy=np.full(bh_binary_id_num_merger.size, galaxy),
                                   new_time_passed=np.full(bh_binary_id_num_merger.size, time_passed),
                                   new_id_num=bh_binary_id_num_merger)
-
+    #raise Exception
     return (blackholes_merged, blackholes_pro)

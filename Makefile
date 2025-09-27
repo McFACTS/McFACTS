@@ -110,7 +110,7 @@ mcfacts_sim: clean
 	mkdir -p runs
 	cd runs; \
 		python ../${MCFACTS_SIM_EXE} \
-		--galaxy_num 100 \
+		--galaxy_num 500 \
 		--fname-ini ../${FNAME_INI} \
 		--fname-log mcfacts.log \
 		--seed ${SEED}
@@ -246,20 +246,40 @@ mstar_runs_fixed: $(MBINS_FIXED)
 $(MBINS_FIXED): %: %.run_fixed
 
 # Compare surrogate plots (In progress)
-compare_sur: 
-	cd runs; \
-	python ../${COMPARE_SUR} --fname-surmergers ${wd}/sur_output_mergers_population.dat --plots-directory ${wd}
+# 
+# ======= CHANGE SPECIFIED ITEMS BEFORE RUNNING MAKE COMMAND =======
+# 
+# For comparison plots between models run in order of the following
 
+# Set in model_choice_old.ini: flag_use_surrogate = 0 ; flag_use_spin_check = 0
 nosur_save: mcfacts_sim
 	cd runs; \
 	cp ${wd}/output_mergers_population.dat ../nosur_output_mergers_population.dat
 
+# Set in model_choice_old.ini: flag_use_surrogate = 0 ; flag_use_spin_check = 1
+nosur_filter_save: mcfacts_sim
+	cd runs; \
+	cp ${wd}/output_mergers_population.dat ../nosur_filter_output_mergers_population.dat
+
+# Set in model_choice_old.ini: flag_use_surrogate = -1 ; flag_use_spin_check = 0
+prec_save: mcfacts_sim
+	cd runs; \
+	cp ${wd}/output_mergers_population.dat ../prec_output_mergers_population.dat
+
+# Set in model_choice_old.ini: flag_use_surrogate = 1 ; flag_use_spin_check = 0
 sur_save: mcfacts_sim
 	cd runs; \
 	cp output_mergers_population.dat sur_output_mergers_population.dat; \
 	cp ../nosur_output_mergers_population.dat nosur_output_mergers_population.dat; \
+	cp ../nosur_filter_output_mergers_population.dat nosur_filter_output_mergers_population.dat; \
+	cp ../prec_output_mergers_population.dat prec_output_mergers_population.dat; \
 	rm ../nosur_output_mergers_population.dat
+	rm ../nosur_filter_output_mergers_population.dat
+	rm ../prec_output_mergers_population.dat
 
+compare_sur: 
+	cd runs; \
+	python ../${COMPARE_SUR} --fname-surmergers ${wd}/sur_output_mergers_population.dat --plots-directory ${wd}
 
 #### CLEAN ####
 

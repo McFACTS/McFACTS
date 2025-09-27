@@ -193,7 +193,13 @@ star cluster variables second, and assorted other choices (time resolution etc.)
         Saving the snapshots of each object being per time step. Deafult is 0 [off] 
         default : 0
     flag_use_surrogate : int
-        Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) uses NRsurrogate (Published by Varma+2019 and modified by Keeffe Mitman) to individually solve for each merger's kick velocity.
+        Switch (0) uses analytical kick prescription from Akiba et al. (2024). 
+        Switch (1) uses NRsurrogate (Published by Varma+2019 and modified by Keeffe Mitman) to individually solve for each merger's kick velocity.
+        Switch (-1) uses precession module from Gerosa & Kesden (2016).
+        default : 0 
+    "flag_use_spin_check" : int
+        Switch (0) allows spin values to pass through without change.
+        Switch (1) applies spin check system that sets 2g spins lower than 0.75 to a random range [0.75, 0.85]; 3g+ spins lower than 0.85 to a random range [0.85, 0.95]
         default : 0
     flag_add_stars : int
         Switch stars on (1) or off (0)

@@ -1403,6 +1403,7 @@ def main():
                                                                                    bh_binary_id_num_merger,
                                                                                    opts.smbh_mass,
                                                                                    opts.flag_use_surrogate,
+                                                                                   opts.flag_use_spin_check,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
                                                                                    time_passed,
@@ -1594,6 +1595,9 @@ def main():
                                 opts.disk_bh_torque_condition,
                                 disk_bh_spin_resolution_min,
                                 opts.timestep_duration_yr)
+                            
+                            #print('mcfacts_sim 1590 - spin_angle_1 :', blackholes_binary.spin_angle_1) 
+                            #print('mcfacts_sim 1590 - spin_angle_2 :', blackholes_binary.spin_angle_2)   
 
                     # Update filing cabinet
                     filing_cabinet.update(id_num=blackholes_binary.id_num,
@@ -1632,6 +1636,7 @@ def main():
                                                                                    bh_binary_id_num_merger,
                                                                                    opts.smbh_mass,
                                                                                    opts.flag_use_surrogate,
+                                                                                   opts.flag_use_spin_check,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
                                                                                    time_passed,
@@ -1710,6 +1715,7 @@ def main():
                                                                                    bh_binary_id_num_merger,
                                                                                    opts.smbh_mass,
                                                                                    opts.flag_use_surrogate,
+                                                                                   opts.flag_use_spin_check,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
                                                                                    time_passed,
@@ -1898,6 +1904,9 @@ def main():
                                 disk_bh_spin_resolution_min,
                                 opts.timestep_duration_yr)
 
+                            #print('mcfacts_sim 1898 - spin_angle_1 :', blackholes_binary.spin_angle_1) 
+                            #print('mcfacts_sim 1898 - spin_angle_2 :', blackholes_binary.spin_angle_2) 
+
                     # Update filing cabinet
                     filing_cabinet.update(id_num=blackholes_binary.id_num,
                                           attr=["size", "orb_ecc"],
@@ -1934,6 +1943,7 @@ def main():
                                                                                    bh_binary_id_num_merger,
                                                                                    opts.smbh_mass,
                                                                                    opts.flag_use_surrogate,
+                                                                                   opts.flag_use_spin_check,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
                                                                                    time_passed,
@@ -2001,12 +2011,16 @@ def main():
                     if bh_binary_id_num_unphysical.size > 0:
                         blackholes_binary.remove_id_num(bh_binary_id_num_unphysical)
                         filing_cabinet.remove_id_num(bh_binary_id_num_unphysical)
+                    
+                    #print('mcfacts_sim 2017 - spin_angle_1 - before :', blackholes_binary.spin_angle_1) 
+                    #print('mcfacts_sim 2017 - spin_angle_2 - before :', blackholes_binary.spin_angle_2)
                     blackholes_merged, blackholes_pro = merge.merge_blackholes(blackholes_binary,
                                                                                blackholes_pro,
                                                                                blackholes_merged,
                                                                                bh_binary_id_num_merger,
                                                                                opts.smbh_mass,
                                                                                opts.flag_use_surrogate,
+                                                                               opts.flag_use_spin_check,
                                                                                disk_aspect_ratio,
                                                                                disk_density,
                                                                                time_passed,
@@ -2064,6 +2078,9 @@ def main():
                     disk_bh_spin_resolution_min,
                     opts.timestep_duration_yr,
                 )
+                
+                #print('mcfacts_sim 2069 - spin_angle_1 :', blackholes_binary.spin_angle_1) 
+                #print('mcfacts_sim 2069 - spin_angle_2 :', blackholes_binary.spin_angle_2) 
 
                 if (opts.flag_dynamic_enc > 0):
                     # Spheroid encounters
@@ -2118,6 +2135,7 @@ def main():
                                                                                    bh_binary_id_num_merger,
                                                                                    opts.smbh_mass,
                                                                                    opts.flag_use_surrogate,
+                                                                                   opts.flag_use_spin_check,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
                                                                                    time_passed,
@@ -2426,6 +2444,7 @@ def main():
                                                                                bh_binary_id_num_merger,
                                                                                opts.smbh_mass,
                                                                                opts.flag_use_surrogate,
+                                                                               opts.flag_use_spin_check,
                                                                                disk_aspect_ratio,
                                                                                disk_density,
                                                                                time_passed,

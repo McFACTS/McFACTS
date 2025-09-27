@@ -147,6 +147,10 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
     blackholes_binary : AGNBinaryBlackHole
         Binary black holes with updated spin angles after subtracting angle at prescribed rate for one timestep
     """
+    
+    #print('bin_spin_angle_1 before :', bin_spin_angle_1)
+    #print('bin_spin_angle_2 before :', bin_spin_angle_2)
+    
     disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio/1.0  # does nothing?
     timestep_duration_yr_normalized = timestep_duration_yr/1.e4  # yrs to yr/10k?
     disk_bh_torque_condition_normalized = disk_bh_torque_condition/0.1  # what does this do?
@@ -171,6 +175,12 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
 
     bin_spin_angle_1[idx_non_mergers] = spin_angle_1_after
     bin_spin_angle_2[idx_non_mergers] = spin_angle_2_after
+    
+    bin_spin_angle_1[bin_spin_angle_1 < spin_minimum_resolution] = 0.0
+    bin_spin_angle_2[bin_spin_angle_2 < spin_minimum_resolution] = 0.0
+    
+    #print('bin_spin_angle_1 after :', bin_spin_angle_1) 
+    #print('bin_spin_angle_2 after :', bin_spin_angle_2)
 
     return (bin_spin_angle_1, bin_spin_angle_2)
 
