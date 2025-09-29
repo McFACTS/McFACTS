@@ -1,4 +1,5 @@
 import warnings
+import argparse
 
 from tqdm.auto import tqdm
 
@@ -21,43 +22,78 @@ from mcfacts.objects.populators import SingleBlackHolePopulator
 from mcfacts.objects.snapshot import TxtSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 
-settings = SettingsManager({
-    "verbose": False,
-    "override_files": True,
-    "save_state": True,
-    "save_each_timestep": True,
-    "flag_use_pagn": True,
-    "stalling_separation": 0.0
-})
+
+def args() -> SettingsManager:
+    parser = argparse.ArgumentParser()
+
+    inital_settings = SettingsManager()
+
+    parser.add_argument("-s", "--settings", "--fname-ini",
+                        dest="settings_file",
+                        help="Filename of settings file",
+                        default=inital_settings.settings_file, type=str)
+
+    inital_parse, _ = parser.parse_known_args(["-s", inital_settings.settings_file])
+    settings_file = inital_parse.settings_file
+
+    # TODO: handle settings file loading.
+
+    loaded_settings = SettingsManager({
+        "verbose": False,
+        "override_files": True,
+        "save_state": True,
+        "save_each_timestep": True,
+        "flag_use_pagn": True,
+        "stalling_separation": 0.0
+    })
+
+    for key, value in loaded_settings.settings_finals.items():
+        if key in loaded_settings.static_settings:
+            continue
+
+        options = []
+
+        for action in parser._actions:
+            option_strings = action.option_strings
+
+            for option in option_strings:
+                options.append(option)
+
+        alias = f"-{str(key)[0]}"
+
+        if alias in options:
+            parser.add_argument(f"--{key}",
+                                default=value, type=type(value), metavar=key)
+        else:
+            parser.add_argument(alias, f"--{key}",
+                                default=value, type=type(value), metavar=key)
 
 
-def args():
-    # TODO: Handle argument inputs, support legacy .ini files with SnapshotHandler framework
-    pass
+
+    inputs = parser.parse_args()
+
+    return SettingsManager(vars(inputs))
 
 
 def main():
-    population_cabinet = FilingCabinet()
+    settings = args()
+
+    print(settings.settings_finals)
+
+    return
 
     agn_disk = AGNDisk(settings)
     snapshot_handler = TxtSnapshotHandler(settings)
 
-    n_galaxy = 100
+    population_cabinet = FilingCabinet()
 
-    pbar = tqdm(total=n_galaxy, position=0, leave=True)
+    pbar = tqdm(total=settings.galaxy_num, position=0, leave=True)
 
-    # i = 0
-
-    for galaxy_id in range(n_galaxy):
+    for galaxy_id in range(settings.galaxy_num,):
         pbar.set_description(f"Running Galaxy {galaxy_id}")
         pbar.update(1)
 
-        # i = i +1
-        #
-        # if i != 93:
-        #     continue
-
-        galaxy_seed = 223849053863469657747974663531730220530 - galaxy_id
+        galaxy_seed = settings.seed - galaxy_id
 
         # Create instance of galaxy
         galaxy = Galaxy(seed=galaxy_seed, runs_folder="./runs", galaxy_id=galaxy_id, settings=settings)
@@ -75,8 +111,9 @@ def main():
 
         # settings=SettingsManager({**settings.settings_overrides, "verbose": True})
         # Create timeline to run main simulation
-        dynamics_timeline = SimulationTimeline("Dynamics", timesteps=50,
-                                               timestep_length=galaxy.settings.timestep_duration_yr)
+        dynamics_timeline = SimulationTimeline("Dynamics",
+                                               timesteps=settings.dynamics_timestep_num,
+                                               timestep_length=galaxy.settings.dynamics_timestep_duration_yr)
 
         dynamics_timeline.add_timeline_actor(EvolveRetrogradeBlackHoles())
 

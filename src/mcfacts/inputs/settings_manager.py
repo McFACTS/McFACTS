@@ -10,12 +10,15 @@ defaults = {
     "save_state": False, # Pickle and save the entire state of a galaxy after each population or timeline is run
     "save_each_timestep": False, # Pickle and save the state of a galaxy for each timestep during a simulation timeline
     "save_snapshots": 0, # :: DEPRECIATED :: Whether to save snapshots (0 for off)
+    "output_dir": "./runs", # Output directory relative to the base directory
+    "settings_file": "./recipes/model_choice_old.ini",
 
     # Simulation Parameters
-    "timestep_duration_yr": 1.e4,  # :: DEPRECATED ::  Duration of each timestep (years)
-    "timestep_num": 100,  # :: DEPRECATED ::   Number of timesteps
+    "dynamics_timestep_duration_yr": 1.e4,  # Duration of each timestep (years)
+    "dynamics_timestep_num": 50,  #  Number of timesteps in dynamics timeline
     "capture_time_yr": 1.e5,  # Time between disk captures (years)
-    "galaxy_num": 1,  # :: DEPRECATED ::  Number of iterations of the simulation
+    "galaxy_num": 100,  #  Number of iterations of the simulation
+    "seed": 223849053863469657747974663531730220530, # Seed of the simulation, should be 128 bits long
 
     # AGN Parameters
     "smbh_mass": 1.e8,  # Supermassive black hole mass (solar masses)
@@ -136,8 +139,14 @@ class SettingsManager:
         self.settings_overrides: dict[str, Any] = dict() if settings_overrides is None else settings_overrides
         self.settings_defaults = defaults
         self.settings_finals = dict()
+        self.static_settings = static_settings
+
+        # TODO: Argument validity checking / scaling
 
         for key, value in self.settings_defaults.items():
+            if key not in self.settings_overrides:
+                self.settings_overrides[key] = value
+
             if (key in self.settings_overrides) and (key not in static_settings):
                 self.settings_finals[key] = self.settings_overrides[key]
             else:
