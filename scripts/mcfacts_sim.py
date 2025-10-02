@@ -9,6 +9,7 @@ import time
 import numpy as np
 from astropy import units as u
 
+import mcfacts.mcfacts_random_state
 from mcfacts.physics.binary import evolve
 from mcfacts.physics.binary import formation
 from mcfacts.physics.binary import merge
@@ -3033,7 +3034,7 @@ def main():
 
         print("End Loop!")
         print("Final Time (yrs) = ", time_passed)
-        print(f"RNG called {rng.call_count} times")
+        print(f"RNG called {mcfacts.mcfacts_random_state.call_count()} times")
         if opts.verbose:
             print("BH locations at Final Time")
             print(blackholes_pro.orb_a)

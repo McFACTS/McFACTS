@@ -2915,7 +2915,7 @@ def bin_spheroid_encounter(
         include_mask = excluded_angles < 360
         include_index = encounter_index[include_mask]
         excluded_angles[~include_mask] = 0.
-        i3 = rng.randint(low=excluded_angles, high=360-excluded_angles)
+        i3 = rng.integers(low=excluded_angles, high=360-excluded_angles)
         # Convert i3 to radians
         i3_rad = np.radians(i3)
 
