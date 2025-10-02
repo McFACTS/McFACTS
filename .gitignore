@@ -84,3 +84,4 @@ coverage.xml
 cover/
 
 docs/source/_autosummary
+/old_runs/
