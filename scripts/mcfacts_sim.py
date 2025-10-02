@@ -10,6 +10,7 @@ import numpy as np
 from astropy import units as u
 
 import mcfacts.modules.gw
+import mcfacts.utilities.peters
 from mcfacts.inputs import ReadInputs
 from mcfacts.inputs import data as input_data
 from mcfacts.modules import accretion, merge, formation, gas_hardening, damping, disk_capture_stars
@@ -2335,7 +2336,7 @@ def main():
 
                     num_bbh_gw_tracked = bh_binary_id_num_gw.size
 
-                    bbh_gw_strain, bbh_gw_freq = gw.bbh_gw_params(
+                    bbh_gw_strain, bbh_gw_freq = mcfacts.utilities.peters.gw_strain_freq_prior(
                         blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_1"),
                         blackholes_binary.at_id_num(bh_binary_id_num_gw, "mass_2"),
                         blackholes_binary.at_id_num(bh_binary_id_num_gw, "bin_sep"),
@@ -2372,7 +2373,7 @@ def main():
                     )
 
                 # Evolve GW frequency and strain
-                blackholes_binary.gw_freq, blackholes_binary.gw_strain = gw.evolve_gw(
+                blackholes_binary.gw_freq, blackholes_binary.gw_strain = mcfacts.utilities.peters.gw_strain_freq_no_prior(
                     blackholes_binary.mass_1,
                     blackholes_binary.mass_2,
                     blackholes_binary.bin_sep,
