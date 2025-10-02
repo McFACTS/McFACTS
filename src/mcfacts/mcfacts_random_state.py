@@ -1,20 +1,26 @@
 """
 Controls the global random state used throughout McFACTS simulations.
 """
+import sys
+
 import numpy as np
 from numpy.random import Generator
 
-default_seed = 1
+this = sys.modules[__name__]
 
-rng = Generator(np.random.Philox(seed=default_seed))
+this.default_seed = 1
+
+this.rng = Generator(np.random.Philox(seed=this.default_seed))
 
 
 def reset_random(seed) -> Generator:
-    return Generator(np.random.Philox(seed=seed))
+    this.rng.bit_generator.state = Generator(np.random.Philox(seed=seed)).bit_generator.state
+
+    return this.rng
 
 
 def call_count() -> int:
-    bit_generator = rng.bit_generator
+    bit_generator = this.rng.bit_generator
 
     if not isinstance(bit_generator, np.random._philox.Philox):
         return -1
