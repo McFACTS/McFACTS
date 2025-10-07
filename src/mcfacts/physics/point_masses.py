@@ -172,21 +172,23 @@ def si_from_r_g(smbh_mass, distance_rg, r_g_defined = None):
 
     if r_g_defined is not None:
         r_g = r_g_defined
-        # return (r_g_defined * distance_rg).to("meter")
     else:
-        print(r_g_defined)
         # Calculate c and G in SI
         c = const.c.to('m/s')
         G = const.G.to('m^3/(kg s^2)')
+
         # Assign units to smbh mass
         if hasattr(smbh_mass, 'unit'):
             smbh_mass = smbh_mass.to('solMass')
         else:
             smbh_mass = smbh_mass * u.solMass
+
         # convert smbh mass to kg
         smbh_mass = smbh_mass.to('kg')
+
         # Calculate r_g in SI
         r_g = G*smbh_mass/(c ** 2)
+
     # Calculate distance
     distance = (distance_rg * r_g).to("meter")
 
