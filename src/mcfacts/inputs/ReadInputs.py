@@ -230,10 +230,6 @@ if bool in INPUT_TYPES.values():
                      "the INPUT_TYPES dictionary. Please use int instead.")
 
 
-class r_g_state:
-    pass
-state = r_g_state()
-
 def initialize_r_g(input_variables):
     # pre-calculating r_g from the provided smbh_mass
     # Initialize the shared value to None
@@ -248,8 +244,11 @@ def initialize_r_g(input_variables):
     # convert smbh mass to kg
     smbh_mass = smbh_mass.to('kg')
     # Calculate r_g in SI
-    state.R_G_IN_METERS = G*smbh_mass/(c ** 2)
-    print(f"Constants initialized: R_g = {state.R_G_IN_METERS.value:.4f} meters")
+    r_g_in_meters = G*smbh_mass/(c ** 2)
+
+    # adding r_g_in_meters to dictionary
+    input_variables['r_g_in_meters'] = r_g_in_meters
+    print(f"Constant initialized: R_g = {r_g_in_meters.value:.4f} meters")
 
 def ReadInputs_ini(fname_ini, verbose=0):
     """Input file parser
@@ -352,6 +351,7 @@ def ReadInputs_ini(fname_ini, verbose=0):
         print("I put your variables where they belong")
 
 
+    # mutates input variables to have a constant value for r_g_in_meters
     initialize_r_g(input_variables)
     # Return the arguments
     return input_variables
