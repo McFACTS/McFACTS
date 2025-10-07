@@ -7,6 +7,7 @@ import astropy.units as u
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import si_from_r_g
 
+from mcfacts.inputs import ReadInputs
 
 def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
                     disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse, timestep_duration_yr, disk_surf_density_func):
@@ -420,7 +421,7 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     SI_smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    SI_semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a).to("m").value
+    SI_semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a, r_g_defined=ReadInputs.R_G_IN_METERS).to("m").value
     SI_orbiter_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_ecc  # unitless
@@ -498,7 +499,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    semi_maj_axis = si_from_r_g(smbh_mass, retrograde_bh_locations).to("m").value
+    semi_maj_axis = si_from_r_g(smbh_mass, retrograde_bh_locations, r_g_defined=ReadInputs.R_G_IN_METERS).to("m").value
     retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
     omega = retro_arg_periapse  # radians
     ecc = retrograde_bh_orb_ecc  # unitless

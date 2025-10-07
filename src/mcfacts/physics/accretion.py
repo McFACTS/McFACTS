@@ -7,6 +7,7 @@ import astropy.constants as const
 import astropy.units as u
 from mcfacts.physics.point_masses import si_from_r_g
 
+from mcfacts.inputs import ReadInputs
 
 def star_wind_mass_loss(disk_star_pro_masses,
                         disk_star_pro_log_radius,
@@ -119,7 +120,7 @@ def accrete_star_mass(disk_star_pro_masses,
     # Calculate Bondi and Hill radii
     r_bondi = (2 * const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
     r_hill_rg = (disk_star_pro_orbs_a * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
-    r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
+    r_hill_m = si_from_r_g(smbh_mass, r_hill_rg, r_g_defined=ReadInputs.R_G_IN_METERS)
 
     # Determine which is smaller for each star
     min_radius = np.minimum(r_bondi, r_hill_m)

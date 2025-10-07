@@ -14,6 +14,7 @@ from mcfacts.physics.point_masses import si_from_r_g
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
+from mcfacts.inputs.ReadInputs import R_G_IN_METERS
 
 def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_ang_mom):
     """Calculates the effective spin :math:`\\chi_{\rm eff}` associated with a merger.
@@ -183,7 +184,7 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius):
     time_gw_normalization = time_of_orbital_shrinkage(
         smbh_mass * u.solMass,
         bin_mass_ref * u.solMass,
-        si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius),
+        si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius, r_g_defined=R_G_IN_METERS),
         0 * u.m,
     )
     return time_gw_normalization.si.value
@@ -296,7 +297,7 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
         Orbital eccentricity of merged binary with :obj:`float` type
     """
     smbh_mass_units = smbh_mass * u.solMass
-    orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+    orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a, r_g_defined=R_G_IN_METERS).to("meter")
 
     v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
 
@@ -394,7 +395,7 @@ def merge_blackholes_precession(
     # Draw random deltaphi
     deltaphi = rng.uniform(low=0.,high=2*np.pi,size=mass_ratio.size)
     # Get binary separation
-    bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g)
+    bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g, r_g_defined=R_G_IN_METERS)
     bin_sep_M = (bin_sep_si * const.c**2 / const.G) / \
         ((mass_1 + mass_2) * u.solMass)
     bin_sep_M = bin_sep_M.si

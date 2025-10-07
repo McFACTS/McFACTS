@@ -18,6 +18,7 @@ from mcfacts.physics.point_masses import time_of_orbital_shrinkage
 from mcfacts.physics.point_masses import si_from_r_g, r_g_from_units, r_schwarzschild_of_m
 from mcfacts.physics.binary.evolve import bin_ionization_check
 
+from mcfacts.inputs import ReadInputs
 
 def components_from_EL(E, L, units='geometric', smbh_mass=1e8):
     """Calculates new orb_a and eccentricity from specific energy and specific angular momentum
@@ -1612,7 +1613,7 @@ def circular_binaries_encounters_ecc_prograde(
     # Set up other values we need
     bin_masses = bin_mass_1 + bin_mass_2
     bin_velocities = const.c.value / np.sqrt(bin_orb_a)
-    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=ReadInputs.R_G_IN_METERS).to("meter")).value
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr/bin_orbital_times
 
@@ -1869,7 +1870,7 @@ def circular_binaries_encounters_ecc_prograde_star(
     # Set up other values we need
     bin_masses = bin_mass_1 + bin_mass_2
     bin_velocities = const.c.value / np.sqrt(bin_orb_a)
-    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=ReadInputs.R_G_IN_METERS).to("meter")).value
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr/bin_orbital_times
     bin_hill_sphere = bin_orb_a * ((bin_masses / smbh_mass) / 3)**(1 / 3)
@@ -2207,7 +2208,7 @@ def circular_binaries_encounters_circ_prograde(
     bin_velocities = const.c.value/np.sqrt(bin_orb_a)
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr / bin_orbital_times
-    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=ReadInputs.R_G_IN_METERS).to("meter")).value
 
     # Find the e< crit_ecc population. These are the interlopers w. low encounter vel that can harden the circularized population
     circ_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
@@ -2478,7 +2479,7 @@ def circular_binaries_encounters_circ_prograde_star(
     bin_velocities = const.c.value/np.sqrt(bin_orb_a)
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr / bin_orbital_times
-    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=ReadInputs.R_G_IN_METERS).to("meter")).value
     bin_hill_sphere = bin_orb_a * ((bin_masses / smbh_mass) / 3)**(1 / 3)
     bin_contact_sep = r_g_from_units(smbh_mass, r_schwarzschild_of_m(bin_mass_1) + r_schwarzschild_of_m(bin_mass_2)).value
 
@@ -2825,7 +2826,7 @@ def bin_spheroid_encounter(
     # Set up binary properties we need for later
     bin_mass = bin_mass_1_all + bin_mass_2_all
     bin_velocities = const.c.value / np.sqrt(bin_orb_a_all)
-    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1_all * bin_mass_2_all / (si_from_r_g(smbh_mass, bin_sep_all).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1_all * bin_mass_2_all / (si_from_r_g(smbh_mass, bin_sep_all, r_g_defined=ReadInputs.R_G_IN_METERS).to("meter")).value
 
     # Calculate encounter rate for each binary based on bin_orb_a, binary size, and time_passed
     # Set up array of encounter rates filled with -1
@@ -3063,7 +3064,7 @@ def bh_near_smbh(
     decay_time_arr = time_of_orbital_shrinkage(
         smbh_mass*u.solMass,
         disk_bh_pro_masses*u.solMass,
-        si_from_r_g(smbh_mass*u.solMass, disk_bh_pro_orbs_a),
+        si_from_r_g(smbh_mass*u.solMass, disk_bh_pro_orbs_a, r_g_defined=ReadInputs.R_G_IN_METERS),
         0*u.m,
     )
     # Estimate the number of timesteps to decay
