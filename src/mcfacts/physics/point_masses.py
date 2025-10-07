@@ -170,10 +170,11 @@ def si_from_r_g(smbh_mass, distance_rg, r_g_defined = None):
     # if r_g_defined is not None, we just calculate the 
     # distance from the provided value
 
-    # def fast_si_from_r_g(distance_r_g):
     if r_g_defined is not None:
-        return (r_g_defined * distance_r_g).to("meter")
+        r_g = r_g_defined
+        # return (r_g_defined * distance_rg).to("meter")
     else:
+        print(r_g_defined)
         # Calculate c and G in SI
         c = const.c.to('m/s')
         G = const.G.to('m^3/(kg s^2)')
@@ -186,15 +187,15 @@ def si_from_r_g(smbh_mass, distance_rg, r_g_defined = None):
         smbh_mass = smbh_mass.to('kg')
         # Calculate r_g in SI
         r_g = G*smbh_mass/(c ** 2)
-        # Calculate distance
-        distance = (distance_rg * r_g).to("meter")
+    # Calculate distance
+    distance = (distance_rg * r_g).to("meter")
 
-        assert np.isfinite(distance).all(), \
-            "Finite check failure: distance"
-        assert np.all(distance > 0).all(), \
-            "distance contains values <= 0"
+    assert np.isfinite(distance).all(), \
+        "Finite check failure: distance"
+    assert np.all(distance > 0).all(), \
+        "distance contains values <= 0"
 
-        return distance
+    return distance
 
 
 def r_g_from_units(smbh_mass, distance):

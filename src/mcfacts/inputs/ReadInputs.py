@@ -155,6 +155,7 @@ import pagn.constants as pagn_ct
 import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
 from astropy import constants as ct
+from astropy import units as u
 
 # Dictionary of types
 INPUT_TYPES = {
@@ -227,6 +228,28 @@ INPUT_TYPES = {
 if bool in INPUT_TYPES.values():
     raise ValueError("[ReadInputs.py] Boolean data types are not allowed in"
                      "the INPUT_TYPES dictionary. Please use int instead.")
+
+
+class r_g_state:
+    pass
+state = r_g_state()
+
+def initialize_r_g(input_variables):
+    # pre-calculating r_g from the provided smbh_mass
+    # Initialize the shared value to None
+
+    c = ct.c.to('m/s')
+    G = ct.G.to('m^3/(kg s^2)')
+    # Assign units to smbh mass
+    if hasattr(input_variables["smbh_mass"], 'unit'):
+        smbh_mass = input_variables["smbh_mass"].to('solMass')
+    else:
+        smbh_mass = input_variables["smbh_mass"] * u.solMass
+    # convert smbh mass to kg
+    smbh_mass = smbh_mass.to('kg')
+    # Calculate r_g in SI
+    state.R_G_IN_METERS = G*smbh_mass/(c ** 2)
+    print(f"Constants initialized: R_g = {state.R_G_IN_METERS.value:.4f} meters")
 
 def ReadInputs_ini(fname_ini, verbose=0):
     """Input file parser
@@ -328,6 +351,8 @@ def ReadInputs_ini(fname_ini, verbose=0):
             print(key, input_variables[key], type(input_variables[key]))
         print("I put your variables where they belong")
 
+
+    initialize_r_g(input_variables)
     # Return the arguments
     return input_variables
 
