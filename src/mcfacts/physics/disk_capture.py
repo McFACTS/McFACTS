@@ -104,7 +104,7 @@ def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_
 
 def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs_a, disk_bh_retro_orbs_ecc,
                              disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
-                             disk_inner_stable_circ_orb, disk_surf_density_func, timestep_duration_yr, disk_radius_outer):
+                             disk_inner_stable_circ_orb, disk_surf_density_func, timestep_duration_yr, disk_radius_outer, r_g_in_meters):
     """Evolve the orbit of initially-embedded retrograde black hole orbiters due to disk interactions.
 
     This is a CRUDE version of evolution, future upgrades may couple to SpaceHub.
@@ -127,6 +127,8 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
         Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
     timestep_duration_yr : float
         Length of a timestep [yr]
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -282,14 +284,14 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     # Get current tau values
     tau_e_current, tau_a_current = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                                disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
-                                               disk_surf_density_func)
+                                               disk_surf_density_func, r_g_in_meters)
     tau_inc_current = tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                   disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
-                                  disk_bh_retro_orbs_inc, disk_surf_density_func)
+                                  disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters)
 
     # Get reference tau values
-    tau_e_ref, tau_a_ref = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func)
-    tau_inc_ref = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func)
+    tau_e_ref, tau_a_ref = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    tau_inc_ref = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
 
     if (tau_e_current == -100.5).sum() > 0:
         print("TAU Warning: retrograde orbital parameters out of range, behavior unreliable")
@@ -392,7 +394,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
 
 
 def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse,
-                disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func):
+                disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters):
     """Computes inclination damping timescale from actual variables; used only for scaling.
 
 
@@ -412,6 +414,8 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
         Orbital inclination [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
     disk_surf_density_func : function
         Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -421,7 +425,7 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     SI_smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    SI_semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a, r_g_defined=ReadInputs.R_G_IN_METERS).to("m").value
+    SI_semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a, r_g_defined=r_g_in_meters).to("m").value
     SI_orbiter_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_ecc  # unitless
@@ -457,7 +461,7 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
 
 
 def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retrograde_bh_orb_ecc, retrograde_bh_orb_inc,
-                 retro_arg_periapse, disk_surf_model):
+                 retro_arg_periapse, disk_surf_model, r_g_in_meters):
     """Calculates how fast the semi-latus rectum of a retrograde single orbiter changes due to dynamical friction
 
     Parameters
@@ -476,6 +480,8 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
         Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
     disk_surf_model : function
         Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -499,7 +505,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    semi_maj_axis = si_from_r_g(smbh_mass, retrograde_bh_locations, r_g_defined=ReadInputs.R_G_IN_METERS).to("m").value
+    semi_maj_axis = si_from_r_g(smbh_mass, retrograde_bh_locations, r_g_defined=r_g_in_meters).to("m").value
     retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
     omega = retro_arg_periapse  # radians
     ecc = retrograde_bh_orb_ecc  # unitless
@@ -540,7 +546,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
 
 
 def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse,
-                disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func):
+                disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters):
     """Computes eccentricity & semi-maj axis damping timescale from actual variables
 
     This does not including migration; used only for scaling.
@@ -561,6 +567,8 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
         Orbital inclination [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
     disk_surf_density_func : function
         Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -597,7 +605,7 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
 
     # call function for tau_p_dyn (WZL Eqn 70)
     tau_p_dyn = tau_semi_lat(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
-                             disk_surf_density_func)
+                             disk_surf_density_func, r_g_in_meters)
     #  also need to find tau_a_dyn, but
     #   fortunately it's a few factors off of tau_p_dyn (this may be a dumb way to handle it)
     tau_a_dyn = tau_p_dyn * (1.0 - (ecc ** 2)) * kappa * np.abs(np.cos(inc) - zeta) / (
