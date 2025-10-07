@@ -11,6 +11,7 @@ from mcfacts.physics import analytical_velo, lum
 from mcfacts.external.sxs import evolve_binary
 from mcfacts.external.sxs import fit_modeler
 from mcfacts.physics.point_masses import si_from_r_g
+#from mcfacts.inputs import data
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
