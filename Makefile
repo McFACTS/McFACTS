@@ -211,6 +211,37 @@ setup_mstar_runs_scale:
 		#--timestep_num 1000 \
 	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
 
+
+# for profiling purposes
+profile_mstar_runs_scale:
+	python -m cProfile -o mstar_profile.prof ${MSTAR_RUNS_EXE} \
+		--fname-ini ${FNAME_INI_MSTAR_SCALE} \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--galaxy_num 100 \
+		--mbins ${MBINS_SCALE} \
+		--mstar-min 1e9 \
+		--mstar-max 1e13 \
+		--scrub \
+		--fname-nal ${FNAME_GWTC2_NAL} \
+		--wkdir ${MSTAR_RUNS_WKDIR_SCALE} \
+		--truncate-opacity
+
+
+profile_mstar_runs_fixed:
+	python -m cProfile -o mstar_fixed.prof ${MSTAR_RUNS_EXE} \
+		--fname-ini ${FNAME_INI_MSTAR_FIXED} \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--galaxy_num 100 \
+		--mbins ${MBINS_FIXED} \
+		--mstar-min 1e9 \
+		--mstar-max 1e13 \
+		--scrub \
+		--fname-nal ${FNAME_GWTC2_NAL} \
+		--wkdir ${MSTAR_RUNS_WKDIR_FIXED}
+
+
 # Define the setup for mstar_runs with the fixed inifile
 setup_mstar_runs_fixed:
 	python ${MSTAR_RUNS_EXE} \
