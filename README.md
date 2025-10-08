@@ -56,8 +56,11 @@ $ cd McFACTS
 Navigate to the `McFACTS/` directory and run
 
 ```bash
-pip install .
+pip install [OPTIONS] .
 ```
+
+The option `--editable` is commonly used when installing with development in mind.
+See [pip install documentation](https://pip.pypa.io/en/stable/cli/pip_install/) for additional details.
 
 ### Developer Setup
 
