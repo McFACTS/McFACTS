@@ -15,6 +15,7 @@ from mcfacts.physics.point_masses import si_from_r_g
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
+
 def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_ang_mom):
     """Calculates the effective spin :math:`\\chi_{\rm eff}` associated with a merger.
 

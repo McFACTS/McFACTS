@@ -10,7 +10,6 @@ from mcfacts.inputs import data as mcfacts_input_data
 from mcfacts.physics import point_masses
 from importlib import resources as impresources
 
-from mcfacts.inputs import ReadInputs
 
 # This is definitely the wrong and lazy way to go about things
 # 0: mass
