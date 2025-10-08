@@ -258,7 +258,7 @@ def initialize_r_g(input_variables):
     # convert smbh mass to kg
     smbh_mass = smbh_mass.to('kg')
     # Calculate r_g in SI
-    r_g_in_meters = G*smbh_mass/(c ** 2)
+    r_g_in_meters = G * smbh_mass / (c ** 2)
 
     # adding r_g_in_meters to dictionary
     input_variables['r_g_in_meters'] = r_g_in_meters
