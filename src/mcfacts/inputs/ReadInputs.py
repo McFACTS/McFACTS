@@ -231,6 +231,20 @@ if bool in INPUT_TYPES.values():
 
 
 def initialize_r_g(input_variables):
+    """Initilializes the r_g value in meters
+
+    This function precomputes the r_g value which would otherwise be
+    calculated anew with each call to si_from_r_g, using the input 
+    SMBH_MASS value. 
+
+    It mutates the input_variables dictionary in place, adding a 
+    r_g_in_meters key to it containing the r_g value in meters.
+
+    Parameters
+    ----------
+    input_variables : dict
+        Dictionary of input variables
+    """
     # pre-calculating r_g from the provided smbh_mass
     # Initialize the shared value to None
 
