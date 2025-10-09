@@ -152,15 +152,15 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
 
     assert np.isfinite(chi_p).all(), \
         "Finite check failure: chi_p"
-    #if any(chi_p < 0):
-    #   print('mass1 :', masses_1)
-    #    print('mass2 :', masses_2)
-    #    print('spin1 :', spins_1)
-    #    print('spin2 :', spins_2)
-    #    print('spin_angle1 :', spin_angles_1)
-    #    print('spin_angle2 :', spin_angles_2)
-    #    print('bin_orb_inc :', bin_orbs_inc)
-    #    raise ValueError("We have negative chi_p for some reason! EEK!")
+    if any(chi_p < 0):
+        print('mass1 :', masses_1)
+        print('mass2 :', masses_2)
+        print('spin1 :', spins_1)
+        print('spin2 :', spins_2)
+        print('spin_angle1 :', spin_angles_1)
+        print('spin_angle2 :', spin_angles_2)
+        print('bin_orb_inc :', bin_orbs_inc)
+        raise ValueError("We have negative chi_p for some reason! EEK!")
     assert all(chi_p >= 0), \
         "We have negative chi_p for some reason! EEK!"
 
@@ -363,9 +363,31 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
     return (merged_spins) #merged_spin_angle
 
 def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10):
+    """ Random Guassian distribution generator 
+    
+    Parameters
+    ----------
+        mean : int
+            Peak value of the distribution
+        std : int
+            Standard deiviation of the distriubtion
+        lower : float 
+            Lower bound of the distribution
+        upper : float
+            Upper bound of the distribution
+        size : int
+            Number of bins based on sample size
+            
+    Returns
+    -------
+        spin_dist : numpy.ndarray
+            Random distribution of the spins within a set range
+    """
+    
     a = (lower - mean) / std
     b = (upper - mean) / std
-    return truncnorm.rvs(a, b, loc=mean, scale=std, size=size)
+    spin_dist = truncnorm.rvs(a, b, loc=mean, scale=std, size=size)
+    return spin_dist
 
 def spin_check(gen_1, gen_2, spin_merged):
     """ Since the Tichy and Marronetti '08 perscription generates spin values outside of the expected range for higher mass ratio objects this file checks spin values after merger and if the magnitude is too low, this function resets it to a random distribution between a set range in order to generate results similiar to that of the NRsurrogate model.
@@ -737,13 +759,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_ang_mom")
     )
-    #print('before bh_chi_p_merged mass1 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'mass_1'))
-    #print('before bh_chi_p_merged mass2 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'mass_2'))
-    #print('before bh_chi_p_merged spin1 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'spin_1'))
-    #print('before bh_chi_p_merged spin2 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'spin_2'))
-    #print('before bh_chi_p_merged spin_angle1 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'spin_angle_1'))
-    #print('before bh_chi_p_merged spin_angle2 :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'spin_angle_2'))
-    #print('before bh_chi_p_merged bin_orb_inc :', blackholes_binary.at_id_num(bh_binary_id_num_merger, 'bin_orb_inc'))
         
     bh_chi_p_merged = chi_p(
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
