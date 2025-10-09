@@ -152,15 +152,15 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
 
     assert np.isfinite(chi_p).all(), \
         "Finite check failure: chi_p"
-    if any(chi_p < 0):
-        print('mass1 :', masses_1)
-        print('mass2 :', masses_2)
-        print('spin1 :', spins_1)
-        print('spin2 :', spins_2)
-        print('spin_angle1 :', spin_angles_1)
-        print('spin_angle2 :', spin_angles_2)
-        print('bin_orb_inc :', bin_orbs_inc)
-        raise ValueError("We have negative chi_p for some reason! EEK!")
+    #if any(chi_p < 0):
+    #    print('mass1 :', masses_1)
+    #    print('mass2 :', masses_2)
+    #    print('spin1 :', spins_1)
+    #    print('spin2 :', spins_2)
+    #    print('spin_angle1 :', spin_angles_1)
+    #    print('spin_angle2 :', spin_angles_2)
+    #    print('bin_orb_inc :', bin_orbs_inc)
+    #    raise ValueError("We have negative chi_p for some reason! EEK!")
     assert all(chi_p >= 0), \
         "We have negative chi_p for some reason! EEK!"
 
