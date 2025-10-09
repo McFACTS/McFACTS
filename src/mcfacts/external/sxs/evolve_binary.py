@@ -2,9 +2,9 @@
 Module to process binary black hole mergers using the surfinBH surrogate model.
 """
 
-import juliacall
+#import juliacall
 import numpy as np
-import random
+#import random
 #from scripts.sxs import fit_modeler
 from mcfacts.external.sxs import evolve_surrogate
 
