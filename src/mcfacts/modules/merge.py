@@ -1215,6 +1215,20 @@ class ProcessEMRIMergers(TimelineActor):
 
         emris.add_objects(emris_gw_only)
 
+        emris.gw_freq[emris.gw_freq == -1] = 9.e-7
+
+        char_strain, strain, nu_gw = peters.gw_strain_freq(mass_1=sm.smbh_mass,
+                                                           mass_2=emris.mass,
+                                                           obj_sep=emris.orb_a,
+                                                           timestep_duration_yr=timestep_length,
+                                                           old_gw_freq=(emris.gw_freq * u.Hz),
+                                                           smbh_mass=sm.smbh_mass,
+                                                           agn_redshift=sm.agn_redshift,
+                                                           flag_include_old_gw_freq=0)
+
+        emris.gw_freq = nu_gw
+        emris.gw_strain = char_strain
+
         filing_cabinet.create_or_append_array(sm.emri_array_name, emris)
 
         innerdisk_array.consistency_check()

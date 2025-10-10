@@ -169,9 +169,9 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
     char_strain = strain_factor*strain
 
     assert np.isfinite(char_strain.value).all(), \
-        "Finite check failure: char_strain.value"
+        f"Finite check failure: char_strain.value \n {char_strain.value}"
     assert np.isfinite(nu_gw.value).all(), \
-        "Finite check failure: nu_gw.value"
+        f"Finite check failure: nu_gw.value \n {nu_gw.value}"
 
     return char_strain.value, strain.value, nu_gw.value
 

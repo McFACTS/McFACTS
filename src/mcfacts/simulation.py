@@ -169,6 +169,7 @@ def main():
 
         bbh_merged_array = galaxy.settings.bbh_merged_array_name
         bbh_lvk_array = galaxy.settings.bbh_gw_array_name
+        emri_merged_array = galaxy.settings.emri_array_name
 
         if bbh_merged_array in galaxy.filing_cabinet:
             population_cabinet.create_or_append_array("blackholes_merged",galaxy.filing_cabinet.get_array(bbh_merged_array))
@@ -181,6 +182,9 @@ def main():
 
         if inner_gw_only_array in galaxy.filing_cabinet:
             population_cabinet.create_or_append_array("blackholes_emri", galaxy.filing_cabinet.get_array(inner_gw_only_array))
+
+        if emri_merged_array in galaxy.filing_cabinet:
+            population_cabinet.create_or_append_array("blackholes_emri", galaxy.filing_cabinet.get_array(emri_merged_array))
 
     pbar.close()
 
