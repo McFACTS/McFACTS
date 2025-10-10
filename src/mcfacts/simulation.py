@@ -1,5 +1,7 @@
 import warnings
 import argparse
+import os
+import shutil
 
 from tqdm.auto import tqdm
 
@@ -21,6 +23,7 @@ from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator
 from mcfacts.objects.snapshot import TxtSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
+from mcfacts import fiducial_plots
 
 
 def args() -> SettingsManager:
@@ -77,6 +80,12 @@ def args() -> SettingsManager:
 
 def main():
     settings = args()
+
+    if settings.overwrite_files == False and os.path.isdir(settings.output_dir):
+        assert False, f"Output directory {settings.output_dir} already exist. Set --overwrite_files=True to clear the directory."
+
+    if settings.overwrite_files and os.path.isdir(settings.output_dir):
+        shutil.rmtree(settings.output_dir)
 
     agn_disk = AGNDisk(settings)
     snapshot_handler = TxtSnapshotHandler(settings)
@@ -189,6 +198,8 @@ def main():
     pbar.close()
 
     snapshot_handler.save_cabinet("./runs", "population", population_cabinet)
+
+    fiducial_plots.main(settings)
 
 
 if __name__ == "__main__":

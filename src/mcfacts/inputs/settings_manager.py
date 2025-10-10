@@ -6,7 +6,7 @@ defaults = {
     # IO Parameters
     "verbose": False, # Print all debug messages
     "show_timeline_progress": False, # Shows a progress bar for the active timeline
-    "override_files": False, # Override any output files that exist, throws errors otherwise
+    "overwrite_files": False, # Override any output files that exist, throws errors otherwise
     "save_state": False, # Pickle and save the entire state of a galaxy after each population or timeline is run
     "save_each_timestep": False, # Pickle and save the state of a galaxy for each timestep during a simulation timeline
     "save_snapshots": 0, # :: DEPRECIATED :: Whether to save snapshots (0 for off)

@@ -1112,15 +1112,7 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
     plt.close()
 
 
-def main():
-    # TODO: Handle settings import through arguments
-    settings = SettingsManager({
-        "verbose": False,
-        "override_files": True,
-        "save_state": True,
-        "save_each_timestep": True
-    })
-
+def main(settings: SettingsManager):
     plt.style.use("mcfacts.vis.mcfacts_figures")
 
     figsize = "apj_col"
@@ -1166,4 +1158,4 @@ def main():
     kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
 
 if __name__ == "__main__":
-    main()
+    main(SettingsManager())

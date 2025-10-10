@@ -83,3 +83,6 @@ dynamic = [ "version" ]
 
 [tool.pytest.ini_options]
 pythonpath = "src"
+
+[project.scripts]
+mcfacts = "mcfacts.simulation:main"
