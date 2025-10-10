@@ -113,7 +113,20 @@ static_settings = [
     "disk_bh_eddington_mass_growth_rate",
     "disk_bh_spin_resolution_min",
     "min_bbh_gw_separation",
-    "agn_redshift"
+    "agn_redshift",
+    # Array names, users shouldn't change these
+    "bh_array_name",
+    "bh_inner_disk_array_name",
+    "bh_inner_gw_array_name",
+    "bh_prograde_array_name",
+    "bh_retrograde_array_name",
+    "stars_prograde_array_name",
+    "stars_retrograde_array_name",
+    "stars_merged_array_name",
+    "bbh_array_name",
+    "bbh_gw_array_name",
+    "bbh_merged_array_name",
+    "emri_array_name"
 ]
 
 
