@@ -78,10 +78,6 @@ def args() -> SettingsManager:
 def main():
     settings = args()
 
-    print(settings.settings_finals)
-
-    return
-
     agn_disk = AGNDisk(settings)
     snapshot_handler = TxtSnapshotHandler(settings)
 
