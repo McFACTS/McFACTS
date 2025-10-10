@@ -1153,16 +1153,17 @@ def main():
     disk_radius_vs_chi_p(settings, figsize, plots_dir, merger_masks, orb_a, chi_p)
     time_vs_merger(settings, figsize, plots_dir, merger_masks, mass_final, time_merged)
     mass_1_vs_mass_2(settings, figsize, plots_dir, merger_masks, mass_1, mass_2)
-    kick_velocity_hist(settings, figsize, plots_dir, merger_masks, v_kick)
-    kick_velocity_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, v_kick)
-    kick_velocity_vs_chi_eff(settings, figsize, plots_dir, merger_masks, chi_eff, v_kick)
     spin_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, spin_final)
     spin_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, spin_final)
     spin_vs_kick(settings, figsize, plots_dir, merger_masks, v_kick, spin_final)
-    kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
 
     strain_vs_freq(settings, figsize, plots_dir, merger_masks, lvk, emri)
 
+    # TODO: EM Flag
+    kick_velocity_hist(settings, figsize, plots_dir, merger_masks, v_kick)
+    kick_velocity_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, v_kick)
+    kick_velocity_vs_chi_eff(settings, figsize, plots_dir, merger_masks, chi_eff, v_kick)
+    kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
 
 if __name__ == "__main__":
     main()
