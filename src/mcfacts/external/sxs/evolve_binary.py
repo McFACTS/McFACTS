@@ -2,19 +2,14 @@
 Module to process binary black hole mergers using the surfinBH surrogate model.
 """
 
-import juliacall
 import numpy as np
-import random
-#from scripts.sxs import fit_modeler
-from mcfacts.external.sxs import evolve_surrogate
-
-import pandas as pd
 import time, os
 from astropy import constants as const
 
 #surrogate = fit_modeler.GPRFitters.read_from_file(f"surrogate.joblib")
 
 def surrogate(mass_1, mass_2, spin_1_mag, spin_2_mag, spin_angle_1, spin_angle_2, phi_1, phi_2, bin_sep, bin_inc, bin_phase, bin_orb_a, mass_SMBH, spin_SMBH, surrogate):
+    from mcfacts.external.sxs import evolve_surrogate
 
     #print(m1, m2, s1m, s2m, sa1, sa2, p12)
     mass_final, spin_final, spin_angle_final, kick_final, mass_1_20Hz_final, mass_2_20Hz_final, spin_1_20Hz_final, spin_2_20Hz_final = [], [], [], [], [], [], [], []
