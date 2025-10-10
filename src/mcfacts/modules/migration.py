@@ -1214,7 +1214,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 ratio_heat_mig_torques,
                 sm.disk_radius_trap,
                 sm.disk_radius_outer,
-                sm.timestep_duration_yr
+                timestep_length
             )
 
         # Normalized torque (multiplies torque coeff)
@@ -1325,7 +1325,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 disk_trap_radius,
                 disk_anti_trap_radius,
                 sm.disk_radius_outer,
-                sm.timestep_duration_yr,
+                timestep_length,
                 sm.flag_phenom_turb,
                 sm.phenom_turb_centroid,
                 sm.phenom_turb_std_dev,
@@ -1391,7 +1391,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                 ratio_heat_mig_torques_bin_com,
                 sm.disk_radius_trap,
                 sm.disk_radius_outer,
-                sm.timestep_duration_yr
+                timestep_length
             )
 
         if sm.torque_prescription == 'paardekooper' or sm.torque_prescription == 'jimenez_masset':
@@ -1501,7 +1501,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                     disk_trap_radius,
                     disk_anti_trap_radius,
                     sm.disk_radius_outer,
-                    sm.timestep_duration_yr,
+                    timestep_length,
                     sm.flag_phenom_turb,
                     sm.phenom_turb_centroid,
                     sm.phenom_turb_std_dev,

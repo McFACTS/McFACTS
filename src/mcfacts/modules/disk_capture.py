@@ -793,7 +793,7 @@ class EvolveRetrogradeBlackHoles(TimelineActor):
             blackholes_retro.orb_arg_periapse,
             sm.disk_inner_stable_circ_orb,
             agn_disk.disk_surface_density,
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_radius_outer
         )
 
@@ -822,7 +822,7 @@ class RecaptureRetrogradeStars(TimelineActor):
             stars_retro.orb_arg_periapse,
             sm.disk_inner_stable_circ_orb,
             agn_disk.disk_surface_density,
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_radius_outer
         )
 

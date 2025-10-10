@@ -165,7 +165,7 @@ class BinaryBlackHoleGasHardening(TimelineActor):
             blackholes_binary.flag_merging,
             sm.smbh_mass,
             sm.stalling_separation,
-            sm.timestep_duration_yr,
+            timestep_length,
         )
 
         if not self.reality_merge_checks:

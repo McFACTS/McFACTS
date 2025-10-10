@@ -584,7 +584,7 @@ class ProgradeBlackHoleBondi(TimelineActor):
             blackholes_array.mass,
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_eddington_mass_growth_rate,
-            sm.timestep_duration_yr
+            timestep_length
         )
 
         spin_edd, spin_angle_edd = change_bh_spin(
@@ -593,7 +593,7 @@ class ProgradeBlackHoleBondi(TimelineActor):
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_torque_condition,
             sm.disk_bh_spin_resolution_min,
-            sm.timestep_duration_yr,
+            timestep_length,
             blackholes_array.orb_ecc,
             sm.disk_bh_pro_orb_ecc_crit,
         )
@@ -610,7 +610,7 @@ class ProgradeBlackHoleBondi(TimelineActor):
             sm.disk_bh_torque_condition,
             sm.disk_bh_spin_resolution_min,
             sm.smbh_mass,
-            sm.timestep_duration_yr
+            timestep_length
         )
 
         blackholes_array.mass = mass_edd + (mass_bondi * sm.bondi_fraction)
@@ -638,7 +638,7 @@ class ProgradeBlackHoleAccretion(TimelineActor):
             blackholes_array.mass,
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_eddington_mass_growth_rate,
-            sm.timestep_duration_yr
+            timestep_length
         )
 
         blackholes_array.spin, blackholes_array.spin_angle = change_bh_spin(
@@ -647,7 +647,7 @@ class ProgradeBlackHoleAccretion(TimelineActor):
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_torque_condition,
             sm.disk_bh_spin_resolution_min,
-            sm.timestep_duration_yr,
+            timestep_length,
             blackholes_array.orb_ecc,
             sm.disk_bh_pro_orb_ecc_crit,
         )
@@ -678,7 +678,7 @@ class BinaryBlackHoleAccretion(TimelineActor):
             blackholes_binary.flag_merging,
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_eddington_mass_growth_rate,
-            sm.timestep_duration_yr,
+            timestep_length,
         )
 
         blackholes_binary.spin_1, blackholes_binary.spin_2 = change_bin_spin_magnitudes(
@@ -687,7 +687,7 @@ class BinaryBlackHoleAccretion(TimelineActor):
             blackholes_binary.flag_merging,
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_torque_condition,
-            sm.timestep_duration_yr,
+            timestep_length,
         )
 
         blackholes_binary.spin_angle_1, blackholes_binary.spin_angle_2 = change_bin_spin_angles(
@@ -697,7 +697,7 @@ class BinaryBlackHoleAccretion(TimelineActor):
             sm.disk_bh_eddington_ratio,
             sm.disk_bh_torque_condition,
             sm.disk_bh_spin_resolution_min,
-            sm.timestep_duration_yr,
+            timestep_length,
         )
 
         blackholes_binary.consistency_check()

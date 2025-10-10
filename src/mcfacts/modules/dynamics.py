@@ -3324,7 +3324,7 @@ class SingleBlackHoleDynamics(TimelineActor):
                 blackholes_array.orb_a,
                 blackholes_array.mass,
                 blackholes_array.orb_ecc,
-                sm.timestep_duration_yr,
+                timestep_length,
                 sm.disk_bh_pro_orb_ecc_crit,
                 sm.delta_energy_strong_mu,
                 sm.disk_radius_outer
@@ -3335,7 +3335,7 @@ class SingleBlackHoleDynamics(TimelineActor):
                 blackholes_array.orb_a,
                 blackholes_array.mass,
                 blackholes_array.orb_ecc,
-                sm.timestep_duration_yr,
+                timestep_length,
                 sm.disk_bh_pro_orb_ecc_crit,
                 sm.delta_energy_strong_mu,
                 sm.disk_radius_outer
@@ -3364,7 +3364,7 @@ class SingleStarDynamics(TimelineActor):
             stars_pro.orb_ecc,
             stars_pro.id_num,
             sm.rstar_rhill_exponent_ratio,
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong_mu,
             sm.disk_radius_outer
@@ -3451,7 +3451,7 @@ class SingleBlackHoleStarDynamics(TimelineActor):
             blackholes_pro.mass,
             blackholes_pro.orb_ecc,
             blackholes_pro.id_num,
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong_mu,
             sm.disk_radius_outer
@@ -3494,13 +3494,13 @@ class SingleBlackHoleStarDynamics(TimelineActor):
                 blackholes_pro.mass[bh_id_mask],
                 sm.disk_bh_eddington_ratio,
                 sm.disk_bh_eddington_mass_growth_rate,
-                sm.timestep_duration_yr)
+                timestep_length)
 
             blackholes_pro.spin[bh_id_mask] = accretion.change_bh_spin_magnitudes(
                 blackholes_pro.spin[bh_id_mask],
                 sm.disk_bh_eddington_ratio,
                 sm.disk_bh_torque_condition,
-                sm.timestep_duration_yr,
+                timestep_length,
                 blackholes_pro.orb_ecc[bh_id_mask],
                 sm.disk_bh_pro_orb_ecc_crit,
             )
@@ -3510,7 +3510,7 @@ class SingleBlackHoleStarDynamics(TimelineActor):
                 sm.disk_bh_eddington_ratio,
                 sm.disk_bh_torque_condition,
                 sm.disk_bh_spin_resolution_min,
-                sm.timestep_duration_yr,
+                timestep_length,
                 blackholes_pro.orb_ecc[bh_id_mask],
                 sm.disk_bh_pro_orb_ecc_crit
             )
@@ -3557,7 +3557,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
             blackholes_binary.bin_sep[non_merge_mask],
             blackholes_binary.bin_ecc[non_merge_mask],
             blackholes_binary.bin_orb_ecc[non_merge_mask],
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong_mu,
             sm.disk_radius_outer,
@@ -3591,7 +3591,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
             blackholes_binary.bin_sep[non_merge_mask],
             blackholes_binary.bin_ecc[non_merge_mask],
             blackholes_binary.bin_orb_ecc[non_merge_mask],
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong_mu,
             sm.disk_radius_outer

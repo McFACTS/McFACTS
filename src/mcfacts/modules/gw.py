@@ -335,7 +335,7 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
                 blackholes_binary.get_attribute("mass_2", gw_tracked_ids),
                 blackholes_binary.get_attribute("bin_sep", gw_tracked_ids),
                 sm.smbh_mass,
-                sm.timestep_duration_yr,
+                timestep_length,
                 blackholes_binary.get_attribute("gw_freq", gw_tracked_ids), # old_bbh_gw_freq
                 sm.agn_redshift
             )
@@ -389,7 +389,7 @@ class InnerBlackHoleDynamics(TimelineActor):
             inner_bh.orb_a,
             inner_bh.mass,
             inner_bh.orb_ecc,
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_radius_outer,
             sm.disk_inner_stable_circ_orb
         )
@@ -400,7 +400,7 @@ class InnerBlackHoleDynamics(TimelineActor):
         emri_gw_strain, emri_gw_freq = evolve_emri_gw(
             inner_bh.mass,
             inner_bh.orb_a,
-            sm.timestep_duration_yr,
+            timestep_length,
             inner_bh.gw_freq,
             sm.smbh_mass,
             sm.agn_redshift

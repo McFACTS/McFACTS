@@ -453,7 +453,7 @@ class ProgradeBlackHoleDamping(TimelineActor):
             agn_disk.disk_surface_density,
             agn_disk.disk_aspect_ratio,
             blackholes_array.orb_ecc,
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
         )
 
@@ -484,7 +484,7 @@ class BinaryBlackHoleDamping(TimelineActor):
             blackholes_binary.bin_orb_ecc,
             agn_disk.disk_surface_density,
             agn_disk.disk_aspect_ratio,
-            sm.timestep_duration_yr,
+            timestep_length,
             sm.disk_bh_pro_orb_ecc_crit
         )
 
