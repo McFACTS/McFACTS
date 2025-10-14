@@ -841,8 +841,8 @@ def main():
                 label=r'$\geq$3g-Ng'
                 )
 
-    plt.axhline(v_kick, color='k', linestyle='--', zorder=0,
-                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
+    #plt.axhline(v_kick, color='k', linestyle='--', zorder=0,
+     #           label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
 
     # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
     plt.xlabel(r'Radius [$R_g$]')
@@ -1354,7 +1354,78 @@ def main():
     plt.savefig(opts.plots_directory + './gw_strain.png', format='png')
     plt.close()
 
+    # ===============================
+    ### shock luminosity distribution histogram ###
+    # ===============================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    shock_log = np.log10(mergers[:, 17])
+    #jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
+    counts, bins = np.histogram(shock_log)
+    # plt.hist(bins[:-1], bins, weights=counts)
+    bins = np.arange(int(shock_log.min()), int(shock_log.max())+1, 0.2)
 
+    hist_data = [shock_log[merger_g1_mask], shock_log[merger_g2_mask], shock_log[merger_gX_mask]]
+    hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
+    #plt.hist(mergers[:, 18], bins = jet_bins)
+
+    plt.ylabel(r'n')
+    plt.xlabel(r'log L$_{\mathrm{Shock}}$ [erg s$^{-1}$]')
+    #plt.xscale('log')
+    #plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(0.4, 325)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/luminosity_shock_dist.png", format='png')
+    plt.close()
+
+    # ===============================
+    ### jet luminosity distribution histogram ###
+    # ===============================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    jet_log = np.log10(mergers[:, 18])
+    #jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
+    counts, bins = np.histogram(jet_log)
+    # plt.hist(bins[:-1], bins, weights=counts)
+    bins = np.arange(int(jet_log.min()), int(jet_log.max())+1, 0.2)
+    # check end cases and check print()
+
+    hist_data = [jet_log[merger_g1_mask], jet_log[merger_g2_mask], jet_log[merger_gX_mask]]
+    hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
+    #plt.hist(mergers[:, 18], bins = jet_bins)
+
+    plt.ylabel(r'n')
+    plt.xlabel(r'log L$_{\mathrm{Jet}}$ [erg s$^{-1}$]')
+    #plt.xscale('log')
+    #plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(0.4, 325)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/luminosity_jet_dist.png", format='png')
+    plt.close()
 
 
 ######## Execution ########

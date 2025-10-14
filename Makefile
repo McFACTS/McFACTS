@@ -28,7 +28,7 @@ EM_PLOTS = ${HERE}/scripts/em_plots.py
 COMPARE_SUR = ${HERE}/scripts/compare_plots.py
 
 #### Setup ####
-SEED=3456789108 # put an 8 here
+SEED=3456789108
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
 FNAME_INI= ${HERE}/recipes/model_choice_old.ini
 #FNAME_INI= ${HERE}/recipes/paper_event/default_imf.ini
@@ -182,13 +182,11 @@ disk_mass_plots:
 	--fname-disk ${wd}/output_diskmasscycled.dat \
 	--plots-directory ${wd}		
 		
-em_plots: 
+em_plots:
 	cd runs; \
 	python ../${EM_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-emris ${wd}/output_mergers_emris.dat \
 	--fname-mergers ${wd}/output_mergers_population.dat \
-	--fname-lvk ${wd}/output_mergers_lvk.dat \
 	--plots-directory ${wd}
 
 #### Vera's mstar_runs ####

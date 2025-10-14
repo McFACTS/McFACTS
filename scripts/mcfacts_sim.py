@@ -195,7 +195,7 @@ def main():
     
     from mcfacts.physics import point_masses
     from mcfacts.physics import lum
-    from mcfacts.physics import analytical_velo
+    from mcfacts.physics import analytical_velocity
 
     from mcfacts.inputs import ReadInputs
     from mcfacts.inputs import data as input_data
@@ -1403,6 +1403,7 @@ def main():
                                                                                    opts.flag_use_surrogate,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
+                                                                                   disk_sound_speed,
                                                                                    time_passed,
                                                                                    galaxy)
 
@@ -1710,6 +1711,7 @@ def main():
                                                                                    opts.flag_use_surrogate,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
+                                                                                   disk_sound_speed,
                                                                                    time_passed,
                                                                                    galaxy)
 
@@ -1934,6 +1936,7 @@ def main():
                                                                                    opts.flag_use_surrogate,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
+                                                                                   disk_sound_speed,
                                                                                    time_passed,
                                                                                    galaxy)
 
@@ -2007,6 +2010,7 @@ def main():
                                                                                opts.flag_use_surrogate,
                                                                                disk_aspect_ratio,
                                                                                disk_density,
+                                                                               disk_sound_speed,
                                                                                time_passed,
                                                                                galaxy)
 
@@ -2118,6 +2122,7 @@ def main():
                                                                                    opts.flag_use_surrogate,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
+                                                                                   disk_sound_speed,
                                                                                    time_passed,
                                                                                    galaxy)
 
@@ -2426,6 +2431,7 @@ def main():
                                                                                opts.flag_use_surrogate,
                                                                                disk_aspect_ratio,
                                                                                disk_density,
+                                                                               disk_sound_speed,
                                                                                time_passed,
                                                                                galaxy)
 
