@@ -1139,7 +1139,7 @@ class AGNBinaryBlackHole(AGNObject):
         self.gen_1 = gen_1
         self.gen_2 = gen_2
         self.bin_orb_ang_mom = bin_orb_ang_mom
-        self.bin_orb_inc = bin_orb_inc
+        self.bin_orb_inc = np.abs(bin_orb_inc)
         self.bin_orb_ecc = bin_orb_ecc
         self.gw_freq = gw_freq
         self.gw_strain = gw_strain
@@ -1258,7 +1258,7 @@ class AGNBinaryBlackHole(AGNObject):
         self.gen_1 = np.concatenate([self.gen_1, new_gen_1])
         self.gen_2 = np.concatenate([self.gen_2, new_gen_2])
         self.bin_orb_ang_mom = np.concatenate([self.bin_orb_ang_mom, new_bin_orb_ang_mom])
-        self.bin_orb_inc = np.concatenate([self.bin_orb_inc, np.abs(new_bin_orb_inc)])
+        self.bin_orb_inc = np.concatenate([self.bin_orb_inc, new_bin_orb_inc])
         self.bin_orb_ecc = np.concatenate([self.bin_orb_ecc, new_bin_orb_ecc])
         self.gw_freq = np.concatenate([self.gw_freq, new_gw_freq])
         self.gw_strain = np.concatenate([self.gw_strain, new_gw_strain])
