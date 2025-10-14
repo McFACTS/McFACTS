@@ -166,9 +166,9 @@ def main():
     shock_bins = np.logspace(np.log10(mergers[:, 17].min()), np.log10(mergers[:, 17].max()), 50)
     jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
 
-    plt.hist(mergers[:, 17], bins = shock_bins, label = 'Shock')
-    plt.hist(mergers[:, 18], bins = jet_bins, label = 'Jet', alpha = 0.8)
-    plt.axvline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    plt.hist(mergers[:, 17], bins=shock_bins, label='Shock')
+    plt.hist(mergers[:, 18], bins=jet_bins, label='Jet', alpha=0.8)
+    plt.axvline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
 
     plt.ylabel(r'n')
     plt.xlabel(r'log Luminosity [erg s$^{-1}$]')
@@ -202,8 +202,6 @@ def main():
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
     ax3 = fig.add_subplot(111)
-
-    #ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
 
     # plot the 1g mergers
     ax3.scatter(gen1_time / 1e6, gen1_shock,
@@ -263,7 +261,7 @@ def main():
     fig = plt.figure(figsize=plotting.set_size(figsize))
     ax3 = fig.add_subplot(111)
 
-    ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    ax3.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
 
     # plot the 1g mergers
     ax3.scatter(gen1_time / 1e6, gen1_jet,
@@ -322,8 +320,6 @@ def main():
     hist_data = [shock_log[merger_g1_mask], shock_log[merger_g2_mask], shock_log[merger_gX_mask]]
     hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
     hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
-    
-    #plt.axvline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
 
     plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
     plt.ylabel(r'n')
@@ -351,7 +347,7 @@ def main():
     hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
 
     plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
-    plt.axvline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    plt.axvline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
     plt.ylabel(r'n')
     plt.xlabel(r'log L$_{\mathrm{Jet}}$ [erg s$^{-1}$]')
 
@@ -377,7 +373,7 @@ def main():
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    ax3.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
 
     ax3 = fig.add_subplot(111)
     # plot 1g-1g mergers
@@ -541,9 +537,7 @@ def main():
 
     # configure histogram
     hist.hist(hist_lum_shock_data, bins=lum_shuck_bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation = 'horizontal')
-    #hist.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
     hist.grid(True, color='gray', ls='dashed')
-    #hist.set_yscale('log')
     hist.yaxis.tick_right()
     hist.set_xlabel(r'n')
 
@@ -613,7 +607,7 @@ def main():
 
     # configure histogram
     hist.hist(hist_lum_data, bins=lum_bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation = 'horizontal')
-    hist.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    hist.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
     hist.grid(True, color='gray', ls='dashed')
     #hist.set_yscale('log')
     hist.yaxis.tick_right()
@@ -691,7 +685,7 @@ def main():
 
     ax3 = fig.add_subplot(111)
 
-    ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    ax3.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
 
     # plot 1g mergers
     ax3.scatter(gen1_mass, gen1_jet,
@@ -767,8 +761,6 @@ def main():
 
     ax3 = fig.add_subplot(111)
 
-    #ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
-
     # plot 1g mergers
     ax3.scatter(gen1_q, gen1_shock,
                     s=styles.markersize_gen1,
@@ -822,7 +814,7 @@ def main():
 
     ax3 = fig.add_subplot(111)
 
-    ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    ax3.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
 
     # plot 1g mergers
     ax3.scatter(gen1_q, gen1_jet,
@@ -935,7 +927,7 @@ def main():
 
     ax3 = fig.add_subplot(111)
 
-    ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    ax3.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
 
     # plot 1g mergers
     ax3.scatter(gen1_vk,gen1_jet,
@@ -1037,7 +1029,7 @@ def main():
 
     # configure histogram
     hist.hist(hist_lum_data, bins=lum_bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation = 'horizontal')
-    hist.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    hist.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
     hist.grid(True, color='gray', ls='dashed')
     #hist.set_yscale('log')
     hist.yaxis.tick_right()
@@ -1063,8 +1055,6 @@ def main():
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
     ax3 = fig.add_subplot(111)
-
-    #ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
 
     # plot 1g mergers
     ax3.scatter(gen1_spin, gen1_shock,
@@ -1118,7 +1108,7 @@ def main():
     fig = plt.figure(figsize=plotting.set_size(figsize))
     ax3 = fig.add_subplot(111)
 
-    ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    ax3.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
 
     # plot 1g mergers
     ax3.scatter(gen1_spin,gen1_jet,
@@ -1173,7 +1163,7 @@ def main():
     
     ax3 = fig.add_subplot(111)
 
-    ax3.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    ax3.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
 
     # plot 1g mergers
     ax3.scatter(gen1_spin**2,gen1_jet,
@@ -1300,7 +1290,7 @@ def main():
 
     # configure histogram
     hist.hist(hist_lum_data_jets_on, bins=lum_bins_jets_on, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation = 'horizontal')
-    hist.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    hist.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
     hist.grid(True, color='gray', ls='dashed')
     #hist.set_yscale('log')
     hist.yaxis.tick_right()
@@ -1375,9 +1365,8 @@ def main():
 
     # configure histogram
     hist.hist(hist_lum_data_jets_on, bins=lum_bins_jets_on, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation = 'horizontal')
-    hist.axhline(lum_agn, color = 'black', linewidth = 1, linestyle = 'dashdot', label = r'L$_{AGN}$ =' + f"{lum_agn:.2e}")
+    hist.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
     hist.grid(True, color='gray', ls='dashed')
-    #hist.set_yscale('log')
     hist.yaxis.tick_right()
     hist.set_xlabel(r'n')
 
