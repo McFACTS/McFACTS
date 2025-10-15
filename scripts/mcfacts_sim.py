@@ -240,13 +240,11 @@ def main():
         tdes_save_name = f"{basename}_tdes{extension}"
         disk_mass_cycled_save_name = f"{basename}_diskmasscycled{extension}"
 
-        with open(os.path.join(opts.work_directory, disk_mass_cycled_save_name), "w") as file:
-            file.write("galaxy timestep mass_gained mass_lost\n")
-
     print("opts.__dict__", opts.__dict__)
     print("opts.smbh_mass", opts.smbh_mass)
     print("opts.fraction_bin_retro", opts.fraction_bin_retro)
 
+    print()
     for galaxy in range(opts.galaxy_num):
         print("Galaxy", galaxy)
         # Set random number generator for this run with incremented seed
@@ -318,7 +316,12 @@ def main():
                 opts.nsc_density_index_outer, volume_scaling=True)
         bh_mass_initial = setupdiskblackholes.setup_disk_blackholes_masses(
                 disk_bh_num,
-                opts.nsc_imf_bh_mode, opts.nsc_imf_bh_mass_max, opts.nsc_imf_bh_powerlaw_index, opts.mass_pile_up)
+                opts.nsc_imf_bh_mode,
+                opts.nsc_imf_bh_mass_max, 
+                opts.nsc_imf_bh_powerlaw_index, 
+                opts.mass_pile_up,
+                opts.nsc_imf_bh_method,
+        )
         bh_spin_initial = setupdiskblackholes.setup_disk_blackholes_spins(
                 disk_bh_num,
                 opts.nsc_bh_spin_dist_mu, opts.nsc_bh_spin_dist_sigma)
@@ -379,7 +382,7 @@ def main():
             captured_stars_masses = disk_capture_stars.setup_captured_stars_masses(captured_star_mass_total, opts.disk_star_mass_min_init, opts.disk_star_mass_max_init, opts.nsc_imf_star_powerlaw_index)
             captured_stars_orbs_a = disk_capture_stars.setup_captured_stars_orbs_a(len(captured_stars_masses), time_final, opts.smbh_mass, disk_surface_density, opts.disk_star_mass_min_init, opts.disk_star_mass_max_init, opts.nsc_imf_star_powerlaw_index)
             captured_stars = disk_capture_stars.distribute_captured_stars(captured_stars_masses, captured_stars_orbs_a, opts.timestep_num, opts.timestep_duration_yr)
-
+            print(f"Capturing ~{int(np.rint(len(captured_stars_masses)/opts.timestep_num))} NSC stars per timestep / ~{int(np.rint(len(captured_stars_masses) / time_final * 1e5))} NSC stars per 0.1 Myr")
         # Writing initial parameters to file
         if opts.flag_add_stars:
             stars.to_txt(os.path.join(opts.work_directory, f"gal{galaxy_zfilled_str}/initial_params_star.dat"))
@@ -624,7 +627,7 @@ def main():
                     stars_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
-                    opts.disk_star_eddington_ratio,
+                    opts.disk_bh_eddington_ratio,
                     opts.disk_alpha_viscosity,
                     opts.disk_radius_outer,)
             else:
@@ -934,25 +937,16 @@ def main():
                                   new_info=[stars_pro.mass,
                                             point_masses.r_g_from_units(opts.smbh_mass, (10 ** stars_pro.log_radius) * u.Rsun).value])
 
-            # Spin up
-            blackholes_pro.spin = accretion.change_bh_spin_magnitudes(
+            # Spin up/down and torque spin angle
+            blackholes_pro.spin, blackholes_pro.spin_angle = accretion.change_bh_spin(
                 blackholes_pro.spin,
-                opts.disk_bh_eddington_ratio,
-                opts.disk_bh_torque_condition,
-                opts.timestep_duration_yr,
-                blackholes_pro.orb_ecc,
-                opts.disk_bh_pro_orb_ecc_crit,
-            )
-
-            # Torque spin angle
-            blackholes_pro.spin_angle = accretion.change_bh_spin_angles(
                 blackholes_pro.spin_angle,
                 opts.disk_bh_eddington_ratio,
                 opts.disk_bh_torque_condition,
                 disk_bh_spin_resolution_min,
                 opts.timestep_duration_yr,
                 blackholes_pro.orb_ecc,
-                opts.disk_bh_pro_orb_ecc_crit
+                opts.disk_bh_pro_orb_ecc_crit,
             )
 
             # Damp orbital eccentricity
@@ -1041,16 +1035,28 @@ def main():
             if opts.flag_dynamic_enc > 0:
 
                 # BH-BH encounters
-                blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde(
-                    opts.smbh_mass,
-                    blackholes_pro.orb_a,
-                    blackholes_pro.mass,
-                    blackholes_pro.orb_ecc,
-                    opts.timestep_duration_yr,
-                    opts.disk_bh_pro_orb_ecc_crit,
-                    opts.delta_energy_strong_mu,
-                    opts.disk_radius_outer
-                )
+                if opts.flag_dynamics_sweep:
+                    blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde_sweep(
+                        opts.smbh_mass,
+                        blackholes_pro.orb_a,
+                        blackholes_pro.mass,
+                        blackholes_pro.orb_ecc,
+                        opts.timestep_duration_yr,
+                        opts.disk_bh_pro_orb_ecc_crit,
+                        opts.delta_energy_strong_mu,
+                        opts.disk_radius_outer
+                    )
+                else:
+                    blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_singles_encounters_prograde(
+                        opts.smbh_mass,
+                        blackholes_pro.orb_a,
+                        blackholes_pro.mass,
+                        blackholes_pro.orb_ecc,
+                        opts.timestep_duration_yr,
+                        opts.disk_bh_pro_orb_ecc_crit,
+                        opts.delta_energy_strong_mu,
+                        opts.disk_radius_outer
+                    )
 
                 # Star-star encounters
                 rstar_rhill_exponent = 2.0
@@ -1066,7 +1072,8 @@ def main():
                     opts.disk_bh_pro_orb_ecc_crit,
                     opts.delta_energy_strong_mu,
                     opts.delta_energy_strong_sigma,
-                    opts.disk_radius_outer
+                    opts.disk_radius_outer,
+                    fast_cube = opts.flag_dynamics_sweep
                 )
 
                 if stars_unbound_id_nums.size > 0:
@@ -1269,23 +1276,15 @@ def main():
                         disk_bh_eddington_mass_growth_rate,
                         opts.timestep_duration_yr)
 
-                    blackholes_pro.spin[bh_id_mask] = accretion.change_bh_spin_magnitudes(
+                    blackholes_pro.spin[bh_id_mask], blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin(
                         blackholes_pro.spin[bh_id_mask],
-                        opts.disk_bh_eddington_ratio,
-                        opts.disk_bh_torque_condition,
-                        opts.timestep_duration_yr,
-                        blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit,
-                    )
-
-                    blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin_angles(
                         blackholes_pro.spin_angle[bh_id_mask],
                         opts.disk_bh_eddington_ratio,
                         opts.disk_bh_torque_condition,
                         disk_bh_spin_resolution_min,
                         opts.timestep_duration_yr,
                         blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit
+                        opts.disk_bh_pro_orb_ecc_crit,
                     )
 
                     # Update filing cabinet
@@ -1361,8 +1360,8 @@ def main():
                         opts.disk_bh_pro_orb_ecc_crit,
                         opts.delta_energy_strong_mu,
                         opts.disk_radius_outer,
-                        opts.mean_harden_energy_delta,
-                        opts.var_harden_energy_delta
+                        opts.harden_energy_delta_mu,
+                        opts.harden_energy_delta_sigma
                     )
 
                     # Update filing cabinet with new bin_sep
@@ -1444,8 +1443,8 @@ def main():
                         opts.disk_bh_pro_orb_ecc_crit,
                         opts.delta_energy_strong_mu,
                         opts.disk_radius_outer,
-                        opts.mean_harden_energy_delta,
-                        opts.var_harden_energy_delta)
+                        opts.harden_energy_delta_mu,
+                        opts.harden_energy_delta_sigma)
 
                     if (bbh_id_nums_merged.size > 0):
                         # Change merger flag
@@ -2081,8 +2080,8 @@ def main():
                         opts.nsc_imf_bh_powerlaw_index,
                         opts.delta_energy_strong_mu,
                         opts.nsc_spheroid_normalization,
-                        opts.mean_harden_energy_delta,
-                        opts.var_harden_energy_delta
+                        opts.harden_energy_delta_mu,
+                        opts.harden_energy_delta_sigma
                     )
                     # Update filing cabinet with new bin_sep
                     filing_cabinet.update(id_num=blackholes_binary.id_num,
@@ -2529,23 +2528,15 @@ def main():
                         disk_bh_eddington_mass_growth_rate,
                         opts.timestep_duration_yr)
 
-                    blackholes_pro.spin[bh_id_mask] = accretion.change_bh_spin_magnitudes(
+                    blackholes_pro.spin[bh_id_mask], blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin(
                         blackholes_pro.spin[bh_id_mask],
-                        opts.disk_bh_eddington_ratio,
-                        opts.disk_bh_torque_condition,
-                        opts.timestep_duration_yr,
-                        blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit,
-                    )
-
-                    blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin_angles(
                         blackholes_pro.spin_angle[bh_id_mask],
                         opts.disk_bh_eddington_ratio,
                         opts.disk_bh_torque_condition,
                         disk_bh_spin_resolution_min,
                         opts.timestep_duration_yr,
                         blackholes_pro.orb_ecc[bh_id_mask],
-                        opts.disk_bh_pro_orb_ecc_crit
+                        opts.disk_bh_pro_orb_ecc_crit,
                     )
 
                     # Update filing cabinet
@@ -2626,7 +2617,13 @@ def main():
                     opts.smbh_mass, opts.nsc_radius_crit, opts.nsc_density_index_inner,
                     opts.nsc_density_index_outer, volume_scaling=True)
                 bh_mass_captured = setupdiskblackholes.setup_disk_blackholes_masses(
-                    1, opts.nsc_imf_bh_mode, opts.nsc_imf_bh_mass_max, opts.nsc_imf_bh_powerlaw_index, opts.mass_pile_up)
+                    1,
+                    opts.nsc_imf_bh_mode,
+                    opts.nsc_imf_bh_mass_max,
+                    opts.nsc_imf_bh_powerlaw_index,
+                    opts.mass_pile_up,
+                    opts.nsc_imf_bh_method,
+                )
                 bh_spin_captured = setupdiskblackholes.setup_disk_blackholes_spins(
                     1, opts.nsc_bh_spin_dist_mu, opts.nsc_bh_spin_dist_sigma)
                 bh_spin_angle_captured = setupdiskblackholes.setup_disk_blackholes_spin_angles(
@@ -3050,6 +3047,7 @@ def main():
             print("\tNumber of exploded stars = ", stars_explode.num)
             print("\tNumber of stars unbound from disk = ", stars_unbound.num)
             print("\tNumber of stars flipped from pro to retro = ", num_star_flip + num_starbh_flip)
+        print()
 
         # Write out all singletons after AGN episode so we can use as input to another AGN phase
 
@@ -3110,7 +3108,7 @@ def main():
                 with open(os.path.join(opts.work_directory, disk_mass_cycled_save_name), "a") as file:
                     np.savetxt(file, temp_mass_cycled)
             else:
-                np.savetxt(os.path.join(opts.work_directory, disk_mass_cycled_save_name), temp_mass_cycled, "galaxy timestep mass_gained mass_lost")
+                np.savetxt(os.path.join(opts.work_directory, disk_mass_cycled_save_name), temp_mass_cycled, header="galaxy timestep mass_gained mass_lost")
 
     toc_perf = time.perf_counter()
     fin_perf = toc_perf - tic_perf

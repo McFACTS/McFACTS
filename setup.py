@@ -35,6 +35,12 @@ PACKAGE_DATA = {
         "vis/data/O3-H1-C01_CLEAN_SUB60HZ-1262197260.0_sensitivity_strain_asd.txt",
         "vis/data/O3-L1-C01_CLEAN_SUB60HZ-1240573680.0_sensitivity_strain_asd.txt",
         "vis/data/O3-L1-C01_CLEAN_SUB60HZ-1262141640.0_sensitivity_strain_asd.txt",
+        "inputs/data/LSST_filters/LSST_r.dat",
+        "inputs/data/LSST_filters/LSST_g.dat",
+        "inputs/data/LSST_filters/LSST_i.dat",
+        "inputs/data/LSST_filters/LSST_u.dat",
+        "inputs/data/LSST_filters/LSST_y.dat",
+        "inputs/data/LSST_filters/LSST_z.dat",
     ],
 }
 # Thank you:
