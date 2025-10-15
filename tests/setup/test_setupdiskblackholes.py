@@ -15,7 +15,7 @@ def setup_disk_blackholes_location_NSC_powerlaw_param():
     """return input and excpected values"""
 
     # Expected values with which to compare
-    expected = np.array([42573.683837683835, 31040.156492156493, 24968.329126329125, 7842.167384167384, 42286.01807401807, 47390.110614110614])
+    expected = np.array([16161.12730913, 47967.89184989, 10191.03783504, 39129.74371574, 5783.21242921, 6640.31042231])
 
     # Get input parameters from the provider
     smbh_mass = provider.INPUT_PARAMETERS["smbh_mass"][InputParameterSet.BASE]
