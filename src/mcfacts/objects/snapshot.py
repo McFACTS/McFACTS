@@ -168,7 +168,35 @@ class TxtSnapshotHandler(SnapshotHandler):
 
 
     def save_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike, settings: SettingsManager = None):
-        pass
+        directory = Path(file_path)
+        directory.mkdir(parents=True, exist_ok=True)
+
+        everything_else_path = os.path.join(file_path, file_name + ".txt")
+
+        temp_keys = list(settings.settings_finals.keys())
+        temp_values = list(settings.settings_finals.values())
+        temp_types = list(self.get_fully_qualified_type(x) for x in settings.settings_finals.values())
+        temp_array = np.column_stack(tuple([temp_keys, temp_values, temp_types]))
+
+        print(temp_array)
+
+        spacing_array = []
+
+        longest = max([str(x) for x in temp_keys], key=len)
+        spacing_array.append(len(longest) + 1)
+
+        longest = max([str(x) for x in temp_values], key=len)
+        spacing_array.append(len(longest) + 1)
+
+        longest = max([str(x) for x in temp_types], key=len)
+        spacing_array.append(len(longest) + 1)
+
+        settings_header = "".join(
+            f"{key:<{spacing_array[i]}}"
+            for i, key in enumerate(["key", "value", "type"])
+        )
+
+        np.savetxt(everything_else_path, temp_array, fmt=[f"%-{space - 1}s" for space in spacing_array], header=settings_header, comments='')
 
 
     def load_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:

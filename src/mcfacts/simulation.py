@@ -27,20 +27,32 @@ from mcfacts import fiducial_plots
 
 
 def args() -> SettingsManager:
+    """
+    Parse command‑line arguments and return an instance of ``SettingsManager``.
+
+    Returns
+    -------
+    SettingsManager
+        A settings manager containing all configuration options supplied via
+        the command line or their defaults values.
+    """
+    # Create instance of argument parser
     parser = argparse.ArgumentParser()
 
+    # Create a default instance of SettingsManager to get the default location of the settings file
     inital_settings = SettingsManager()
 
+    # Create a specific flag for passing in a baked settings or ini file
     parser.add_argument("-s", "--settings", "--fname-ini",
                         dest="settings_file",
                         help="Filename of settings file",
                         default=inital_settings.settings_file, type=str)
 
+    # Using the supplied file, intanciate and populate a new SettingsManager
     inital_parse, _ = parser.parse_known_args(["-s", inital_settings.settings_file])
     settings_file = inital_parse.settings_file
 
     # TODO: handle settings file loading.
-
     loaded_settings = SettingsManager({
         "verbose": False,
         "override_files": True,
@@ -50,6 +62,7 @@ def args() -> SettingsManager:
         "stalling_separation": 0.0
     })
 
+    # Parse through the loaded settings and create the corresponding arguments with the loaded settings as defaults
     for key, value in loaded_settings.settings_finals.items():
         if key in loaded_settings.static_settings:
             continue
@@ -75,6 +88,7 @@ def args() -> SettingsManager:
 
     inputs = parser.parse_args()
 
+    # With the parsed arguments, create a final settings manager including the file defaults and any CLI overrides.
     return SettingsManager(vars(inputs))
 
 
@@ -89,6 +103,8 @@ def main():
 
     agn_disk = AGNDisk(settings)
     snapshot_handler = TxtSnapshotHandler(settings)
+
+    snapshot_handler.save_settings("./runs", "settings", settings)
 
     population_cabinet = FilingCabinet()
 
