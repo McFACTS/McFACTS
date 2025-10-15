@@ -71,6 +71,7 @@ dependencies = [
     "pagn",
     "joblib>=1.4.2",
     "juliacall>=0.9.23",
+    "juliapkg<=0.1.20",
     "quaternionic>=1.0.13",
     "scikit_learn>=1.5.2",
     "sxs>=2024.0.22",
