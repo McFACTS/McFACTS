@@ -9,9 +9,12 @@ A Python package that does the AGN channel for you!
    :hidden:
 
    installation
-   cite
-   modules
    contribute
+   commitmsg
+   style
+   newio
+   modules
+   cite
 
 
 Indices and tables
