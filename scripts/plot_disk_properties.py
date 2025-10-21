@@ -18,7 +18,7 @@ size = "apj_col"
 
 def arg():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fname-ini", default="recipes/model_choice_old.ini")
+    parser.add_argument("--fname-ini", default="recipes/model_choice.ini")
     parser.add_argument("--outdir", default="./")
     opts = parser.parse_args()
     return opts
@@ -321,8 +321,8 @@ def plot_interpolators(fname_ini=None,output_directory="./"):
         # Check that the data folder exists
         data_folder = impresources.files(mcfacts_input_data)
         assert isdir(data_folder), "Cannot find mcfacts.inputs.data folder"
-        # Find model_choice.ini
-        fname_ini = data_folder / "model_choice.ini"
+        # Find mcfacts_default.ini
+        fname_ini = data_folder / "mcfacts_default.ini"
     assert isfile(fname_ini), "Cannot find %s"%fname_ini
     # Get input variables
     input_variables = ReadInputs_ini(fname_ini)
