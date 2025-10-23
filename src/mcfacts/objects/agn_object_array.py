@@ -40,7 +40,8 @@ class AGNObjectArray(ABC):
                  orb_arg_periapse: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  migration_velocity: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  gen: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
-                 skip_consistency_check: bool = False):
+                 skip_consistency_check: bool = False,
+                 **kwargs):
 
         if len(mass) > 0 and len(unique_id) == 0:
             raise ValueError("AGNObjectArray must be initialized with unique_id filled.")
