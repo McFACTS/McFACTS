@@ -1151,7 +1151,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         blackholes_merged.consistency_check()
 
         filing_cabinet.ignore_check_array(sm.bbh_gw_array_name)
-        filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, blackholes_merged)
+        filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, AGNBinaryBlackHoleArray(**blackholes_merged.get_super_dict()))
 
         next_generation = np.maximum(
             blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_1"),
