@@ -734,7 +734,7 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
         sm = self.settings
 
-        if time_passed % sm.capture_time_yr != 0:
+        if time_passed == 0 or time_passed % sm.capture_time_yr != 0:
             return
 
         if sm.bh_prograde_array_name not in filing_cabinet:
