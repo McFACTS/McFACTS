@@ -85,4 +85,4 @@ dynamic = [ "version" ]
 pythonpath = "src"
 
 [project.scripts]
-mcfacts = "mcfacts.simulation:main"
+mcfacts = "mcfacts.mcfacts:main"
