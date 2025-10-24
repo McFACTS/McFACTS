@@ -15,7 +15,7 @@ A Python package that does the AGN channel for you!
    newio
    modules
    cite
-
+   MM_documentation
 
 Indices and tables
 ==================
