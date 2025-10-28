@@ -9,6 +9,7 @@ import time
 import numpy as np
 from astropy import units as u
 
+import mcfacts.mcfacts_random_state
 from mcfacts.physics.binary import evolve
 from mcfacts.physics.binary import formation
 from mcfacts.physics.binary import merge
@@ -29,6 +30,7 @@ from mcfacts.physics import stellar_interpolation
 from mcfacts.inputs import ReadInputs
 from mcfacts.inputs import data as input_data
 from mcfacts.mcfacts_random_state import reset_random
+#from mcfacts.mcfacts_random_state import RandomGeneratorInherited
 from mcfacts.objects.agnobject import AGNBlackHole, AGNBinaryBlackHole, AGNMergedBlackHole, AGNStar, AGNMergedStar, AGNExplodedStar, AGNFilingCabinet
 from mcfacts.setup import setupdiskblackholes, setupdiskstars, initializediskstars
 from mcfacts.outputs import merger_cols, binary_cols
@@ -243,6 +245,7 @@ def main():
     print("opts.__dict__", opts.__dict__)
     print("opts.smbh_mass", opts.smbh_mass)
     print("opts.fraction_bin_retro", opts.fraction_bin_retro)
+    print()
 
     print()
     for galaxy in range(opts.galaxy_num):
@@ -3031,6 +3034,7 @@ def main():
 
         print("End Loop!")
         print("Final Time (yrs) = ", time_passed)
+        print(f"RNG called {mcfacts.mcfacts_random_state.call_count()} times")
         if opts.verbose:
             print("BH locations at Final Time")
             print(blackholes_pro.orb_a)
@@ -3112,7 +3116,7 @@ def main():
 
     toc_perf = time.perf_counter()
     fin_perf = toc_perf - tic_perf
-    print("Performance time: %0.2f"%(fin_perf), " [", int(fin_perf/60), 'min -', int(fin_perf % 60), "sec ]")   
+    print("\nPerformance time: %0.2f"%(fin_perf), " [", int(fin_perf/60), 'min -', int(fin_perf % 60), "sec ]")   
 
 if __name__ == "__main__":
     main()
