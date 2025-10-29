@@ -44,7 +44,9 @@ def init_single_stars(opts, disk_aspect_ratio, galaxy, id_start_val=None):
                                                                                     disk_radius_outer=opts.disk_radius_outer,
                                                                                     smbh_mass=opts.smbh_mass,
                                                                                     P_m=1.35,
-                                                                                    P_r=1.)
+                                                                                    P_r=2.)
+        print(f"After coalescing stars: max star mass is {np.round(masses_stars.max(), 2)} Msun\n\t{np.sum(masses_stars > opts.disk_star_initial_mass_cutoff)} stars over immortal limit ({opts.disk_star_initial_mass_cutoff} Msun)")
+
     else:
         masses_stars = setupdiskstars.setup_disk_stars_masses(star_num=star_num_initial,
                                                               disk_star_mass_min_init=opts.disk_star_mass_min_init,
