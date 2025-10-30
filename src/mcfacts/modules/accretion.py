@@ -13,7 +13,6 @@ from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import checks
-from mcfacts.utilities.random_state import rng
 
 
 def star_wind_mass_loss(disk_star_pro_masses,
@@ -202,7 +201,8 @@ def change_bh_spin(disk_bh_pro_spins,
                     disk_bh_spin_minimum_resolution,
                     timestep_duration_yr,
                     disk_bh_pro_orbs_ecc,
-                    disk_bh_pro_orbs_ecc_crit):
+                    disk_bh_pro_orbs_ecc_crit,
+                    random):
     """Updates the spin magnitude of the embedded black holes based on their accreted mass in this timestep.
 
     Parameters
@@ -230,6 +230,8 @@ def change_bh_spin(disk_bh_pro_spins,
     disk_bh_pro_orbs_ecc_crit : float
         Critical value of orbital eccentricity [unitless] below which prograde accretion
         (& migration & binary formation) occurs
+    random: numpy.random.Generator
+        Generator used to generate random numbers
     Returns
     -------
     disk_bh_pro_spins_new : numpy.ndarray
@@ -254,7 +256,7 @@ def change_bh_spin(disk_bh_pro_spins,
 
     # Setting random array of phi angles for each of the progenitors
     # This is allowed to be randomly set since the phi changes so much in between each timestep that the value is random across the entire run
-    phi_rand = rng.uniform(0, 2 * np.pi, len(disk_bh_pro_spin_angles))
+    phi_rand = random.uniform(0, 2 * np.pi, len(disk_bh_pro_spin_angles))
 
     # Converting spin magnitudes using the spin_angles
     disk_bh_pro_spins_x =  disk_bh_pro_spins * np.sin(disk_bh_pro_spin_angles) * np.cos(phi_rand)
@@ -596,6 +598,7 @@ class ProgradeBlackHoleBondi(TimelineActor):
             timestep_length,
             blackholes_array.orb_ecc,
             sm.disk_bh_pro_orb_ecc_crit,
+            random_generator
         )
 
         mass_bondi, spin_bondi, spin_angle_bondi = prograde_bh_accretion_bondi(
@@ -650,6 +653,7 @@ class ProgradeBlackHoleAccretion(TimelineActor):
             timestep_length,
             blackholes_array.orb_ecc,
             sm.disk_bh_pro_orb_ecc_crit,
+            random_generator
         )
 
         blackholes_array.consistency_check()

@@ -17,7 +17,7 @@ from mcfacts.modules import stellar_interpolation, accretion
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNStarArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, checks
-from mcfacts.utilities.random_state import rng, uuid_provider
+from mcfacts.utilities.random_state import uuid_provider
 from mcfacts.utilities.unit_conversion import r_g_from_units, r_schwarzschild_of_m, si_from_r_g
 
 
@@ -374,6 +374,7 @@ def encounters_new_orba_ecc(smbh_mass,
                             id_num_take,
                             delta_energy_strong,
                             flag_obj_types,
+                            random,
                             fast_cube = False):
     """Calculate new orb_a and ecc values for two objects that dynamically interact
 
@@ -403,6 +404,8 @@ def encounters_new_orba_ecc(smbh_mass,
         ID number of the object accreting energy
     delta_energy_strong : float
         Average energy change per strong encounter
+    random: numpy.random.Generator
+        Generator used to generate random numbers
     flag_obj_types : int
         Switch determining the type of interaction
         0 : eccentric star - circular star
@@ -499,7 +502,7 @@ def circular_singles_encounters_prograde(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-rng_here = rng
+        random
         ):
     """"Adjust orb ecc due to encounters between 2 single circ pro BH
 
@@ -521,6 +524,8 @@ rng_here = rng
         Average energy change [units??] per strong encounter
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
+    random : Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -639,7 +644,7 @@ rng_here = rng
     epsilon = (disk_radius_outer * ((disk_bh_pro_masses[circ_prograde_population_indices] /
                (
             3 * (disk_bh_pro_masses[circ_prograde_population_indices] + smbh_mass))) ** (1. / 3.)))[:, None] * \
-              rng_here.uniform(
+              random.uniform(
         size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
     # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
@@ -652,7 +657,7 @@ rng_here = rng
     ecc_orb_max = disk_bh_pro_orbs_a[ecc_prograde_population_indices] * (
             1.0 + disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
     # Generate all possible needed random numbers ahead of time
-    chance_of_enc = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    chance_of_enc = random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
     num_poss_ints = 0
     num_encounters = 0
     if len(circ_prograde_population_indices) > 0:
@@ -709,7 +714,7 @@ def circular_singles_encounters_prograde_sweep(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-        rng_here = rng
+        random
 ):
     # Find the e< crit_ecc. population. These are the (circularized) population that can form binaries.
     circ_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
@@ -724,7 +729,7 @@ def circular_singles_encounters_prograde_sweep(
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon = (disk_radius_outer * ((disk_bh_pro_masses[circ_prograde_population_indices] /
                (3 * (disk_bh_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * \
-              rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+              random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
     # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
     #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
@@ -733,7 +738,7 @@ def circular_singles_encounters_prograde_sweep(
     ecc_orb_min = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
     ecc_orb_max = disk_bh_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_bh_pro_orbs_ecc[ecc_prograde_population_indices])
     # Generate all possible needed random numbers ahead of time
-    chance_of_enc = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    chance_of_enc = random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
     if (circ_len/(circ_len + ecc_len)) * (ecc_len/(circ_len + ecc_len)) * 100 > 50: # an ad-hoc check to see whether the double loop or sweep will be faster
         # if True engage the sweep algorithm
@@ -868,7 +873,7 @@ def circular_singles_encounters_prograde_stars(
         delta_energy_strong_mu,
         delta_energy_strong_sigma,
         disk_radius_outer,
-        rng_here = rng,
+        random,
         fast_cube = False
         ):
     """"Adjust orb ecc due to encounters between 2 single circ pro stars
@@ -897,6 +902,8 @@ def circular_singles_encounters_prograde_stars(
         Average energy change [units??] per strong encounter
     delta_energy_strong_sigma : float
         Standard deviation of average energy change per strong encounter
+    random : Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -1017,7 +1024,7 @@ def circular_singles_encounters_prograde_stars(
     disk_star_pro_radius_rg = r_g_from_units(smbh_mass, ((10 ** disk_star_pro_radius) * u.Rsun)).value
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
-    epsilon = (disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    epsilon = (disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
     # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
     #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
@@ -1026,8 +1033,8 @@ def circular_singles_encounters_prograde_stars(
     ecc_orb_min = disk_star_pro_orbs_a[ecc_prograde_population_indices]*(1.0-disk_star_pro_orbs_ecc[ecc_prograde_population_indices])
     ecc_orb_max = disk_star_pro_orbs_a[ecc_prograde_population_indices]*(1.0+disk_star_pro_orbs_ecc[ecc_prograde_population_indices])
     # Generate all possible needed random numbers ahead of time
-    chance_of_enc = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
-    delta_energy_strong = np.exp(rng_here.normal(loc=np.log(delta_energy_strong_mu), scale=np.log(1. + delta_energy_strong_sigma), size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices))))
+    chance_of_enc = random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    delta_energy_strong = np.exp(random.normal(loc=np.log(delta_energy_strong_mu), scale=np.log(1. + delta_energy_strong_sigma), size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices))))
     num_poss_ints = 0
     num_encounters = 0
     id_nums_poss_touch = []
@@ -1170,7 +1177,8 @@ def circular_singles_encounters_prograde_star_bh(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong_mu,
         delta_energy_strong_sigma,
-        disk_radius_outer
+        disk_radius_outer,
+        random
         ):
     """"Adjust orb ecc due to encounters between single circ star and single ecc black hole
 
@@ -1196,6 +1204,8 @@ def circular_singles_encounters_prograde_star_bh(
         Critical orbital eccentricity [unitless] below which orbit is close enough to circularize
     delta_energy_strong : float
         Average energy change [units??] per strong encounter
+    random : Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -1320,7 +1330,7 @@ def circular_singles_encounters_prograde_star_bh(
     disk_star_pro_radius_rg = r_g_from_units(smbh_mass, ((10 ** disk_star_pro_radius) * u.Rsun)).value
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
-    epsilon_star = (disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * rng.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    epsilon_star = (disk_radius_outer * ((disk_star_pro_masses[circ_prograde_population_indices] / (3 * (disk_star_pro_masses[circ_prograde_population_indices] + smbh_mass)))**(1. / 3.)))[:, None] * random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
     # T_orb = pi (R/r_g)^1.5 (GM_smbh/c^2) = pi (R/r_g)^1.5 (GM_smbh*2e30/c^2)
     #      = pi (R/r_g)^1.5 (6.7e-11 2e38/27e24)= pi (R/r_g)^1.5 (1.3e11)s =(R/r_g)^1/5 (1.3e4)
@@ -1331,8 +1341,8 @@ def circular_singles_encounters_prograde_star_bh(
     num_poss_ints = 0
     num_encounters = 0
     # Generate all possible needed random numbers ahead of time
-    chance_of_enc = rng.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
-    delta_energy_strong = np.exp(rng.normal(loc=np.log(delta_energy_strong_mu), scale=np.log(1. + delta_energy_strong_sigma), size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices))))
+    chance_of_enc = random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    delta_energy_strong = np.exp(random.normal(loc=np.log(delta_energy_strong_mu), scale=np.log(1. + delta_energy_strong_sigma), size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices))))
 
     id_nums_poss_touch = []
     id_nums_unbound = []
@@ -1476,7 +1486,8 @@ def circular_binaries_encounters_ecc_prograde(
         timestep_duration_yr,
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
-        disk_radius_outer
+        disk_radius_outer,
+        random
         ):
     """"Adjust orb eccentricities due to encounters between BBH and eccentric single BHs
 
@@ -1506,6 +1517,8 @@ def circular_binaries_encounters_ecc_prograde(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
+    random : Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -1631,13 +1644,13 @@ def circular_binaries_encounters_ecc_prograde(
     ecc_velocities = const.c.value / np.sqrt(ecc_prograde_population_locations)
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
-    epsilon_orb_a = disk_radius_outer * ((ecc_prograde_population_masses / (3 * (ecc_prograde_population_masses + smbh_mass)))**(1. / 3.)) * rng.uniform(size=len(ecc_prograde_population_masses))
+    epsilon_orb_a = disk_radius_outer * ((ecc_prograde_population_masses / (3 * (ecc_prograde_population_masses + smbh_mass)))**(1. / 3.)) * random.uniform(size=len(ecc_prograde_population_masses))
 
     if np.size(bin_mass_1) == 0:
         return (bin_sep, bin_ecc, bin_orb_ecc, disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
 
     # Create array of random numbers for the chances of encounters
-    chances = rng.uniform(size=(np.size(bin_mass_1), ecc_prograde_population_indices.size))
+    chances = random.uniform(size=(np.size(bin_mass_1), ecc_prograde_population_indices.size))
 
     # For each binary in blackholes_binary
     for i in range(0, np.size(bin_mass_1)):
@@ -1736,7 +1749,8 @@ def circular_binaries_encounters_ecc_prograde(
         timestep_duration_yr,
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
-        disk_radius_outer
+        disk_radius_outer,
+        random
 ):
     """"Adjust orb eccentricities due to encounters between BBH and eccentric single BHs
 
@@ -1766,6 +1780,8 @@ def circular_binaries_encounters_ecc_prograde(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
+    random : Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -1894,13 +1910,13 @@ def circular_binaries_encounters_ecc_prograde(
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon_orb_a = disk_radius_outer * (
             (ecc_prograde_population_masses / (3 * (ecc_prograde_population_masses + smbh_mass))) ** (
-            1. / 3.)) * rng.uniform(size=len(ecc_prograde_population_masses))
+            1. / 3.)) * random.uniform(size=len(ecc_prograde_population_masses))
 
     if np.size(bin_mass_1) == 0:
         return (bin_sep, bin_ecc, bin_orb_ecc, disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
 
     # Create array of random numbers for the chances of encounters
-    chances = rng.uniform(size=(np.size(bin_mass_1), ecc_prograde_population_indices.size))
+    chances = random.uniform(size=(np.size(bin_mass_1), ecc_prograde_population_indices.size))
 
     # For each binary in blackholes_binary
     for i in range(0, np.size(bin_mass_1)):
@@ -2007,7 +2023,8 @@ def circular_binaries_encounters_ecc_prograde_star(
         timestep_duration_yr,
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
-        disk_radius_outer
+        disk_radius_outer,
+        random
         ):
     """"Adjust orb eccentricities due to encounters between BBH and eccentric single BHs
 
@@ -2037,6 +2054,8 @@ def circular_binaries_encounters_ecc_prograde_star(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
+    random : Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -2161,13 +2180,13 @@ def circular_binaries_encounters_ecc_prograde_star(
     ecc_velocities = const.c.value / np.sqrt(ecc_prograde_population_locations)
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
-    epsilon_orb_a = disk_radius_outer * ((ecc_prograde_population_masses / (3 * (ecc_prograde_population_masses + smbh_mass)))**(1. / 3.)) * rng.uniform(size=len(ecc_prograde_population_masses))
+    epsilon_orb_a = disk_radius_outer * ((ecc_prograde_population_masses / (3 * (ecc_prograde_population_masses + smbh_mass)))**(1. / 3.)) * random.uniform(size=len(ecc_prograde_population_masses))
 
     if np.size(bin_mass_1) == 0:
         return (bin_sep, bin_ecc, bin_orb_ecc, disk_star_pro_orbs_a, disk_star_pro_orbs_ecc, np.array([]), np.array([]), np.array([]))
 
     # Create array of random numbers for the chances of encounters
-    chances = rng.uniform(size=(np.size(bin_mass_1), ecc_prograde_population_indices.size))
+    chances = random.uniform(size=(np.size(bin_mass_1), ecc_prograde_population_indices.size))
     id_nums_poss_touch = []
     frac_rhill_sep = []
     id_nums_ionized_bin = []
@@ -2323,7 +2342,8 @@ def circular_binaries_encounters_circ_prograde(
         delta_energy_strong,
         disk_radius_outer,
         harden_energy_delta_mu,
-        harden_energy_delta_sigma
+        harden_energy_delta_sigma,
+        random
 ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
@@ -2353,6 +2373,8 @@ def circular_binaries_encounters_circ_prograde(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    random : Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -2469,7 +2491,7 @@ def circular_binaries_encounters_circ_prograde(
     # delta_energy_strong (read into this module) refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation)
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
+    de_strong = max(0., min(1., random.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
@@ -2499,13 +2521,13 @@ def circular_binaries_encounters_circ_prograde(
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon_orb_a = disk_radius_outer * (
             (circ_prograde_population_masses / (3 * (circ_prograde_population_masses + smbh_mass))) ** (
-            1. / 3.)) * rng.uniform(size=len(circ_prograde_population_masses))
+            1. / 3.)) * random.uniform(size=len(circ_prograde_population_masses))
 
     if np.size(bin_mass_1) == 0:
         return (bin_sep, bin_ecc, bin_orb_ecc, disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc)
 
     # Set up random numbers
-    chances = rng.uniform(size=(np.size(bin_mass_1), len(circ_prograde_population_locations)))
+    chances = random.uniform(size=(np.size(bin_mass_1), len(circ_prograde_population_locations)))
     for i in range(0, np.size(bin_mass_1)):
         for j in range(0, len(circ_prograde_population_locations)):
             # If binary com orbit lies inside circ orbit [min,max] radius
@@ -2611,7 +2633,8 @@ def circular_binaries_encounters_circ_prograde_star(
         delta_energy_strong,
         disk_radius_outer,
         harden_energy_delta_mu,
-        harden_energy_delta_sigma
+        harden_energy_delta_sigma,
+        random
 ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
@@ -2641,6 +2664,8 @@ def circular_binaries_encounters_circ_prograde_star(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    random : Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -2750,7 +2775,7 @@ def circular_binaries_encounters_circ_prograde_star(
     # delta_energy_strong (read into this module) refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation)
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
+    de_strong = max(0., min(1., random.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
@@ -2778,13 +2803,13 @@ def circular_binaries_encounters_circ_prograde_star(
     circ_velocities = const.c.value / np.sqrt(circ_prograde_population_locations)
 
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
-    epsilon_orb_a = disk_radius_outer * ((circ_prograde_population_masses / (3 * (circ_prograde_population_masses + smbh_mass))) ** (1. / 3.)) * rng.uniform(size=len(circ_prograde_population_masses))
+    epsilon_orb_a = disk_radius_outer * ((circ_prograde_population_masses / (3 * (circ_prograde_population_masses + smbh_mass))) ** (1. / 3.)) * random.uniform(size=len(circ_prograde_population_masses))
 
     if (np.size(bin_mass_1) == 0):
         return (bin_sep, bin_ecc, bin_orb_ecc, disk_star_pro_orbs_a, disk_star_pro_orbs_ecc, np.array([]), np.array([]), np.array([]))
 
     # Set up random numbers
-    chances = rng.uniform(size=(np.size(bin_mass_1), len(circ_prograde_population_locations)))
+    chances = random.uniform(size=(np.size(bin_mass_1), len(circ_prograde_population_locations)))
 
     id_nums_poss_touch = []
     frac_rhill_sep = []
@@ -2939,7 +2964,8 @@ def bin_spheroid_encounter(
         delta_energy_strong,
         nsc_spheroid_normalization,
         harden_energy_delta_mu,
-        harden_energy_delta_sigma
+        harden_energy_delta_sigma,
+        random
 ):
     """Perturb orbits due to encounters with spheroid (NSC) objects
 
@@ -2967,6 +2993,8 @@ def bin_spheroid_encounter(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
 
     Returns
@@ -3098,7 +3126,7 @@ def bin_spheroid_encounter(
     # delta_energy_strong refers to the perturbation of the orbit of the binary c.o.m. around the SMBH, which is not as strongly perturbed (we take an 'average' perturbation) 
 
     # Pick from a normal distribution defined by the user, and bound it between 0 and 1.
-    de_strong = max(0., min(1., rng.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
+    de_strong = max(0., min(1., random.normal(harden_energy_delta_mu, harden_energy_delta_sigma)))
 
     # eccentricity correction--do not let ecc>=1, catch and reset to 1-epsilon
     epsilon = 1e-8
@@ -3140,7 +3168,7 @@ def bin_spheroid_encounter(
         raise RuntimeError("Unrecognized bin_orb_a")
 
     # Based on estimated encounter rate, calculate if binary actually has a spheroid encounter
-    chances_of_encounter = rng.uniform(size=np.size(bin_mass_1_all))
+    chances_of_encounter = random.uniform(size=np.size(bin_mass_1_all))
     encounter_index = np.where(chances_of_encounter < enc_rate)[0]
     num_encounters = np.size(encounter_index)
 
@@ -3160,8 +3188,8 @@ def bin_spheroid_encounter(
         # Calculate interloper parameters
         # NOTE: Stars should be most common sph component. Switch to BH after some long time.
         mode_star = 2.0
-        mass_3 = (rng.pareto(nsc_bh_imf_powerlaw_index, size=num_encounters) + 1) * mode_star
-        radius_3 = bin_orb_a * (10 ** (-0.5 + rng.uniform(size=num_encounters)))
+        mass_3 = (random.pareto(nsc_bh_imf_powerlaw_index, size=num_encounters) + 1) * mode_star
+        radius_3 = bin_orb_a * (10 ** (-0.5 + random.uniform(size=num_encounters)))
         # K.E_3 in Joules
         # Keplerian velocity of ecc prograde orbiter around SMBH (=c/sqrt(a/r_g))
         velocity_3 = const.c.value / np.sqrt(radius_3)
@@ -3205,7 +3233,7 @@ def bin_spheroid_encounter(
         include_mask = excluded_angles < 360
         include_index = encounter_index[include_mask]
         excluded_angles[~include_mask] = 0.
-        i3 = rng.randint(low=excluded_angles, high=360 - excluded_angles)
+        i3 = random.integers(low=excluded_angles, high=360 - excluded_angles)
         # Convert i3 to radians
         i3_rad = np.radians(i3)
 
@@ -3327,7 +3355,8 @@ class SingleBlackHoleDynamics(TimelineActor):
                 timestep_length,
                 sm.disk_bh_pro_orb_ecc_crit,
                 sm.delta_energy_strong_mu,
-                sm.disk_radius_outer
+                sm.disk_radius_outer,
+                random_generator
             )
         else:
             blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde(
@@ -3338,7 +3367,8 @@ class SingleBlackHoleDynamics(TimelineActor):
                 timestep_length,
                 sm.disk_bh_pro_orb_ecc_crit,
                 sm.delta_energy_strong_mu,
-                sm.disk_radius_outer
+                sm.disk_radius_outer,
+                random_generator
             )
 
 
@@ -3503,6 +3533,7 @@ class SingleBlackHoleStarDynamics(TimelineActor):
                 timestep_length,
                 blackholes_pro.orb_ecc[bh_id_mask],
                 sm.disk_bh_pro_orb_ecc_crit,
+                random_generator
             )
 
             blackholes_pro.spin_angle[bh_id_mask] = accretion.change_bh_spin_angles(
@@ -3562,7 +3593,8 @@ class BinaryBlackHoleDynamics(TimelineActor):
             sm.delta_energy_strong_mu,
             sm.disk_radius_outer,
             sm.mean_harden_energy_delta,
-            sm.var_harden_energy_delta
+            sm.var_harden_energy_delta,
+            random_generator
         )
 
         blackholes_pro.consistency_check()
@@ -3594,7 +3626,8 @@ class BinaryBlackHoleDynamics(TimelineActor):
             timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong_mu,
-            sm.disk_radius_outer
+            sm.disk_radius_outer,
+            random_generator
         )
 
         blackholes_pro.consistency_check()
@@ -3627,7 +3660,8 @@ class BinaryBlackHoleDynamics(TimelineActor):
             sm.delta_energy_strong_mu,
             sm.nsc_spheroid_normalization,
             sm.mean_harden_energy_delta,
-            sm.var_harden_energy_delta
+            sm.var_harden_energy_delta,
+            random_generator
         )
 
         blackholes_pro.consistency_check()

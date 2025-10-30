@@ -11,7 +11,6 @@ from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
 from mcfacts.utilities import unit_conversion, checks
-from mcfacts.utilities.random_state import rng
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 
@@ -414,7 +413,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
                              disk_feedback_ratio,
                              disk_radius_trap, disk_radius_anti_trap, disk_radius_outer, timestep_duration_yr,
                              flag_phenom_turb, phenom_turb_centroid, phenom_turb_std_dev, bh_min_mass,
-                             torque_prescription):
+                             torque_prescription, random):
     """Calculates how far an object migrates in an AGN gas disk in a single timestep given a torque migration timescale
     calculated elsewhere (e.g. torque_migration_timescale)
     Returns their new locations after migration over one timestep.
@@ -453,7 +452,9 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
     bh_min_mass : float
         Minimum mass of BH IMF. Phenom. turbulence is largest for this value. Decreases with bh_mass^2 since normalized torque propto m_bh^2.
     torque_prescription : str
-        Torque prescription 'paardekooper' or 'jimenez_masset' ('old' is deprecated)
+        Torque prescription 'paardekooper' or 'jimenez_masset' ('old' is deprecated),
+    random: numpy.random.Generator
+        Generator used to generate random numbers
     Returns
     -------
     orbs_a : float array
@@ -488,12 +489,12 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
 
     # Calculate epsilon for trap radius --amount to adjust from disk_radius_trap for objects that will be set to disk_radius_trap
     epsilon_trap_radius = disk_radius_trap * (
-            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
+            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * random.uniform(
         size=migration_indices.size)
 
     # Calculate epsilon for outer edge of disk
     epsilon_outer_radius = disk_radius_outer * (
-            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
+            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * random.uniform(
         size=migration_indices.size)
 
     if flag_phenom_turb == 1:
@@ -501,7 +502,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         # size_of_turbulent_array = np.size(migration_indices)
         # Assume migration is always inwards (true for 'old' and for 'jimenez_masset' for M_smbh>10^8Msun)
         # Calc migration distance as modified by turbulence.
-        migration_distance = migration_distance * (1.0 + rng.normal(phenom_turb_centroid, phenom_turb_std_dev,
+        migration_distance = migration_distance * (1.0 + random.normal(phenom_turb_centroid, phenom_turb_std_dev,
                                                                     size=migration_indices.size)) / normalized_mig_masses_sq
 
     if torque_prescription == 'old' or torque_prescription == 'paardekooper':
@@ -562,7 +563,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         # Assert that things cannot migrate out of the disk
         epsilon = disk_radius_outer * ((masses[migration_indices][new_orbs_a > disk_radius_outer] / (
                 3 * (masses[migration_indices][new_orbs_a > disk_radius_outer] + smbh_mass))) ** (
-                                               1. / 3.)) * rng.uniform(size=np.sum(new_orbs_a > disk_radius_outer))
+                                               1. / 3.)) * random.uniform(size=np.sum(new_orbs_a > disk_radius_outer))
         new_orbs_a[new_orbs_a > disk_radius_outer] = disk_radius_outer - epsilon
 
     if torque_prescription == 'jimenez_masset':
@@ -662,7 +663,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
 
 def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
                     disk_surf_density_func, disk_aspect_ratio_func, disk_feedback_ratio_func,
-                    disk_radius_trap, disk_radius_outer, timestep_duration_yr):
+                    disk_radius_trap, disk_radius_outer, timestep_duration_yr, random):
     """Calculates how far an object migrates in an AGN gas disk in a single timestep
 
     Assumes a gas disk surface density and aspect ratio profile, for objects of specified masses and
@@ -697,6 +698,8 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
         Radius [r_{g,SMBH}] of outer edge of disk
     timestep_duration_yr : float
         Length of timestep [yr]
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -772,7 +775,7 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
     migration_distance = new_orbs_a.copy() * dt
     # Calculate epsilon --amount to adjust from disk_radius_trap for objects that will be set to disk_radius_trap
     epsilon_trap_radius = disk_radius_trap * (
-            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * rng.uniform(
+            (masses[migration_indices] / (3 * (masses[migration_indices] + smbh_mass))) ** (1. / 3.)) * random.uniform(
         size=migration_indices.size)
 
     # Get masks for if objects are inside or outside the trap radius
@@ -828,7 +831,7 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
     # Assert that things cannot migrate out of the disk
     epsilon = disk_radius_outer * ((masses[migration_indices][new_orbs_a > disk_radius_outer] / (
             3 * (masses[migration_indices][new_orbs_a > disk_radius_outer] + smbh_mass))) ** (
-                                           1. / 3.)) * rng.uniform(size=np.sum(new_orbs_a > disk_radius_outer))
+                                           1. / 3.)) * random.uniform(size=np.sum(new_orbs_a > disk_radius_outer))
     new_orbs_a[new_orbs_a > disk_radius_outer] = disk_radius_outer - epsilon
 
     # Update orbs_a
@@ -1330,7 +1333,8 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.phenom_turb_centroid,
                 sm.phenom_turb_std_dev,
                 sm.nsc_imf_bh_mode,
-                sm.torque_prescription
+                sm.torque_prescription,
+                random_generator
             )
 
         # TODO: Reconsider for physicality
@@ -1506,5 +1510,6 @@ class BinaryBlackHoleMigration(TimelineActor):
                     sm.phenom_turb_centroid,
                     sm.phenom_turb_std_dev,
                     sm.nsc_imf_bh_mode,
-                    sm.torque_prescription
+                    sm.torque_prescription,
+                    random_generator
                 )

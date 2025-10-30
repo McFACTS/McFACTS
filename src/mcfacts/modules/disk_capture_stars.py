@@ -6,7 +6,6 @@ import astropy.units as u
 import numpy as np
 
 from mcfacts.utilities import unit_conversion
-from mcfacts.utilities.random_state import rng
 
 
 def stellar_mass_captured_nsc(disk_lifetime, smbh_mass, nsc_density_index_inner, nsc_mass,
@@ -114,7 +113,7 @@ def setup_captured_stars_masses(captured_star_mass, disk_star_mass_min_init, dis
 
 
 def setup_captured_stars_orbs_a(num_stars_captured, disk_lifetime, smbh_mass, disk_surface_density_func,
-                                disk_star_mass_min_init, disk_star_mass_max_init, nsc_imf_star_powerlaw_index):
+                                disk_star_mass_min_init, disk_star_mass_max_init, nsc_imf_star_powerlaw_index, random):
     """Generate array of orb_a values for captured stars
 
     Captured stars are placed in the disk with radial distribution dN/dr \propto r^-1/4
@@ -139,6 +138,8 @@ def setup_captured_stars_orbs_a(num_stars_captured, disk_lifetime, smbh_mass, di
         Upper bound [Msun] for stellar IMF
     nsc_imf_star_powerlaw_index : float
         Powerlaw index for stellar IMF
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -180,13 +181,13 @@ def setup_captured_stars_orbs_a(num_stars_captured, disk_lifetime, smbh_mass, di
     star_orb_a_max_rg = unit_conversion.r_g_from_units(smbh_mass_si, star_orb_a_max_si)
 
     # Captured stars are distributed between disk_inner_stable_circ_orb and star_orb_a_max with a powerlaw distribution r^-1/4
-    x_vals = rng.uniform(low=0, high=1, size=num_stars_captured)
+    x_vals = random.uniform(low=0, high=1, size=num_stars_captured)
     captured_star_orb_a = (x_vals ** (4/3)) * (star_orb_a_max_rg - radius_tde_rg) + radius_tde_rg
 
     return (captured_star_orb_a.value)
 
 
-def distribute_captured_stars(captured_stars_masses, captured_stars_orb_a, timestep_num, timestep_duration_yr):
+def distribute_captured_stars(captured_stars_masses, captured_stars_orb_a, timestep_num, timestep_duration_yr, random):
     """Distribute captured stars' masses and orb_a based on how many are captured per timestep
 
     Assumes timesteps are uniform and evenly spaced
@@ -219,7 +220,7 @@ def distribute_captured_stars(captured_stars_masses, captured_stars_orb_a, times
     stars_per_timestep[:extra_stars] = stars_per_timestep[:extra_stars] + 1
 
     # randomize so we don't capture all the "extras" right at the beginning
-    rng.shuffle(stars_per_timestep)
+    random.shuffle(stars_per_timestep)
 
     assert star_num == np.sum(stars_per_timestep), "star_num != np.sum(stars_per_timestep): Not all captured stars accounted for by end of galaxy"
 
@@ -228,7 +229,7 @@ def distribute_captured_stars(captured_stars_masses, captured_stars_orb_a, times
     assert len(timestep_arr) == len(stars_per_timestep), "Lengths of timestep_arr and stars_per_timestep do not match"
 
     # Shift masses backwards/forwards with a Gaussian
-    shift_idx_by = np.rint(rng.normal(loc=0, scale=1, size=star_num)).astype(int)
+    shift_idx_by = np.rint(random.normal(loc=0, scale=1, size=star_num)).astype(int)
     shift_max = np.abs(shift_idx_by).max()
 
     # Pad mass indices because otherwise some masses will end up with negative indices and wrap around to back

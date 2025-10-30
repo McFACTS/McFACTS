@@ -1,11 +1,10 @@
 import numpy as np
 from astropy.constants import G
-from mcfacts.utilities.random_state import rng
 from mcfacts.setup import setupdiskblackholes
 import scipy
 
 
-def setup_disk_stars_orb_a(star_num, disk_radius_outer, disk_inner_stable_circ_orb):
+def setup_disk_stars_orb_a(star_num, disk_radius_outer, disk_inner_stable_circ_orb, random):
     """Generates initial single star semi-major axes
 
     Star semi-major axes are distributed randomly with an x^2 distribution through disk of radial size :math:`\\mathtt{disk_outer_radius}`
@@ -18,6 +17,8 @@ def setup_disk_stars_orb_a(star_num, disk_radius_outer, disk_inner_stable_circ_o
         outer radius of disk, maximum semimajor axis for stars
     disk_inner_stable_circ_orb : float
         Inner radius of disk [r_{g,SMBH}]
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -26,7 +27,7 @@ def setup_disk_stars_orb_a(star_num, disk_radius_outer, disk_inner_stable_circ_o
     """
 
     # Generating star locations in an x^2 distribution
-    x_vals = rng.uniform(low=(disk_inner_stable_circ_orb/disk_radius_outer) ** 2, high=1, size=star_num)
+    x_vals = random.uniform(low=(disk_inner_stable_circ_orb/disk_radius_outer) ** 2, high=1, size=star_num)
     star_orb_a_initial = np.sqrt(x_vals) * disk_radius_outer
 
     return (star_orb_a_initial)
@@ -35,7 +36,8 @@ def setup_disk_stars_orb_a(star_num, disk_radius_outer, disk_inner_stable_circ_o
 def setup_disk_stars_masses(star_num,
                             disk_star_mass_min_init,
                             disk_star_mass_max_init,
-                            nsc_imf_star_powerlaw_index):
+                            nsc_imf_star_powerlaw_index,
+                            random):
     """
     Generate star masses using powerlaw IMF.
 
@@ -49,6 +51,8 @@ def setup_disk_stars_masses(star_num,
         maximum star mass
     nsc_imf_star_powerlaw_index : float
         powerlaw index
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -61,7 +65,7 @@ def setup_disk_stars_masses(star_num,
     x_max = disk_star_mass_max_init**(-nsc_imf_star_powerlaw_index+1.)
 
     # Get array of uniform random numbers
-    p_vals = rng.uniform(low=0.0, high=1.0, size=star_num)
+    p_vals = random.uniform(low=0.0, high=1.0, size=star_num)
 
     # Calculate x values
     x_vals = x_min - p_vals * (x_min - x_max)
@@ -144,7 +148,7 @@ def setup_disk_stars_comp(star_num,
 
 def setup_disk_stars_orb_ang_mom_full(star_num,
                                  mass, smbh_mass,
-                                 orb_a, orb_inc,):
+                                 orb_a, orb_inc, random):
     """
     Calculate initial orbital angular momentum from Keplerian orbit formula
     for L and add a random direction (+ or -) for prograde vs retrograde
@@ -162,6 +166,8 @@ def setup_disk_stars_orb_ang_mom_full(star_num,
         orbital semi-major axis
     orb_inc : numpy.ndarray
         orbital inclination
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -170,13 +176,13 @@ def setup_disk_stars_orb_ang_mom_full(star_num,
     """
     mass_total = mass + smbh_mass
     mass_reduced = (mass * smbh_mass) / mass_total
-    star_orb_ang_mom_initial_sign = rng.choice(a=[1., -1.], size=star_num)
+    star_orb_ang_mom_initial_sign = random.choice(a=[1., -1.], size=star_num)
     star_orb_ang_mom_initial_value = mass_reduced*np.sqrt(G.to('m^3/(M_sun s^2)').value*mass_total*orb_a*(1-orb_inc**2))
     star_orb_ang_mom_initial = star_orb_ang_mom_initial_sign*star_orb_ang_mom_initial_value
     return (star_orb_ang_mom_initial)
 
 
-def setup_disk_stars_orb_ang_mom(star_num):
+def setup_disk_stars_orb_ang_mom(star_num, random):
     """Generates disk star initial orbital angular momenta [unitless]
 
     Assume either initially fully prograde (+1) or retrograde (-1)
@@ -185,6 +191,8 @@ def setup_disk_stars_orb_ang_mom(star_num):
     ----------
         star_num : int
             Integer number of BH initially embedded in disk
+        random: numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns
     -------
@@ -192,11 +200,11 @@ def setup_disk_stars_orb_ang_mom(star_num):
             Initial BH orb ang mom [unitless] with :obj:`float` type. No units because it is an on/off switch.
     """
 
-    disk_star_initial_orb_ang_mom = rng.choice(a=[1.,-1.],size=star_num)
+    disk_star_initial_orb_ang_mom = random.choice(a=[1.,-1.],size=star_num)
     return disk_star_initial_orb_ang_mom
 
 
-def setup_disk_stars_arg_periapse(star_num):
+def setup_disk_stars_arg_periapse(star_num, random):
     """
     Return an array of star arguments of periapse
     Should be fine to do a uniform distribution between 0-2pi
@@ -214,6 +222,8 @@ def setup_disk_stars_arg_periapse(star_num):
     ----------
     star_num : int
         number of stars
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -221,12 +231,12 @@ def setup_disk_stars_arg_periapse(star_num):
         arguments for orbital periapse
     """
 
-    star_orb_arg_periapse_initial = rng.choice(a=[0., 0.5*np.pi],size=star_num)
+    star_orb_arg_periapse_initial = random.choice(a=[0., 0.5*np.pi],size=star_num)
 
     return (star_orb_arg_periapse_initial)
 
 
-def setup_disk_stars_eccentricity_thermal(star_num):
+def setup_disk_stars_eccentricity_thermal(star_num, random):
     """
     Return an array of star orbital eccentricities
     For a thermal initial distribution of eccentricities, select from a
@@ -243,18 +253,20 @@ def setup_disk_stars_eccentricity_thermal(star_num):
     ----------
     star_num : int
         number of stars
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
     star_initial_orb_ecc : float array
         orbital eccentricities
     """
-    random_uniform_number = rng.uniform(size=star_num)
+    random_uniform_number = random.uniform(size=star_num)
     star_orb_ecc_initial = np.sqrt(random_uniform_number)
     return (star_orb_ecc_initial)
 
 
-def setup_disk_stars_eccentricity_uniform(star_num, disk_star_orb_ecc_max_init):
+def setup_disk_stars_eccentricity_uniform(star_num, disk_star_orb_ecc_max_init, random):
     """
     Return an array of star orbital eccentricities
     For a uniform initial distribution of eccentricities, select from
@@ -271,19 +283,21 @@ def setup_disk_stars_eccentricity_uniform(star_num, disk_star_orb_ecc_max_init):
     ----------
     star_num : int
         number of stars
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
     star_initial_orb_ecc : float array
         orbital eccentricities
     """
-    random_uniform_number = rng.uniform(size=star_num)
+    random_uniform_number = random.uniform(size=star_num)
     star_orb_ecc_initial = random_uniform_number * disk_star_orb_ecc_max_init
     return (star_orb_ecc_initial)
 
 
 def setup_disk_stars_inc(star_num, star_orb_a, star_orb_ang_mom,
-                         disk_aspect_ratio):
+                         disk_aspect_ratio, random):
     """
     NEED TO UPDATE STAR FUNCTIONS TO CALL THS INSTEAD
     Return an array of star orbital inclinations
@@ -306,6 +320,8 @@ def setup_disk_stars_inc(star_num, star_orb_a, star_orb_ang_mom,
         orbital angular momentum
     disk_aspect_ratio : float
         aspect ratio of the disk
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -319,7 +335,7 @@ def setup_disk_stars_inc(star_num, star_orb_a, star_orb_ang_mom,
     max_height = star_orb_a * disk_aspect_ratio(star_orb_a)
     # reflect that height to get the min
     min_height = -max_height
-    random_uniform_number = rng.uniform(size=star_num)
+    random_uniform_number = random.uniform(size=star_num)
     # pick the actual height between the min and max, then reset zero point
     height_range = max_height - min_height
     actual_height_range = height_range * random_uniform_number

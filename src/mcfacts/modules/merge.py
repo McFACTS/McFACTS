@@ -14,7 +14,7 @@ from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray, AGNBlackHoleArray, AGNMergedBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, checks, peters
-from mcfacts.utilities.random_state import uuid_provider, rng
+from mcfacts.utilities.random_state import uuid_provider
 from mcfacts.utilities.unit_conversion import si_from_r_g
 
 
@@ -24,7 +24,8 @@ def analytical_kick_velocity(
         spin_1,
         spin_2,
         spin_angle_1,
-        spin_angle_2):
+        spin_angle_2,
+        random):
     """
     Compute the analytical gravitational wave recoil (kick) velocity for merging black hole binaries
     as in Akiba et al. 2024 (arXiv:2410.19881).
@@ -81,7 +82,7 @@ def analytical_kick_velocity(
     B = -0.93
     H = 6.9e3 * u.km / u.s
     V_11, V_A, V_B, V_C = 3678 * u.km / u.s, 2481 * u.km / u.s, 1793* u.km / u.s, 1507 * u.km / u.s
-    angle = rng.uniform(0.0, 2*np.pi, size=len(mass_1))
+    angle = random.uniform(0.0, 2*np.pi, size=len(mass_1))
 
     # Use Akiba et al. 2024 eqn A2:
     v_m = A * eta**2 * np.sqrt(1 - 4 * eta) * (1 + B * eta)
@@ -399,7 +400,7 @@ def merged_mass(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
     return (merged_masses)
 
 
-def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2):
+def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, random):
     """Calculates the spin magnitude of a merged binary.
 
     Only depends on M1,M2,a1,a2,theta1,theta2 and the binary angular momentum around its center of mass.
@@ -424,6 +425,8 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
         Spin angle of m1 (wrt disk angular momentum) in radians with :obj:`float` type
     spin_angles_2 : numpy.nbdarray
         Spin angle of m2 (wrt disk angular momentum) in radians with :obj:`float` type
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -432,8 +435,8 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
     """
 
     # Setting random array of phi angles for each of the progenitors
-    phi_1_rand = rng.uniform(0, 2 * np.pi, len(spins_1))
-    phi_2_rand = rng.uniform(0, 2 * np.pi, len(spins_1))
+    phi_1_rand = random.uniform(0, 2 * np.pi, len(spins_1))
+    phi_2_rand = random.uniform(0, 2 * np.pi, len(spins_1))
 
     # Rearranging spins, spin angles, and mass ratios to align with each other
     spins_1_new = np.ones(spins_1.size)
@@ -528,6 +531,7 @@ def merge_blackholes_precession(
     bin_sep_r_g,
     bin_ecc,
     smbh_mass,
+    random
     ):
     """Use Davide Gerosa's precession package to calculate merged properties
 
@@ -553,6 +557,8 @@ def merge_blackholes_precession(
         Binary eccentricity with :obj:`float` type
     smbh_mass : float
         Mass of supermassive black hole (solMass)
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -613,7 +619,7 @@ def merge_blackholes_precession(
     # Estimate q
     mass_ratio = mass_2/ mass_1
     # Draw random deltaphi
-    deltaphi = rng.uniform(low=0.,high=2*np.pi,size=mass_ratio.size)
+    deltaphi = random.uniform(low=0.,high=2*np.pi,size=mass_ratio.size)
     # Get binary separation
     bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g)
     orbital_period_si = np.sqrt(
@@ -1021,8 +1027,10 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+                random_generator
             )
+
             bh_spin_merged = checks.spin_check(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
@@ -1035,7 +1043,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+                random_generator
             )
 
             bh_mass_1_20_hz = np.zeros(bh_binary_id_num_merger.size)
@@ -1043,6 +1052,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             bh_spin_1_20_hz = np.zeros(bh_binary_id_num_merger.size)
             bh_spin_2_20_hz = np.zeros(bh_binary_id_num_merger.size)
             bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
+
         elif sm.flag_use_surrogate == 1:
             from mcfacts.external.sxs import fit_modeler, evolve_binary
 

@@ -11,7 +11,7 @@ from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.setup import setupdiskblackholes
-from mcfacts.utilities.random_state import rng, uuid_provider
+from mcfacts.utilities.random_state import uuid_provider
 
 
 def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
@@ -111,7 +111,7 @@ def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_
 def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs_a, disk_bh_retro_orbs_ecc,
                              disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
                              disk_inner_stable_circ_orb, disk_surf_density_func, timestep_duration_yr,
-                             disk_radius_outer):
+                             disk_radius_outer, random):
     """Evolve the orbit of initially-embedded retrograde black hole orbiters due to disk interactions.
 
     This is a CRUDE version of evolution, future upgrades may couple to SpaceHub.
@@ -134,6 +134,8 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
         Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
     timestep_duration_yr : float
         Length of a timestep [yr]
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -437,7 +439,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     # Anything outside the disk is brought back in
     # Calculate epsilon --amount to subtract from disk_radius_outer for objects with orb_a > disk_radius_outer
     epsilon_orb_a = disk_radius_outer * (
-            (disk_bh_retro_masses / (3 * (disk_bh_retro_masses + smbh_mass))) ** (1. / 3.)) * rng.uniform(
+            (disk_bh_retro_masses / (3 * (disk_bh_retro_masses + smbh_mass))) ** (1. / 3.)) * random.uniform(
         size=len(disk_bh_retro_masses))
     disk_bh_retro_orbs_a_new[disk_bh_retro_orbs_a_new > disk_radius_outer] = disk_radius_outer - epsilon_orb_a[
         disk_bh_retro_orbs_a_new > disk_radius_outer]
@@ -731,7 +733,8 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Capture Prograde Black Holes" if name is None else name, settings)
 
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator) -> None:
         sm = self.settings
 
         if time_passed == 0 or time_passed % sm.capture_time_yr != 0:
@@ -745,13 +748,22 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
         bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
             1, sm.disk_radius_capture_outer, sm.disk_inner_stable_circ_orb,
             sm.smbh_mass, sm.nsc_radius_crit, sm.nsc_density_index_inner,
-            sm.nsc_density_index_outer, volume_scaling=True)
+            sm.nsc_density_index_outer, random_generator,
+            volume_scaling=True
+        )
+
         bh_mass_captured = setupdiskblackholes.setup_disk_blackholes_masses(
-            1, sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up, sm.nsc_imf_bh_method)
+            1, sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up,
+            sm.nsc_imf_bh_method, random_generator
+        )
+
         bh_spin_captured = setupdiskblackholes.setup_disk_blackholes_spins(
-            1, sm.nsc_bh_spin_dist_mu, sm.nsc_bh_spin_dist_sigma)
+            1, sm.nsc_bh_spin_dist_mu, sm.nsc_bh_spin_dist_sigma, random_generator
+        )
+
         bh_spin_angle_captured = setupdiskblackholes.setup_disk_blackholes_spin_angles(
-            1, bh_spin_captured)
+            1, bh_spin_captured, random_generator
+        )
 
         captured_blackholes = AGNBlackHoleArray(
             unique_id=np.array([uuid_provider(random_generator) for _ in range(bh_mass_captured.size)]),
@@ -794,7 +806,8 @@ class EvolveRetrogradeBlackHoles(TimelineActor):
             sm.disk_inner_stable_circ_orb,
             agn_disk.disk_surface_density,
             timestep_length,
-            sm.disk_radius_outer
+            sm.disk_radius_outer,
+            random_generator
         )
 
         blackholes_retro.consistency_check()
@@ -823,7 +836,8 @@ class RecaptureRetrogradeStars(TimelineActor):
             sm.disk_inner_stable_circ_orb,
             agn_disk.disk_surface_density,
             timestep_length,
-            sm.disk_radius_outer
+            sm.disk_radius_outer,
+            random_generator
         )
 
         stars_retro.consistency_check()
@@ -833,7 +847,8 @@ class RecaptureBinaryBlackHoles(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Capture Binary Black Holes" if name is None else name, settings)
 
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator) -> None:
         sm = self.settings
 
         if sm.bbh_array_name not in filing_cabinet:

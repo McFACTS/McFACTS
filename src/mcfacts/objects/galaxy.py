@@ -9,7 +9,6 @@ from tqdm.auto import tqdm
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
 from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
-from mcfacts.utilities.random_state import reset_random
 from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet
 from mcfacts.objects.timeline import SimulationTimeline
 
@@ -63,11 +62,11 @@ class Galaxy:
         self.galaxy_id: str = galaxy_id
 
         # Setup random
-        self.random_generator = np.random.default_rng(seed)
+        self.random_generator = Generator(np.random.Philox(seed))
 
         # Set seed in mcfacts_random_state so non legacy methods are consistent.
         # TODO: Make all methods using global random from mcfacts_random_state use galaxy randomGenerator through pass by reference.
-        reset_random(int(str(seed)[len(str(seed)) - 10:]))
+        #reset_random(int(str(seed)[len(str(seed)) - 10:]))
 
         self.filing_cabinet: FilingCabinet = FilingCabinet()
         self.timeline_history: list[SimulationTimeline] = list()

@@ -1,10 +1,9 @@
 """Defines functions to set up initial conditions for black holes in the AGN disk."""
 
 import numpy as np
-from mcfacts.utilities.random_state import rng
 
 
-def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb):
+def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb, random):
     """Generates initial single BH orbital semi-major axes :math:`r_{g,SMBH}'
 
     BH semi-major axes are distributed randomly uniformly through disk of radial size :obj:`disk_outer_radius`
@@ -17,6 +16,8 @@ def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_
         Outer radius of disk :math:`r_{g,SMBH}`
     disk_inner_stable_circ_orb : float
         Inner radius of disk :math:`r_{g,SMBH}`
+    random: numpy.random.Generator
+        Generator used to generate random numbers
     Returns
     -------
     bh_initial_locations : numpy.ndarray
@@ -25,7 +26,7 @@ def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_
     #bh_initial_locations = disk_outer_radius * rng.uniform(size=disk_bh_num)
     #sma_too_small = np.where(bh_initial_locations < disk_inner_stable_circ_orb)
     #bh_initial_locations[sma_too_small] = disk_inner_stable_circ_orb
-    bh_initial_locations = rng.uniform(low=disk_inner_stable_circ_orb,
+    bh_initial_locations = random.uniform(low=disk_inner_stable_circ_orb,
                                        high=disk_outer_radius,
                                        size=disk_bh_num,
                                        )
@@ -38,7 +39,8 @@ def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,
                                   nsc_radius_crit,
                                   nsc_density_index_inner,
                                   nsc_density_index_outer,
-                                  volume_scaling=True):
+                                  random,
+                                  volume_scaling=True,):
     """Draw initial single black hole orbital semi-major axes :math:`r_{g,SMBH}`
     from a nuclear star cluster with a broken powerlaw density distribution
     (i.e. two slopes).
@@ -72,6 +74,8 @@ def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,
         Powerlaw index of the nuclear star cluster interior to `nsc_radius_crit`
     nsc_density_index_outer : ing
         Powerlaw index of the nuclear star cluster exterior to `nsc_radius_crit`
+    random: numpy.random.Generator
+        Generator used to generate random numbers
     volume_scaling=True : bool
         A switch to normalize by each radial shell's volume such that the total
         probability over the range is 1. When :obj`True`, each radial bin of the
@@ -128,11 +132,11 @@ def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,
         raise ValueError(f"[Setup BH Locs] Sum of p(r) must be less than 1 but is {r_pdf.sum()}.")
 
     # Draw locations for all the black holes from the r array with the associated probabilities.
-    bh_initial_locations = rng.choice(r, size=disk_bh_num, p=r_pdf)
+    bh_initial_locations = random.choice(r, size=disk_bh_num, p=r_pdf)
 
     return bh_initial_locations
 
-def setup_prior_blackholes_indices(prograde_n_bh, prior_bh_locations):
+def setup_prior_blackholes_indices(prograde_n_bh, prior_bh_locations, random):
     """Generates indices which allow us to read prior BH properties & replace prograde BH with these.
 
     Parameters
@@ -141,6 +145,8 @@ def setup_prior_blackholes_indices(prograde_n_bh, prior_bh_locations):
         Integer number of prograde BHs
     prior_bh_locations : numpy.ndarray
         Locations of BH in disk [r_{g,SMBH}] with :obj:`float` type
+    random: numpy.random.Generator
+        Generator used to generate random numbers
 
     Returns
     -------
@@ -148,7 +154,7 @@ def setup_prior_blackholes_indices(prograde_n_bh, prior_bh_locations):
         BH indices with :obj:`float` type
     """
     len_prior_locations = (prior_bh_locations.size)-1
-    bh_indices = np.rint(len_prior_locations * rng.uniform(size=prograde_n_bh))
+    bh_indices = np.rint(len_prior_locations * random.uniform(size=prograde_n_bh))
     return bh_indices
 
 
@@ -159,6 +165,7 @@ def setup_disk_blackholes_masses(
         nsc_bh_imf_powerlaw_index, 
         mass_pile_up,
         nsc_imf_bh_method,
+        random
     ):
     """Generates disk BH initial masses [M_sun] of size disk_bh_num for user defined inputs.
 
@@ -178,6 +185,8 @@ def setup_disk_blackholes_masses(
             from nsc_bh_imf_powerlaw_index beyond nsc_bh_inf_max_mass. E.g default [35,40] pile up of masses.
         nsc_imf_bh_method : str
             Method for IMF population
+        random: numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns:
         disk_bh_initial_masses: numpy.ndarray
@@ -185,21 +194,21 @@ def setup_disk_blackholes_masses(
     """
 
     if nsc_imf_bh_method == "default":
-        disk_bh_initial_masses = (rng.pareto(nsc_bh_imf_powerlaw_index, size=disk_bh_num) + 1) * nsc_bh_imf_mode
+        disk_bh_initial_masses = (random.pareto(nsc_bh_imf_powerlaw_index, size=disk_bh_num) + 1) * nsc_bh_imf_mode
         # Masses greater than max mass should be redrawn from a Gaussian set to recreate the mass pile up
         # mean is set to mass_pile_up (default is 35Msun) and sigma is 2.3, following LVK rates and populations
         # paper: 2023PhRvX..13a1048A, Section VI.B
         while (np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass) > 0):
-            disk_bh_initial_masses[disk_bh_initial_masses > nsc_bh_imf_max_mass] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass))
+            disk_bh_initial_masses[disk_bh_initial_masses > nsc_bh_imf_max_mass] = random.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass))
     elif nsc_imf_bh_method == "gaussian":
         # In this case, I'm going to interpret the mode as the sigma,
         # The pileup as mu, and I'm going to ignore everything else.
-        disk_bh_initial_masses = rng.normal(loc=mass_pile_up, scale=nsc_bh_imf_mode, size=disk_bh_num)
+        disk_bh_initial_masses = random.normal(loc=mass_pile_up, scale=nsc_bh_imf_mode, size=disk_bh_num)
     elif nsc_imf_bh_method in ["uniform","linear"]:
         # Here, we're going from mode to max
-        disk_bh_initial_masses = rng.uniform(low=nsc_bh_imf_mode,high=nsc_bh_imf_max_mass, size=disk_bh_num)
+        disk_bh_initial_masses = random.uniform(low=nsc_bh_imf_mode,high=nsc_bh_imf_max_mass, size=disk_bh_num)
     elif nsc_imf_bh_method == "power":
-        uniform_samples = rng.uniform(size=disk_bh_num)
+        uniform_samples = random.uniform(size=disk_bh_num)
         disk_bh_initial_masses = ( \
             (nsc_bh_imf_max_mass - nsc_bh_imf_mode) * \
             uniform_samples**(1/(1+nsc_bh_imf_powerlaw_index)) \
@@ -222,7 +231,7 @@ def setup_disk_blackholes_masses(
             nsc_imf_bh_sample_data_weights *= nsc_imf_bh_sample_data_mass**(0.5)
             nsc_imf_bh_sample_data_weights = nsc_imf_bh_sample_data_weights / np.sum(nsc_imf_bh_sample_data_weights)
             # Draw the samples
-            disk_bh_initial_masses = rng.choice(
+            disk_bh_initial_masses = random.choice(
                 nsc_imf_bh_sample_data_mass,
                 p=nsc_imf_bh_sample_data_weights,
                 size=disk_bh_num,
@@ -235,7 +244,7 @@ def setup_disk_blackholes_masses(
     return disk_bh_initial_masses
 
 
-def setup_disk_blackholes_spins(disk_bh_num, nsc_bh_spin_dist_mu, nsc_bh_spin_dist_sigma):
+def setup_disk_blackholes_spins(disk_bh_num, nsc_bh_spin_dist_mu, nsc_bh_spin_dist_sigma, random):
     """Generates disk BH initial spins [unitless]
 
     Spins are calculated with user defined Gaussian spin distribution centered on mu (default = 0)
@@ -256,11 +265,11 @@ def setup_disk_blackholes_spins(disk_bh_num, nsc_bh_spin_dist_mu, nsc_bh_spin_di
             Initial BH spins with :obj:`float` type
     """
 
-    disk_bh_initial_spins = rng.normal(loc=nsc_bh_spin_dist_mu, scale=nsc_bh_spin_dist_sigma, size=disk_bh_num)
+    disk_bh_initial_spins = random.normal(loc=nsc_bh_spin_dist_mu, scale=nsc_bh_spin_dist_sigma, size=disk_bh_num)
     return disk_bh_initial_spins
 
 
-def setup_disk_blackholes_spin_angles(disk_bh_num, disk_bh_initial_spins):
+def setup_disk_blackholes_spin_angles(disk_bh_num, disk_bh_initial_spins, random):
     """Generates disk BH initial spin angles [radian]
 
     Spin angles are drawn from random uniform distribution.
@@ -274,6 +283,8 @@ def setup_disk_blackholes_spin_angles(disk_bh_num, disk_bh_initial_spins):
             Integer number of BH initially embedded in disk
         disk_bh_initial_spins : numpy.ndarray
             Initial BH spins [unitless] with :obj:`float` type
+        random: numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns
     -------
@@ -283,12 +294,12 @@ def setup_disk_blackholes_spin_angles(disk_bh_num, disk_bh_initial_spins):
 
     bh_initial_spin_indices = np.array(disk_bh_initial_spins)
     negative_spin_indices = np.where(bh_initial_spin_indices < 0.)
-    disk_bh_initial_spin_angles = rng.uniform(low=0., high=1.57, size=disk_bh_num)
+    disk_bh_initial_spin_angles = random.uniform(low=0., high=1.57, size=disk_bh_num)
     disk_bh_initial_spin_angles[negative_spin_indices] = disk_bh_initial_spin_angles[negative_spin_indices] + 1.57
     return disk_bh_initial_spin_angles
 
 
-def setup_disk_blackholes_orb_ang_mom(disk_bh_num):
+def setup_disk_blackholes_orb_ang_mom(disk_bh_num, random):
     """Generates disk BH initial orbital angular momenta [unitless]
 
     Assume either initially fully prograde (+1) or retrograde (-1)
@@ -297,6 +308,8 @@ def setup_disk_blackholes_orb_ang_mom(disk_bh_num):
     ----------
         disk_bh_num : int
             Integer number of BH initially embedded in disk
+        random: numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns
     -------
@@ -304,11 +317,11 @@ def setup_disk_blackholes_orb_ang_mom(disk_bh_num):
             Initial BH orb ang mom [unitless] with :obj:`float` type. No units because it is an on/off switch.
     """
 
-    disk_bh_initial_orb_ang_mom = rng.choice(a=[1.,-1.],size=disk_bh_num)
+    disk_bh_initial_orb_ang_mom = random.choice(a=[1.,-1.],size=disk_bh_num)
     return disk_bh_initial_orb_ang_mom
 
 
-def setup_disk_blackholes_eccentricity_thermal(disk_bh_num):
+def setup_disk_blackholes_eccentricity_thermal(disk_bh_num, random):
     """Generates disk BH initial orbital eccentricities with a thermal distribution [unitless]
 
     Assumes a thermal distribution (uniform in e^2, i.e. e^2=[0,1] so median(e^2)=0.5 and so median(e)~0.7.
@@ -319,6 +332,8 @@ def setup_disk_blackholes_eccentricity_thermal(disk_bh_num):
     ----------
         disk_bh_num : int
             Integer number of BH initially embedded in disk
+        random: numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns
     -------
@@ -326,12 +341,12 @@ def setup_disk_blackholes_eccentricity_thermal(disk_bh_num):
             Initial BH orb eccentricity [unitless] with :obj:`float` type
     """
 
-    random_uniform_number = rng.uniform(size=disk_bh_num)
+    random_uniform_number = random.uniform(size=disk_bh_num)
     disk_bh_initial_orb_ecc = np.sqrt(random_uniform_number)
     return disk_bh_initial_orb_ecc
 
 
-def setup_disk_blackholes_eccentricity_uniform(disk_bh_num, disk_bh_orb_ecc_max_init):
+def setup_disk_blackholes_eccentricity_uniform(disk_bh_num, disk_bh_orb_ecc_max_init, random):
     """Generates disk BH initial orbital eccentrities with a uniform distribution [unitless]
 
     Assumes a uniform distribution in orb_ecc, up to disk_bh_orb_ecc_max_init
@@ -348,18 +363,20 @@ def setup_disk_blackholes_eccentricity_uniform(disk_bh_num, disk_bh_orb_ecc_max_
             Integer number of BH initially embedded in disk
         disk_bh_orb_ecc_max_init : float
             Maximum initial orb ecc assumed for embedded BH population in disk.
+        random: numpy.random.Generator
+            Generator used to generate random numbers
     Returns
     -------
         disk_bh_initial_orb_ecc : numpy.ndarray
             Initial BH orb eccentricity [unitless] with :obj:`float` type
     """
 
-    random_uniform_number = rng.uniform(size=disk_bh_num)
+    random_uniform_number = random.uniform(size=disk_bh_num)
     bh_initial_orb_ecc = random_uniform_number * disk_bh_orb_ecc_max_init
     return bh_initial_orb_ecc
 
 
-def setup_disk_blackholes_incl(disk_bh_num, disk_bh_locations, disk_bh_orb_ang_mom, disk_aspect_ratio):
+def setup_disk_blackholes_incl(disk_bh_num, disk_bh_locations, disk_bh_orb_ang_mom, disk_aspect_ratio, random):
     """Generates disk BH initial orbital inclinations [radian]
 
     Initializes inclinations with random draw with i < disk_aspect_ratio and then damp inclination.
@@ -376,6 +393,8 @@ def setup_disk_blackholes_incl(disk_bh_num, disk_bh_locations, disk_bh_orb_ang_m
             BH orb ang mom in the disk [unitless] with :obj:`float` type
         disk_aspect_ratio : numpy.ndarray
             Disk height as a function of disk radius [r_{g,SMBH}] with :obj:`float` type
+        random: numpy.random.Generator
+            Generator used to generate random numbers
     Returns
     -------
         disk_bh_orb_inc_init : numpy.ndarray
@@ -387,7 +406,7 @@ def setup_disk_blackholes_incl(disk_bh_num, disk_bh_locations, disk_bh_orb_ang_m
     max_height = disk_bh_locations * disk_aspect_ratio(disk_bh_locations)
     # reflect that height to get the min
     min_height = -max_height
-    random_uniform_number = rng.uniform(size=disk_bh_num)
+    random_uniform_number = random.uniform(size=disk_bh_num)
     # pick the actual height between the min and max, then reset zero point
     height_range = max_height - min_height
     actual_height_range = height_range * random_uniform_number
@@ -421,7 +440,7 @@ def setup_disk_blackholes_circularized(disk_bh_num, disk_bh_pro_orb_ecc_crit):
     return disk_bh_orb_ecc_init
 
 
-def setup_disk_blackholes_arg_periapse(disk_bh_num):
+def setup_disk_blackholes_arg_periapse(disk_bh_num, random):
     """Generates disk BH initial orb arg periapse [radian]
 
     Assumes a orb arg. periapse either 0 or pi/2 radians.
@@ -432,6 +451,8 @@ def setup_disk_blackholes_arg_periapse(disk_bh_num):
     ----------
         disk_bh_num : int
             Integer number of BH initially embedded in disk
+        random: numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns
     -------
@@ -439,7 +460,7 @@ def setup_disk_blackholes_arg_periapse(disk_bh_num):
             Initial BH orb arg periapse [radian] with :obj:`float` type.
     """
 
-    bh_initial_orb_arg_periapse = rng.choice(a=[0., 0.5*np.pi],size=disk_bh_num)
+    bh_initial_orb_arg_periapse = random.choice(a=[0., 0.5*np.pi],size=disk_bh_num)
     return bh_initial_orb_arg_periapse
 
 
