@@ -25,7 +25,7 @@ To generate the documentation pages, run the following:
    # Switch to the docs directory
    $ cd docs
 
-   # Clean up any previous generated docs
+   # Clean up any previously generated docs
    $ make clean
 
    # Generate the html version of the docs in ./docs/build/html
