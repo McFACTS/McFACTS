@@ -35,7 +35,7 @@ To generate the documentation pages, run the following:
 
    If you create a new documentation file, it must be added to the list in `docs/source/index.rst`_.
 
-Input and outputs are documented in `IOdocumentation.txt`_.
+Inputs and outputs are documented in `IOdocumentation.txt`_.
 
 ..
    List of link shortcuts
