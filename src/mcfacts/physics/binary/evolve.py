@@ -374,7 +374,7 @@ def bin_reality_check(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc,
 
 
 def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging, bin_time_merged, smbh_mass, timestep_duration_yr,
-                        time_gw_normalization, time_passed):
+                        time_gw_normalization, time_passed, r_g_in_meters):
     """Harden black hole binaries using Baruteau+11 prescription
 
     Use Baruteau+11 prescription to harden a pre-existing binary.
@@ -441,7 +441,7 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
     time_to_merger_gw = (point_masses.time_of_orbital_shrinkage(
         bin_mass_1[idx_non_mergers] * u.Msun,
         bin_mass_2[idx_non_mergers] * u.Msun,
-        point_masses.si_from_r_g(smbh_mass, bin_sep_nomerge),
+        point_masses.si_from_r_g(smbh_mass, bin_sep_nomerge, r_g_defined=r_g_in_meters),
         sep_final=sep_crit
     ) * ecc_factor).value
 

@@ -1,5 +1,4 @@
 """Define input handling functions for mcfacts_sim
-
 Inifile
 -------
     "disk_model_name"               : str
@@ -155,6 +154,7 @@ import pagn.constants as pagn_ct
 import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
 from astropy import constants as ct
+from astropy import units as u
 
 #: Dictionary of types for input parameters
 INPUT_TYPES = {
@@ -222,11 +222,47 @@ INPUT_TYPES = {
     "phenom_turb_std_dev"           : float,
     "flag_use_surrogate"            : int,
     "flag_dynamics_sweep"           : int,
+    "r_g_in_meters"                 : u.Quantity
 }
 # Ensure none of the data types are bool to avoid issues casting ascii to boolean
 if bool in INPUT_TYPES.values():
     raise ValueError("[ReadInputs.py] Boolean data types are not allowed in"
                      "the INPUT_TYPES dictionary. Please use int instead.")
+
+
+def initialize_r_g(input_variables):
+    """Initilializes the r_g value in meters
+
+    This function precomputes the r_g value which would otherwise be
+    calculated anew with each call to si_from_r_g, using the input 
+    SMBH_MASS value. 
+
+    It mutates the input_variables dictionary in place, adding a 
+    r_g_in_meters key to it containing the r_g value in meters.
+
+    Parameters
+    ----------
+    input_variables : dict
+        Dictionary of input variables
+    """
+    # pre-calculating r_g from the provided smbh_mass
+    # Initialize the shared value to None
+
+    c = ct.c.to('m/s')
+    G = ct.G.to('m^3/(kg s^2)')
+    # Assign units to smbh mass
+    if hasattr(input_variables["smbh_mass"], 'unit'):
+        smbh_mass = input_variables["smbh_mass"].to('solMass')
+    else:
+        smbh_mass = input_variables["smbh_mass"] * u.solMass
+    # convert smbh mass to kg
+    smbh_mass = smbh_mass.to('kg')
+    # Calculate r_g in SI
+    r_g_in_meters = G * smbh_mass / (c ** 2)
+
+    # adding r_g_in_meters to dictionary
+    input_variables['r_g_in_meters'] = r_g_in_meters
+    print(f"Constant initialized: R_g = {r_g_in_meters.value:.4f} meters")
 
 def ReadInputs_ini(fname_ini, verbose=0):
     """Input file parser
@@ -328,6 +364,9 @@ def ReadInputs_ini(fname_ini, verbose=0):
             print(key, input_variables[key], type(input_variables[key]))
         print("I put your variables where they belong")
 
+
+    # mutates input variables to have a constant value for r_g_in_meters
+    initialize_r_g(input_variables)
     # Return the arguments
     return input_variables
 

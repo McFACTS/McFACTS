@@ -394,9 +394,9 @@ def main():
         blackholes.to_txt(os.path.join(opts.work_directory, f"gal{galaxy_zfilled_str}/initial_params_bh.dat"))
 
         # Write torques stuff to file
-        star_torque_array_radius_outer = stellar_interpolation.ratio_star_torques(disk_density, disk_pressure_grad, disk_aspect_ratio, disk_surface_density, disk_omega, opts.disk_radius_outer, opts.smbh_mass)
+        star_torque_array_radius_outer = stellar_interpolation.ratio_star_torques(disk_density, disk_pressure_grad, disk_aspect_ratio, disk_surface_density, disk_omega, opts.disk_radius_outer, opts.smbh_mass, opts.r_g_in_meters)
         np.savetxt(os.path.join(opts.work_directory) + "/star_torques_disk_radius_outer.dat", star_torque_array_radius_outer, header="drag_torque mig_torque ratio_torque v_phi v_kep v_rel")
-        star_torque_array_radius_trap = stellar_interpolation.ratio_star_torques(disk_density, disk_pressure_grad, disk_aspect_ratio, disk_surface_density, disk_omega, opts.disk_radius_trap, opts.smbh_mass)
+        star_torque_array_radius_trap = stellar_interpolation.ratio_star_torques(disk_density, disk_pressure_grad, disk_aspect_ratio, disk_surface_density, disk_omega, opts.disk_radius_trap, opts.smbh_mass, opts.r_g_in_meters)
         np.savetxt(os.path.join(opts.work_directory) + "/star_torques_disk_radius_trap.dat", star_torque_array_radius_trap, header="drag_torque mig_torque ratio_torque v_phi v_kep v_rel")
 
         if (opts.flag_initial_stars_BH_immortal == 1):
@@ -708,7 +708,8 @@ def main():
                     blackholes_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
                     disk_dlog10surfdens_dlog10R_func,
-                    disk_dlog10temp_dlog10R_func
+                    disk_dlog10temp_dlog10R_func,
+                    opts.r_g_in_meters
                 )
 
                 jimenez_masset_torque_coeff_star = migration.jimenezmasset17_torque(
@@ -721,7 +722,8 @@ def main():
                     stars_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
                     disk_dlog10surfdens_dlog10R_func,
-                    disk_dlog10temp_dlog10R_func
+                    disk_dlog10temp_dlog10R_func,
+                    opts.r_g_in_meters
                 )
 
                 # Thermal torque from JM17 (if flag_thermal_feedback off, this component is 0.)
@@ -737,7 +739,8 @@ def main():
                     opts.disk_bh_pro_orb_ecc_crit,
                     blackholes_pro.mass,
                     opts.flag_thermal_feedback,
-                    disk_dlog10pressure_dlog10R_func
+                    disk_dlog10pressure_dlog10R_func,
+                    opts.r_g_in_meters
                 )
 
                 jimenez_masset_thermal_torque_coeff_star = migration.jimenezmasset17_thermal_torque_coeff(
@@ -752,7 +755,8 @@ def main():
                     opts.disk_bh_pro_orb_ecc_crit,
                     stars_pro.mass,
                     opts.flag_thermal_feedback,
-                    disk_dlog10pressure_dlog10R_func
+                    disk_dlog10pressure_dlog10R_func,
+                    opts.r_g_in_meters
                 )
 
                 if opts.flag_thermal_feedback == 1:
@@ -771,7 +775,8 @@ def main():
                     blackholes_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
                     disk_surface_density,
-                    disk_aspect_ratio
+                    disk_aspect_ratio,
+                    opts.r_g_in_meters
                 )
 
                 normalized_torque_star = migration.normalized_torque(
@@ -781,7 +786,8 @@ def main():
                     stars_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
                     disk_surface_density,
-                    disk_aspect_ratio
+                    disk_aspect_ratio,
+                    opts.r_g_in_meters
                 )
 
                 if opts.torque_prescription == 'paardekooper':
@@ -815,7 +821,8 @@ def main():
                     blackholes_pro.mass,
                     blackholes_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
-                    torque_bh
+                    torque_bh,
+                    opts.r_g_in_meters
                 )
 
                 torque_mig_timescales_star = migration.torque_mig_timescale(
@@ -824,7 +831,8 @@ def main():
                     stars_pro.mass,
                     stars_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
-                    torque_star
+                    torque_star,
+                    opts.r_g_in_meters
                 )
                 # Calculate new bh_orbs_a using torque (here including details from Jimenez & Masset '17 & Grishin+'24)
                 new_orb_a_bh = migration.type1_migration_distance(
@@ -925,7 +933,8 @@ def main():
                 opts.smbh_mass,
                 disk_sound_speed,
                 disk_density,
-                opts.timestep_duration_yr
+                opts.timestep_duration_yr,
+                opts.r_g_in_meters
             )
 
             # Mass gained by stars is lost from disk
@@ -1027,7 +1036,8 @@ def main():
                 opts.disk_inner_stable_circ_orb,
                 disk_surface_density,
                 opts.timestep_duration_yr,
-                opts.disk_radius_outer
+                opts.disk_radius_outer,
+                opts.r_g_in_meters
             )
             # KN: Does this function apply to all disk objects and if so should we rename it?
             stars_retro.orb_ecc, stars_retro.orb_a, stars_retro.orb_inc = disk_capture.retro_bh_orb_disk_evolve(
@@ -1040,7 +1050,8 @@ def main():
                 opts.disk_inner_stable_circ_orb,
                 disk_surface_density,
                 opts.timestep_duration_yr,
-                opts.disk_radius_outer
+                opts.disk_radius_outer,
+                opts.r_g_in_meters
             )
 
             # Update filing cabinet
@@ -1399,7 +1410,8 @@ def main():
                         opts.delta_energy_strong_mu,
                         opts.disk_radius_outer,
                         opts.harden_energy_delta_mu,
-                        opts.harden_energy_delta_sigma
+                        opts.harden_energy_delta_sigma,
+                        opts.r_g_in_meters,
                     )
 
                     # Update filing cabinet with new bin_sep
@@ -1482,7 +1494,8 @@ def main():
                         opts.delta_energy_strong_mu,
                         opts.disk_radius_outer,
                         opts.harden_energy_delta_mu,
-                        opts.harden_energy_delta_sigma)
+                        opts.harden_energy_delta_sigma,
+                        opts.r_g_in_meters)
 
                     if (bbh_id_nums_merged.size > 0):
                         # Change merger flag
@@ -1706,7 +1719,8 @@ def main():
                         opts.timestep_duration_yr,
                         opts.disk_bh_pro_orb_ecc_crit,
                         opts.delta_energy_strong_mu,
-                        opts.disk_radius_outer
+                        opts.disk_radius_outer,
+                        opts.r_g_in_meters
                     )
 
                     # Update filing cabinet with new bin_sep
@@ -1787,7 +1801,8 @@ def main():
                         opts.timestep_duration_yr,
                         opts.disk_bh_pro_orb_ecc_crit,
                         opts.delta_energy_strong_mu,
-                        opts.disk_radius_outer)
+                        opts.disk_radius_outer,
+                        opts.r_g_in_meters)
 
                     if (bbh_id_nums_merged.size > 0):
                         # Change merger flag
@@ -2011,7 +2026,8 @@ def main():
                     opts.smbh_mass,
                     opts.timestep_duration_yr,
                     time_gw_normalization,
-                    time_passed)
+                    time_passed,
+                    opts.r_g_in_meters)
 
                 # Update filing cabinet with new bin_sep
                 filing_cabinet.update(id_num=blackholes_binary.id_num,
@@ -2119,7 +2135,8 @@ def main():
                         opts.delta_energy_strong_mu,
                         opts.nsc_spheroid_normalization,
                         opts.harden_energy_delta_mu,
-                        opts.harden_energy_delta_sigma
+                        opts.harden_energy_delta_sigma,
+                        opts.r_g_in_meters
                     )
                     # Update filing cabinet with new bin_sep
                     filing_cabinet.update(id_num=blackholes_binary.id_num,
@@ -2235,7 +2252,8 @@ def main():
                         blackholes_binary.bin_orb_ecc,
                         opts.disk_bh_pro_orb_ecc_crit,
                         disk_dlog10surfdens_dlog10R_func,
-                        disk_dlog10temp_dlog10R_func
+                        disk_dlog10temp_dlog10R_func,
+                        opts.r_g_in_meters
                     )
                     jimenez_masset_thermal_torque_coeff_bh = migration.jimenezmasset17_thermal_torque_coeff(
                         opts.smbh_mass,
@@ -2249,7 +2267,8 @@ def main():
                         opts.disk_bh_pro_orb_ecc_crit,
                         blackholes_binary.mass_1 + blackholes_binary.mass_2,
                         opts.flag_thermal_feedback,
-                        disk_dlog10pressure_dlog10R_func
+                        disk_dlog10pressure_dlog10R_func,
+                        opts.r_g_in_meters
                     )
                     if opts.flag_thermal_feedback > 0:
                         total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh + jimenez_masset_thermal_torque_coeff_bh
@@ -2264,7 +2283,8 @@ def main():
                         blackholes_binary.bin_orb_ecc,
                         opts.disk_bh_pro_orb_ecc_crit,
                         disk_surface_density,
-                        disk_aspect_ratio
+                        disk_aspect_ratio,
+                        opts.r_g_in_meters
                     )
 
                     if np.size(normalized_torque_bh) > 0:
@@ -2297,7 +2317,8 @@ def main():
                             blackholes_binary.mass_1 + blackholes_binary.mass_2,
                             blackholes_binary.bin_orb_ecc,
                             opts.disk_bh_pro_orb_ecc_crit,
-                            torque
+                            torque,
+                            opts.r_g_in_meters
                         )
                         # Calculate new bh_orbs_a using torque
                         blackholes_binary.bin_orb_a = migration.type1_migration_distance(
@@ -2868,6 +2889,7 @@ def main():
                     opts.timestep_duration_yr,
                     opts.inner_disk_outer_radius,
                     opts.disk_inner_stable_circ_orb,
+                    opts.r_g_in_meters
                 )
                 # Update filing cabinet
                 filing_cabinet.update(id_num=blackholes_inner_disk.id_num,
@@ -2902,6 +2924,7 @@ def main():
                     opts.timestep_duration_yr,
                     opts.inner_disk_outer_radius,
                     opts.disk_inner_stable_circ_orb,
+                    opts.r_g_in_meters
                 )
                 # Update filing cabinet
                 filing_cabinet.update(id_num=stars_inner_disk.id_num,
@@ -3014,7 +3037,8 @@ def main():
                                                                              stars_retro.at_id_num(star_id_num_flip_to_pro_or_tde, "log_radius"),
                                                                              stars_retro.at_id_num(star_id_num_flip_to_pro_or_tde, "orb_ecc"),
                                                                              stars_retro.at_id_num(star_id_num_flip_to_pro_or_tde, "orb_a"),
-                                                                             opts.smbh_mass)
+                                                                             opts.smbh_mass,
+                                                                             opts.r_g_in_meters)
             if (star_id_num_flip_to_pro.size > 0):
                 # add to prograde arrays
                 stars_pro.add_stars(
