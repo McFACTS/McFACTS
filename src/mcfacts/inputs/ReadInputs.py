@@ -223,7 +223,6 @@ INPUT_TYPES = {
     "phenom_turb_std_dev"           : float,
     "flag_use_surrogate"            : int,
     "flag_dynamics_sweep"           : int,
-    "r_g_in_meters"                 : float,
 }
 # Ensure none of the data types are bool to avoid issues casting ascii to boolean
 if bool in INPUT_TYPES.values():
