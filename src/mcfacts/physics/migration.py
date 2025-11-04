@@ -10,7 +10,6 @@ from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import si_from_r_g
 import scipy
 
-from mcfacts.inputs import ReadInputs 
 
 def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func, disk_dlog10temp_dlog10R_func):
     """Return the Paardekooper (2010) torque coefficient for Type 1 migration

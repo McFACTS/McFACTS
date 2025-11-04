@@ -18,7 +18,6 @@ from mcfacts.physics.point_masses import time_of_orbital_shrinkage
 from mcfacts.physics.point_masses import si_from_r_g, r_g_from_units, r_schwarzschild_of_m
 from mcfacts.physics.binary.evolve import bin_ionization_check
 
-from mcfacts.inputs import ReadInputs
 
 def components_from_EL(E, L, units='geometric', smbh_mass=1e8):
     """Calculates new orb_a and eccentricity from specific energy and specific angular momentum

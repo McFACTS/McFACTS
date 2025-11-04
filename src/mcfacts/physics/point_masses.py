@@ -151,7 +151,7 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
     return sep_initial * u.m
 
 
-def si_from_r_g(smbh_mass, distance_rg, r_g_defined = None):
+def si_from_r_g(smbh_mass, distance_rg, r_g_defined=None):
     """Calculate the SI distance from r_g
 
     Parameters

@@ -1,5 +1,4 @@
 """Define input handling functions for mcfacts_sim
-
 Inifile
 -------
     "disk_model_name"               : str
@@ -223,6 +222,7 @@ INPUT_TYPES = {
     "phenom_turb_std_dev"           : float,
     "flag_use_surrogate"            : int,
     "flag_dynamics_sweep"           : int,
+    "r_g_in_meters"                 : u.Quantity
 }
 # Ensure none of the data types are bool to avoid issues casting ascii to boolean
 if bool in INPUT_TYPES.values():
@@ -231,6 +231,20 @@ if bool in INPUT_TYPES.values():
 
 
 def initialize_r_g(input_variables):
+    """Initilializes the r_g value in meters
+
+    This function precomputes the r_g value which would otherwise be
+    calculated anew with each call to si_from_r_g, using the input 
+    SMBH_MASS value. 
+
+    It mutates the input_variables dictionary in place, adding a 
+    r_g_in_meters key to it containing the r_g value in meters.
+
+    Parameters
+    ----------
+    input_variables : dict
+        Dictionary of input variables
+    """
     # pre-calculating r_g from the provided smbh_mass
     # Initialize the shared value to None
 
@@ -244,7 +258,7 @@ def initialize_r_g(input_variables):
     # convert smbh mass to kg
     smbh_mass = smbh_mass.to('kg')
     # Calculate r_g in SI
-    r_g_in_meters = G*smbh_mass/(c ** 2)
+    r_g_in_meters = G * smbh_mass / (c ** 2)
 
     # adding r_g_in_meters to dictionary
     input_variables['r_g_in_meters'] = r_g_in_meters

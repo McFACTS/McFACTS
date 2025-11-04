@@ -8,7 +8,6 @@ import astropy.units as u
 from mcfacts.physics.point_masses import si_from_r_g
 from mcfacts.mcfacts_random_state import rng
 
-from mcfacts.inputs import ReadInputs
 
 def star_wind_mass_loss(disk_star_pro_masses,
                         disk_star_pro_log_radius,
