@@ -1139,7 +1139,7 @@ class AGNBinaryBlackHole(AGNObject):
         self.gen_1 = gen_1
         self.gen_2 = gen_2
         self.bin_orb_ang_mom = bin_orb_ang_mom
-        self.bin_orb_inc = np.abs(bin_orb_inc)
+        self.bin_orb_inc = bin_orb_inc
         self.bin_orb_ecc = bin_orb_ecc
         self.gw_freq = gw_freq
         self.gw_strain = gw_strain
