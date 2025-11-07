@@ -805,7 +805,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
     elif flag_use_surrogate == 1:
         #bh_v_kick = 200 #evolve_binary.velocity()
         surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
-        bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
+        bh_mass_merged, bh_kick_comp_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
@@ -856,6 +856,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_spin_merged,
         bh_v_kick)
 
+    # ====== Varun here is the function you're changing for the components. Replace the bh_v_kick --> bh_kick_comp_merged ======
     bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
                                              np.full(bh_binary_id_num_merger.size, bh_v_kick),
                                              smbh_mass)
