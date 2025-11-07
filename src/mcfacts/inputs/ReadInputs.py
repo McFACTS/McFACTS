@@ -1,5 +1,4 @@
 """Define input handling functions for mcfacts_sim
-
 Inifile
 -------
     "disk_model_name"               : str
@@ -78,7 +77,7 @@ Inifile
         Scale factor to go from number of BH to number of stars.
     "disk_star_initial_mass_cutoff" : float
         Cutoff for initial star behavior
-    "nsc_imf_star_mass_mode"       : float
+    "nsc_imf_star_mass_mode"        : float
         Mass mode for star IMF
     "disk_star_torque_condition"    : float
         fraction of initial mass required to be accreted before star spin is torqued
@@ -109,7 +108,7 @@ Inifile
     "flag_orb_ecc_damping"          : int
         Switch (1) turns orb. ecc damping on.
         If switch = 0, assumes all bh are circularized (at e=e_crit)
-    "capture_time_yr"              : float
+    "capture_time_yr"               : float
         Capture time in years Secunda et al. (2021) assume capture rate 1/0.1 Myr
     "disk_radius_capture_outer"     : float
         Disk capture outer radius (units of r_g)
@@ -118,7 +117,7 @@ Inifile
         Critical eccentricity (limiting eccentricity, below which assumed circular orbit)
     "flag_dynamic_enc"              : int
         Switch (1) turns dynamical encounters between embedded BH on.
-    "delta_energy_strong_mu"           : float
+    "delta_energy_strong_mu"        : float
         Average energy change per strong interaction.
         de can be 20% in cluster interactions. May be 10% on average (with gas)
     "delta_energy_strong_sigma"     : float
@@ -131,9 +130,9 @@ Inifile
         Pile-up of masses caused by cutoff (M_sun)
     "save_snapshots"                : int
         Save snapshots of the disk and NSC at each timestep
-    "harden_energy_delta_mu"      : float
+    "harden_energy_delta_mu"        : float
         The Gaussian mean value for the energy change during a strong interaction
-    "harden_energy_delta_sigma"       : float
+    "harden_energy_delta_sigma"     : float
         The Gaussian standard deviation value for the energy change during a strong interaction
     "flag_use_surrogate"            : int
         Switch (0) uses analytical kick prescription from Akiba et al. (2024).
@@ -158,8 +157,9 @@ import pagn.constants as pagn_ct
 import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
 from astropy import constants as ct
+from astropy import units as u
 
-# Dictionary of types
+#: Dictionary of types for input parameters
 INPUT_TYPES = {
     "disk_model_name"               : str,
     "flag_use_pagn"                 : int,
@@ -226,11 +226,47 @@ INPUT_TYPES = {
     "flag_use_surrogate"            : int,
     "flag_use_spin_check"           : int,
     "flag_dynamics_sweep"           : int,
+    "r_g_in_meters"                 : u.Quantity
 }
 # Ensure none of the data types are bool to avoid issues casting ascii to boolean
 if bool in INPUT_TYPES.values():
     raise ValueError("[ReadInputs.py] Boolean data types are not allowed in"
                      "the INPUT_TYPES dictionary. Please use int instead.")
+
+
+def initialize_r_g(input_variables):
+    """Initilializes the r_g value in meters
+
+    This function precomputes the r_g value which would otherwise be
+    calculated anew with each call to si_from_r_g, using the input 
+    SMBH_MASS value. 
+
+    It mutates the input_variables dictionary in place, adding a 
+    r_g_in_meters key to it containing the r_g value in meters.
+
+    Parameters
+    ----------
+    input_variables : dict
+        Dictionary of input variables
+    """
+    # pre-calculating r_g from the provided smbh_mass
+    # Initialize the shared value to None
+
+    c = ct.c.to('m/s')
+    G = ct.G.to('m^3/(kg s^2)')
+    # Assign units to smbh mass
+    if hasattr(input_variables["smbh_mass"], 'unit'):
+        smbh_mass = input_variables["smbh_mass"].to('solMass')
+    else:
+        smbh_mass = input_variables["smbh_mass"] * u.solMass
+    # convert smbh mass to kg
+    smbh_mass = smbh_mass.to('kg')
+    # Calculate r_g in SI
+    r_g_in_meters = G * smbh_mass / (c ** 2)
+
+    # adding r_g_in_meters to dictionary
+    input_variables['r_g_in_meters'] = r_g_in_meters
+    print(f"Constant initialized: R_g = {r_g_in_meters.value:.4f} meters")
 
 def ReadInputs_ini(fname_ini, verbose=0):
     """Input file parser
@@ -332,6 +368,9 @@ def ReadInputs_ini(fname_ini, verbose=0):
             print(key, input_variables[key], type(input_variables[key]))
         print("I put your variables where they belong")
 
+
+    # mutates input variables to have a constant value for r_g_in_meters
+    initialize_r_g(input_variables)
     # Return the arguments
     return input_variables
 
