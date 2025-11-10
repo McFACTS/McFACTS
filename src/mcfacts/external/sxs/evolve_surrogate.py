@@ -1,11 +1,10 @@
+import juliacall
 import numpy as np
 import quaternionic
 from sxs import WaveformModes
 from sxs import m_sun_in_seconds
 
 import mcfacts.external.sxs.fit_modeler
-
-import juliacall
 
 PostNewtonian = juliacall.newmodule("PN")
 PostNewtonian.seval("using PostNewtonian")
@@ -425,7 +424,8 @@ def evolve_binary(
     spin_2_mag,
     spin_angle_1,
     spin_angle_2,
-    phi_12,
+    phi_1,
+    phi_2,
     bin_sep,
     bin_inc,
     bin_phase,
@@ -452,8 +452,10 @@ def evolve_binary(
         angle between spin of heavier object and the SMBH's z-axis
     spin_2_angle : float
         angle between spin of lighter object and the SMBH's z-axis
-    phi_12 : float
-        angle between spin vectors in the orbital-plane
+    phi_1 : float
+        angle between spin of heavier object and the SMBH's x-axis
+    phi_2 : float
+        angle between spin of lighter object and the SMBH's x-axis
     bin_sep : float
         binary separation (in units of mass_1 + mass_2)
     bin_inc : numpy array
@@ -500,8 +502,8 @@ def evolve_binary(
     # Compute dimensionless spin parameters (and rotate them to the binary frame)
     spin_1 = spin_1_mag * np.array(
         [
-            np.cos(phi_12) * np.sin(spin_angle_1),
-            np.sin(phi_12) * np.sin(spin_angle_1),
+            np.cos(phi_1) * np.sin(spin_angle_1),
+            np.sin(phi_1) * np.sin(spin_angle_1),
             np.cos(spin_angle_1),
         ]
     )
@@ -509,8 +511,8 @@ def evolve_binary(
 
     spin_2 = spin_2_mag * np.array(
         [
-            np.cos(phi_12) * np.sin(spin_angle_2),
-            np.sin(phi_12) * np.sin(spin_angle_2),
+            np.cos(phi_2) * np.sin(spin_angle_2),
+            np.sin(phi_2) * np.sin(spin_angle_2),
             np.cos(spin_angle_2),
         ]
     )
@@ -528,6 +530,14 @@ def evolve_binary(
         spin_1_copy = spin_1
         spin_1 = spin_2
         spin_2 = spin_1_copy
+
+    print("Inputs (in binary frame):")
+    print("-------")
+    print("M_1 input = ", mass_1)
+    print("M_2 input = ", mass_2)
+    print("spin_1 input = ", spin_1)
+    print("spin_2 input = ", spin_2)
+    print()
 
     if verbose:
         print("Evolving binary...")

@@ -1,5 +1,4 @@
 """Define input handling functions for mcfacts_sim
-
 Inifile
 -------
     "disk_model_name"               : str
@@ -51,6 +50,8 @@ Inifile
     "nsc_imf_bh_mass_max"           : float
         Initial mass distribution for stellar bh is assumed to be Pareto
         with high mass cutoff--mass of cutoff (M_sun)
+    "nsc_imf_bh_method"                 : str
+        The name of an IMF method ('uniform', 'default', 'gaussian' or filename for samples)
     "nsc_bh_spin_dist_mu"           : float
         Initial spin distribution for stellar bh is assumed to be Gaussian
         --mean of spin dist
@@ -60,7 +61,7 @@ Inifile
     "disk_bh_torque_condition"      : float
         fraction of initial mass required to be accreted before BH spin is torqued
         fully into alignment with the AGN disk. We don't know for sure but
-        Bogdanovic et al. says between 0.01=1% and 0.1=10% is what is required.
+        (Bogdanovic et al. 2007) says between 0.01=1% and 0.1=10% is what is required.
     "disk_bh_eddington_ratio"       : float
         Eddington ratio for disk bh
     "disk_bh_orb_ecc_max_init"      : float
@@ -76,12 +77,12 @@ Inifile
         Scale factor to go from number of BH to number of stars.
     "disk_star_initial_mass_cutoff" : float
         Cutoff for initial star behavior
-    "nsc_imf_star_mass_mode"       : float
+    "nsc_imf_star_mass_mode"        : float
         Mass mode for star IMF
     "disk_star_torque_condition"    : float
         fraction of initial mass required to be accreted before star spin is torqued
         fully into alignment with the AGN disk. We don't know for sure but
-        Bogdanovic et al. says between 0.01=1% and 0.1=10% is what is required.
+        (Bogdanovic et al. 2007) says between 0.01=1% and 0.1=10% is what is required.
     "disk_star_eddington_ratio"     : float
         assumed accretion rate onto stars from disk gas, in units of Eddington
         accretion rate
@@ -107,7 +108,7 @@ Inifile
     "flag_orb_ecc_damping"          : int
         Switch (1) turns orb. ecc damping on.
         If switch = 0, assumes all bh are circularized (at e=e_crit)
-    "capture_time_yr"              : float
+    "capture_time_yr"               : float
         Capture time in years Secunda et al. (2021) assume capture rate 1/0.1 Myr
     "disk_radius_capture_outer"     : float
         Disk capture outer radius (units of r_g)
@@ -116,7 +117,7 @@ Inifile
         Critical eccentricity (limiting eccentricity, below which assumed circular orbit)
     "flag_dynamic_enc"              : int
         Switch (1) turns dynamical encounters between embedded BH on.
-    "delta_energy_strong_mu"           : float
+    "delta_energy_strong_mu"        : float
         Average energy change per strong interaction.
         de can be 20% in cluster interactions. May be 10% on average (with gas)
     "delta_energy_strong_sigma"     : float
@@ -129,12 +130,19 @@ Inifile
         Pile-up of masses caused by cutoff (M_sun)
     "save_snapshots"                : int
         Save snapshots of the disk and NSC at each timestep
-    "mean_harden_energy_delta"      : float
+    "harden_energy_delta_mu"        : float
         The Gaussian mean value for the energy change during a strong interaction
-    "var_harden_energy_delta"       : float
-        The Gaussian variance value for the energy change during a strong interaction
+    "harden_energy_delta_sigma"     : float
+        The Gaussian standard deviation value for the energy change during a strong interaction
     "flag_use_surrogate"            : int
-        Switch (0) uses analytical kick prescription from Akiba et al. (2024). Switch (1) uses NRSurrogate model from (paper in prep).
+        Switch (0) uses analytical kick prescription from Akiba et al. (2024).
+        Switch (1) uses NRSurrogate model from (paper in prep).
+        Switch (-1) uses precession module from Gerosa & Kesden (2016).
+    "flag_use_spin_check"           : int
+        Switch (0) allows spin values to pass through without change.
+        Switch (1) applies spin check system that sets 2g spins lower than 0.75 to a random range [0.75, 0.85]; 3g+ spins lower than 0.85 to a random range [0.85, 0.95]
+    "flag_dynamics_sweep"           : int
+        Use faster dynamics functions which implement sweep function (1 on/0 off)
 """
 # Things everyone needs
 import configparser as ConfigParser
@@ -149,8 +157,9 @@ import pagn.constants as pagn_ct
 import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
 from astropy import constants as ct
+from astropy import units as u
 
-# Dictionary of types
+#: Dictionary of types for input parameters
 INPUT_TYPES = {
     "disk_model_name"               : str,
     "flag_use_pagn"                 : int,
@@ -174,6 +183,7 @@ INPUT_TYPES = {
     "nsc_imf_bh_mode"               : float,
     "nsc_imf_bh_powerlaw_index"     : float,
     "nsc_imf_bh_mass_max"           : float,
+    "nsc_imf_bh_method"             : str,
     "nsc_bh_spin_dist_mu"           : float,
     "nsc_bh_spin_dist_sigma"        : float,
     "disk_bh_torque_condition"      : float,
@@ -207,18 +217,56 @@ INPUT_TYPES = {
     "disk_inner_stable_circ_orb"    : float,
     "mass_pile_up"                  : float,
     "save_snapshots"                : int,
-    "mean_harden_energy_delta"      : float,
-    "var_harden_energy_delta"       : float,
+    "harden_energy_delta_mu"        : float,
+    "harden_energy_delta_sigma"     : float,
     "torque_prescription"           : str,
     "flag_phenom_turb"              : int,
     "phenom_turb_centroid"          : float,
     "phenom_turb_std_dev"           : float,
-    "flag_use_surrogate"            : int
+    "flag_use_surrogate"            : int,
+    "flag_use_spin_check"           : int,
+    "flag_dynamics_sweep"           : int,
+    "r_g_in_meters"                 : u.Quantity
 }
 # Ensure none of the data types are bool to avoid issues casting ascii to boolean
 if bool in INPUT_TYPES.values():
     raise ValueError("[ReadInputs.py] Boolean data types are not allowed in"
                      "the INPUT_TYPES dictionary. Please use int instead.")
+
+
+def initialize_r_g(input_variables):
+    """Initilializes the r_g value in meters
+
+    This function precomputes the r_g value which would otherwise be
+    calculated anew with each call to si_from_r_g, using the input 
+    SMBH_MASS value. 
+
+    It mutates the input_variables dictionary in place, adding a 
+    r_g_in_meters key to it containing the r_g value in meters.
+
+    Parameters
+    ----------
+    input_variables : dict
+        Dictionary of input variables
+    """
+    # pre-calculating r_g from the provided smbh_mass
+    # Initialize the shared value to None
+
+    c = ct.c.to('m/s')
+    G = ct.G.to('m^3/(kg s^2)')
+    # Assign units to smbh mass
+    if hasattr(input_variables["smbh_mass"], 'unit'):
+        smbh_mass = input_variables["smbh_mass"].to('solMass')
+    else:
+        smbh_mass = input_variables["smbh_mass"] * u.solMass
+    # convert smbh mass to kg
+    smbh_mass = smbh_mass.to('kg')
+    # Calculate r_g in SI
+    r_g_in_meters = G * smbh_mass / (c ** 2)
+
+    # adding r_g_in_meters to dictionary
+    input_variables['r_g_in_meters'] = r_g_in_meters
+    print(f"Constant initialized: R_g = {r_g_in_meters.value:.4f} meters")
 
 def ReadInputs_ini(fname_ini, verbose=0):
     """Input file parser
@@ -305,6 +353,14 @@ def ReadInputs_ini(fname_ini, verbose=0):
             input_variables["disk_radius_outer"] = \
                 input_variables["disk_radius_outer"] * disk_radius_scale
 
+    # Check for precession module
+    if input_variables["flag_use_surrogate"] == -1:
+        try:
+            import precession
+        except Exception as exc:
+            print("Failed to import precession. Try `pip install precession`")
+            raise exc
+
     # Print out the dictionary if we are in verbose mode
     if verbose:
         print("input_variables:")
@@ -312,6 +368,9 @@ def ReadInputs_ini(fname_ini, verbose=0):
             print(key, input_variables[key], type(input_variables[key]))
         print("I put your variables where they belong")
 
+
+    # mutates input variables to have a constant value for r_g_in_meters
+    initialize_r_g(input_variables)
     # Return the arguments
     return input_variables
 
