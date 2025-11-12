@@ -2,9 +2,9 @@
 Module to process binary black hole mergers using the surfinBH surrogate model.
 """
 
-import juliacall
+#import juliacall
 import numpy as np
-import random
+#import random
 #from scripts.sxs import fit_modeler
 from mcfacts.external.sxs import evolve_surrogate
 
@@ -17,7 +17,7 @@ from astropy import constants as const
 def surrogate(mass_1, mass_2, spin_1_mag, spin_2_mag, spin_angle_1, spin_angle_2, phi_1, phi_2, bin_sep, bin_inc, bin_phase, bin_orb_a, mass_SMBH, spin_SMBH, surrogate):
 
     #print(m1, m2, s1m, s2m, sa1, sa2, p12)
-    mass_final, spin_final, spin_angle_final, kick_final, mass_1_20Hz_final, mass_2_20Hz_final, spin_1_20Hz_final, spin_2_20Hz_final = [], [], [], [], [], [], [], []
+    mass_final, kick_comp_final, spin_final, spin_angle_final, kick_final, mass_1_20Hz_final, mass_2_20Hz_final, spin_1_20Hz_final, spin_2_20Hz_final = [], [], [], [], [], [], [], [], []
 
     phi_1_rand = np.random.uniform(0, 2 * np.pi, phi_1)
     phi_2_rand = np.random.uniform(0, 2 * np.pi, phi_2)
@@ -61,6 +61,7 @@ def surrogate(mass_1, mass_2, spin_1_mag, spin_2_mag, spin_angle_1, spin_angle_2
         #print(M_f, spin_f_mag, v_f_mag)
         
         mass_final.append(M_f)
+        kick_comp_final.append(v_f)
         spin_final.append(spin_f_mag)
         spin_angle_final.append(np.arccos(spin_f[2]/spin_f_mag)) # contains remnant spin angles 
         kick_final.append(v_f_mag)
@@ -72,6 +73,7 @@ def surrogate(mass_1, mass_2, spin_1_mag, spin_2_mag, spin_angle_1, spin_angle_2
     #print(M_f, spin_f_mag, v_f_mag)
     
     print("M_f = ", mass_final)
+    print("kick_comp_final = ", kick_comp_final)
     print("spin_f = ", spin_f_mag)
     print("spin_angle_f = ", spin_angle_final)
     print("v_f = ", kick_final)
@@ -80,4 +82,4 @@ def surrogate(mass_1, mass_2, spin_1_mag, spin_2_mag, spin_angle_1, spin_angle_2
     print("spin_1 @ 20Hz = ", spin_1_20Hz_final_mag)
     print("spin_2 @ 20Hz = ", spin_2_20Hz_final_mag)
     
-    return np.array(mass_final), np.array(spin_final), np.array(spin_angle_final), np.array(kick_final), np.array(mass_1_20Hz_final), np.array(mass_2_20Hz_final), np.array(spin_1_20Hz_final), np.array(spin_2_20Hz_final)
+    return np.array(mass_final), np.array(kick_comp_final), np.array(spin_final), np.array(spin_angle_final), np.array(kick_final), np.array(mass_1_20Hz_final), np.array(mass_2_20Hz_final), np.array(spin_1_20Hz_final), np.array(spin_2_20Hz_final)

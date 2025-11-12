@@ -138,6 +138,9 @@ Inifile
         Switch (0) uses analytical kick prescription from Akiba et al. (2024).
         Switch (1) uses NRSurrogate model from (paper in prep).
         Switch (-1) uses precession module from Gerosa & Kesden (2016).
+    "flag_use_spin_check"           : int
+        Switch (0) allows spin values to pass through without change.
+        Switch (1) applies spin check system that sets 2g spins lower than 0.75 to a random range [0.75, 0.85]; 3g+ spins lower than 0.85 to a random range [0.85, 0.95]
     "flag_dynamics_sweep"           : int
         Use faster dynamics functions which implement sweep function (1 on/0 off)
 """
@@ -221,6 +224,7 @@ INPUT_TYPES = {
     "phenom_turb_centroid"          : float,
     "phenom_turb_std_dev"           : float,
     "flag_use_surrogate"            : int,
+    "flag_use_spin_check"           : int,
     "flag_dynamics_sweep"           : int,
     "r_g_in_meters"                 : u.Quantity
 }
