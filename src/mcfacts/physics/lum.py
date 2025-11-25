@@ -122,22 +122,22 @@ def jet_luminosity(mass_final,
     LBHL : numpy.ndarray
         Estimated jet luminosity (in [erg s**-1]).
     """
-    # get the local disk density and convert from [km s**-1] to [cm s**-1]
+    #print(migration_velocity)
+    # get the local disk density and convert from [kg m**-3] to [g cm**-3]
     disk_density_cgs = disk_density(bin_orb_a) * 10**-3
 
     # get the local sound speed of the disk (in [m s**-1])
     sound_speed = disk_sound_speed(bin_orb_a) 
-
-    # get the relative velocity of the remnant, convert the kick velocity from [km s**-1] to [m s**-1]
-    # then convert the relative veloctity to [cm s**-1]
-    v_rel = ((v_kick * 10**3) + sound_speed) * 10**2 
+    # get the relative velocity of the remnant and migration velocity [cm s**-1]
+    v_rel = (v_kick * 10**3 * 10**2)
 
     # convert the mass of the remnant black hole from [Msun] to [g]
     mass_final_g = mass_final * 1.98841e+33 
 
-    # calculate Bondi accretion, as in Graham et al. (2023)
-    mdot_bondi = 4 * np.pi * (ct.G.cgs.value ** 2) * (mass_final_g ** 2) * disk_density_cgs * (v_rel)**-3
+    # calculate Bondi accretion, convert sound speed from m / s to cm / s
+    mdot_bondi = 4 * np.pi * (ct.G.cgs.value ** 2) * (mass_final_g ** 2) * disk_density_cgs * (v_rel**2 + (sound_speed * 10**2)**2)**-(3/2)
 
+    kappa = 0.1
     # calculate the jet luminosity as in (Graham et al. (2023)
-    L_jet = spin_final**2 * mdot_bondi * ct.c.cgs.value**2
+    L_jet = (0.1) * (kappa / 0.1) * (0.9 / spin_final)**2 * mdot_bondi * ct.c.cgs.value**2
     return L_jet

@@ -13,6 +13,7 @@ import pandas as pd
 import glob as g
 import os
 # Grab those txt files
+from scipy.optimize import curve_fit
 from importlib import resources as impresources
 from mcfacts.vis import data
 from mcfacts.vis import plotting
@@ -43,80 +44,12 @@ def arg():
     assert os.path.isfile(opts.fname_mergers)
     return opts
 
-def f(x):
-    return np.sqrt(x)
+def linefunc(x, m):
+    """Model for a line passing through (x,y) = (0,1).
 
-def g(y):
-    return np.cos(y)
-
-def jet_prob(mergers, q):
+    Function for a line used when fitting to the data.
     """
-    Compute jet-driving likelihood and return only mergers with jets "on".
-
-    This function constructs a probability distribution for jet production
-    based on a mass-weighted spin magnitude and the spin alignment angle.
-    It then normalizes the resulting likelihood, treats it as a probability,
-    and determines whether each merger produces a jet by checking a random
-    number against the computed likelihood.
-
-    What this function does is:
-    1. Compute weighted spin = (|spin1| + q * |spin2|) / (1 + q).
-    2. Compute spin misalignment Δθ = spin1 - spin2.
-    3. Compute probability space using constants A, B and our chosen functions f and g.
-    4. Normalize the probability to [0, 1].
-    5. Draw random booleans with probability equal to the normalized likelihood.
-    6. Return only the rows where the jet is active (True).
-
-    Parameters
-    ----------
-    mergers : numpy.ndarray
-        2D array where each row represents a merger event.
-    q : float
-        Mass ratio M1/M2, where M1 <= M2.
-
-    Returns
-    -------
-    numpy.ndarray
-        Subset of output_mergers_population where the final boolean (jet_on) is True.
-
-    Notes
-    -----
-    - This function appends new columns to output_mergers_population:
-        20: mass weighted spin
-        21: delta_theta
-        22: probability
-        23: normalized probability
-        24: boolean (jet_on)
-    """
-    np.random.seed(3456789108)
-
-    # Constants
-    A = -108.7
-    B = 158.7
-
-    # Compute mass weighted spin and append it to input data
-    weighted_spin = (abs(mergers[:,8]) + (q * abs(mergers[:,9]))) / (1 + q)
-    mergers = np.column_stack((mergers, weighted_spin))
-
-    # Compute the absolute value of the difference between spin1 and spin2. Append to data.
-    delta_theta = abs(mergers[:,8] - mergers[:,9])
-    mergers = np.column_stack((mergers, delta_theta))
-
-    # Compute the probability for each row. Append to data.
-    probability_space = A * f(mergers[:,20]) * g(mergers[:,21]) + B * f(mergers[:,20])
-    mergers = np.column_stack((mergers, probability_space))
-
-    # Normalize the probability to [0, 1] range for jet on/off assignemnt. Append to data.
-    jet_probability = (mergers[:,22] - mergers[:,22].min()) / (mergers[:,22].max() - mergers[:,22].min())
-    mergers = np.column_stack((mergers, jet_probability))
-
-    # Generate boolean: True with random number <= jet probability. Append to data.
-    random_boolean = np.random.rand(len(mergers)) < mergers[:,23]
-    mergers = np.column_stack((mergers, random_boolean))
-
-    # Return only mergers with jets "on"
-    jet_on = mergers[mergers[:,24] == 1]
-    return jet_on
+    return m * (x - 1)
 
 def make_gen_masks(table, col1, col2):
     """Create masks for retrieving different sets of a merged or binary population based on generation.
@@ -141,8 +74,8 @@ def main():
 
     mergers = np.loadtxt(opts.fname_mergers, skiprows=2)
 
-    # Bolometric luminosity of the AGN, which is an output from pAGN (in [erg s**-1])
-    lum_agn = 1.4705385593922858e+46
+    # Bolometric luminosity of the AGN [erg s**-1]
+    lum_agn = (0.1 * 1.26) * 10**38 * (1e8 / 1)
 
     # Exclude all rows with NaNs or zeros in the final mass column
     merger_nan_mask = (np.isfinite(mergers[:, 2])) & (mergers[:, 2] != 0)
@@ -542,7 +475,7 @@ def main():
     hist.set_xlabel(r'n')
 
     if figsize == 'apj_col':
-        hist.legend(fontsize=6, loc='best', bbox_to_anchor=(1.0, 0.5))
+        hist.legend(fontsize=6, loc='best')
     elif figsize == 'apj_page':
         hist.legend()
 
@@ -590,7 +523,7 @@ def main():
 
     plot.axvline(trap_radius, color='k', linestyle='--', zorder=0,
                 label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
-    
+    plot.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
     plot.set_ylabel(r'log L$_{\mathrm{Jet}}$ [erg s$^{-1}$]')
     plot.set_xlabel(r'log Radius [$R_g$]')
     plot.set_xscale('log')
@@ -613,13 +546,12 @@ def main():
     hist.yaxis.tick_right()
     hist.set_xlabel(r'n')
 
-    if figsize == 'apj_col':
-        hist.legend(fontsize=6, loc='best', bbox_to_anchor=(1.0, 0.5))
-    elif figsize == 'apj_page':
-        hist.legend()
+    #if figsize == 'apj_col':
+    #    hist.legend(fontsize=6, loc='best')
+    #elif figsize == 'apj_page':
+    #    hist.legend()
 
     plt.tight_layout()
-
     plt.savefig(opts.plots_directory + '/jet_lum_vs_radius_w_histogram.png', format='png')
     plt.close()
 
@@ -862,6 +794,177 @@ def main():
     plt.savefig(opts.plots_directory + '/jet_lum_vs_q.png', format='png')
     plt.close()
 
+    # ========================================
+    # q vs Chi Effective
+    # ========================================
+
+    # (q,X_eff) Figure details here:
+    # Want to highlight higher generation mergers on this plot
+    chi_eff = mergers[:, 3]
+
+    # Get 1g-1g population
+    gen1_chi_eff = chi_eff[merger_g1_mask]
+    # 2g-1g and 2g-2g population
+    gen2_chi_eff = chi_eff[merger_g2_mask]
+    # >=3g-Ng population (i.e., N=1,2,3,4,...)
+    genX_chi_eff = chi_eff[merger_gX_mask]
+    # all 2+g mergers; H = hierarchical
+    genH_chi_eff = chi_eff[(merger_g2_mask + merger_gX_mask)]
+    genH_mass_ratio = q[(merger_g2_mask + merger_gX_mask)]
+
+    # points for plotting line fit
+    x = np.linspace(-1, 1, num=2)
+
+    # fit the hierarchical mergers (any binaries with 2+g) to a line passing through 0,1
+    # popt contains the model parameters, pcov the covariances
+    # poptHigh, pcovHigh = curve_fit(linefunc, high_gen_mass_ratio, high_gen_chi_eff)
+
+    # plot the 1g-1g population
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax2 = fig.add_subplot(111)
+    # 1g-1g mergers
+    ax2.scatter(gen1_chi_eff, gen1_q,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    # plot the 2g+ mergers
+    ax2.scatter(gen2_chi_eff, gen2_q,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    # plot the 3g+ mergers
+    ax2.scatter(genX_chi_eff, genX_q,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    if len(genH_chi_eff) > 0:
+        poptHier, pcovHier = curve_fit(linefunc, genH_mass_ratio, genH_chi_eff)
+        errHier = np.sqrt(np.diag(pcovHier))[0]
+        # plot the line fitting the hierarchical mergers
+        ax2.plot(linefunc(x, *poptHier), x,
+                 ls='dashed',
+                 lw=1,
+                 color='gray',
+                 zorder=3,
+                 label=r'$d\chi/dq(\geq$2g)=' +
+                       f'{poptHier[0]:.2f}' +
+                       r'$\pm$' + f'{errHier:.2f}'
+                 )
+        #         #  alpha=linealpha,
+
+    if len(chi_eff) > 0:
+        poptAll, pcovAll = curve_fit(linefunc, q, chi_eff)
+        errAll = np.sqrt(np.diag(pcovAll))[0]
+        ax2.plot(linefunc(x, *poptAll), x,
+                 ls='solid',
+                 lw=1,
+                 color='black',
+                 zorder=3,
+                 label=r'$d\chi/dq$(all)=' +
+                       f'{poptAll[0]:.2f}' +
+                       r'$\pm$' + f'{errAll:.2f}'
+                 )
+        #  alpha=linealpha,
+
+    ax2.set(
+        ylabel=r'$q = M_2 / M_1$',  # ($M_1 > M_2$)')
+        xlabel=r'$\chi_{\rm eff}$',
+        ylim=(0, 1),
+        xlim=(-1, 1),
+        axisbelow=True
+    )
+
+    if figsize == 'apj_col':
+        ax2.legend(loc='lower left', fontsize=5)
+    elif figsize == 'apj_page':
+        ax2.legend(loc='lower left')
+
+    ax2.grid('on', color='gray', ls='dotted')
+    plt.savefig(opts.plots_directory + "/q_chi_eff.png", format='png')  # ,dpi=600)
+    plt.close()
+
+
+    # ========================================
+    # Disk Radius vs Chi_p
+    # ========================================
+
+    # Can break out higher mass Chi_p events as test/illustration.
+    # Set up default arrays for high mass BBH (>40Msun say) to overplot vs chi_p.
+    chi_p = mergers[:, 15]
+    gen1_chi_p = chi_p[merger_g1_mask]
+    gen2_chi_p = chi_p[merger_g2_mask]
+    genX_chi_p = chi_p[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    ax1 = fig.add_subplot(111)
+
+    ax1.scatter(gen1_orb_a, gen1_chi_p,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolor='none',
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g')
+
+    # plot the 2g+ mergers
+    ax1.scatter(gen2_orb_a, gen2_chi_p,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolor='none',
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g')
+
+    # plot the 3g+ mergers
+    ax1.scatter(genX_orb_a, genX_chi_p,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolor='none',
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng')
+    
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius:.0f} ' + r'$R_g$')
+
+    # plt.title("In-plane effective Spin vs. Merger radius")
+    ax1.set(
+        ylabel=r'$\chi_{\rm p}$',
+        xlabel=r'Radius [$R_g$]',
+        xscale='log',
+        ylim=(0, 1),
+        axisbelow=True)
+
+    ax1.grid(True, color='gray', ls='dashed')
+
+    if figsize == 'apj_col':
+        ax1.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        ax1.legend()
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.savefig(opts.plots_directory + "/r_chi_p.png", format='png')
+    plt.close()
+
+
     # ===============================
     ### shock luminosity vs. kick velocity
     # ===============================
@@ -1012,7 +1115,8 @@ def main():
                 alpha=styles.markeralpha_genX,
                 label=r'$\geq$3g-Ng'
                 )
-
+    
+    plot.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
     plot.set_ylabel(r'log L$_{\mathrm{Jet}}$ [erg s$^{-1}$]')
     plot.set_xlabel(r'log v$_{\mathrm{Kick}}$ [km s$^{-1}$]')
     plot.set_xscale('log')
@@ -1035,10 +1139,10 @@ def main():
     hist.yaxis.tick_right()
     hist.set_xlabel(r'n')
 
-    if figsize == 'apj_col':
-        hist.legend(fontsize=6, loc='best', bbox_to_anchor=(1.0, 0.5))
-    elif figsize == 'apj_page':
-        hist.legend()
+    #if figsize == 'apj_col':
+    #    hist.legend(fontsize=6, loc='best')
+    #elif figsize == 'apj_page':
+    #    hist.legend()
 
     plt.tight_layout()
 
@@ -1209,175 +1313,6 @@ def main():
     
     plt.grid(True, color='gray', ls='dashed')
     plt.savefig(opts.plots_directory + '/jet_lum_vs_eta.png', format='png')
-    plt.close()
-
-    # ===============================
-    ### jet luminosity vs. mass ratio
-    # ===============================
-    jets_on = jet_prob(mergers, q)
-
-    jet_g1_mask, jet_g2_mask, jet_gX_mask = make_gen_masks(jets_on, 12, 13)
-
-    # Ensure no union between sets
-    assert all(jet_g1_mask & jet_g2_mask) == 0
-    assert all(jet_g1_mask & jet_gX_mask) == 0
-    assert all(jet_g2_mask & jet_gX_mask) == 0
-
-    # Ensure no elements are missed
-    assert all(jet_g1_mask | jet_g2_mask | jet_gX_mask) == 1
-    
-    all_orb_a_jets = jets_on[:, 1]
-    gen1_orb_a_jets = all_orb_a_jets[jet_g1_mask]
-    gen2_orb_a_jets = all_orb_a_jets[jet_g2_mask]
-    genX_orb_a_jets = all_orb_a_jets[jet_gX_mask]
-
-    all_jets_on = jets_on[:,18]
-    gen1_jet_on = all_jets_on[jet_g1_mask]
-    gen2_jet_on = all_jets_on[jet_g2_mask]
-    genX_jet_on= all_jets_on[jet_gX_mask]
-
-    fig, axs = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=(5.5,3), gridspec_kw={'width_ratios': [3, 1], 'wspace':0, 'hspace':0}) 
-
-    plot = axs[0]
-    hist = axs[1]
-
-    # plot 1g-1g mergers
-    plot.scatter(gen1_orb_a_jets, gen1_jet_on,
-                s=styles.markersize_gen1,
-                marker=styles.marker_gen1,
-                edgecolor=styles.color_gen1,
-                facecolors="none",
-                alpha=styles.markeralpha_gen1,
-                label='1g-1g'
-                )
-
-    # plot 2g-mg mergers
-    plot.scatter(gen2_orb_a_jets, gen2_jet_on,
-                s=styles.markersize_gen2,
-                marker=styles.marker_gen2,
-                edgecolor=styles.color_gen2,
-                facecolors="none",
-                alpha=styles.markeralpha_gen2,
-                label='2g-1g or 2g-2g'
-                )
-
-    # plot 3g-ng mergers
-    plot.scatter(genX_orb_a_jets, genX_jet_on,
-                s=styles.markersize_genX,
-                marker=styles.marker_genX,
-                edgecolor=styles.color_genX,
-                facecolors="none",
-                alpha=styles.markeralpha_genX,
-                label=r'$\geq$3g-Ng'
-                )
-    
-    plot.axvline(trap_radius, color='k', linestyle='--', zorder=0,
-                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
-    
-    plot.set_ylabel(r'log L$_{\mathrm{Jet}}$ [erg s$^{-1}$]')
-    plot.set_xlabel(r'log Radius [$R_g$]')
-    plot.set_xscale('log')
-    plot.set_yscale('log')
-
-    plot.grid(True, color='gray', ls='dashed')
-    if figsize == 'apj_col':
-        plot.legend(fontsize=6, loc = 'best')
-    elif figsize == 'apj_page':
-        plot.legend()
-
-    lum_bins_jets_on = np.logspace(np.log10(all_jets_on.min()), np.log10(all_jets_on.max()), 50)
-    hist_lum_data_jets_on = [all_jets_on[jet_g1_mask], all_jets_on[jet_g2_mask], all_jets_on[jet_gX_mask]]
-
-    # configure histogram
-    hist.hist(hist_lum_data_jets_on, bins=lum_bins_jets_on, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation = 'horizontal')
-    hist.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
-    hist.grid(True, color='gray', ls='dashed')
-    #hist.set_yscale('log')
-    hist.yaxis.tick_right()
-    hist.set_xlabel(r'n')
-
-    if figsize == 'apj_col':
-        hist.legend(fontsize=6, loc='best', bbox_to_anchor=(1.0, 0.5))
-    elif figsize == 'apj_page':
-        hist.legend()
-
-    plt.tight_layout()
-
-    plt.savefig(opts.plots_directory + '/jet_lum_vs_radius_w_histogram_jets_on.png', format='png')
-    plt.close()
-
-    # ===============================
-    ### jet luminosity vs. mass ratio
-    # ===============================
-    all_vk_jets = jets_on[:, 16]
-    gen1_vk_jets = all_vk_jets[jet_g1_mask]
-    gen2_vk_jets = all_vk_jets[jet_g2_mask]
-    genX_vk_jets = all_vk_jets[jet_gX_mask]
-
-    fig, axs = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=(5.5,3), gridspec_kw={'width_ratios': [3, 1], 'wspace':0, 'hspace':0}) 
-
-    plot = axs[0]
-    hist = axs[1]
-
-    # plot 1g-1g mergers
-    plot.scatter(gen1_vk_jets, gen1_jet_on,
-                s=styles.markersize_gen1,
-                marker=styles.marker_gen1,
-                edgecolor=styles.color_gen1,
-                facecolors="none",
-                alpha=styles.markeralpha_gen1,
-                label='1g-1g'
-                )
-
-    # plot 2g-mg mergers
-    plot.scatter(gen2_vk_jets, gen2_jet_on,
-                s=styles.markersize_gen2,
-                marker=styles.marker_gen2,
-                edgecolor=styles.color_gen2,
-                facecolors="none",
-                alpha=styles.markeralpha_gen2,
-                label='2g-1g or 2g-2g'
-                )
-
-    # plot 3g-ng mergers
-    plot.scatter(genX_vk_jets, genX_jet_on,
-                s=styles.markersize_genX,
-                marker=styles.marker_genX,
-                edgecolor=styles.color_genX,
-                facecolors="none",
-                alpha=styles.markeralpha_genX,
-                label=r'$\geq$3g-Ng'
-                )
-    
-    plot.set_ylabel(r'log L$_{\mathrm{Jet}}$ [erg s$^{-1}$]')
-    plot.set_xlabel(r'log v$_{\mathrm{Kick}}$ [km s$^{-1}$]')
-    plot.set_xscale('log')
-    plot.set_yscale('log')
-
-    plot.grid(True, color='gray', ls='dashed')
-    if figsize == 'apj_col':
-        plot.legend(fontsize=6, loc = 'best')
-    elif figsize == 'apj_page':
-        plot.legend()
-
-    lum_bins_jets_on = np.logspace(np.log10(all_jets_on.min()), np.log10(all_jets_on.max()), 50)
-    hist_lum_data_jets_on = [all_jets_on[jet_g1_mask], all_jets_on[jet_g2_mask], all_jets_on[jet_gX_mask]]
-
-    # configure histogram
-    hist.hist(hist_lum_data_jets_on, bins=lum_bins_jets_on, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True, orientation = 'horizontal')
-    hist.axhline(lum_agn, color='black', linewidth=1, linestyle='dashdot', label=r'L$_{AGN}$ ='+f"{lum_agn:.2e}")
-    hist.grid(True, color='gray', ls='dashed')
-    hist.yaxis.tick_right()
-    hist.set_xlabel(r'n')
-
-    if figsize == 'apj_col':
-        hist.legend(fontsize=6, loc='best', bbox_to_anchor=(1.0, 0.5))
-    elif figsize == 'apj_page':
-        hist.legend()
-
-    plt.tight_layout()
-
-    plt.savefig(opts.plots_directory + '/jet_lum_vs_vkick_w_histogram_jets_on.png', format='png')
     plt.close()
 
 ######## Execution ########
