@@ -79,7 +79,8 @@ def accrete_star_mass(disk_star_pro_masses,
                       smbh_mass,
                       disk_sound_speed,
                       disk_density,
-                      timestep_duration_yr):
+                      timestep_duration_yr,
+                      r_g_in_meters):
     """Adds mass according to Fabj+2024 accretion rate
 
     Takes initial star masses at start of timestep and adds mass according to Fabj+2024.
@@ -97,6 +98,8 @@ def accrete_star_mass(disk_star_pro_masses,
         Fractional rate of mass growth AT Eddington accretion rate per year (fixed at 2.3e-8 in mcfacts_sim) [yr^{-1}]
     timestep_duration_yr : float
         Length of timestep [yr]
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -120,7 +123,7 @@ def accrete_star_mass(disk_star_pro_masses,
     # Calculate Bondi and Hill radii
     r_bondi = (2 * const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
     r_hill_rg = (disk_star_pro_orbs_a * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
-    r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
+    r_hill_m = si_from_r_g(smbh_mass, r_hill_rg, r_g_defined=r_g_in_meters)
 
     # Determine which is smaller for each star
     min_radius = np.minimum(r_bondi, r_hill_m)

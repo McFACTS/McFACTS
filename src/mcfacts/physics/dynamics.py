@@ -1472,7 +1472,8 @@ def circular_binaries_encounters_ecc_prograde(
         timestep_duration_yr,
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
-        disk_radius_outer
+        disk_radius_outer,
+        r_g_in_meters,
         ):
     """"Adjust orb eccentricities due to encounters between BBH and eccentric single BHs
 
@@ -1502,6 +1503,8 @@ def circular_binaries_encounters_ecc_prograde(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -1612,7 +1615,7 @@ def circular_binaries_encounters_ecc_prograde(
     # Set up other values we need
     bin_masses = bin_mass_1 + bin_mass_2
     bin_velocities = const.c.value / np.sqrt(bin_orb_a)
-    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=r_g_in_meters).to("meter")).value
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr/bin_orbital_times
 
@@ -1735,7 +1738,8 @@ def circular_binaries_encounters_ecc_prograde_star(
         timestep_duration_yr,
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
-        disk_radius_outer
+        disk_radius_outer,
+        r_g_in_meters
         ):
     """"Adjust orb eccentricities due to encounters between BBH and eccentric single BHs
 
@@ -1765,6 +1769,8 @@ def circular_binaries_encounters_ecc_prograde_star(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -1869,7 +1875,7 @@ def circular_binaries_encounters_ecc_prograde_star(
     # Set up other values we need
     bin_masses = bin_mass_1 + bin_mass_2
     bin_velocities = const.c.value / np.sqrt(bin_orb_a)
-    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=r_g_in_meters).to("meter")).value
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr/bin_orbital_times
     bin_hill_sphere = bin_orb_a * ((bin_masses / smbh_mass) / 3)**(1 / 3)
@@ -2051,7 +2057,8 @@ def circular_binaries_encounters_circ_prograde(
         delta_energy_strong,
         disk_radius_outer,
         harden_energy_delta_mu,
-        harden_energy_delta_sigma
+        harden_energy_delta_sigma,
+        r_g_in_meters,
         ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
@@ -2081,6 +2088,8 @@ def circular_binaries_encounters_circ_prograde(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -2207,7 +2216,7 @@ def circular_binaries_encounters_circ_prograde(
     bin_velocities = const.c.value/np.sqrt(bin_orb_a)
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr / bin_orbital_times
-    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=r_g_in_meters).to("meter")).value
 
     # Find the e< crit_ecc population. These are the interlopers w. low encounter vel that can harden the circularized population
     circ_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
@@ -2329,7 +2338,8 @@ def circular_binaries_encounters_circ_prograde_star(
         delta_energy_strong,
         disk_radius_outer,
         harden_energy_delta_mu,
-        harden_energy_delta_sigma
+        harden_energy_delta_sigma,
+        r_g_in_meters
         ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
@@ -2359,6 +2369,8 @@ def circular_binaries_encounters_circ_prograde_star(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -2478,7 +2490,7 @@ def circular_binaries_encounters_circ_prograde_star(
     bin_velocities = const.c.value/np.sqrt(bin_orb_a)
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr / bin_orbital_times
-    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=r_g_in_meters).to("meter")).value
     bin_hill_sphere = bin_orb_a * ((bin_masses / smbh_mass) / 3)**(1 / 3)
     bin_contact_sep = r_g_from_units(smbh_mass, r_schwarzschild_of_m(bin_mass_1) + r_schwarzschild_of_m(bin_mass_2)).value
 
@@ -2657,7 +2669,8 @@ def bin_spheroid_encounter(
         delta_energy_strong,
         nsc_spheroid_normalization,
         harden_energy_delta_mu,
-        harden_energy_delta_sigma
+        harden_energy_delta_sigma,
+        r_g_in_meters
         ):
     """Perturb orbits due to encounters with spheroid (NSC) objects
 
@@ -2685,6 +2698,8 @@ def bin_spheroid_encounter(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
 
     Returns
@@ -2825,7 +2840,7 @@ def bin_spheroid_encounter(
     # Set up binary properties we need for later
     bin_mass = bin_mass_1_all + bin_mass_2_all
     bin_velocities = const.c.value / np.sqrt(bin_orb_a_all)
-    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1_all * bin_mass_2_all / (si_from_r_g(smbh_mass, bin_sep_all).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1_all * bin_mass_2_all / (si_from_r_g(smbh_mass, bin_sep_all, r_g_defined=r_g_in_meters).to("meter")).value
 
     # Calculate encounter rate for each binary based on bin_orb_a, binary size, and time_passed
     # Set up array of encounter rates filled with -1
@@ -3021,6 +3036,7 @@ def bh_near_smbh(
         timestep_duration_yr,
         inner_disk_outer_radius,
         disk_inner_stable_circ_orb,
+        r_g_in_meters,
         ):
     """Evolve semi-major axis of single BH near SMBH according to Peters64
 
@@ -3045,6 +3061,8 @@ def bh_near_smbh(
         Outer radius of the inner disk [r_{g,SMBH}]
     disk_inner_stable_circ_orb : float
         Innermost stable circular orbit around the SMBH [r_{g,SMBH}]
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -3063,7 +3081,7 @@ def bh_near_smbh(
     decay_time_arr = time_of_orbital_shrinkage(
         smbh_mass*u.solMass,
         disk_bh_pro_masses*u.solMass,
-        si_from_r_g(smbh_mass*u.solMass, disk_bh_pro_orbs_a),
+        si_from_r_g(smbh_mass*u.solMass, disk_bh_pro_orbs_a, r_g_defined=r_g_in_meters),
         0*u.m,
     )
     # Estimate the number of timesteps to decay
