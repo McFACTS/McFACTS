@@ -469,7 +469,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
         Mass [M_sun] of supermassive black hole
     retrograde_bh_locations : numpy.ndarray
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
-    retrograde_bh_masses : numpy.ndarray
+    retrograde_bh_masses : numpy.ndarray | float
         Mass [M_sun] of retrograde singleton BH at start of a timestep with :obj:`float` type
     retrograde_bh_orb_ecc : numpy.ndarray
         Orbital eccentricity [unitless] of retrograde singleton BH at start of a timestep with :obj:`float` type
