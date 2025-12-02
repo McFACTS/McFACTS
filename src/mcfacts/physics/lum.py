@@ -138,6 +138,6 @@ def jet_luminosity(mass_final,
     mdot_bondi = 4 * np.pi * (ct.G.cgs.value ** 2) * (mass_final_g ** 2) * disk_density_cgs * (v_rel**2 + (sound_speed * 10**2)**2)**-(3/2)
 
     kappa = 0.1
-    # calculate the jet luminosity as in (Graham et al. (2023)
+    # calculate the jet luminosity as in Kim & Most 2025
     L_jet = (0.1) * (kappa / 0.1) * (0.9 / spin_final)**2 * mdot_bondi * ct.c.cgs.value**2
     return L_jet

@@ -1001,9 +1001,6 @@ def main():
                 label=r'$\geq$3g-Ng'
                 )
 
-    plt.axvline(v_kick, color='k', linestyle='--', zorder=0,
-                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
-
     # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
     plt.xlabel(r'$v_{kick}$ [km/s]')
     plt.ylabel(r'$a_{final}$')
@@ -1056,15 +1053,11 @@ def main():
                 label=r'$\geq$3g-Ng'
                 )
 
-    plt.axhline(v_kick, color='k', linestyle='--', zorder=0,
-                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
-
     # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
     plt.xlabel(r'Remnant Mass [$M_\odot$]')
     plt.ylabel(r'$v_{kick}$ [km/s]')
-    plt.xscale('log')
+    #plt.xscale('log')
     plt.yscale('log')
-    plt.xlim(9, 100)
     #plt.ylim(0.51, 1.01)
 
     if figsize == 'apj_col':

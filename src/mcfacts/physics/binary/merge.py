@@ -7,7 +7,6 @@ from scipy.stats import truncnorm
 from astropy import units as u
 from astropy import constants as const
 from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.binary import spin_check
 from mcfacts.physics import analytical_velocity, lum
 from mcfacts.external.sxs import evolve_binary
 from mcfacts.external.sxs import fit_modeler
@@ -780,7 +779,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             )
         else:
             bh_spin_merged = bh_spin_merged
-        bh_v_kick = analytical_velo.analytical_kick_velocity(
+        bh_v_kick = analytical_velocity.analytical_kick_velocity(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
