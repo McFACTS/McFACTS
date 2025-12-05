@@ -23,7 +23,8 @@ MSTAR_RUNS_EXE = ${HERE}/scripts/vera_mstar_bins.py
 MSTAR_PLOT_EXE = ${HERE}/src/mcfacts/outputs/plot_mcfacts_handler_quantities.py
 STARS_PLOTS = ${HERE}/scripts/stars_plots.py
 DISK_MASS_PLOTS = ${HERE}/scripts/disk_mass_plots.py
-ORBA_MASS_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
+ORBA_MASS_MOVIE_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
+ORBA_DIST_MOVIE_FRAMES = ${HERE}/scripts/orba_dist_movie_frames.py
 EM_PLOTS = ${HERE}/scripts/em_plots.py
 COMPARE_SUR = ${HERE}/scripts/compare_plots.py
 
@@ -128,16 +129,18 @@ vera_plots: mcfacts_sim
 		--cdf-fields chi_eff chi_p final_mass gen1 gen2 time_merge \
 		--verbose
 
-kaila_stars: plots
+stars_plots: plots
 	cd runs; \
 	python ../${STARS_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-stars ${wd}/output_stars_population.dat \
+	--fname-stars-final ${wd}/output_stars_population.dat \
 	--fname-stars-merge ${wd}/output_stars_merged.dat \
 	--fname-stars-explode ${wd}/output_stars_exploded.dat \
+	--fname-stars-immortal ${wd}/output_stars_immortal.dat \
+	--fname-log ${wd}/mcfacts.log \
 	--plots-directory ${wd}
 
-kaila_stars_movie: clean
+data_stars_movie: clean
 	mkdir -p runs
 	cd runs; \
 		python ../${MCFACTS_SIM_EXE} \
@@ -147,10 +150,13 @@ kaila_stars_movie: clean
 		--seed ${SEED} \
 		--save-snapshots
 
-kaila_stars_make_movie: kaila_stars_plots
+movies_orba_mass:
 	cd runs; \
-	python ../${ORBA_MASS_FRAMES} \
+	rm -fr ${wd}/gal000/movie_frames_orba_mass; \
+	mkdir -p ${wd}/gal000/movie_frames_orba_mass; \
+	python ../${ORBA_MASS_MOVIE_FRAMES} \
 	--fpath-snapshots ${wd}/gal000/ \
+	--fname-log ${wd}/mcfacts.log \
 	--fname-stars-merge ${wd}/output_stars_merged.dat \
 	--fname-stars-explode ${wd}/output_stars_exploded.dat \
 	--fname-stars-unbound ${wd}/output_stars_unbound.dat \
@@ -158,20 +164,36 @@ kaila_stars_make_movie: kaila_stars_plots
 	--fname-emri ${wd}/output_mergers_emris.dat \
 	--fname-star-tde ${wd}/output_tdes.dat \
 	--fname-star-plunge ${wd}/output_stars_plunge.dat \
-	--num-timesteps 60 \
+	--num-timesteps 50 \
 	--timestep-duration-yr 10000 \
-	--plots-directory ${wd}/gal000 \
-	--plot-objects 0
-	rm -fv ${wd}/runs/orba_mass_movie.mp4
-	ffmpeg -f image2 -framerate 5 -i ${wd}/runs/gal000/orba_mass_movie_timestep_%03d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/runs/orba_mass_movie.mp4
+	--plots-directory ${wd}/gal000/movie_frames_orba_mass \
+	--plot-objects 0; \
+	rm -fv ${wd}/orba_mass_movie.mp4; \
+	ffmpeg -f image2 -framerate 3 -i ${wd}/gal000/movie_frames_orba_mass/orba_mass_movie_timestep_%03d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/orba_mass_movie.mp4; \
 
-kaila_stars_plots: just_plots
+movies_orba_dist:
+	cd runs; \
+	rm -fr ${wd}/gal000/movie_frames_orba_dist; \
+	mkdir -p ${wd}/gal000/movie_frames_orba_dist; \
+	python ../${ORBA_DIST_MOVIE_FRAMES} \
+	--fpath-snapshots ${wd}/gal000/ \
+	--fname-log ${wd}/mcfacts.log \
+	--num-timesteps 50 \
+	--timestep-duration-yr 10000 \
+	--plots-directory ${wd}/gal000/movie_frames_orba_dist \
+	--plot-objects 0; \
+	rm -fv ${wd}/orba_dist_movie.mp4; \
+	ffmpeg -f image2 -framerate 3 -i ${wd}/gal000/movie_frames_orba_dist/orba_dist_movie_timestep_%03d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/orba_dist_movie.mp4; \
+
+just_stars_plots:
 	cd runs; \
 	python ../${STARS_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-stars ${wd}/output_stars_population.dat \
+	--fname-stars-final ${wd}/output_stars_population.dat \
 	--fname-stars-merge ${wd}/output_stars_merged.dat \
 	--fname-stars-explode ${wd}/output_stars_exploded.dat \
+	--fname-stars-immortal ${wd}/output_stars_immortal.dat \
+	--fname-log ${wd}/mcfacts.log \
 	--plots-directory ${wd}
 
 disk_mass_plots:
@@ -179,6 +201,9 @@ disk_mass_plots:
 	python ../${DISK_MASS_PLOTS} \
 	--runs-directory ${wd} \
 	--fname-disk ${wd}/output_diskmasscycled.dat \
+	--fname-log ${wd}/mcfacts.log \
+	--time-cut -1 \
+	--log-scale 0 \
 	--plots-directory ${wd}		
 		
 em_plots: 
