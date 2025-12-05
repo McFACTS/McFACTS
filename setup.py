@@ -14,6 +14,7 @@ def get_version():
 PACKAGE_DATA = {
     "mcfacts": [
         "vis/mcfacts_figures.mplstyle",
+        "vis/kaila_thesis_figures.mplstyle",
         "inputs/data/sirko_goodman_aspect_ratio.txt",
         "inputs/data/thompson_etal_aspect_ratio.txt",
         "inputs/data/sirko_goodman_opacity.txt",
