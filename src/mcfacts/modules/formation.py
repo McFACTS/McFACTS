@@ -8,6 +8,7 @@ from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities.peters import gw_strain_freq
+from mcfacts.utilities.random_state import uuid_provider
 
 
 def close_encounters_check(id_nums,
@@ -510,9 +511,12 @@ class BinaryBlackHoleFormation(TimelineActor):
                                             old_gw_freq=-1, smbh_mass=sm.smbh_mass, agn_redshift=sm.agn_redshift,
                                             flag_include_old_gw_freq=0)
 
+        new_unique_ids = np.array([uuid_provider(random_generator) for _ in range(primary_ids.size)])
+
         new_binaries = AGNBinaryBlackHoleArray(
-            unique_id_1=primary_ids,
-            unique_id_2=secondary_ids,
+            unique_id=new_unique_ids,
+            parent_unique_id_1=primary_ids,
+            parent_unique_id_2=secondary_ids,
             orb_a_1=orb_a_1,
             orb_a_2=orb_a_2,
             mass_1=mass_1,

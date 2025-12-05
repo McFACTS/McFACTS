@@ -22,9 +22,16 @@ class AGNObjectArray(ABC):
         orb_ecc (npt.NDArray[np.float64]): Array of orbital eccentricities.
         orb_ang_mom (npt.NDArray[np.float64]): Array of orbital angular momenta.
         orb_arg_periapse (npt.NDArray[np.float64]): Array of arguments of periapsis.
+        migration_velocity (npt.NDArray[np.float64]): Array of migration velocity.
+        gen (npt.NDArray[np.float64]): Array of generation numbers.
+        parent_unique_id_1 (npt.NDArray[uuid.UUID]): Array of unique identifiers for the first parent AGN object.
+        parent_unique_id_2 (npt.NDArray[uuid.UUID]): Array of unique identifiers for the second parent AGN object.
+        skip_consistency_check (bool): Flag for disabling internal consistency checks, useful for creating empty arrays.
 
     Methods:
         __len__(): Returns the number of AGN objects in the array.
+        consistency_check(): Method for verifying the consistency of the internal array and preventing duplicates.
+        get_super_dict(): Abstract method returning the internal arrays of the object as a dictionary.
         add_objects(agnObjectArray: 'AGNObjectArray'): Abstract method to concatenate properties of another AGNObjectArray into this one. Must be implemented by a subclass.
     """
 
@@ -40,6 +47,8 @@ class AGNObjectArray(ABC):
                  orb_arg_periapse: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  migration_velocity: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  gen: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
+                 parent_unique_id_1: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
+                 parent_unique_id_2: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  skip_consistency_check: bool = False,
                  **kwargs):
 
@@ -59,6 +68,8 @@ class AGNObjectArray(ABC):
         self.orb_ang_mom = orb_ang_mom
         self.orb_arg_periapse = orb_arg_periapse
         self.migration_velocity = np.full(len(unique_id), 0., dtype=np.float64) if len(migration_velocity) == 0 else migration_velocity
+        self.parent_unique_id_1 = np.full(len(unique_id), uuid.UUID(int=0), dtype=uuid.UUID) if len(parent_unique_id_1) == 0 else parent_unique_id_1
+        self.parent_unique_id_2 = np.full(len(unique_id), uuid.UUID(int=0), dtype=uuid.UUID) if len(parent_unique_id_2) == 0 else parent_unique_id_2
 
         # TODO: One of our modules is passing a float for this value, it should be int. Not game-breaking, but we should ensure type sameness
         self.gen: npt.NDArray[np.int_] = np.full(len(unique_id), int(1), dtype=np.int_) if len(gen) == 0 else gen
@@ -217,6 +228,8 @@ class AGNObjectArray(ABC):
             "orb_ang_mom": self.orb_ang_mom,
             "orb_arg_periapse": self.orb_arg_periapse,
             "migration_velocity": self.migration_velocity,
+            "parent_unique_id_1": self.parent_unique_id_1,
+            "parent_unique_id_2": self.parent_unique_id_2,
             "gen": self.gen
         }
 
@@ -236,6 +249,8 @@ class AGNObjectArray(ABC):
         self.orb_ang_mom = np.concatenate((self.orb_ang_mom, agn_object_array.orb_ang_mom))
         self.orb_arg_periapse = np.concatenate((self.orb_arg_periapse, agn_object_array.orb_arg_periapse))
         self.migration_velocity = np.concatenate((self.migration_velocity, agn_object_array.migration_velocity))
+        self.parent_unique_id_1 = np.concatenate((self.parent_unique_id_1, agn_object_array.parent_unique_id_1))
+        self.parent_unique_id_2 = np.concatenate((self.parent_unique_id_2, agn_object_array.parent_unique_id_2))
 
     def __len__(self):
         return len(self.unique_id)
@@ -322,8 +337,6 @@ class AGNStarArray(AGNObjectArray):
 
 class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
     def __init__(self,
-                 unique_id_1: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
-                 unique_id_2: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  mass_1: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  mass_2: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  orb_a_1: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
@@ -345,7 +358,7 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
                  bin_orb_ecc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs
                  ):
-        self.unique_id_2 = unique_id_2
+
         self.mass_2 = mass_2
         self.orb_a_2 = orb_a_2
         self.spin_2 = spin_2
@@ -363,8 +376,6 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
 
         legacy_arguments = {}
 
-        if "unique_id" not in kwargs:
-            legacy_arguments["unique_id"] = unique_id_1
         if "mass" not in kwargs:
             legacy_arguments["mass"] = mass_1
         if "spin" not in kwargs:
@@ -374,13 +385,13 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         if "orb_a" not in kwargs:
             legacy_arguments["orb_a"] = orb_a_1
         if "orb_inc" not in kwargs:
-            legacy_arguments["orb_inc"] = np.full(len(unique_id_1), 0)
+            legacy_arguments["orb_inc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_ecc" not in kwargs:
-            legacy_arguments["orb_ecc"] = np.full(len(unique_id_1), 0)
+            legacy_arguments["orb_ecc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_ang_mom" not in kwargs:
-            legacy_arguments["orb_ang_mom"] = np.full(len(unique_id_1), 0)
+            legacy_arguments["orb_ang_mom"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_arg_periapse" not in kwargs:
-            legacy_arguments["orb_arg_periapse"] = np.full(len(unique_id_1), 0)
+            legacy_arguments["orb_arg_periapse"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "gen" not in kwargs:
             legacy_arguments["gen"] = gen_1
 
@@ -453,19 +464,18 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         super_list = super().get_super_dict()
 
         # Redundancy for legacy purposes
-        super_list["unique_id_1"] = self.unique_id
         super_list["mass_1"] = self.mass
         super_list["orb_a_1"] = self.orb_a
         super_list["spin_1"] = self.spin
         super_list["spin_angle_1"] = self.spin_angle
         super_list["gen_1"] = self.gen
 
-        super_list["unique_id_2"] = self.unique_id_2
         super_list["mass_2"] = self.mass_2
         super_list["orb_a_2"] = self.orb_a_2
         super_list["spin_2"] = self.spin_2
         super_list["spin_angle_2"] = self.spin_angle_2
         super_list["gen_2"] = self.gen_2
+
         super_list["bin_sep"] = self.bin_sep
         super_list["bin_ecc"] = self.bin_ecc
         super_list["bin_orb_a"] = self.bin_orb_a
@@ -485,7 +495,6 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         if not isinstance(agn_object_array, AGNBinaryBlackHoleArray):
             raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNBinaryBlackHoleArray.")
 
-        self.unique_id_2 = np.concatenate((self.unique_id_2, agn_object_array.unique_id_2))
         self.mass_2 = np.concatenate((self.mass_2, agn_object_array.mass_2))
         self.orb_a_2 = np.concatenate((self.orb_a_2, agn_object_array.orb_a_2))
         self.spin_2 = np.concatenate((self.spin_2, agn_object_array.spin_2))
