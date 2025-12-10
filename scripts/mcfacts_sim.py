@@ -3016,7 +3016,7 @@ def main():
             # SF: fix the inc threshhold later to be truly 'in disk' but should be non-stupid as-is!!!
             inc_threshhold = 5.0 * np.pi/180.0
 
-            bh_flip_to_pro_flag = (np.abs(blackholes_retro.orb_inc) <= inc_threshhold) & (blackholes_retro.orb_ecc == 0.0)
+            bh_flip_to_pro_flag = (np.abs(blackholes_retro.orb_inc) <= inc_threshhold) & (blackholes_retro.orb_ecc <= opts.disk_bh_pro_orb_ecc_crit)
             bh_id_num_flip_to_pro = blackholes_retro.id_num[bh_flip_to_pro_flag]
 
             if bh_id_num_flip_to_pro.size > 0:
@@ -3042,7 +3042,7 @@ def main():
                                       attr="direction",
                                       new_info=np.ones(bh_id_num_flip_to_pro.size))
 
-            star_flip_to_pro_flag = (np.abs(stars_retro.orb_inc) <= inc_threshhold) & (stars_retro.orb_ecc == 0.0)
+            star_flip_to_pro_flag = (np.abs(stars_retro.orb_inc) <= inc_threshhold) & (stars_retro.orb_ecc <= opts.disk_bh_pro_orb_ecc_crit)
             star_id_num_flip_to_pro_or_tde = stars_retro.id_num[star_flip_to_pro_flag]
 
             star_id_num_tde, star_id_num_flip_to_pro = tde.check_tde_or_flip(star_id_num_flip_to_pro_or_tde,
