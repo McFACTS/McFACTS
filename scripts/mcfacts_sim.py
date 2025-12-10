@@ -1039,6 +1039,10 @@ def main():
                 opts.disk_radius_outer,
                 opts.r_g_in_meters
             )
+
+            # Check for retrograde ecc smaller than the critical value
+            blackholes_retro.orb_ecc[blackholes_retro.orb_ecc < opts.disk_bh_pro_orb_ecc_crit] = opts.disk_bh_pro_orb_ecc_crit
+
             # KN: Does this function apply to all disk objects and if so should we rename it?
             stars_retro.orb_ecc, stars_retro.orb_a, stars_retro.orb_inc = disk_capture.retro_bh_orb_disk_evolve(
                 opts.smbh_mass,
@@ -1064,8 +1068,9 @@ def main():
                                   new_info=[stars_retro.orb_ecc,
                                             stars_retro.orb_a])
 
-            # Check for hyperbolic eccentricity (ejected from disk)
-            bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc >= 1.]
+            # Check for things ejected from the disk or hitting the SMBH.
+            # TODO: Add specific checks to see if the orbit would fall inside of the ISCO
+            bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc > .99]
             if bh_retro_id_num_ecc_hyperbolic.size > 0:
                 blackholes_retro.remove_id_num(bh_retro_id_num_ecc_hyperbolic)
                 filing_cabinet.remove_id_num(bh_retro_id_num_ecc_hyperbolic)
