@@ -1026,26 +1026,19 @@ def main():
             #   note this is dyn friction only, not true 'migration'
             # change retrograde eccentricity (some damping, some pumping)
             # damp orbital inclination
-            bh_ecc_mask = blackholes_retro.orb_ecc > opts.disk_bh_pro_orb_ecc_crit
-
-            (
-                blackholes_retro.orb_ecc[bh_ecc_mask],
-                blackholes_retro.orb_a[bh_ecc_mask],
-                blackholes_retro.orb_inc[bh_ecc_mask]
-            ) = disk_capture.retro_bh_orb_disk_evolve(
+            blackholes_retro.orb_ecc, blackholes_retro.orb_a, blackholes_retro.orb_inc = disk_capture.retro_bh_orb_disk_evolve(
                 opts.smbh_mass,
-                blackholes_retro.mass[bh_ecc_mask],
-                blackholes_retro.orb_a[bh_ecc_mask],
-                blackholes_retro.orb_ecc[bh_ecc_mask],
-                blackholes_retro.orb_inc[bh_ecc_mask],
-                blackholes_retro.orb_arg_periapse[bh_ecc_mask],
+                blackholes_retro.mass,
+                blackholes_retro.orb_a,
+                blackholes_retro.orb_ecc,
+                blackholes_retro.orb_inc,
+                blackholes_retro.orb_arg_periapse,
                 opts.disk_inner_stable_circ_orb,
                 disk_surface_density,
                 opts.timestep_duration_yr,
                 opts.disk_radius_outer,
                 opts.r_g_in_meters
             )
-
             # KN: Does this function apply to all disk objects and if so should we rename it?
             stars_retro.orb_ecc, stars_retro.orb_a, stars_retro.orb_inc = disk_capture.retro_bh_orb_disk_evolve(
                 opts.smbh_mass,
