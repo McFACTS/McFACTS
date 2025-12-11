@@ -1068,9 +1068,8 @@ def main():
                                   new_info=[stars_retro.orb_ecc,
                                             stars_retro.orb_a])
 
-            # Check for things ejected from the disk or hitting the SMBH.
-            # TODO: Add specific checks to see if the orbit would fall inside of the ISCO
-            bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc > .99]
+            # Check for hyperbolic retrogrades
+            bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc >= 1]
             if bh_retro_id_num_ecc_hyperbolic.size > 0:
                 blackholes_retro.remove_id_num(bh_retro_id_num_ecc_hyperbolic)
                 filing_cabinet.remove_id_num(bh_retro_id_num_ecc_hyperbolic)
@@ -3021,8 +3020,7 @@ def main():
             # SF: fix the inc threshhold later to be truly 'in disk' but should be non-stupid as-is!!!
             inc_threshhold = 5.0 * np.pi/180.0
 
-            bh_flip_to_pro_flag = (np.abs(blackholes_retro.orb_inc) <= inc_threshhold) & (blackholes_retro.orb_ecc <= opts.disk_bh_pro_orb_ecc_crit)
-            bh_id_num_flip_to_pro = blackholes_retro.id_num[bh_flip_to_pro_flag]
+            bh_id_num_flip_to_pro = blackholes_retro.id_num[(np.abs(blackholes_retro.orb_inc) <= inc_threshhold)]
 
             if bh_id_num_flip_to_pro.size > 0:
                 # add to prograde arrays
@@ -3047,8 +3045,7 @@ def main():
                                       attr="direction",
                                       new_info=np.ones(bh_id_num_flip_to_pro.size))
 
-            star_flip_to_pro_flag = (np.abs(stars_retro.orb_inc) <= inc_threshhold) & (stars_retro.orb_ecc <= opts.disk_bh_pro_orb_ecc_crit)
-            star_id_num_flip_to_pro_or_tde = stars_retro.id_num[star_flip_to_pro_flag]
+            star_id_num_flip_to_pro_or_tde = stars_retro.id_num[(np.abs(stars_retro.orb_inc) <= inc_threshhold)]
 
             star_id_num_tde, star_id_num_flip_to_pro = tde.check_tde_or_flip(star_id_num_flip_to_pro_or_tde,
                                                                              stars_retro.at_id_num(star_id_num_flip_to_pro_or_tde, "mass"),
