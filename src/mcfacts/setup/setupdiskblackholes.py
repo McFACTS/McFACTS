@@ -424,7 +424,9 @@ def setup_disk_blackholes_circularized(disk_bh_num, disk_bh_pro_orb_ecc_crit):
 def setup_disk_blackholes_arg_periapse(disk_bh_num):
     """Generates disk BH initial orb arg periapse [radian]
 
-    Generates an orb arg. periapse between 0.1pi or pi/2 radians uniformly.
+    Assumes a orb arg. periapse either 0 or pi/2 radians.
+    TO DO: Set between [0,2pi] uniformly.
+    But issue with calculating retrograde capture when uniform to be fixed.
 
     Parameters
     ----------
@@ -437,7 +439,7 @@ def setup_disk_blackholes_arg_periapse(disk_bh_num):
             Initial BH orb arg periapse [radian] with :obj:`float` type.
     """
 
-    bh_initial_orb_arg_periapse = rng.uniform(low=0.1*np.pi, high=0.5*np.pi, size=disk_bh_num)
+    bh_initial_orb_arg_periapse = rng.choice(a=[0., 0.5*np.pi],size=disk_bh_num)
     return bh_initial_orb_arg_periapse
 
 
