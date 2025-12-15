@@ -176,11 +176,14 @@ def setup_disk_blackholes_masses(disk_bh_num, nsc_bh_imf_mode, nsc_bh_imf_max_ma
     """
 
     disk_bh_initial_masses = (rng.pareto(nsc_bh_imf_powerlaw_index, size=disk_bh_num) + 1) * nsc_bh_imf_mode
+    #disk_bh_initial_masses = (rng.power(nsc_bh_imf_powerlaw_index, size=disk_bh_num) + 1) * nsc_bh_imf_mode
     # Masses greater than max mass should be redrawn from a Gaussian set to recreate the mass pile up
     # mean is set to mass_pile_up (default is 35Msun) and sigma is 2.3, following LVK rates and populations
     # paper: 2023PhRvX..13a1048A, Section VI.B
     while (np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass) > 0):
         disk_bh_initial_masses[disk_bh_initial_masses > nsc_bh_imf_max_mass] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass))
+    #while (np.sum(disk_bh_initial_masses < 32.0) > 0):
+    #    disk_bh_initial_masses[disk_bh_initial_masses < 32.0] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses <32.0))
     return disk_bh_initial_masses
 
 

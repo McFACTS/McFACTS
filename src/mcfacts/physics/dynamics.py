@@ -9,8 +9,10 @@ import time
 import numpy as np
 import scipy
 
-import astropy.units as u
-import astropy.constants as const
+#import astropy.units as u
+#import astropy.constants as const
+from astropy import units as u, constants as const
+from astropy.units import cds
 
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage
@@ -27,7 +29,7 @@ def circular_singles_encounters_prograde(
         delta_energy_strong,
         disk_radius_outer
         ):
-    """"Adjust orb ecc due to encounters between 2 single circ pro BH
+    """Adjust orb ecc due to encounters between 2 single circ pro BH
 
     Parameters
     ----------
@@ -227,7 +229,7 @@ def circular_singles_encounters_prograde_stars(
         delta_energy_strong,
         disk_radius_outer
         ):
-    """"Adjust orb ecc due to encounters between 2 single circ pro stars
+    """Adjust orb ecc due to encounters between 2 single circ pro stars
 
     Parameters
     ----------
@@ -473,7 +475,7 @@ def circular_singles_encounters_prograde_star_bh(
         delta_energy_strong,
         disk_radius_outer
         ):
-    """"Adjust orb ecc due to encounters between 2 single circ pro stars
+    """Adjust orb ecc due to encounters between 2 single circ pro stars
 
     Parameters
     ----------
@@ -1612,6 +1614,387 @@ def bin_recapture(bin_mass_1_all, bin_mass_2_all, bin_orb_a_all, bin_orb_inc_all
 
     return (bin_orb_inc_all)
 
+def quiescence_relaxation_time(
+        smbh_mass,
+        blackholes_survivors_pop,
+        quiescence_time,
+        galaxy_num,
+        ):
+    """Calculate relaxation times according to equations in Panamarev & Kocsis '23
+      
+    Intuition:
+    Approximately in order of fastest to slowest:
+    Vector resonant relaxation allows orb_inc to relax
+    Scalar resonant relaxation allows orb_ecc to relax
+    2-body relaxation time allows orb_a to relax
+    Timescales for a sphere of mass N*m around M, scale approximately (from Kocsis & Tremaine 2015)
+    t_vrr  = T_orb *(M/m sqrt(N))
+    t_srr  = T_orb *(M/m)
+    t_2bdy = T_orb *(M/m)^2*(1/N)
+    
+    Maths:
+    Spheroidal interactions:
+        t_sph_2body_relax = 0.34 sigma^3(r)/[G^2 rho(r) m ln Lambda].....from Binney & Tremaine '87
+    can be written as
+        t_sph_2body_relax = T_orb * (M_smbh/m_2)^2 * 1/(N*ln Lambda)
+    and scalar resonant relaxation (change in eccentricity and orbital angular momentum)
+        t_sph_scalar_rr = T_orb *2*(M_smbh/m2) *(N*m/M(r))
+    and vector resonant relaxation (change in angle of orbital angular momentum or inclination angle)
+        t_vector_rr = T_orb* (M_smbh/sqrt(m_2*M(r)))* 1/bv^2
+    where bv~1.83.
+    Disky interactions:
+    2-body relaxation rate from disky interactions:
+        t_disk_2body_relax = T_orb *(<e^2>^2/(9*pi))*(M_smbh^2/m_2*Nm)*(1/ln(<e^2>^3/2 M_smbh/m)))
+    and vector resonant relaxation from disky interactions
+        t_disk_vector_rr = T_orb *(M_smbh/m_2)*(1/<i^2>^1/2)
+        where <i^2>1/2 = RMS(i) ~ 0.5 RMS(e)
+
+    T_orb = 2pi R/v = 2pi R(r_g)^3/2 * r_g_in_meters/c 
+                    = 2pi 31*10^3*(1.5e11/3e8)=pi*31*10^6 =10^8s = 3yrs at 1000r_g around 10^8Msun SMBH e.g.       
+    t_rel = [6*sqrt(2)/(32 pi^1/2)]* v_kep^3/[G^2 ln (M_smbh/M_i)*M_i^2 n_i]
+    where v_kep= Keplerian velocity (m/s)
+    m2 = < m^2>/<m> is the effective mass where m is the mean mass of stars (say 1Msun)
+    G = Universal Gravitational Constant
+    M_smbh = SMBH mass (in kg)
+    M_i = mass of BH i (in kg)
+    n_i = number density of these BH_i (m^-3).
+    NB: 1pc^3 = (3.1e16m)^3. Assume 10^4 BH in central pc^3.  Assume Bahcall-Wolf density profile so
+      n_i = 10^4* (r/pc)^-7/4 in units of pc^-3. So divide by (3.1e16m)^3
+      n_i = 10^4* (r/2.e5)^-1.75 
+
+    Compare to relaxation time from Alexander, Begelman & Armitage (2007) also in McKernan+2012 eqn.5
+    Assume an annulus of objects centered on R, of width dR, containing N stars of mass m_i, then
+    
+    t_rel_disk = C_1* R* dR * sigma^4 *T_orb/[G^2 N m_i^2 ln Lambda]
+    where C_1 is a constant O(1), T_orb is orbital timescale in disk
+    
+    Args:
+        smbh_mass (_type_): _description_
+    """
+    #Bahcall-Wolf profile (r/pc)^-7/4
+    density_index = -1.75
+    year= u.yr.to(u.s) *u.s
+    yr_s = np.pi*10**7 
+    # 1 Myr
+    Myr =((10**6)*u.yr).to(u.s)
+    Myr_yr = (10**6)
+    #Relevant timescale in seconds. Convert quiescence time in Myr to s. 100Myr = pix10^7x10^8s=3e15s
+    relevant_timescale_s = quiescence_time*Myr
+    
+    #Read in relevant survivor info
+    print("shape",np.shape(blackholes_survivors_pop))
+    bh_radii = blackholes_survivors_pop[:,1]
+    bh_masses = blackholes_survivors_pop[:,2]
+    bh_orb_ecc = blackholes_survivors_pop[:,6]
+    bh_orb_inc = blackholes_survivors_pop[:,8]
+    #Make a copy of survivors array and change parameters for relaxed population
+    updated_survivors = blackholes_survivors_pop
+    #Note updated_surivors radii is [:,1], orb_ecc =[:,6]
+    
+    number_of_bh = len(bh_radii)
+    print("number of BH", number_of_bh)
+    
+    #Relevant energy & orbital angular momentum totals among survivors (so we conserve Energy & Orb angular momentum)
+    mass_in_kg = (bh_masses * cds.Msun).to(u.kg)
+    v_kep = const.c/(np.sqrt(bh_radii))
+    v_kep2 = v_kep**2
+    # 1rg =1AU=1.5e11m for 1e8Msun
+    rg = 1.5e11 * (smbh_mass/1.e8) * u.meter
+    bh_radii_m = bh_radii*rg
+    bh_ecc_sq = bh_orb_ecc**2 
+    #Total Kinetic energy (disk)
+    ke_total = np.sum(mass_in_kg*v_kep2)
+    #Total Orbital Angular momentum (disk)
+    l_total = np.sum(mass_in_kg*v_kep*bh_radii_m*(1-bh_ecc_sq)**0.5)
+    
+    #Total spheroid energy (half P.E. = GM_cluster*M_cluster/2*a_cluster)
+    #Assume spheroid has mass 3e7Msun and a_cluster ~1pc
+    #Normalization for stars per pc^3 (start with 10^7 or ~10^7Msun worth of stars)
+    norm_stars =1.e7
+    mass_sun = cds.Msun.to(u.kg)
+    mass_nsc = norm_stars*mass_sun*u.kg
+    mass_nsc_sq = mass_nsc**2
+    # 1pc = 3.1e16m = 2e5 r_g(M_smbh/10^8Msun)
+    pc = (1.0*u.pc).to(u.m)
+    a_nsc = pc
+    e_total_spheroid = const.G*mass_nsc_sq/(2*a_nsc)
+    # Note for a fully isotropic spheroid, the total orbital angular momentum should be ~0. 
+    # This is because all the orbital angular momentum vectors should net cancel 
+    # (think of this as analagous to the peak~0 for a chi_eff distribution for a gas-free stellar cluster)
+
+    print("ke total/disk (J)",ke_total/galaxy_num)
+    print("l total/disk (kg m^2/s)",l_total/galaxy_num)
+    print("e_total_spheroid (J)",e_total_spheroid)
+    #Operate on survivor info
+    
+    bh_mass_ratios = smbh_mass/bh_masses
+    bh_mass_ratios_sq = bh_mass_ratios**2
+    ln_mass_ratios = np.log(bh_mass_ratios)
+    #average parameters from disk population
+    average_bh_mass = np.mean(bh_masses)
+    average_bh_orb_ecc = np.mean(bh_orb_ecc)
+    
+    # N.B. If make average bh_orb_ecc thermal (0.7), t_disk_2bdy goes from 10Myr (e=0.01) to 100Gyr since propto e^4 !
+    #average_bh_orb_ecc = 0.7
+
+    average_bh_mass_ratio = smbh_mass/average_bh_mass
+    ms_bh_orb_ecc = average_bh_orb_ecc**2
+    rms_orb_ecc = np.sqrt(ms_bh_orb_ecc)
+    rms_orb_inc = 0.5*rms_orb_ecc
+    ms_orb_ecc_sq = ms_bh_orb_ecc**2
+    power_orb_ecc = (ms_bh_orb_ecc)**(1.5)
+
+    
+    # Calc t_orb as 2pi (radii)^3/2 *rg/c (s)
+    t_orb =(2*np.pi*rg/const.c)*(bh_radii)**(1.5) 
+    print("t_orb(s)",t_orb)
+    #orb time in years
+    t_orb_yrs = t_orb/(np.pi*(10**7)*(u.s))
+    print("t_orb_yrs",t_orb_yrs)
+    #Mass average star = 1.0Msun
+    mass_av_star = 1.0
+    #Mass ratio of SMBH to average star
+    mass_ratio_smbh_star = smbh_mass/mass_av_star
+    Coulomb_log = np.log(mass_ratio_smbh_star)
+    Coulomb_log_disk = np.log(power_orb_ecc*average_bh_mass_ratio)
+    mass_ratio_smbh_star_sq = mass_ratio_smbh_star**2
+
+    #Stellar density.
+    # Assume 10^7 stars in pc^3. 
+    # Assume a Bahcall-Wolf profile to start (density_index=-1.75) consistent with Panamarev & Kocsis 2023
+    # Then num_stars = 10^7 (pc-3) (r/pc)^-density_index
+    # at 1pc (2e5r_gM_8), num_stars = 10^7
+    # at 0.1pc(2e4r_gM_8), num_stars = 10^7*56.2 *10^-3 pc^3 = 5.6e5
+    # at 0.01pc(2e3r_gM_8), num_stars = 10^7*3.2e3 *10^-6pc^3 = 3.2e4
+    # at 0.001pc(2e2r_gM_8), num_stars = 10^7*1.8e5 *10^-9pc^3 = 1.8e3
+    
+    
+    #radii as a fraction of pc
+    norm_radii = bh_radii*rg/pc
+    
+    #Number of stars within a sphere of radius radii that could interact with BH at radius radii.
+    num_stars = norm_stars * (norm_radii**density_index) *(norm_radii**3)
+    sqrt_num_stars = np.sqrt(num_stars)
+    #Number * mass in disk. Average over a galaxy so sum all BH masses and divide by galaxy_num
+    disk_mass = np.sum(bh_masses)/galaxy_num
+    disk_mass_ratio = smbh_mass/disk_mass
+
+    #Spheroidal relaxation times
+    #   spheroidal 2-body relaxation time in Myr
+    t_sph_2bdy_relax = t_orb_yrs * mass_ratio_smbh_star_sq *(1/Coulomb_log*num_stars)/Myr_yr
+    #   spheroidal scalar resonant relaxation time in Myr
+    t_sph_srr = t_orb_yrs * (2*mass_ratio_smbh_star)/Myr_yr
+    #   spheroidal vector resonant relaxation time in Myr
+    t_sph_vrr = t_orb_yrs * mass_ratio_smbh_star *(1/sqrt_num_stars)/Myr_yr
+
+    #Disky relaxation times
+    # 2-body disk interactions
+    t_disk_2bdy_relax = t_orb_yrs * disk_mass_ratio* average_bh_mass_ratio * (ms_orb_ecc_sq/9*np.pi)*(1/Coulomb_log_disk)/Myr_yr
+    # disk vrr timescale
+    t_disk_vrr = t_orb_yrs *average_bh_mass_ratio *(1/rms_orb_inc)/Myr_yr
+    
+    
+    print("quiescence time",quiescence_time)
+    print("t_disk_2bdy",t_disk_2bdy_relax)
+    #print("t_disk_vrr",t_disk_vrr)
+    masked_sph_2bdy = np.where(t_sph_2bdy_relax < quiescence_time, t_sph_2bdy_relax,0)
+    masked_sph_srr = np.where(t_sph_srr <quiescence_time,t_sph_srr,0)
+    masked_sph_vrr = np.where(t_sph_vrr<quiescence_time,t_sph_vrr,0)
+    masked_disk_2bdy = np.where(t_disk_2bdy_relax< quiescence_time,t_disk_2bdy_relax,0)
+    masked_disk_vrr = np.where(t_disk_vrr<quiescence_time,t_disk_vrr,0)
+    
+    #Where are BH relaxed?
+    indices_sph_2bdy = np.nonzero(masked_sph_2bdy)
+    indices_sph_srr = np.nonzero(masked_sph_srr)
+    indices_sph_vrr = np.nonzero(masked_sph_vrr)
+    indices_disk_2bdy = np.nonzero(masked_disk_2bdy)
+    indices_disk_vrr = np.nonzero(masked_disk_vrr)
+    print("indices_sph_2bdy",indices_sph_2bdy)
+    print("indices_sph_srr",indices_sph_srr)
+    print("indices_sph_vrr",indices_sph_vrr)
+    print("indices_disk_2bdy",indices_disk_2bdy)
+    print("indices_disk_vrr",indices_disk_vrr)
+    
+    #Ratio of quiescence to relaxation time.
+    ratio_q_sph_2bdy = t_sph_2bdy_relax/quiescence_time
+    ratio_q_sph_srr = t_sph_srr/quiescence_time
+    ratio_q_sph_vrr = t_sph_vrr/quiescence_time
+    ratio_q_disk_2bdy = t_disk_2bdy_relax/quiescence_time
+    ratio_q_disk_vrr = t_disk_vrr/quiescence_time
+
+    print("ratio_q_disk_2bdy",ratio_q_disk_2bdy)
+
+
+    density_factor = 1.e4*norm_radii**density_index
+    #print("density factor",density_factor)
+    pc3 = pc**3
+    #print("pc3",pc3)
+    mass_in_kg = (bh_masses * cds.Msun).to(u.kg)
+    mass_in_kg_sq = (mass_in_kg)**2
+    num_density = density_factor/pc3
+    num_factor = 6*np.sqrt(2)/(32*np.sqrt(np.pi))
+    v_kep = const.c/(np.sqrt(bh_radii))
+    v_kep3 = v_kep**3
+    v_kep4 = v_kep**4
+    
+    # Calculate change in velocity and change in semi-major axis for relaxed disky population
+    # Relevant populations that are relaxed
+    num_relaxed = len(indices_disk_2bdy)
+    relaxed_masses = bh_masses[indices_disk_2bdy]
+    relaxed_orb_ecc = bh_orb_ecc[indices_disk_2bdy]
+    relaxed_radii = bh_radii[indices_disk_2bdy]
+    #Factors needed
+    #mass_factor = np.sqrt(relaxed_masses/average_bh_mass)
+    full_mass_factor = np.sqrt(bh_masses/average_bh_mass)
+    print("bh_masses",bh_masses)
+    print("full mass factor",full_mass_factor)
+    #dv = v_kep[indices_disk_2bdy]*(mass_factor -1)/(mass_factor + 1)
+    full_dv = v_kep*(full_mass_factor -1)/(full_mass_factor +1)
+    
+    #vnew = v_kep[indices_disk_2bdy] + dv
+    full_vnew = v_kep + full_dv
+    #frac_change = 1 + (dv/v_kep[indices_disk_2bdy])
+    full_frac_change = 1 +(full_dv/v_kep)
+    #frac_change_factor = (1 + ((1-frac_change**2)/4))
+    full_frac_change_factor = (1 + ((1-full_frac_change**2)/4))
+    print("full frac change",full_frac_change_factor)
+    masked_gt = np.where(full_frac_change_factor -1<0,0,full_frac_change_factor)
+    indices_gt = np.nonzero(masked_gt)
+    gt_masses = bh_masses[indices_gt]
+    print("gt_masses",gt_masses)
+    #num_retro = np.count_nonzero(masked_retros)
+    num_gt = np.count_nonzero(masked_gt)
+    print("num_gt",num_gt)
+    #print("change_a_factor",full_frac_change_factor)
+    #anew = relaxed_radii/frac_change_factor
+    #Final orb_a
+    full_a_new = bh_radii/full_frac_change_factor
+    old_bh_radii = np.copy(updated_survivors[:,1])
+    print("survivors[:,1]",old_bh_radii)
+    print("factor",full_frac_change_factor)
+    #print("len a,b", len(updated_survivors[:,1]),len(full_frac_change_factor))
+    #Scale the relaxation by factor (quiescence time/relaxation time) where this is <1.
+    # i.e. If relaxation time < quiesence  then BH relaxes fully. 
+    #      If relaxation time > quiescence, scale the relaxation by the ratio of times
+    factor_t_disk_2bdy = np.where(t_disk_2bdy_relax<quiescence_time,1,ratio_q_disk_2bdy)
+    print("factor_t",factor_t_disk_2bdy)
+    new_radii = np.copy(old_bh_radii)*full_frac_change_factor
+    #*(1+(1/factor_t_disk_2bdy)/2)
+    masked_new_r = np.where(new_radii - updated_survivors[:,1] <0,0,new_radii)
+    indices_r = np.nonzero(masked_new_r)
+    r_masses = bh_masses[indices_r]
+    old_mass_radii = old_bh_radii[indices_r]
+    new_mass_radii = new_radii[indices_r]
+    print("r_masses",r_masses)
+    print("old radii",old_mass_radii)
+    print("full_frac_factor",full_frac_change_factor[indices_r])
+    print("old*frac",old_mass_radii*full_frac_change_factor[indices_r])
+    print("new radii",new_mass_radii)
+    num_r = np.count_nonzero(masked_new_r)
+    print("num_r",num_r)
+
+    
+    updated_survivors[:,1] = new_radii
+
+    #print("vkep(indices)",v_kep[indices_disk_2bdy])
+    #print("dv",dv)
+    #print("vnew",vnew)
+    #print("frac change",frac_change)
+    #print("radii[indices]",relaxed_radii)
+    #print("anew",anew)
+    #print("average BH mass",average_bh_mass)
+    #print("relaxed masses",relaxed_masses)
+    
+    #scaled_ecc is 0.1 at 1Myr. Scaling from Mikhaloff & Perets (2017) after 1Myr, initially circular pop disk ecc~0.1.
+    scaled_ecc =0.1
+    #From Panamarev, std dev is approx 0.1 in ecc.
+    new_ecc_std_dev =0.1
+    # Median rms ecc (centroid for Gaussian draw) where quiescence time is in units of Myrs. ecc_rms = 0.1 at 1Myr
+    ecc_new_rms = (scaled_ecc)*(quiescence_time)**(0.25)
+    #print("ecc_new_rms",ecc_new_rms)
+    #Actual new ecc depend on mass scaling and draw from Gaussian
+    draws_Gaussian = rng.normal(ecc_new_rms,new_ecc_std_dev,num_relaxed)
+    ecc_new = (average_bh_mass/relaxed_masses)*draws_Gaussian
+    #print("ecc old",bh_orb_ecc)
+    #print("ecc_new",ecc_new)
+    
+    #Eccentricity:
+    #Actually change all the ecc with scaling that goes as (1/ratio_q_..)
+    #If ratio_q <1, then factor =1 if ratio_q >1 then  factor = 1/ratio_q..
+    actual_draws_Gaussian = rng.normal(ecc_new_rms,new_ecc_std_dev,number_of_bh)
+    #Make sure all eccentricities draws are actually positive!
+    positive_draws_Gaussian =np.where(actual_draws_Gaussian<0.01,0.05,actual_draws_Gaussian)
+    #Scale the eccentricity excitation by factor (quiescence time/relaxation time) where this is <1.
+    # i.e. If relaxation time < quiesence  then BH relaxes fully. 
+    #      If relaxation time > quiescence, scale the relaxation by the ratio of times
+    factor_t_disk_2bdy = np.where(t_disk_2bdy_relax<quiescence_time,1,ratio_q_disk_2bdy)
+    #print("factor_t_disk_2bdy",factor_t_disk_2bdy)
+    actual_new_orb_ecc = bh_orb_ecc + ((average_bh_mass/bh_masses)*(1/factor_t_disk_2bdy)*positive_draws_Gaussian)
+    #Cap the eccentricity (since Gaussian draw can be very large!)
+    actual_new_orb_ecc = np.where(actual_new_orb_ecc>0.999,0.999,actual_new_orb_ecc)
+    #print("actual_new_orb_ecc",actual_new_orb_ecc)
+    #Update survivors array
+    #updated_survivors[indices_disk_2bdy,1] = anew
+    updated_survivors[:,6] = actual_new_orb_ecc
+    
+    #Orbital Inclination:
+    # Update the inclination angles based on t_sph_vrr
+    # The spheroid of stars is an efficient randomizer of the direction (but not magnitude)  of orb ang mom.
+    # Orb_inc is in radians (2pi rad =360 degrees; pi rad = 180deg)
+    # If fully randomized, ie t_relax_sph_vrr < t_quiescence draw from [-pi,pi] radians.
+    # Scale by t_quiescence/t_sph_vrr as 
+    # draw from [-lim,lim] where lim=pi*(t_quiescence/t_relax_sph_vrr) for t_relax_sph_vrr >t_quiescence
+    factor_t_sph_vrr = np.where(ratio_q_sph_vrr<1,1,ratio_q_sph_vrr)
+    lim = np.pi/factor_t_sph_vrr
+    #print("lim",lim)
+    rand_lim = rng.uniform(-lim,lim)
+    masked_rand_lim = np.where(rand_lim<0,0,rand_lim)
+    num_pos=np.count_nonzero(masked_rand_lim)
+    #print("num_pos",num_pos)
+    #print("rand_lim",rand_lim)
+    actual_draws_inclination = bh_orb_inc + rand_lim
+    #normalized_inclination = np.where(actual_draws_inclination > np.pi,)
+    #print("old inc", bh_orb_inc)
+    masked_retros = np.where(np.abs(bh_orb_inc - np.pi)<0.14,bh_orb_inc,0)
+    masked_pros = np.where(np.abs(bh_orb_inc -0)<0.14,bh_orb_inc,0)
+    indices_retro = np.nonzero(masked_retros)
+    #print("indices retro",indices_retro)
+    num_retro = np.count_nonzero(masked_retros)
+    num_pros = np.count_nonzero(masked_pros)
+    #print("num retro",num_retro)  
+    #print("num pros",num_pros)
+    #print("average num pro/galaxy =", num_pros/galaxy_num)  
+    temp_updated_survivors = np.abs(actual_draws_inclination)
+    #Normalize to <3.14 orb. inc.
+    actual_updated_survivors = np.where(temp_updated_survivors>np.pi,np.pi+(np.pi-temp_updated_survivors),temp_updated_survivors)
+    updated_survivors[:,8] = actual_updated_survivors
+    updated_retro_mask =np.where(np.abs(actual_draws_inclination - np.pi)<0.14,actual_draws_inclination,0)
+    new_num_retro = np.count_nonzero(updated_retro_mask)
+    #print("new num retro",new_num_retro)
+    
+    #Compare energy and ang mom
+    v_kep_new = const.c/(np.sqrt(new_radii))
+    v_kep_new2 = v_kep_new**2 
+    new_radii_m = new_radii*rg
+    new_ecc_sq = actual_new_orb_ecc**2 
+    #Total Kinetic energy (disk)
+    ke_new_total = np.sum(mass_in_kg*v_kep_new2)
+    #Total Orbital Angular momentum (disk)
+    l_new_total = np.sum(mass_in_kg*v_kep_new*new_radii_m*(1-new_ecc_sq)**0.5)
+    #print("v_kep_new",v_kep_new)
+    #print("new_radii_m",new_radii_m)
+    #print("(1-ecc^2)^(1/2)",(1-new_ecc_sq)**0.5)
+    #print("ecc^2",new_ecc_sq)
+    #print("1-ecc^2",(1-new_ecc_sq))
+    print("ke total/disk (J)",ke_total/galaxy_num)
+    print("l total/disk (kg m^2/s)",l_total/galaxy_num)
+    print("e_total_spheroid (J)",e_total_spheroid)
+    print("ke new total/disk (J)",ke_new_total/galaxy_num)
+    print("l new total/disk (kg m^2/s)",l_new_total/galaxy_num)
+    print("en ratio",ke_new_total/ke_total)
+    print("l ratio",l_new_total/l_total)
+
+    return(updated_survivors)
 
 def bh_near_smbh(
         smbh_mass,

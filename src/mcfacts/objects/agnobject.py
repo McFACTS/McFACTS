@@ -801,12 +801,13 @@ class AGNBlackHole(AGNObject):
         totals = 'AGNBlackHole(): {} single black holes'.format(self.num)
         return (totals)
 
+    
     def add_blackholes(self,
-                       new_mass=empty_arr,
-                       new_gw_freq=empty_arr,
-                       new_gw_strain=empty_arr,
-                       bh_num=0,
-                       **kwargs):
+                    new_mass=empty_arr,
+                    new_gw_freq=empty_arr,
+                    new_gw_strain=empty_arr,
+                    bh_num=0,
+                    **kwargs):
         """
         Append black holes to the AGNBlackHole object.
 

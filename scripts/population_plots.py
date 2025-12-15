@@ -38,6 +38,12 @@ def arg():
     parser.add_argument("--fname-lvk",
                         default="output_mergers_lvk.dat",
                         type=str, help="output_lvk file")
+    parser.add_argument("--fname-survivors",
+                        default="output_mergers_survivors.dat",
+                        type=str, help="output_survivors file")
+    parser.add_argument("--fname-quiescence",
+                        default="output_mergers_quiescence.dat",
+                        type=str, help="output_quiescence file")
     parser.add_argument("--fname-log",
                         default="mcfacts.log",
                         type=str, help="log file")
@@ -46,6 +52,8 @@ def arg():
     assert os.path.isfile(opts.fname_mergers)
     assert os.path.isfile(opts.fname_emris)
     assert os.path.isfile(opts.fname_lvk)
+    assert os.path.isfile(opts.fname_survivors)
+    assert os.path.isfile(opts.fname_quiescence)
     return opts
 
 
@@ -76,6 +84,43 @@ def make_gen_masks(table, col1, col2):
     return g1_mask, g2_mask, gX_mask
 
 
+def make_survivor_gen_masks(table, col1):
+    """Create masks for retrieving different sets of a merged or binary population based on generation.
+    """
+    # Column of generation data
+    gen_obj1 = table[:, col1]
+    
+
+    # Masks for hierarchical generations
+    # g1 : all 1g-1g objects
+    # g2 : 2g-1g and 2g-2g objects
+    # g3 : >=3g-Ng (first object at least 3rd gen; second object any gen)
+    # Pipe operator (|) = logical OR. (&)= logical AND.
+    g1_mask = (gen_obj1 == 1) 
+    g2_mask = (gen_obj1 == 2) 
+    gX_mask = (gen_obj1 >= 3) 
+
+    return g1_mask, g2_mask, gX_mask
+
+def make_quiescence_gen_masks(table, col1):
+    """Create masks for retrieving different sets of a merged or binary population based on generation.
+    """
+    # Column of generation data
+    gen_obj1 = table[:, col1]
+    
+
+    # Masks for hierarchical generations
+    # g1 : all 1g-1g objects
+    # g2 : 2g-1g and 2g-2g objects
+    # g3 : >=3g-Ng (first object at least 3rd gen; second object any gen)
+    # Pipe operator (|) = logical OR. (&)= logical AND.
+    g1_mask = (gen_obj1 == 1) 
+    g2_mask = (gen_obj1 == 2) 
+    gX_mask = (gen_obj1 >= 3) 
+
+    return g1_mask, g2_mask, gX_mask
+
+
 ######## Main ########
 def main():
     # plt.style.use('seaborn-v0_8-poster')
@@ -86,13 +131,16 @@ def main():
     mergers = np.loadtxt(opts.fname_mergers, skiprows=2)
     emris = np.loadtxt(opts.fname_emris, skiprows=2)
     lvk = np.loadtxt(opts.fname_lvk, skiprows=2)
+    survivors = np.loadtxt(opts.fname_survivors, skiprows=2)
+    quiescence = np.loadtxt(opts.fname_quiescence, skiprows=2)
 
     # Exclude all rows with NaNs or zeros in the final mass column
     merger_nan_mask = (np.isfinite(mergers[:, 2])) & (mergers[:, 2] != 0)
     mergers = mergers[merger_nan_mask]
 
     merger_g1_mask, merger_g2_mask, merger_gX_mask = make_gen_masks(mergers, 12, 13)
-
+    survivors_g1_mask, survivors_g2_mask, survivors_gX_mask = make_survivor_gen_masks(survivors,5)
+    quiescence_g1_mask, quiescence_g2_mask, quiescence_gX_mask =make_quiescence_gen_masks(quiescence,5)
     # Ensure no union between sets
     assert all(merger_g1_mask & merger_g2_mask) == 0
     assert all(merger_g1_mask & merger_gX_mask) == 0
@@ -198,7 +246,7 @@ def main():
     plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
                 label=f'Trap Radius = {trap_radius:.0f} ' + r'$R_g$')
 
-    # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
     plt.ylabel(r'Remnant Mass [$M_\odot$]')
     plt.xlabel(r'Radius [$R_g$]')
     plt.xscale('log')
@@ -805,7 +853,394 @@ def main():
     plt.savefig(opts.plots_directory + './gw_strain.png', format='png')
     plt.close()
 
+# ========================================
+    # Number of Survivors vs Mass
+    # ========================================
 
+    # Plot final mass distributions
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    counts, bins = np.histogram(survivors[:, 2])
+    # plt.hist(bins[:-1], bins, weights=counts)
+    bins = np.arange(int(survivors[:, 2].min()), int(survivors[:, 2].max()) + 2, 1)
+
+    hist_data = [survivors[:, 2][survivors_g1_mask], survivors[:, 2][survivors_g2_mask], survivors[:, 2][survivors_gX_mask]]
+    hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+    #hist_data = np.ma.where(hist_data >0, hist_data,0.5)
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, log=True, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
+    plt.ylabel('Number of Survivors')
+    plt.xlabel(r'Remnant Mass [$M_\odot$]')
+    plt.xscale('log')
+    #plt.yscale('log')
+    # plt.ylim(-5,max(counts))
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    svf_ax.tick_params(axis='x', direction='out', which='both')
+    #plt.grid(True, color='gray', ls='dashed')
+    svf_ax.yaxis.grid(True, color='gray', ls='dashed')
+
+    plt.xticks(np.geomspace(int(survivors[:, 2].min()), int( survivors[:, 2].max()), 5).astype(int))
+    #plt.xticks(np.geomspace(20, 200, 5).astype(int))
+
+    svf_ax.xaxis.set_major_formatter(mticker.StrMethodFormatter('{x:.0f}'))
+    svf_ax.xaxis.set_minor_formatter(mticker.NullFormatter())
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.savefig(opts.plots_directory + r"/survivors_remnant_mass.png", format='png')
+
+    plt.close()
+
+
+    # ========================================
+    # Survivors Mass vs Radius
+    # ========================================
+
+    # Read the log file
+    log_data = ReadLog(opts.fname_log)
+
+    # Retrieve the migration trap radius used in run
+    trap_radius = log_data["disk_radius_trap"]
+
+    # plt.title('Migration Trap influence')
+    for i in range(len(survivors[:, 1])):
+        if survivors[i, 1] < 6.0:
+            survivors[i, 1] = 6.0
+
+    # Separate generational subpopulations
+    gen1_orb_a = survivors[:, 1][survivors_g1_mask]
+    gen2_orb_a = survivors[:, 1][survivors_g2_mask]
+    genX_orb_a = survivors[:, 1][survivors_gX_mask]
+    gen1_mass = survivors[:, 2][survivors_g1_mask]
+    gen2_mass = survivors[:, 2][survivors_g2_mask]
+    genX_mass = survivors[:, 2][survivors_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_mass,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_mass,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_mass,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius:.0f} ' + r'$R_g$')
+
+    plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Survivor Mass [$M_\odot$]')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.ylim(10, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/survivors_mass_v_radius.png", format='png')
+    plt.close()
+
+    # Survivors vs Quiescence plots
+    # Plot Histogram of pre- and post- quiescence for eccentricity
+    # Plot final mass distributions
+    
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    counts, bins = np.histogram(survivors[:, 6])
+    # plt.hist(bins[:-1], bins, weights=counts)
+    bins = np.arange(int(survivors[:, 6].min()), int(survivors[:, 6].max()) + 2, 1)
+
+    counts2 = np.histogram(quiescence[:,6])
+
+    hist_data = [survivors[:, 6][survivors_g1_mask], survivors[:, 6][survivors_g2_mask], survivors[:, 6][survivors_gX_mask]]
+    hist_data1 = [quiescence[:,6][quiescence_g1_mask],quiescence[:,6][quiescence_g2_mask],quiescence[:,6][quiescence_gX_mask]]
+    hist_label = ['1g', '2g', r'$\geq$3g']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+    #hist_data = np.ma.where(hist_data >0, hist_data,0.5)
+    plt.hist(hist_data, bins='auto', align='left', color=hist_color, histtype = 'step', log=True, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+    plt.hist(hist_data1,align='left', color=hist_color, histtype = 'step', linestyle= '--', log=True, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+    plt.ylabel('Number of BH')
+    plt.xlabel(r'Eccentricity')
+    plt.xscale('log')
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/quiescence_survivors_ecc_v_number.png", format='png')
+    plt.close()
+
+    #Plot inclination before and after quiescence
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    counts, bins = np.histogram(np.cos(survivors[:, 8]))
+    # plt.hist(bins[:-1], bins, weights=counts)
+    bins = 20
+    #bins = np.arange(np.cos(survivors[:, 8].min()), np.cos(survivors[:, 8].max()) + 2, 1)
+
+    counts2 = np.histogram(np.cos(quiescence[:,8]))
+
+    hist_data = [np.cos(survivors[:, 8][survivors_g1_mask]), np.cos(survivors[:, 8][survivors_g2_mask]), np.cos(survivors[:,8][survivors_gX_mask])]
+    hist_data1 = [np.cos(quiescence[:,8][quiescence_g1_mask]),np.cos(quiescence[:,8][quiescence_g2_mask]),np.cos(quiescence[:,8][quiescence_gX_mask])]
+    hist_label = ['1g', '2g', r'$\geq$3g']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+    #hist_data = np.ma.where(hist_data >0, hist_data,0.5)
+    plt.hist(hist_data, bins= 40, align='left', color=hist_color, histtype = 'step', alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+    plt.hist(hist_data1,bins= 40, align='left', color=hist_color, histtype = 'step', linestyle= '--', alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+    plt.ylabel('Number of BH')
+    plt.xlabel(r'Cos (orb Inc)')
+    plt.yscale('log')
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/quiescence_survivors_inc_v_number.png", format='png')
+    plt.close()
+
+    #Plot inclination as a function of radius before & after
+    # ========================================
+    # Quiescence Mass vs Radius
+    # ========================================
+
+    # Read the log file
+    log_data = ReadLog(opts.fname_log)
+
+    # Retrieve the migration trap radius used in run
+    trap_radius = log_data["disk_radius_trap"]
+
+    # plt.title('Migration Trap influence')
+    for i in range(len(quiescence[:, 1])):
+        if quiescence[i, 1] < 6.0:
+            quiescence[i, 1] = 6.0
+
+    # Separate generational subpopulations
+    gen1_orb_a = quiescence[:, 1][quiescence_g1_mask]
+    gen2_orb_a = quiescence[:, 1][quiescence_g2_mask]
+    genX_orb_a = quiescence[:, 1][quiescence_gX_mask]
+    gen1_mass = quiescence[:, 2][quiescence_g1_mask]
+    gen2_mass = quiescence[:, 2][quiescence_g2_mask]
+    genX_mass = quiescence[:, 2][quiescence_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_mass,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_mass,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_mass,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g'
+                )
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius:.0f} ' + r'$R_g$')
+
+    plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Quiescent Mass [$M_\odot$]')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.ylim(10, 1000)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/quiescence_mass_v_radius.png", format='png')
+    plt.close()
+
+    # ========================================
+    # Quiescence Inclination Angle vs Radius
+    # ========================================
+
+    # Read the log file
+    log_data = ReadLog(opts.fname_log)
+
+    # Retrieve the migration trap radius used in run
+    trap_radius = log_data["disk_radius_trap"]
+
+    # plt.title('Migration Trap influence')
+    for i in range(len(quiescence[:, 1])):
+        if quiescence[i, 1] < 6.0:
+            quiescence[i, 1] = 6.0
+
+    # Separate generational subpopulations
+    gen1_orb_a = quiescence[:, 1][quiescence_g1_mask]
+    gen2_orb_a = quiescence[:, 1][quiescence_g2_mask]
+    genX_orb_a = quiescence[:, 1][quiescence_gX_mask]
+    gen1_inc = quiescence[:, 8][quiescence_g1_mask]
+    gen2_inc = quiescence[:, 8][quiescence_g2_mask]
+    genX_inc = quiescence[:, 8][quiescence_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_inc,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_inc,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_inc,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g'
+                )
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius:.0f} ' + r'$R_g$')
+
+    plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Inc Angle (rad)')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    #plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.ylim(0, 3.14)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/quiescence_inc_v_radius.png", format='png')
+    plt.close()
+
+    # ========================================
+    # Survivors Inclination Angle vs Radius
+    # ========================================
+
+    # Read the log file
+    log_data = ReadLog(opts.fname_log)
+
+    # Retrieve the migration trap radius used in run
+    trap_radius = log_data["disk_radius_trap"]
+
+    # plt.title('Migration Trap influence')
+    for i in range(len(survivors[:, 1])):
+        if survivors[i, 1] < 6.0:
+            survivors[i, 1] = 6.0
+
+    # Separate generational subpopulations
+    gen1_orb_a = survivors[:, 1][survivors_g1_mask]
+    gen2_orb_a = survivors[:, 1][survivors_g2_mask]
+    genX_orb_a = survivors[:, 1][survivors_gX_mask]
+    gen1_inc = survivors[:, 8][survivors_g1_mask]
+    gen2_inc = survivors[:, 8][survivors_g2_mask]
+    genX_inc = survivors[:, 8][survivors_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    plt.scatter(gen1_orb_a, gen1_inc,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g'
+                )
+
+    plt.scatter(gen2_orb_a, gen2_inc,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g'
+                )
+
+    plt.scatter(genX_orb_a, genX_inc,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g'
+                )
+
+    plt.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius:.0f} ' + r'$R_g$')
+
+    plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
+    plt.ylabel(r'Inc Angle (rad)')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    #plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    plt.ylim(0, 3.14)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/survivors_inc_v_radius.png", format='png')
+    plt.close()
 ######## Execution ########
 if __name__ == "__main__":
     main()

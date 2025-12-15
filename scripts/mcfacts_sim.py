@@ -224,6 +224,12 @@ def main():
     stars_plunge_pop = AGNStar()
     stars_explode_pop = AGNExplodedStar()
     stars_merge_pop = AGNMergedStar()
+    blackholes_survivors_pop = AGNBlackHole()
+    quiescence_pop = AGNBlackHole()
+    blackholes_quiescence_pop = AGNBlackHole()
+
+    #
+    #the_leftovers = np.array[()]
 
     # Setting up arrays to keep track of how much mass is cycled through stars
     disk_arr_galaxy = []
@@ -236,6 +242,15 @@ def main():
     print("opts.__dict__", opts.__dict__)
     print("opts.smbh_mass", opts.smbh_mass)
     print("opts.fraction_bin_retro", opts.fraction_bin_retro)
+
+    counter_prob_less_half = 0
+    biggest_com = 500
+    smallest_com = 1000
+    #Add totals of survivors
+    pro_num = 0
+    retro_num = 0
+    bin_num = 0
+    inner_num = 0
 
     for galaxy in range(opts.galaxy_num):
         print("Galaxy", galaxy)
@@ -297,7 +312,7 @@ def main():
         '''
 
         # generate initial BH parameter arrays
-        print("Generate initial BH parameter arrays")
+        #print("Generate initial BH parameter arrays")
         bh_orb_a_initial = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
                 disk_bh_num, opts.disk_radius_outer, opts.disk_inner_stable_circ_orb,
                 opts.smbh_mass, opts.nsc_radius_crit, opts.nsc_density_index_inner,
@@ -518,7 +533,7 @@ def main():
 
         # Set up normalization for t_gw (SF: I do not like this way of handling, flag for update)
         time_gw_normalization = merge.normalize_tgw(opts.smbh_mass, opts.inner_disk_outer_radius)
-        print("Scale of t_gw (yrs)=", time_gw_normalization)
+        #print("Scale of t_gw (yrs)=", time_gw_normalization)
 
         # Multiple AGN episodes:
         # If you want to use the output of a previous AGN simulation as an input to another AGN phase
@@ -551,9 +566,9 @@ def main():
         disk_arr_mass_gained = []
 
         # Start Loop of Timesteps
-        print("Start Loop!")
+        #print("Start Loop!")
         time_passed = time_init
-        print("Initial Time(yrs) = ", time_passed)
+        #print("Initial Time(yrs) = ", time_passed)
 
         timestep_current_num = 0
 
@@ -1955,8 +1970,22 @@ def main():
             if (close_encounters_id_nums.shape != (0,)):
                 # Get ID nums for BH pairs, star pairs, and BH-star pairs
                 bhbh_id_nums, starstar_id_nums, bhstar_id_nums = formation.divide_types_encounters(close_encounters_id_nums, [[0, 0], [1, 1], [0, 1]], filing_cabinet)
-
+                #Comment this next if statement out if you don't want to test the Whitehead+25 module.    
                 if (bhbh_id_nums.size > 0):
+                    #Test BBH Hill sphere mass module
+                    test_hs_locations_masses,max_com,min_com,bhbh_id_nums = formation.mass_hill_sphere(bhbh_id_nums, 
+                                                                          blackholes_pro, 
+                                                                          opts.smbh_mass,
+                                                                          disk_surface_density, 
+                                                                          disk_aspect_ratio,
+                                                                          opts.timestep_duration_yr)
+                    counter_prob_less_half = counter_prob_less_half + test_hs_locations_masses
+                    if max_com > biggest_com:
+                        biggest_com = max_com
+                    if min_com < smallest_com:
+                        smallest_com = min_com    
+
+                if (bhbh_id_nums.size > 0):        
                     # BH and BH encounter each other: form a binary
                     blackholes_binary, bh_binary_id_num_new = formation.add_to_binary_obj(
                         blackholes_binary,
@@ -2311,8 +2340,71 @@ def main():
                                       new_info=np.full(len(star_id_num_retro_inner_disk), -1))
 
             if (blackholes_inner_disk.num > 0):
+                # ADD GAS torques to Peters treatment in Inner disk
+                # Gas torques first then Peters (Peters should dominate in innermost disk, gas maybe outside)
+                # Paardekooper torque coeff (default)
+                #if opts.torque_prescription == 'paardekooper':
+                #    paardekooper_torque_coeff_inner_bh = migration.paardekooper10_torque(
+                #        blackholes_inner_disk.orb_a,
+                #        blackholes_inner_disk.orb_ecc,
+                #        opts.disk_bh_pro_orb_ecc_crit,
+                #        disk_dlog10surfdens_dlog10R_func,
+                #        disk_dlog10temp_dlog10R_func
+                #   )
+                #    normalized_torque_inner_bh = migration.normalized_torque(
+                #        opts.smbh_mass,
+                #        blackholes_inner_disk.orb_a,
+                #        blackholes_inner_disk.mass,
+                #        blackholes_inner_disk.orb_ecc,
+                #        opts.disk_bh_pro_orb_ecc_crit,
+                #        disk_surface_density,
+                #        disk_aspect_ratio
+                #    )
+                #    torque_inner_bh = paardekooper_torque_coeff_inner_bh*normalized_torque_inner_bh
+                #    # Timescale on which migration happens based on overall torque
+                #    torque_mig_timescales_inner_bh = migration.torque_mig_timescale(
+                #        opts.smbh_mass,
+                #        blackholes_inner_disk.orb_a,
+                #        blackholes_inner_disk.mass,
+                #        blackholes_inner_disk.orb_ecc,
+                #        opts.disk_bh_pro_orb_ecc_crit,
+                #        torque_inner_bh 
+                #    )
+                #    #Calc feedback torques
+                #    if opts.flag_thermal_feedback > 0:
+                #        ratio_heat_mig_torques_inner = feedback.feedback_bh_hankla(
+                #        blackholes_inner_disk.orb_a,
+                #        disk_surface_density,
+                #        disk_opacity,
+                #        opts.disk_bh_eddington_ratio,
+                #        opts.disk_alpha_viscosity,
+                #        opts.disk_radius_outer)
+                #
+                #    disk_trap_radius = opts.disk_radius_trap
+                #    disk_anti_trap_radius = opts.disk_radius_trap    
+                #    
+                #    new_orb_a_inner_bh = migration.type1_migration_distance(
+                #        opts.smbh_mass,
+                #        blackholes_inner_disk.orb_a,
+                #        blackholes_inner_disk.mass,
+                #        blackholes_inner_disk.orb_ecc,
+                #        opts.disk_bh_pro_orb_ecc_crit,
+                #        torque_mig_timescales_inner_bh,
+                #        ratio_heat_mig_torques_inner,
+                #        disk_trap_radius,
+                #        disk_anti_trap_radius,
+                #        opts.disk_radius_outer,
+                #        opts.timestep_duration_yr,
+                #        opts.flag_phenom_turb,
+                #        opts.phenom_turb_centroid,
+                #        opts.phenom_turb_std_dev,
+                #        opts.nsc_imf_bh_mode,
+                #        opts.torque_prescription
+                #    )
+                #    blackholes_inner_disk.orb_a = new_orb_a_inner_bh
                 # FIX THIS: Return the new evolved bh_orb_ecc_inner_disk as they decay inwards.
                 # Potentially move inner disk behaviour to module that is not dynamics (e.g inner disk module)
+                # Peters
                 blackholes_inner_disk.orb_a = dynamics.bh_near_smbh(
                     opts.smbh_mass,
                     blackholes_inner_disk.orb_a,
@@ -2523,54 +2615,67 @@ def main():
             time_passed = time_passed + opts.timestep_duration_yr
             # Print time passed every 10 timesteps for now
             time_galaxy_tracker = 10.0*opts.timestep_duration_yr
-            if time_passed % time_galaxy_tracker == 0:
-                print("Time passed=", time_passed)
-
+            #if time_passed % time_galaxy_tracker == 0:
+                #print("Time passed=", time_passed)
+                
+            #If timestep is last time step (if time_passed = ) then 
+            # Add up all the final states of pro_,retro_bh, bbh and inner disk and write to a file
+            if time_passed == time_final - opts.timestep_duration_yr:
+                print("Final timestep!",time_passed)
+                
+                
+                print("Pro,Ret,BBH,inner", blackholes_pro.num, blackholes_retro.num, blackholes_binary.num, blackholes_inner_disk.num)
+                pro_num = pro_num + blackholes_pro.num
+                retro_num = retro_num + blackholes_retro.num
+                bin_num = bin_num + blackholes_binary.num
+                inner_num = inner_num + blackholes_inner_disk.num
+                
         # End Loop of Timesteps at Final Time, end all changes & print out results
 
-        print("End Loop!")
-        print("Final Time (yrs) = ", time_passed)
+        #print("End Loop!")
+        #print("Final Time (yrs) = ", time_passed)
         if opts.verbose:
             print("BH locations at Final Time")
             print(blackholes_pro.orb_a)
-        print("Number of binaries = ", blackholes_binary.num)
-        print("Total number of mergers = ", blackholes_merged.num)
-        print("Total number of immortal stars = ", len(stars_pro.mass[stars_pro.mass == opts.disk_star_initial_mass_cutoff]))
-        print("Nbh_disk", disk_bh_num)
+        #print("Number of binaries = ", blackholes_binary.num)
+        #print("Total number of mergers = ", blackholes_merged.num)
+        #print("Total number of immortal stars = ", len(stars_pro.mass[stars_pro.mass == opts.disk_star_initial_mass_cutoff]))
+        #print("Nbh_disk", disk_bh_num)
 
         # Write out all singletons after AGN episode so we can use as input to another AGN phase
 
+        # DON'T ASSUME THIS!
         # Assume that all BH binaries break apart
         # Note: eccentricity will relax, ignore
         # Inclination assumed 0deg
-        blackholes_pro.add_blackholes(
-            new_mass=np.concatenate([blackholes_binary.mass_1, blackholes_binary.mass_1]),
-            new_spin=np.concatenate([blackholes_binary.spin_1, blackholes_binary.spin_2]),
-            new_spin_angle=np.concatenate([blackholes_binary.spin_angle_1, blackholes_binary.spin_angle_2]),
-            new_orb_a=np.concatenate([blackholes_binary.orb_a_1, blackholes_binary.orb_a_2]),
-            new_orb_inc=np.zeros(blackholes_binary.num * 2),  # Assume orb_inc = 0.0
-            new_orb_ang_mom=np.ones(blackholes_binary.num * 2),  # Assume all are prograde
-            new_orb_ecc=np.zeros(blackholes_binary.num * 2),  # Assume orb_ecc = 0.0
-            new_orb_arg_periapse=np.full(blackholes_binary.num * 2, -1.5),  # Assume orb_arg_periapse = -1
-            new_galaxy=np.full(blackholes_binary.num * 2, galaxy),
-            new_time_passed=np.full(blackholes_binary.num * 2, time_passed),
-            new_gen=np.concatenate([blackholes_binary.gen_1, blackholes_binary.gen_2]),
-            new_id_num=np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + blackholes_binary.num * 2, 1)
-        )
+        #blackholes_pro.add_blackholes(
+        #    new_mass=np.concatenate([blackholes_binary.mass_1, blackholes_binary.mass_1]),
+        #    new_spin=np.concatenate([blackholes_binary.spin_1, blackholes_binary.spin_2]),
+        #    new_spin_angle=np.concatenate([blackholes_binary.spin_angle_1, blackholes_binary.spin_angle_2]),
+        #    new_orb_a=np.concatenate([blackholes_binary.orb_a_1, blackholes_binary.orb_a_2]),
+        #    new_orb_inc=np.zeros(blackholes_binary.num * 2),  # Assume orb_inc = 0.0
+        #    new_orb_ang_mom=np.ones(blackholes_binary.num * 2),  # Assume all are prograde
+        #    new_orb_ecc=np.zeros(blackholes_binary.num * 2),  # Assume orb_ecc = 0.0
+        #    new_orb_arg_periapse=np.full(blackholes_binary.num * 2, -1.5),  # Assume orb_arg_periapse = -1
+        #    new_galaxy=np.full(blackholes_binary.num * 2, galaxy),
+        #    new_time_passed=np.full(blackholes_binary.num * 2, time_passed),
+        #    new_gen=np.concatenate([blackholes_binary.gen_1, blackholes_binary.gen_2]),
+        #    new_id_num=np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + blackholes_binary.num * 2, 1)
+        #)
 
         # Update filing_cabinet
-        filing_cabinet.add_objects(
-            new_id_num=np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + blackholes_binary.num * 2, 1),
-            new_category=np.zeros(blackholes_binary.num * 2),
-            new_orb_a=np.concatenate([blackholes_binary.orb_a_1, blackholes_binary.orb_a_2]),
-            new_mass=np.concatenate([blackholes_binary.mass_1, blackholes_binary.mass_1]),
-            new_orb_ecc=np.zeros(blackholes_binary.num * 2),
-            new_size=np.full(blackholes_binary.num * 2, -1.5),
-            new_direction=np.ones(blackholes_binary.num * 2),
-            new_disk_inner_outer=np.zeros(blackholes_binary.num * 2)
-        )
-        blackholes_binary.remove_id_num(blackholes_binary.id_num)
-        filing_cabinet.remove_id_num(blackholes_binary.id_num)
+        #filing_cabinet.add_objects(
+        #    new_id_num=np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + blackholes_binary.num * 2, 1),
+        #    new_category=np.zeros(blackholes_binary.num * 2),
+        #    new_orb_a=np.concatenate([blackholes_binary.orb_a_1, blackholes_binary.orb_a_2]),
+        #    new_mass=np.concatenate([blackholes_binary.mass_1, blackholes_binary.mass_1]),
+        #    new_orb_ecc=np.zeros(blackholes_binary.num * 2),
+        #    new_size=np.full(blackholes_binary.num * 2, -1.5),
+        #    new_direction=np.ones(blackholes_binary.num * 2),
+        #    new_disk_inner_outer=np.zeros(blackholes_binary.num * 2)
+        #)
+        #blackholes_binary.remove_id_num(blackholes_binary.id_num)
+        #filing_cabinet.remove_id_num(blackholes_binary.id_num)
 
         # Add merged BH to the population level object
         blackholes_merged_pop.add_blackholes(new_id_num=blackholes_merged.id_num,
@@ -2593,6 +2698,49 @@ def main():
                                              new_lum_shock=blackholes_merged.lum_shock,
                                              new_lum_jet=blackholes_merged.lum_jet,
                                              new_time_merged=blackholes_merged.time_merged)
+        # Add all BH survivors in final time step to survivor population level object
+        #       First add all the prograde BH survivors on last timestep
+        blackholes_survivors_pop.add_blackholes(new_id_num = blackholes_pro.id_num,
+                                                new_galaxy = blackholes_pro.galaxy,
+                                                new_orb_a = blackholes_pro.orb_a,
+                                                new_mass = blackholes_pro.mass,
+                                                new_spin = blackholes_pro.spin,
+                                                new_spin_angle = blackholes_pro.spin_angle,
+                                                new_orb_ecc = blackholes_pro.orb_ecc,
+                                                new_orb_ang_mom = blackholes_pro.orb_ang_mom,
+                                                new_gen = blackholes_pro.gen,
+                                                new_orb_arg_periapse = blackholes_pro.orb_arg_periapse,
+                                                new_orb_inc = blackholes_pro.orb_inc,
+                                                new_time_passed =blackholes_pro.time_passed
+                                                )
+        #       Second add all the retrograde BH survivors on last timestep
+        blackholes_survivors_pop.add_blackholes(new_id_num = blackholes_retro.id_num,
+                                                new_galaxy = blackholes_retro.galaxy,
+                                                new_orb_a = blackholes_retro.orb_a,
+                                                new_mass = blackholes_retro.mass,
+                                                new_spin = blackholes_retro.spin,
+                                                new_spin_angle = blackholes_retro.spin_angle,
+                                                new_orb_ecc = blackholes_retro.orb_ecc,
+                                                new_orb_ang_mom = blackholes_retro.orb_ang_mom,
+                                                new_gen = blackholes_retro.gen,
+                                                new_orb_arg_periapse = blackholes_retro.orb_arg_periapse,
+                                                new_orb_inc = blackholes_retro.orb_inc,
+                                                new_time_passed =blackholes_retro.time_passed
+                                                )
+        #       Third, add all the inner disk BH survivors on last timestep
+        blackholes_survivors_pop.add_blackholes(new_id_num = blackholes_inner_disk.id_num,
+                                                new_galaxy = blackholes_inner_disk.galaxy,
+                                                new_orb_a = blackholes_inner_disk.orb_a,
+                                                new_mass = blackholes_inner_disk.mass,
+                                                new_spin = blackholes_inner_disk.spin,
+                                                new_spin_angle = blackholes_inner_disk.spin_angle,
+                                                new_orb_ecc = blackholes_inner_disk.orb_ecc,
+                                                new_orb_ang_mom = blackholes_inner_disk.orb_ang_mom,
+                                                new_gen = blackholes_inner_disk.gen,
+                                                new_orb_arg_periapse = blackholes_inner_disk.orb_arg_periapse,
+                                                new_orb_inc = blackholes_inner_disk.orb_inc,
+                                                new_time_passed =blackholes_inner_disk.time_passed
+                                                )
 
         # Add list of all binaries formed to the population level object
         blackholes_binary_gw_pop.add_binaries(new_id_num=blackholes_binary_gw.id_num,
@@ -2730,6 +2878,7 @@ def main():
     basename, extension = os.path.splitext(opts.fname_output_mergers)
     population_save_name = f"{basename}_population{extension}"
     survivors_save_name = f"{basename}_survivors{extension}"
+    quiescence_save_name = f"{basename}_quiescence{extension}"
     emris_save_name = f"{basename}_emris{extension}"
     tdes_save_name = f"{basename}_tdes{extension}"
     gws_save_name = f"{basename}_lvk{extension}"
@@ -2745,7 +2894,7 @@ def main():
     emris_pop.to_txt(os.path.join(opts.work_directory, emris_save_name),
                      cols=emri_cols)        
 
-    blackholes_pro.to_txt(os.path.join(opts.work_directory, survivors_save_name),
+    blackholes_survivors_pop.to_txt(os.path.join(opts.work_directory, survivors_save_name),
                           cols=bh_surviving_cols)
     
     blackholes_binary_gw_pop.to_txt(os.path.join(opts.work_directory, gws_save_name),
@@ -2771,6 +2920,37 @@ def main():
 
     toc_perf = time.perf_counter()
     print("Perf time: %0.2f"%(toc_perf - tic_perf))
+    print("Totals pro,retro,bin,inner=",pro_num,retro_num,bin_num,inner_num)
+    print("Total prob cap=",counter_prob_less_half, biggest_com, smallest_com)
+    #Quiescence phase lives here!
+    #Quiescence time in units of Myrs
+    quiescence_time=20
+    survivors = np.loadtxt(os.path.join(opts.work_directory,survivors_save_name), skiprows=2)
+    #the_leftovers = blackholes_survivors_pop
+    quiescence_pop = dynamics.quiescence_relaxation_time(opts.smbh_mass,survivors,quiescence_time,opts.galaxy_num)
+    print("shape post relaxation",np.shape(quiescence_pop))
+    # Add all BH quiescent pop  to quiescent population level object
+        #       First add all the prograde BH survivors on last timestep
+        #Make a place-holder orb_arg_periapse and time passed
+    num_elements = len(quiescence_pop[:,9])
+    quiescence_orb_arg_periapse =  setupdiskblackholes.setup_disk_blackholes_arg_periapse(num_elements)
+    quiescence_time_passed = time_passed+(quiescence_time*1.e6)*np.ones(num_elements)
+
+    blackholes_quiescence_pop.add_blackholes(new_id_num = quiescence_pop[:,9],
+                                                new_galaxy = quiescence_pop[:,0],
+                                                new_orb_a = quiescence_pop[:,1],
+                                                new_mass = quiescence_pop[:,2],
+                                                new_spin = quiescence_pop[:,3],
+                                                new_spin_angle = quiescence_pop[:,4],
+                                                new_orb_ecc = quiescence_pop[:,6],
+                                                new_orb_ang_mom = quiescence_pop[:,7],
+                                                new_gen = quiescence_pop[:,5],
+                                                new_orb_arg_periapse = quiescence_orb_arg_periapse,
+                                                new_orb_inc = quiescence_pop[:,8],
+                                                new_time_passed = quiescence_time_passed,
+                                                )
+    blackholes_quiescence_pop.to_txt(os.path.join(opts.work_directory, quiescence_save_name),
+                                     cols=bh_surviving_cols)
 
 if __name__ == "__main__":
     main()
