@@ -7,8 +7,7 @@ from scipy.stats import truncnorm
 from astropy import units as u
 from astropy import constants as const
 from mcfacts.mcfacts_random_state import rng
-#from mcfacts.physics.binary import spin_check
-from mcfacts.physics import analytical_velo, lum
+from mcfacts.physics import analytical_velocity, lum
 from mcfacts.external.sxs import evolve_binary
 from mcfacts.external.sxs import fit_modeler
 from mcfacts.physics.point_masses import si_from_r_g
@@ -701,7 +700,7 @@ def merge_blackholes_precession(
         mass_1, mass_2, chi_1, chi_2 
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
-                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, time_passed, galaxy):
+                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, disk_sound_speed, time_passed, galaxy):
     """Calculates parameters for merged BHs and adds them to :code:`blackholes_pro` and :code:`blackholes_merged`
 
     This function calculates the new parameters for merged BHs and adds them to the
@@ -780,7 +779,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             )
         else:
             bh_spin_merged = bh_spin_merged
-        bh_v_kick = analytical_velo.analytical_kick_velocity(
+        bh_v_kick = analytical_velocity.analytical_kick_velocity(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
@@ -844,10 +843,9 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
         disk_density,
-        disk_aspect_ratio,
-        smbh_mass,
         bh_spin_merged,
-        bh_v_kick)
+        bh_v_kick,
+        disk_sound_speed)
 
     # ====== Varun here is the function you're changing for the components. Replace the bh_v_kick --> bh_kick_comp_merged ======
     bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
