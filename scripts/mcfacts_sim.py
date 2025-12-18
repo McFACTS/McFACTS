@@ -1039,6 +1039,10 @@ def main():
                 opts.disk_radius_outer,
                 opts.r_g_in_meters
             )
+
+            # Check for retrograde ecc smaller than the critical value
+            blackholes_retro.orb_ecc[blackholes_retro.orb_ecc < opts.disk_bh_pro_orb_ecc_crit] = opts.disk_bh_pro_orb_ecc_crit
+
             # KN: Does this function apply to all disk objects and if so should we rename it?
             stars_retro.orb_ecc, stars_retro.orb_a, stars_retro.orb_inc = disk_capture.retro_bh_orb_disk_evolve(
                 opts.smbh_mass,
@@ -1064,8 +1068,8 @@ def main():
                                   new_info=[stars_retro.orb_ecc,
                                             stars_retro.orb_a])
 
-            # Check for hyperbolic eccentricity (ejected from disk)
-            bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc >= 1.]
+            # Check for hyperbolic retrogrades
+            bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc >= 1]
             if bh_retro_id_num_ecc_hyperbolic.size > 0:
                 blackholes_retro.remove_id_num(bh_retro_id_num_ecc_hyperbolic)
                 filing_cabinet.remove_id_num(bh_retro_id_num_ecc_hyperbolic)
@@ -3021,8 +3025,10 @@ def main():
             # stop treating them with crude retro evolution--it will be sad
             # SF: fix the inc threshhold later to be truly 'in disk' but should be non-stupid as-is!!!
             inc_threshhold = 5.0 * np.pi/180.0
-            bh_id_num_flip_to_pro = blackholes_retro.id_num[np.where((np.abs(blackholes_retro.orb_inc) <= inc_threshhold) | (blackholes_retro.orb_ecc == 0.0))]
-            if (bh_id_num_flip_to_pro.size > 0):
+
+            bh_id_num_flip_to_pro = blackholes_retro.id_num[(np.abs(blackholes_retro.orb_inc) <= inc_threshhold)]
+
+            if bh_id_num_flip_to_pro.size > 0:
                 # add to prograde arrays
                 blackholes_pro.add_blackholes(
                     new_mass=blackholes_retro.at_id_num(bh_id_num_flip_to_pro, "mass"),
@@ -3045,7 +3051,8 @@ def main():
                                       attr="direction",
                                       new_info=np.ones(bh_id_num_flip_to_pro.size))
 
-            star_id_num_flip_to_pro_or_tde = stars_retro.id_num[np.where((np.abs(stars_retro.orb_inc) <= inc_threshhold) | (stars_retro.orb_ecc == 0.0))]
+            star_id_num_flip_to_pro_or_tde = stars_retro.id_num[(np.abs(stars_retro.orb_inc) <= inc_threshhold)]
+
             star_id_num_tde, star_id_num_flip_to_pro = tde.check_tde_or_flip(star_id_num_flip_to_pro_or_tde,
                                                                              stars_retro.at_id_num(star_id_num_flip_to_pro_or_tde, "mass"),
                                                                              stars_retro.at_id_num(star_id_num_flip_to_pro_or_tde, "log_radius"),
