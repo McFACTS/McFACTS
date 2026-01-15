@@ -123,6 +123,43 @@ def close_encounters_check(id_nums,
 
     return (encounter_id_nums)
 
+def id_binary_check(
+        disk_bh_pro_unique_ids,
+        disk_bh_pro_orbs_a,
+        disk_bh_pro_masses,
+        smbh_mass,
+        disk_bh_pro_orbs_ecc,
+        disk_bh_pro_orb_ecc_crit
+):
+    if disk_bh_pro_unique_ids.size == 0:
+        return disk_bh_pro_unique_ids
+
+    # Create a mask for things that are circular
+    can_form_mask = disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit
+    orb_a_can_form = disk_bh_pro_orbs_a[can_form_mask]
+    orb_mass_can_form = disk_bh_pro_masses[can_form_mask]
+
+    # Create a column vector of our orb_a and calculate the pairwise differences
+    # This gives us an NxN matrix of all of our distances
+    orb_a_column = orb_a_can_form.reshape(-1, 1)
+    dist_mat = orb_a_column.T - orb_a_column
+    dist_mat[dist_mat < 0] = 0
+    dist_filter = dist_mat < 0
+
+    mass_column = orb_mass_can_form.reshape(-1, 1)
+    mass_sum_mat = mass_column.T + mass_column
+
+    r_hill = orb_a_can_form + (dist_mat / 2) * np.power(mass_sum_mat / (smbh_mass * 3.0), (1/3))
+    r_hill[~dist_filter] = 0
+
+    print(dist_mat)
+    print(r_hill)
+
+    formation = dist_mat - r_hill
+    formation_indicies = np.transpose((formation < 0).nonzero())
+
+    return formation_indicies
+
 
 def binary_check(
         disk_bh_pro_orbs_a,
@@ -484,6 +521,18 @@ class BinaryBlackHoleFormation(TimelineActor):
             blackholes_pro.orb_ecc,
             sm.disk_bh_pro_orb_ecc_crit
         )
+
+        # other_encounter_indices = id_binary_check(
+        #     blackholes_pro.unique_id,
+        #     blackholes_pro.orb_a,
+        #     blackholes_pro.mass,
+        #     sm.smbh_mass,
+        #     blackholes_pro.orb_ecc,
+        #     sm.disk_bh_pro_orb_ecc_crit
+        # )
+
+        # print("un", other_encounter_indices)
+        # print(encounter_indices)
 
         if len(encounter_indices) == 0:
             self.log("No binaries formed")
