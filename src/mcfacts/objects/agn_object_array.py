@@ -154,9 +154,14 @@ class AGNObjectArray(ABC):
         if attribute_name not in super_list.keys():
             raise AttributeError(f"{attribute_name} is not an attribute of {type(self).__name__}.")
 
-        selection_mask = np.isin(self.unique_id, unique_id)
+        # The right side of this condition is a vertical vector, so condition_mat is a matrix where the ids are equal
+        condition_mat = self.unique_id == unique_id[:, None]
 
-        return super_list[attribute_name][selection_mask]
+        # Returns the row and column numbers of where the matrix of conditions is true.
+        row_indices, column_indices = np.where(condition_mat)
+
+        # We use the column_indices to make our final selection since it retains the original order of the input ids.
+        return super_list[attribute_name][column_indices]
 
     def remove_all(self, unique_id: npt.NDArray[uuid.UUID]) -> bool:
         """

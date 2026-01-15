@@ -514,6 +514,7 @@ class BinaryBlackHoleFormation(TimelineActor):
 
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
 
+        # TODO: Upgrade from index iteration to unique_id iteration, work started in id_binary_check method.
         encounter_indices = binary_check(
             blackholes_pro.orb_a,
             blackholes_pro.mass,
@@ -530,9 +531,6 @@ class BinaryBlackHoleFormation(TimelineActor):
         #     blackholes_pro.orb_ecc,
         #     sm.disk_bh_pro_orb_ecc_crit
         # )
-
-        # print("un", other_encounter_indices)
-        # print(encounter_indices)
 
         if len(encounter_indices) == 0:
             self.log("No binaries formed")
