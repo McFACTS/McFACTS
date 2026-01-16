@@ -11,6 +11,7 @@ import numpy as np
 from mcfacts.inputs import data as mcfacts_input_data
 from mcfacts.utilities import unit_conversion
 
+
 # This is definitely the wrong and lazy way to go about things
 # 0: mass
 # 1: log(R)
@@ -129,7 +130,7 @@ def interp_star_params(disk_star_masses):
 
 
 def ratio_star_torques(disk_density_func, disk_pressure_grad_func, disk_aspect_ratio_func,
-                       disk_surf_density_func, disk_omega_func, disk_radius, smbh_mass):
+                       disk_surf_density_func, disk_omega_func, disk_radius, smbh_mass, r_g_in_meters):
 
     disk_density = disk_density_func(disk_radius) * (astropy_u.kg / astropy_u.m ** 3)
     disk_pressure_grad = disk_pressure_grad_func(disk_radius) * (astropy_u.kg / ((astropy_u.s ** 2) * (astropy_u.m ** 2)))
@@ -142,7 +143,7 @@ def ratio_star_torques(disk_density_func, disk_pressure_grad_func, disk_aspect_r
 
     smbh_mass_si = smbh_mass * astropy_u.Msun
 
-    disk_radius_si = unit_conversion.si_from_r_g(smbh_mass, disk_radius)
+    disk_radius_si = unit_conversion.si_from_r_g(smbh_mass, disk_radius, r_g_defined=r_g_in_meters)
 
     v_phi = (disk_radius_si * ((1./disk_density) * disk_pressure_grad + ((const.G * smbh_mass_si) / (disk_radius_si ** 2)))) ** 0.5
     v_phi = v_phi.to("m/s")

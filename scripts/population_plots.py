@@ -341,7 +341,7 @@ def main():
 
 
     # ========================================
-    # Disk Radius vs Chi_p
+    # Chi_p vs Disk Radius
     # ========================================
 
     # Can break out higher mass Chi_p events as test/illustration.
@@ -402,7 +402,7 @@ def main():
     svf_ax.set_axisbelow(True)
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
-    plt.savefig(opts.plots_directory + "/r_chi_p.png", format='png')
+    plt.savefig(opts.plots_directory + "/chi_p_radius.png", format='png')
     plt.close()
 
     # plt.figure()
@@ -594,11 +594,11 @@ def main():
 
     # plt.title(r"Distribution of v$_{kick}$")
     plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory + "/v_kick_distribution.png", format='png')
+    plt.savefig(opts.plots_directory + "/vkick_distribution.png", format='png')
     plt.close()
 
     # ===============================
-    # a_bin vs. kick velocity with kick velocity histogram#
+    # Kick Velocity vs Disk Radius (with kick velocity histogram)
     # ===============================
 
     all_kick = mergers[:, 16]
@@ -677,11 +677,11 @@ def main():
 
     # plt.title(r"v$_{kick} vs. semi-major axis with distribution of v$_{kick}$")
     plt.tight_layout()
-    plt.savefig(opts.plots_directory + '/v_kick_vs_radius.png', format='png')
+    plt.savefig(opts.plots_directory + '/vkick_vs_radius.png', format='png')
     plt.close()
 
     # ===============================
-    ### kick velocity vs. chi_eff ###
+    ### Kick Velocity vs. Chi_eff ###
     # ===============================
 
     all_chi_eff = mergers[:, 3]
@@ -742,12 +742,12 @@ def main():
     # elif figsize == 'apj_page':
     #     ax3.legend()
 
-    plt.savefig(opts.plots_directory + '/v_kick_vs_chi_eff.png', format='png')
+    plt.savefig(opts.plots_directory + '/vkick_vs_chi_eff.png', format='png')
     plt.close()
     
 
     # ========================================
-    # Mass v Spin
+    # Spin vs Mass
     # ========================================
     
     gen1_spin = mergers[:, 4][merger_g1_mask]
@@ -801,7 +801,7 @@ def main():
     plt.savefig(opts.plots_directory + '/spin_v_mass.png', format='png')
     
     # ========================================
-    # Radius from SMBH v Kick Velocity
+    # Kick Velocity vs Disk Radius
     # ========================================
     
     trap_radius = 700.
@@ -841,8 +841,8 @@ def main():
                 label=r'$\geq$3g-Ng'
                 )
 
-    plt.axhline(v_kick, color='k', linestyle='--', zorder=0,
-                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
+    #plt.axhline(v_kick, color='k', linestyle='--', zorder=0,
+     #           label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
 
     # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
     plt.xlabel(r'Radius [$R_g$]')
@@ -860,10 +860,10 @@ def main():
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
     plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory + '/radius_v_kick.png', format='png')
+    plt.savefig(opts.plots_directory + '/vkick_radius.png', format='png')
     
     # ========================================
-    # Radius from SMBH v Kick Velocity
+    # Spin vs Disk Radius
     # ========================================
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
@@ -913,10 +913,10 @@ def main():
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
     plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory + '/radius_v_spin.png', format='png')
+    plt.savefig(opts.plots_directory + '/spin_radius.png', format='png')
 
     # ========================================
-    # Radius v Remnant Mass
+    # Remnant Mass vs Disk Radius
     # ========================================
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
@@ -967,7 +967,7 @@ def main():
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
     plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory + '/radius_mass.png', format='png')
+    plt.savefig(opts.plots_directory + '/mass_radius.png', format='png')
     
     # ========================================
     # Spin v Kick Velocity
@@ -1001,9 +1001,6 @@ def main():
                 label=r'$\geq$3g-Ng'
                 )
 
-    plt.axvline(v_kick, color='k', linestyle='--', zorder=0,
-                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
-
     # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
     plt.xlabel(r'$v_{kick}$ [km/s]')
     plt.ylabel(r'$a_{final}$')
@@ -1020,7 +1017,7 @@ def main():
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
     plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory + '/spin_v_kick.png', format='png')
+    plt.savefig(opts.plots_directory + '/spin_vkick.png', format='png')
     
     # ========================================
     # Kick Velocity v Remnant Mass
@@ -1056,15 +1053,11 @@ def main():
                 label=r'$\geq$3g-Ng'
                 )
 
-    plt.axhline(v_kick, color='k', linestyle='--', zorder=0,
-                label=f'Analytical Kick Velocity = {v_kick} ' + r'$[km/s]$')
-
     # plt.text(650, 602, 'Migration Trap', rotation='vertical', size=18, fontweight='bold')
     plt.xlabel(r'Remnant Mass [$M_\odot$]')
     plt.ylabel(r'$v_{kick}$ [km/s]')
-    plt.xscale('log')
+    #plt.xscale('log')
     plt.yscale('log')
-    plt.xlim(9, 100)
     #plt.ylim(0.51, 1.01)
 
     if figsize == 'apj_col':
@@ -1077,80 +1070,10 @@ def main():
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
     plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory + "/v_kick_mass.png", format='png')  # ,dpi=600)
-        
-    # ========================================
-    # SUR - Kick Velocity vs Spin (NOT NEEDED SINCE STAND ALONE DATA)
-    # ========================================
-
-    sur_spin = mergers[:, 4]
-    sur_gen1_spin = sur_spin[merger_g1_mask]
-    sur_gen2_spin = sur_spin[merger_g2_mask]
-    sur_genX_spin = sur_spin[merger_gX_mask]
-    
-    sur_all_kick = mergers[:, 16]
-    sur_gen1_vkick = sur_all_kick[merger_g1_mask]
-    sur_gen2_vkick = sur_all_kick[merger_g2_mask]
-    sur_genX_vkick = sur_all_kick[merger_gX_mask]
-
-    fig, ax = plt.subplots(1, 2, figsize=(4.5,2.5), sharey=True, gridspec_kw={'wspace':0, 'hspace':0})
-    #ax3 = fig.add_subplot(111)
-    
-    sur = ax[0]
-    nosur = ax[1]
-
-    # plot the 1g-1g mergers
-    sur.scatter(sur_gen1_vkick, sur_gen1_spin,
-                s=styles.markersize_gen1,
-                marker=styles.marker_gen1,
-                edgecolor=styles.color_gen1,
-                facecolor='none',
-                alpha=styles.markeralpha_gen1,
-                label='1g-1g'
-                )
-
-    # plot the 2g+ mergers
-    sur.scatter(sur_gen2_vkick, sur_gen2_spin,
-                s=styles.markersize_gen2,
-                marker=styles.marker_gen2,
-                edgecolor=styles.color_gen2,
-                facecolor='none',
-                alpha=styles.markeralpha_gen2,
-                label='2g-1g or 2g-2g'
-                )
-
-    # plot the 3g+ mergers
-    sur.scatter(sur_genX_vkick, sur_genX_spin,
-                s=styles.markersize_genX,
-                marker=styles.marker_genX,
-                edgecolor=styles.color_genX,
-                facecolor='none',
-                alpha=styles.markeralpha_genX,
-                label=r'$\geq$3g-Ng'
-                )
-
-    sur.set(
-        xlabel=r'$v_{kick}^{nosur}$ [km/s]',
-        ylabel=r'$a_{final}$',
-        xscale="log",
-        axisbelow=True,
-        xlim=([2e0,4e3])
-        #ylim=([0, 1])
-    )
-
-    sur.grid(True, color='gray', ls='dashed')
-
-    if figsize == 'apj_col':
-        sur.legend(fontsize=5)
-    elif figsize == 'apj_page':
-        sur.legend()
-
-    #plt.savefig(opts.plots_directory + '/vkick_spin.png', format='png')
-    #plt.close()
-    
+    plt.savefig(opts.plots_directory + "/vkick_mass.png", format='png')  # ,dpi=600)        
     
     # ========================================
-    # Final Spin vs Spin 2
+    # Spin 2 vs Final Spin
     # ========================================
 
     spin = mergers[:, 4]
@@ -1212,7 +1135,7 @@ def main():
     elif figsize == 'apj_page':
         ax.legend()
 
-    plt.savefig(opts.plots_directory + '/spin_final_spin2.png', format='png')
+    plt.savefig(opts.plots_directory + '/spin2_spin_final.png', format='png')
     #plt.close()
     
 
@@ -1354,7 +1277,78 @@ def main():
     plt.savefig(opts.plots_directory + './gw_strain.png', format='png')
     plt.close()
 
+    # ===============================
+    ### shock luminosity distribution histogram ###
+    # ===============================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    shock_log = np.log10(mergers[:, 17])
+    #jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
+    counts, bins = np.histogram(shock_log)
+    # plt.hist(bins[:-1], bins, weights=counts)
+    bins = np.arange(int(shock_log.min()), int(shock_log.max())+1, 0.2)
 
+    hist_data = [shock_log[merger_g1_mask], shock_log[merger_g2_mask], shock_log[merger_gX_mask]]
+    hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
+    #plt.hist(mergers[:, 18], bins = jet_bins)
+
+    plt.ylabel(r'n')
+    plt.xlabel(r'log L$_{\mathrm{Shock}}$ [erg s$^{-1}$]')
+    #plt.xscale('log')
+    #plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(0.4, 325)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/luminosity_shock_dist.png", format='png')
+    plt.close()
+
+    # ===============================
+    ### jet luminosity distribution histogram ###
+    # ===============================
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+    jet_log = np.log10(mergers[:, 18])
+    #jet_bins = np.logspace(np.log10(mergers[:, 18].min()), np.log10(mergers[:, 18].max()), 50)
+    counts, bins = np.histogram(jet_log)
+    # plt.hist(bins[:-1], bins, weights=counts)
+    bins = np.arange(int(jet_log.min()), int(jet_log.max())+1, 0.2)
+    # check end cases and check print()
+
+    hist_data = [jet_log[merger_g1_mask], jet_log[merger_g2_mask], jet_log[merger_gX_mask]]
+    hist_label = ['1g-1g', '2g-1g or 2g-2g', r'$\geq$3g-Ng']
+    hist_color = [styles.color_gen1, styles.color_gen2, styles.color_genX]
+
+    plt.hist(hist_data, bins=bins, align='left', color=hist_color, alpha=0.9, rwidth=0.8, label=hist_label, stacked=True)
+
+    #plt.hist(mergers[:, 18], bins = jet_bins)
+
+    plt.ylabel(r'n')
+    plt.xlabel(r'log L$_{\mathrm{Jet}}$ [erg s$^{-1}$]')
+    #plt.xscale('log')
+    #plt.yscale('log')
+
+    if figsize == 'apj_col':
+        plt.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        plt.legend()
+
+    #plt.ylim(0.4, 325)
+
+    svf_ax = plt.gca()
+    svf_ax.set_axisbelow(True)
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + "/luminosity_jet_dist.png", format='png')
+    plt.close()
 
 
 ######## Execution ########

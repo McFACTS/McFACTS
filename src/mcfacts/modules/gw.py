@@ -140,7 +140,7 @@ def evolve_emri_gw(mass, orb_a, timestep_duration_yr, old_gw_freq, smbh_mass, ag
     return char_strain, nu_gw
 
 
-def normalize_tgw(smbh_mass, inner_disk_outer_radius):
+def normalize_tgw(smbh_mass, inner_disk_outer_radius, r_g_in_meters):
     """Normalizes Gravitational wave timescale.
 
     Calculate the normalization for timescale of a merger (in s) due to GW emission.
@@ -182,7 +182,7 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius):
     time_gw_normalization = peters.time_of_orbital_shrinkage(
         smbh_mass * u.solMass,
         bin_mass_ref * u.solMass,
-        unit_conversion.si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius),
+        unit_conversion.si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius, r_g_defined=r_g_in_meters),
         0 * u.m,
     )
     return time_gw_normalization.si.value
@@ -196,6 +196,7 @@ def bh_near_smbh(
         timestep_duration_yr,
         inner_disk_outer_radius,
         disk_inner_stable_circ_orb,
+        r_g_in_meters
 ):
     """Evolve semi-major axis of single BH near SMBH according to Peters64
     also eccentricity
@@ -243,7 +244,7 @@ def bh_near_smbh(
     decay_time_arr = peters.time_of_orbital_shrinkage(
         smbh_mass * u.solMass,
         disk_bh_pro_masses * u.solMass,
-        unit_conversion.si_from_r_g(smbh_mass * u.solMass, disk_bh_pro_orbs_a),
+        unit_conversion.si_from_r_g(smbh_mass * u.solMass, disk_bh_pro_orbs_a, r_g_defined=r_g_in_meters),
         0 * u.m,
     )
     # Estimate the decay time to zero eccentricity
@@ -268,7 +269,7 @@ def bh_near_smbh(
     return new_disk_bh_pro_orbs_a
 
 
-def gw_hardening(mass_1, mass_2, bin_ecc, bin_sep, bin_time_to_merge, flag_merging, smbh_mass, timestep_length):
+def gw_hardening(mass_1, mass_2, bin_ecc, bin_sep, bin_time_to_merge, flag_merging, smbh_mass, timestep_length, r_g_in_meters):
     array_length = len(mass_1)
 
     flag_not_merging = np.array([flag_merging[i] >= 0 for i in range(array_length)], dtype=np.bool_)
@@ -287,7 +288,7 @@ def gw_hardening(mass_1, mass_2, bin_ecc, bin_sep, bin_time_to_merge, flag_mergi
     time_to_merger_gw = (peters.time_of_orbital_shrinkage(
         mass_1[flag_not_merging] * u.Msun,
         mass_2[flag_not_merging] * u.Msun,
-        unit_conversion.si_from_r_g(smbh_mass, bin_sep[flag_not_merging]),
+        unit_conversion.si_from_r_g(smbh_mass, bin_sep[flag_not_merging], r_g_defined=r_g_in_meters),
         sep_final=sep_crit[flag_not_merging]
     ) * ecc_factor).value
 
@@ -364,7 +365,7 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
             = gw_hardening(blackholes_binary.mass_1, blackholes_binary.mass_2,
                      blackholes_binary.bin_ecc, blackholes_binary.bin_sep,
                      blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging,
-                     sm.smbh_mass, timestep_length)
+                     sm.smbh_mass, timestep_length, sm.r_g_in_meters)
 
         blackholes_binary.consistency_check()
 
@@ -391,7 +392,8 @@ class InnerBlackHoleDynamics(TimelineActor):
             inner_bh.orb_ecc,
             timestep_length,
             sm.disk_radius_outer,
-            sm.disk_inner_stable_circ_orb
+            sm.disk_inner_stable_circ_orb,
+            sm.r_g_in_meters
         )
 
         zero_strain_mask = inner_bh.gw_strain == 0

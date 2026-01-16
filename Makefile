@@ -28,10 +28,9 @@ EM_PLOTS = ${HERE}/scripts/em_plots.py
 COMPARE_SUR = ${HERE}/scripts/compare_plots.py
 
 #### Setup ####
-SEED=3456789108 # put an 8 here
+SEED=3456789108
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
-FNAME_INI= ${HERE}/recipes/model_choice_old.ini
-#FNAME_INI= ${HERE}/recipes/paper_event/default_imf.ini
+FNAME_INI= ${HERE}/recipes/model_choice.ini
 FNAME_INI_MSTAR_SCALE= ${HERE}/recipes/paper_3/p3_scale.ini
 FNAME_INI_MSTAR_FIXED= ${HERE}/recipes/paper_3/p3_fixed.ini
 MSTAR_RUNS_WKDIR_SCALE = ${HERE}/runs_mstar_bins_scale
@@ -182,13 +181,11 @@ disk_mass_plots:
 	--fname-disk ${wd}/output_diskmasscycled.dat \
 	--plots-directory ${wd}		
 		
-em_plots: 
+em_plots:
 	cd runs; \
 	python ../${EM_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-emris ${wd}/output_mergers_emris.dat \
 	--fname-mergers ${wd}/output_mergers_population.dat \
-	--fname-lvk ${wd}/output_mergers_lvk.dat \
 	--plots-directory ${wd}
 
 #### Vera's mstar_runs ####
@@ -210,6 +207,37 @@ setup_mstar_runs_scale:
 		#--nbins 33 
 		#--timestep_num 1000 \
 	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
+
+
+# for profiling purposes
+profile_mstar_runs_scale:
+	python -m cProfile -o mstar_profile.prof ${MSTAR_RUNS_EXE} \
+		--fname-ini ${FNAME_INI_MSTAR_SCALE} \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--galaxy_num 100 \
+		--mbins ${MBINS_SCALE} \
+		--mstar-min 1e9 \
+		--mstar-max 1e13 \
+		--scrub \
+		--fname-nal ${FNAME_GWTC2_NAL} \
+		--wkdir ${MSTAR_RUNS_WKDIR_SCALE} \
+		--truncate-opacity
+
+
+profile_mstar_runs_fixed:
+	python -m cProfile -o mstar_fixed.prof ${MSTAR_RUNS_EXE} \
+		--fname-ini ${FNAME_INI_MSTAR_FIXED} \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--galaxy_num 100 \
+		--mbins ${MBINS_FIXED} \
+		--mstar-min 1e9 \
+		--mstar-max 1e13 \
+		--scrub \
+		--fname-nal ${FNAME_GWTC2_NAL} \
+		--wkdir ${MSTAR_RUNS_WKDIR_FIXED}
+
 
 # Define the setup for mstar_runs with the fixed inifile
 setup_mstar_runs_fixed:
@@ -246,20 +274,40 @@ mstar_runs_fixed: $(MBINS_FIXED)
 $(MBINS_FIXED): %: %.run_fixed
 
 # Compare surrogate plots (In progress)
-compare_sur: 
-	cd runs; \
-	python ../${COMPARE_SUR} --fname-surmergers ${wd}/sur_output_mergers_population.dat --plots-directory ${wd}
+# 
+# ======= CHANGE SPECIFIED ITEMS BEFORE RUNNING MAKE COMMAND =======
+# 
+# For comparison plots between models run in order of the following
 
+# Set in model_choice_old.ini: flag_use_surrogate = 0 ; flag_use_spin_check = 0
 nosur_save: mcfacts_sim
 	cd runs; \
 	cp ${wd}/output_mergers_population.dat ../nosur_output_mergers_population.dat
 
+# Set in model_choice_old.ini: flag_use_surrogate = 0 ; flag_use_spin_check = 1
+nosur_filter_save: mcfacts_sim
+	cd runs; \
+	cp ${wd}/output_mergers_population.dat ../nosur_filter_output_mergers_population.dat
+
+# Set in model_choice_old.ini: flag_use_surrogate = -1 ; flag_use_spin_check = 0
+prec_save: mcfacts_sim
+	cd runs; \
+	cp ${wd}/output_mergers_population.dat ../prec_output_mergers_population.dat
+
+# Set in model_choice_old.ini: flag_use_surrogate = 1 ; flag_use_spin_check = 0
 sur_save: mcfacts_sim
 	cd runs; \
 	cp output_mergers_population.dat sur_output_mergers_population.dat; \
 	cp ../nosur_output_mergers_population.dat nosur_output_mergers_population.dat; \
+	cp ../nosur_filter_output_mergers_population.dat nosur_filter_output_mergers_population.dat; \
+	cp ../prec_output_mergers_population.dat prec_output_mergers_population.dat; \
 	rm ../nosur_output_mergers_population.dat
+	rm ../nosur_filter_output_mergers_population.dat
+	rm ../prec_output_mergers_population.dat
 
+compare_sur: 
+	cd runs; \
+	python ../${COMPARE_SUR} --fname-surmergers ${wd}/sur_output_mergers_population.dat --plots-directory ${wd}
 
 #### CLEAN ####
 

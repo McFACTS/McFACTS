@@ -40,6 +40,41 @@ def bin_check_params(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc, 
         return (bh_bin_id_num_fakes)
 
 
+def bin_reality_check(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc, bin_id_num):
+    """Tests if binaries are real (location and mass do not equal 0)
+
+    DEPRECATED
+
+    This function tests to see if the binary is real. If location = 0 or mass = 0 *and* any other element is NON-ZERO then discard this binary element.
+    Returns ID numbers of fake binaries.
+
+    Parameters
+    ----------
+    blackholes_binary : AGNBinaryBlackHole
+        Binary black hole parameters
+
+    Returns
+    -------
+    id_nums or bh_bin_id_num_fakes : numpy.ndarray
+        ID numbers of fake binaries with :obj:`float` type
+    """
+    bh_bin_id_num_fakes = np.array([])
+
+    mass_1_id_num = bin_id_num[bin_mass_1 == 0]
+    mass_2_id_num = bin_id_num[bin_mass_2 == 0]
+    orb_a_1_id_num = bin_id_num[bin_orb_a_1 == 0]
+    orb_a_2_id_num = bin_id_num[bin_orb_a_2 == 0]
+    bin_ecc_id_num = bin_id_num[bin_ecc >= 1]
+
+    id_nums = np.concatenate([mass_1_id_num, mass_2_id_num,
+                             orb_a_1_id_num, orb_a_2_id_num, bin_ecc_id_num])
+
+    if id_nums.size > 0:
+        return (id_nums)
+    else:
+        return (bh_bin_id_num_fakes)
+
+
 def binary_reality_check(sm: SettingsManager, filing_cabinet: FilingCabinet, log_func: callable):
     if sm.bbh_array_name not in filing_cabinet:
         return

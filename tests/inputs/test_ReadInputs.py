@@ -83,8 +83,8 @@ def test_ReadInputs_ini(verbose=True):
     # Check that the data folder exists
     data_folder = impresources.files(mcfacts_input_data)
     assert isdir(data_folder), "Cannot find mcfacts.inputs.data folder"
-    # Find model_choice.ini
-    fname_ini = data_folder / "model_choice.ini"
+    # Find mcfacts_default.ini
+    fname_ini = data_folder / "mcfacts_default.ini"
     assert isfile(fname_ini), "Cannot find %s"%fname_ini
     # Get input variables
     input_variables = ReadInputs_ini(fname_ini, verbose=verbose)
@@ -135,7 +135,7 @@ def test_load_disk_arrays(verbose=True):
     assert isfile(fname_sirko_goodman_aspect_ratio), \
         "Cannot find %s"%(fname_sirko_goodman_aspect_ratio)
     # Find the default inifile
-    fname_default_ini = data_folder / "model_choice.ini"
+    fname_default_ini = data_folder / "mcfacts_default.ini"
     assert isfile(fname_default_ini), "Cannot find %s"%(fname_default_ini)
     # Get input variables
     input_variables = ReadInputs_ini(fname_default_ini, verbose=verbose)
@@ -216,7 +216,7 @@ def test_construct_disk_direct(verbose=True):
     data_folder = impresources.files(mcfacts_input_data)
     assert isdir(data_folder), "Cannot find mcfacts.inputs.data folder"
     # Find the default inifile
-    fname_default_ini = data_folder / "model_choice.ini"
+    fname_default_ini = data_folder / "mcfacts_default.ini"
     assert isfile(fname_default_ini), "Cannot find %s"%(fname_default_ini)
     # Get input variables
     input_variables = ReadInputs_ini(fname_default_ini, verbose=verbose)
@@ -285,7 +285,7 @@ def test_construct_disk_pAGN(verbose=True):
     data_folder = impresources.files(mcfacts_input_data)
     assert isdir(data_folder), "Cannot find mcfacts.inputs.data folder"
     # Find the default inifile
-    fname_default_ini = data_folder / "model_choice.ini"
+    fname_default_ini = data_folder / "mcfacts_default.ini"
     assert isfile(fname_default_ini), "Cannot find %s"%(fname_default_ini)
     # Get input variables
     input_variables = ReadInputs_ini(fname_default_ini, verbose=verbose)
@@ -334,7 +334,7 @@ def test_construct_disk_interp(
     data_folder = impresources.files(mcfacts_input_data)
     assert isdir(data_folder), "Cannot find mcfacts.inputs.data folder"
     # Find the default inifile
-    fname_default_ini = data_folder / "model_choice.ini"
+    fname_default_ini = data_folder / "mcfacts_default.ini"
     assert isfile(fname_default_ini), "Cannot find %s"%(fname_default_ini)
     # Get input variables
     input_variables = ReadInputs_ini(fname_default_ini, verbose=verbose)

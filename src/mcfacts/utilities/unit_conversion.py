@@ -1,8 +1,8 @@
+import astropy.units
 import numpy as np
 from astropy import constants as const, units as u
 
-
-def si_from_r_g(smbh_mass, distance_rg):
+def si_from_r_g(smbh_mass, distance_rg, r_g_defined=None):
     """Calculate the SI distance from r_g
 
     Parameters
@@ -17,18 +17,29 @@ def si_from_r_g(smbh_mass, distance_rg):
     distance : numpy.ndarray
         Distance in SI with :obj:`astropy.units.quantity.Quantity` type
     """
-    # Calculate c and G in SI
-    c = const.c.to('m/s')
-    G = const.G.to('m^3/(kg s^2)')
-    # Assign units to smbh mass
-    if hasattr(smbh_mass, 'unit'):
-        smbh_mass = smbh_mass.to('solMass')
+
+    # if r_g_defined is not None, we just calculate the
+    # distance from the provided value
+
+    if r_g_defined is not None:
+        r_g = r_g_defined
     else:
-        smbh_mass = smbh_mass * u.solMass
-    # convert smbh mass to kg
-    smbh_mass = smbh_mass.to('kg')
-    # Calculate r_g in SI
-    r_g = G*smbh_mass/(c ** 2)
+        # Calculate c and G in SI
+        c = const.c.to('m/s')
+        G = const.G.to('m^3/(kg s^2)')
+
+        # Assign units to smbh mass
+        if hasattr(smbh_mass, 'unit'):
+            smbh_mass = smbh_mass.to('solMass')
+        else:
+            smbh_mass = smbh_mass * u.solMass
+
+        # convert smbh mass to kg
+        smbh_mass = smbh_mass.to('kg')
+
+        # Calculate r_g in SI
+        r_g = G*smbh_mass/(c ** 2)
+
     # Calculate distance
     distance = (distance_rg * r_g).to("meter")
 
@@ -109,3 +120,37 @@ def r_schwarzschild_of_m(mass):
         "r_sch contains values <= 0"
 
     return (r_sch)
+
+
+def initialize_r_g(smbh_mass):
+    """Initilializes the r_g value in meters
+
+    This function precomputes the r_g value which would otherwise be
+    calculated anew with each call to si_from_r_g, using the input
+    SMBH_MASS value.
+
+    It mutates the input_variables dictionary in place, adding a
+    r_g_in_meters key to it containing the r_g value in meters.
+
+    Parameters
+    ----------
+    input_variables : dict
+        Dictionary of input variables
+    """
+    # pre-calculating r_g from the provided smbh_mass
+    c = const.c.to('m/s')
+    G = const.G.to('m^3/(kg s^2)')
+
+    # Assign units to smbh mass
+    if hasattr(smbh_mass, 'unit'):
+        smbh_mass = smbh_mass.to('solMass')
+    else:
+        smbh_mass = smbh_mass * u.solMass
+
+    # convert smbh mass to kg
+    smbh_mass = smbh_mass.to('kg')
+    # Calculate r_g in SI
+    r_g_in_meters = G * smbh_mass / (c ** 2)
+
+    # adding r_g_in_meters to dictionary
+    return r_g_in_meters

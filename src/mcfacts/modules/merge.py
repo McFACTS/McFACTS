@@ -5,6 +5,7 @@ import uuid
 
 import warnings
 import numpy as np
+import scipy
 from astropy import constants as const
 from astropy import units as u
 from numpy.random import Generator
@@ -111,16 +112,18 @@ def shock_luminosity(smbh_mass,
                      bin_orb_a,
                      disk_aspect_ratio,
                      disk_density,
-                     v_kick):
+                     v_kick,
+                     r_g_in_meters):
     """
     Estimate the shock luminosity from the interaction between a merger remnant
     and gas within its Hill sphere.
 
     Based on McKernan et al. (2019) (arXiv:1907.03746v2), this function computes:
     - The Hill radius of the remnant system.
-    - The gas volume inside the Hill sphere, accounting for the vertical extent of the disk.
-    - The mass of gas available for interaction.
-    - The shock energy and characteristic timescale over which energy is radiated.
+    - The local height of the disk.
+    - The gas volume inside the Hill sphere.
+    - The mass of gas inside the remnant's Hill sphere.
+    - The energy and timescale over which energy is dissipated into the disk.
 
     The shock luminosity is given by:
         L_shock ≈ E / t,
@@ -135,96 +138,122 @@ def shock_luminosity(smbh_mass,
     mass_final : numpy.ndarray
         Final mass of the binary black hole remnant (in solar masses).
     bin_orb_a : numpy.ndarray
-        Orbital separation between the SMBH and the binary at the time of merger (in gravitational radii).
+        Distance between the SMBH and the binary at the time of merger (in gravitational radii).
     disk_aspect_ratio : callable
         Function that returns the aspect ratio (height/radius) of the disk at a given radius.
     disk_density : callable
-        Function that returns the gas density at a given radius (in kg m^-3).
+        Function that returns the gas density at a given radius (in [kg m**-3]).
     v_kick : numpy.ndarray
-        Kick velocity imparted to the remnant (in km/s).
+        Kick velocity imparted to the remnant (in [km s**-1]).
 
     Returns:
     -------
-    Lshock : float
-        Estimated shock luminosity (in erg/s).
+    L_shock : float
+        Shock luminosity (in [erg s**-1]).
     """
+    # get the Hill radius in [R_g] and convert to [m]
     r_hill_rg = bin_orb_a * ((mass_final / smbh_mass) / 3) ** (1 / 3)
-    r_hill_m = unit_conversion.si_from_r_g(smbh_mass, r_hill_rg)
-    r_hill_cm = r_hill_m.cgs
+    r_hill_m = si_from_r_g(smbh_mass, r_hill_rg, r_g_defined=r_g_in_meters)
+    r_hill_m = r_hill_m.value
 
+    # initalize scaling value for Hill radius from McKernan et al. (2019)
+    r_hill_rg_scale = 10 ** 3 * ((65 / 10 ** 9) / 3) ** (1 / 3)
+
+    # get the height of the disk in [R_g] and convert to [m]
     disk_height_rg = disk_aspect_ratio(bin_orb_a) * bin_orb_a
-    disk_height_m = unit_conversion.si_from_r_g(smbh_mass, disk_height_rg)
-    disk_height_cm = disk_height_m.cgs
+    disk_height_m = si_from_r_g(smbh_mass, disk_height_rg, r_g_defined=r_g_in_meters)
+    disk_height_m = disk_height_m.value
 
-    v_hill = (4 / 3) * np.pi * r_hill_cm ** 3
-    v_hill_gas = abs(v_hill - (2 / 3) * np.pi * ((r_hill_cm - disk_height_cm) ** 2) * (3 * r_hill_cm - (r_hill_cm - disk_height_cm)))
+    # compute the volume of the Hill sphere in [m**3]
+    v_hill = (4 / 3) * np.pi * r_hill_m ** 3
+    # compute the volume of the gas contained within the hill sphere, from McKernan et al. (2019) in [m**3]
+    v_hill_gas = abs(
+        v_hill - (2 / 3) * np.pi * ((r_hill_m - disk_height_m) ** 2) * (3 * r_hill_m - (r_hill_m - disk_height_m)))
 
-    disk_density_si = disk_density(bin_orb_a) * (u.kg / u.m ** 3)
-    disk_density_cgs = disk_density_si.cgs
+    # get the local disk density [kg] / [m**3]
+    disk_density_si = disk_density(bin_orb_a)
 
-    msolar = const.M_sun.cgs
+    # use the disk density and volume of the gas within the Hill sphere to get the mass of the gas contained in the Hill sphere in [kg]
+    r_hill_mass = (disk_density_si * v_hill_gas)
+    # initalize the scaling value for the gas contained within the Hill sphere from McKernan et al. (2019)
+    r_hill_mass_scale = const.M_sun.value
 
-    r_hill_mass = (disk_density_cgs * v_hill_gas) / msolar
+    # initalize the scaling value for the kick velocity of the remnant black hole from McKernan et al. (2019)
+    v_kick_scale = 100.
 
-    # for scaling:
-    rg = const.G.cgs * smbh_mass * const.M_sun.cgs / const.c.cgs
-
-    v_kick = v_kick * (u.km / u.s)
-    v_kick_scale = 200. * (u.km / u.s)
-    E = 10 ** 46 * (r_hill_mass / 1 * rg) * (v_kick / v_kick_scale) ** 2  # Energy of the shock
-    time = 31556952.0 * ((r_hill_rg / 3 * rg) / (v_kick / v_kick_scale))  # Timescale for energy dissipation
-    Lshock = E / time  # Shock luminosity
-    return Lshock.value
+    # calculate the energy dissipated into the disk as in McKernan et al. (2019)
+    E = 1e47 * (r_hill_mass / r_hill_mass_scale) * (v_kick / v_kick_scale) ** 2  # energy
+    # calculate the time scale for energy dissipation as in McKernan et al. (2019)
+    time = 1.577e7 * (r_hill_rg / 3 * r_hill_rg_scale) / (v_kick / v_kick_scale)
+    # calculate the shock luminosity as the energy dissipated into the disk overtime, as in McKernan et al. (2019)
+    L_shock = E / time
+    return L_shock
 
 
 def jet_luminosity(mass_final,
                    bin_orb_a,
                    disk_density,
-                   disk_aspect_ratio,
-                   smbh_mass,
                    spin_final,
-                   v_kick):
+                   v_kick,
+                   disk_sound_speed):
     """
     Estimate the jet luminosity produced by Bondi-Hoyle-Lyttleton (BHL) accretion.
 
     Based on Graham et al. (2020), the luminosity goes as:
-        L_BHL ≈ 2.5e45 erg/s * (η / 0.1) * (M / 100 M_sun)^2 * (v / 200 km/s)^-3 * (rho / 1e-9 g/cm^3)
+        L_BHL ≈ 2.5e45 erg s **-1 * (eta / 0.1) * (M / 100 M_sun)**2 * (v_kick / 200 km/s)**-3 * (rho / 1e-9 g/cm^3)
+    where eta is the radiation efficiency, which is well modeled as eta ~ a**2,
+    where a is the spin of the remnant BH (Tagawa et al. (2023)), M is the mass of the remnant black hole,
+    v_kick is the kick velocity imparted to the remannt upon merger, and rho is the local gas density
+    of the AGN accretion disk.
 
     Parameters:
     ----------
     mass_final : numpy.ndarray
         mass of remnant post-merger (mass loss accounted for via Tichy & Maronetti 08)
     bin_orb_a : numpy.ndarray
-        Orbital separation between the SMBH and the binary at the time of merger (in gravitational radii).
+        Distance between the SMBH and the binary at the time of merger (in gravitational radii).
     disk_density : callable
-        Function that returns the gas density at a given radius (in kg m^-3).
+        Function that returns the gas density at a given radius (in [kg m**-3]).
+    spin_final : numpy.ndarray
+        Spin of the remnant black hole. Unitless.
     v_kick : numpy.ndarray
-        Kick velocity imparted to the remnant (in km/s).
+        Kick velocity imparted to the remnant (in [km s**-1]).
+    disk_sound_speed : callable
+        Function that returns the disk sound speed at a given radius (in [m s**-1]).
 
     Returns:
     -------
     LBHL : numpy.ndarray
-        Estimated jet (Bondi-Hoyle) luminosity (in erg/s).
+        Estimated jet luminosity (in [erg s**-1]).
     """
+    # print(migration_velocity)
+    # get the local disk density and convert from [kg m**-3] to [g cm**-3]
+    disk_density_cgs = disk_density(bin_orb_a) * 10 ** -3
 
-    disk_density_si = disk_density(bin_orb_a) * (u.kg / u.m ** 3)
-    disk_density_cgs = disk_density_si.cgs
+    # get the local sound speed of the disk (in [m s**-1])
+    sound_speed = disk_sound_speed(bin_orb_a)
+    # get the relative velocity of the remnant and migration velocity [cm s**-1]
+    v_rel = (v_kick * 10 ** 3 * 10 ** 2)
 
-    v_kick = v_kick * (u.km / u.s)
-    v_kick_scale = 200. * (u.km / u.s)
+    # convert the mass of the remnant black hole from [Msun] to [g]
+    mass_final_g = mass_final * 1.98841e+33
 
-    eta = spin_final ** 2
+    # calculate Bondi accretion, convert sound speed from m / s to cm / s
+    mdot_bondi = 4 * np.pi * (const.G.cgs.value ** 2) * (mass_final_g ** 2) * disk_density_cgs * (
+                v_rel ** 2 + (sound_speed * 10 ** 2) ** 2) ** -(3 / 2)
 
-    Ljet = 2.5e45 * (eta / 0.1) * (mass_final / 100 * u.M_sun) ** 2 * (v_kick / v_kick_scale) ** -3 * (disk_density_cgs / 10e-10 * (u.g / u.cm * 3))  # Jet luminosity
-    return Ljet.value
+    kappa = 0.1
+    # calculate the jet luminosity as in Kim & Most 2025
+    L_jet = (0.1) * (kappa / 0.1) * (0.9 / spin_final) ** 2 * mdot_bondi * const.c.cgs.value ** 2
+    return L_jet
 
 
 def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_ang_mom):
-    """Calculates the effective spin :math:`\\chi_{\rm eff}` associated with a merger.
+    """Calculates the effective spin :math:`\\chi_{\\rm eff}` associated with a merger.
 
     The measured effective spin of a merger is calculated as
 
-    .. math:: \\chi_{\rm eff}=\frac{m_1*\\chi_1*\\cos(\theta_1) + m_2*\\chi_2*\\cos(\theta_2)}/{m_{\rm bin}}
+    .. math:: \\chi_{\\rm eff}=\\frac{m_1\\chi_1\\cos(\\theta_1) + m_2\\chi_2\\cos(\\theta_2)}{m_{\\rm bin}} L_{\\rm bin}
 
     Parameters
     ----------
@@ -272,16 +301,15 @@ def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angl
 def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_orbs_inc):
     """Calculates the precessing spin component :math:`\chi_p` associated with a merger.
 
-    chi_p = max[spin_1_perp, (q(4q+3)/(4+3q))* spin_2_perp]
+    :code:`chi_p = max[spin_1_perp, (q(4q+3)/(4+3q)) * spin_2_perp]` where
 
-    where
+    :code:`spin_1_perp = spin_1 * sin(spin_angle_1)` and
 
-    spin_1_perp = spin_1 * sin(spin_angle_1)
-    spin_2_perp = spin_2 * sin(spin_angle_2)
+    :code:`spin_2_perp = spin_2 * sin(spin_angle_2)`
 
-    are perpendicular to `spin_1
+    are perpendicular to :code:`spin_1` and :code:`spin_2`, respectively,
 
-    and :math:`q=M_2/M_1` where :math:`M_2 < M_1`.
+    and :code:`q = mass_2 / mass_1` where :code:`mass_2 < mass_1`.
 
     Parameters
     ----------
@@ -310,6 +338,7 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
     # Define default mass ratio of 1.0, otherwise choose based on masses
     mass_ratios = np.ones(masses_1.size)
 
+    # ====== DISSCUSSION NEEDED BEFORE CHANGES - WHY ADDING IN BIN_ORB_INC ======
     # Define spin angle to include binary inclination wrt disk (units of radians)
     spin_angles_1 = spin_angles_1 + bin_orbs_inc
     spin_angles_2 = spin_angles_2 + bin_orbs_inc
@@ -320,6 +349,10 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
 
     spin_angles_1[spin_angles_1_diffs > 0] = spin_angles_1[spin_angles_1_diffs > 0] - spin_angles_1_diffs[spin_angles_1_diffs > 0]
     spin_angles_2[spin_angles_2_diffs > 0] = spin_angles_2[spin_angles_2_diffs > 0] - spin_angles_2_diffs[spin_angles_2_diffs > 0]
+
+    # temporary solution to the spin_angle values being set to a negative value
+    spin_angles_1[spin_angles_1 < 0] = 0
+    spin_angles_2[spin_angles_2 < 0] = 0
 
     # Define default spins
     spins_1_perp = np.abs(spins_1) * np.sin(spin_angles_1)
@@ -341,8 +374,68 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
 
     assert np.isfinite(chi_p).all(), \
         "Finite check failure: chi_p"
+    #if any(chi_p < 0):
+    #    print('mass1 :', masses_1)
+    #    print('mass2 :', masses_2)
+    #    print('spin1 :', spins_1)
+    #    print('spin2 :', spins_2)
+    #    print('spin_angle1 :', spin_angles_1)
+    #    print('spin_angle2 :', spin_angles_2)
+    #    print('bin_orb_inc :', bin_orbs_inc)
+    #    raise ValueError("We have negative chi_p for some reason! EEK!")
+    assert all(chi_p >= 0), \
+        "We have negative chi_p for some reason! EEK!"
 
     return (chi_p)
+
+
+def normalize_tgw(smbh_mass, inner_disk_outer_radius, r_g_in_meters):
+    """Normalizes Gravitational wave timescale.
+
+    Calculate the normalization for timescale of a merger (in s) due to GW emission.
+    From Peters (1964):
+
+    .. math:: t_{\\rm gw} \\approx \\frac{5}{256} \\frac{c^5}{G^3} \\frac{a_b^4}{M_b^2\\mu_b}
+
+    assuming eccentricity :math:`e=0.0`.
+
+    For :math:`a_b` in units of :math:`r_g=GM_{\\rm SMBH}/c^2` we find
+
+    .. math:: t_{\\rm gw}=\\frac{5}{256} \\frac{G}{c^3} \\left(\\frac{a_b}{r_g}\\right)^{4} \\frac{M_s^4}{M_b^2\\mu_b}
+
+    Put :code:`bin_mass_ref` in units of :math:`10\\,M_\\odot` (is a reference mass).
+    :code:`reduced_mass` in units of :math:`2.5\\,M_\\odot`.
+
+    Parameters
+    ----------
+    smbh_mass : float
+        Mass [M_sun] of the SMBH
+    inner_disk_outer_radius : float
+        Outer radius of the inner disk [r_g]
+
+    Returns
+    -------
+    time_gw_normalization : float
+        Normalization to gravitational wave timescale [s]
+    """
+
+    bin_mass_ref = 10.0
+    '''
+    G = const.G
+    c = const.c
+    mass_sun = const.M_sun
+    year = 3.1536e7
+    reduced_mass = 2.5
+    norm = (5.0/256.0)*(G/(c**(3)))*(smbh_mass**(4))*mass_sun/((bin_mass_ref**(2))*reduced_mass)
+    time_gw_normalization = norm/year
+    '''
+    time_gw_normalization = peters.time_of_orbital_shrinkage(
+        smbh_mass * u.solMass,
+        bin_mass_ref * u.solMass,
+        si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius, r_g_defined=r_g_in_meters),
+        0 * u.m,
+    )
+    return time_gw_normalization.si.value
 
 
 def merged_mass(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2):
@@ -351,8 +444,9 @@ def merged_mass(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
     Using approximations from Tichy \\& Maronetti (2008) where
 
     .. math::
-        `m_final = (M_1+M_2) * [1.0 - 0.2{nu} - 0.208{nu}^2(a_1z + a_2z)]`
-    where nu is the symmetric mass ratio or `nu = q/((1+q)^2)`
+        m_{\\rm final}=(M_1+M_2)[1.0-0.2\\nu-0.208\\nu^2(a_1+a_2)]
+    where :math:`\\nu` is the symmetric mass ratio or :math:`\\nu=q/((1+q)^2)`
+    and :math:`q=M_2/M_1` with :math:`M_2<M_1`
 
     Parameters
     ----------
@@ -403,13 +497,14 @@ def merged_mass(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
 def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, random):
     """Calculates the spin magnitude of a merged binary.
 
-    Only depends on M1,M2,a1,a2,theta1,theta2 and the binary angular momentum around its center of mass.
-    Using approximations from Tichy \\& Maronetti (2008) where
-    .. math:: `az_final = 0.686 * (5.04{nu} - 4.16{nu}^2) + 0.3995[(a1_z / (0.632 + q)^2) + (a2_z / (0.632 + (1/q))^2)] + (0.128{nu}^2)[(a_x + b_x)^2 + (a_y + b_y)^2 - (a_z + b_z)^2]`
-    where `q=m_2/m_1 ; nu=q/((1+q)^2)` \n
-    a_x == x component of the magnitude of the spin (spin_1) ; a_y == y component of the magnitude of the spin (spin_1) ; a_z == z component of the magnitude of the spin (spin_1) \n
-    and b_x == x component of the magnitude of the spin (spin_2) ; b_y == y component of the magnitude of the spin (spin_2) ; b_z == z component of the magnitude of the spin (spin_2)
+    Only depends on :math:`M_1,M_2,a_1,a_2` and the binary ang mom around its center of mass.
+    Using approximations from Tichy \\& Maronetti (2008)
 
+    .. math::
+
+        a_{\\rm final}=0.686(5.04\\nu-4.16\\nu^2) +0.4[a_1/(0.632+1/q)^2+ a_2/(0.632+q)^2]
+
+    where :math:`q=M_2/M_1` and :math:`nu=q/((1+q)^2)`.
 
     Parameters
     ----------
@@ -494,8 +589,84 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
 
     return (merged_spins) #merged_spin_angle
 
+def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10):
+    """ Random Guassian distribution generator
 
-def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
+    Parameters
+    ----------
+        mean : int
+            Peak value of the distribution
+        std : int
+            Standard deiviation of the distriubtion
+        lower : float
+            Lower bound of the distribution
+        upper : float
+            Upper bound of the distribution
+        size : int
+            Number of bins based on sample size
+
+    Returns
+    -------
+        spin_dist : numpy.ndarray
+            Random distribution of the spins within a set range
+    """
+
+    a = (lower - mean) / std
+    b = (upper - mean) / std
+    spin_dist = scipy.stats.truncnorm.rvs(a, b, loc=mean, scale=std, size=size)
+    return spin_dist
+
+def spin_check(gen_1, gen_2, spin_merged):
+    """ Since the Tichy and Marronetti '08 perscription generates spin values outside of the expected range for higher mass ratio objects this file checks spin values after merger and if the magnitude is too low, this function resets it to a random distribution between a set range in order to generate results similiar to that of the NRsurrogate model.
+
+    Parameters
+    ----------
+        gen_1 : numpy.ndarray
+            generation of m1 (before merger) (1=natal BH that has never been in a prior merger)
+        gen_2 : numpy.darray
+            generation of m2 (before merger) (1=natal BH that has never been in a prior merger)
+        spin_merged : numpy.darray
+            Final spin magnitude [unitless] of merger remnant with :obj:`float` type
+
+    Returns
+    -------
+    merged_spins : numpy array
+        Final spin magnitude [unitless] of merger remnant with :obj:`float` type
+    """
+
+    new_spin_merged = []
+
+    for i in range(len(spin_merged)):
+        # Sorting first gen objects and keeping their parameters
+        if (gen_1[i] == 1.) & (gen_2[i] == 1.):
+            #print('gen 1', spin_merged[i])
+            new_spin_merged.append(spin_merged[i])
+        # Sorting 2nd gen objects and updating their spins as needed otherwise keeping them the same
+        # If spins < 0.75, they are reset to a randomly selected gaussian distribution between 0.75 - 0.85
+        elif ((gen_1[i] == 2.) | (gen_2[i] == 2.)) & ((gen_1[i] <= 2.) & (gen_2[i] <= 2.)):
+            #print('gen 2', spin_merged[i])
+            if spin_merged[i] < 0.75:
+                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=1)
+                #print('gen 2 plus noise', spin_plus_noise)
+                new_spin_merged.append(float(spin_plus_noise))
+            else:
+                #print('gen 2', spin_merged[i])
+                new_spin_merged.append(spin_merged[i])
+        # Sorting 3+ gen objects and updating their spins as needed otherwise keeping them the same
+        # If spins < 0.85, they are reset to a randomly selected gaussian distribution between 0.85 - 0.95
+        elif (gen_1[i] >= 3.) | (gen_2[i] >= 3.):
+            #print('gen x', spin_merged[i])
+            if spin_merged[i] < 0.85:
+                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.85, upper=0.95, size=1)
+                #print('gen 3+ plus noise', spin_plus_noise)
+                new_spin_merged.append(float(spin_plus_noise))
+            else:
+                #print('gen 3+', spin_merged[i])
+                new_spin_merged.append(spin_merged[i])
+
+    return np.array(new_spin_merged)
+
+def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass, r_g_in_meters):
     """Calculates orbital eccentricity of a merged binary.
 
     Parameters
@@ -513,7 +684,7 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
         Orbital eccentricity of merged binary with :obj:`float` type
     """
     smbh_mass_units = smbh_mass * u.solMass
-    orbs_a_units = unit_conversion.si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+    orbs_a_units = unit_conversion.si_from_r_g(smbh_mass * u.solMass, bin_orbs_a, r_g_defined=r_g_in_meters).to("meter")
 
     v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
 
@@ -531,6 +702,7 @@ def merge_blackholes_precession(
     bin_sep_r_g,
     bin_ecc,
     smbh_mass,
+    r_g_in_meters,
     random
     ):
     """Use Davide Gerosa's precession package to calculate merged properties
@@ -621,7 +793,7 @@ def merge_blackholes_precession(
     # Draw random deltaphi
     deltaphi = random.uniform(low=0.,high=2*np.pi,size=mass_ratio.size)
     # Get binary separation
-    bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g)
+    bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g, r_g_defined=r_g_in_meters)
     orbital_period_si = np.sqrt(
         (4 * np.pi**2 * bin_sep_si**3) / \
         (const.G * (mass_1 * u.solMass + mass_2 * u.solMass))
@@ -745,7 +917,7 @@ def merge_blackholes_precession(
         chi_1,
         chi_2,
     )
-    bh_thetaL = precession.reminantspindirection(
+    bh_thetaL = precession.remnantspindirection(
         theta1,
         theta2,
         deltaphi,
@@ -777,13 +949,13 @@ def merge_blackholes_precession(
         mass_1, mass_2, chi_1, chi_2
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
-                     smbh_mass, flag_use_surrogate, disk_aspect_ratio, disk_density, time_passed, galaxy):
+                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, disk_sound_speed, time_passed, galaxy):
     # TODO: Vectorize this function, lists should be modified on the outside after this function returns new values
-    """Calculates parameters for merged BHs and adds them to blackholes_pro and blackholes_merged
+    """Calculates parameters for merged BHs and adds them to :code:`blackholes_pro` and :code:`blackholes_merged`
 
     This function calculates the new parameters for merged BHs and adds them to the
-    blackholes_pro and blackholes_merged objects. It does NOT delete them from blackholes_binary
-    or update the filing_cabinet with the new information.
+    :code:`blackholes_pro` and :code:`blackholes_merged` objects. It does NOT delete them from :code:`blackholes_binary`
+    or update the :code:`filing_cabinet` with the new information.
 
     Parameters
     ----------
@@ -799,6 +971,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         Mass [Msun] of SMBH
     flag_use_surrogate : int
         Flag to use surrogate model for kick calculations
+    flag_use_spin_check : int
+        Flag to apply spin_check filter to spin results
     disk_aspect_ratio : function
         Disk aspect ratio at specified rg
     disk_density : function
@@ -847,11 +1021,14 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
         )
-        bh_spin_merged = checks.spin_check(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
-            bh_spin_merged
-        )
+        if flag_use_spin_check == 1:
+            bh_spin_merged = checks.spin_check(
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
+                bh_spin_merged
+            )
+        else:
+            bh_spin_merged = bh_spin_merged
         bh_v_kick = analytical_kick_velocity(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -872,7 +1049,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
 
         #bh_v_kick = 200 #evolve_binary.velocity()
         surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
-        bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
+        bh_mass_merged, bh_kick_comp_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
@@ -912,20 +1089,21 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
         disk_aspect_ratio,
         disk_density,
-        bh_v_kick)
+        bh_v_kick,
+        sm.r_g_in_meters,)
 
     bh_lum_jet = jet_luminosity(
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
         disk_density,
-        disk_aspect_ratio,
-        smbh_mass,
         bh_spin_merged,
-        bh_v_kick)
+        bh_v_kick,
+        disk_sound_speed)
 
+    # ====== Varun here is the function you're changing for the components. Replace the bh_v_kick --> bh_kick_comp_merged ======
     bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
                                              np.full(bh_binary_id_num_merger.size, bh_v_kick),
-                                             smbh_mass)
+                                             smbh_mass, sm.r_g_in_meters)
 
     # Append new merged BH to arrays of single BH locations, masses, spins, spin angles & gens
     blackholes_merged.add_blackholes(new_id_num=bh_binary_id_num_merger,
@@ -967,7 +1145,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
                                   new_galaxy=np.full(bh_binary_id_num_merger.size, galaxy),
                                   new_time_passed=np.full(bh_binary_id_num_merger.size, time_passed),
                                   new_id_num=bh_binary_id_num_merger)
-
+    #raise Exception
     return (blackholes_merged, blackholes_pro)
 
 
@@ -1098,6 +1276,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_sep"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_ecc"),
                     sm.smbh_mass,
+                    sm.r_g_in_meters,
+                    random_generator
                 )
         else:
             raise ValueError(f"Invalid option: flag_use_surrogate = {sm.flag_use_surrogate}")
@@ -1108,20 +1288,21 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
             agn_disk.disk_aspect_ratio,
             agn_disk.disk_density,
-            bh_v_kick)
+            bh_v_kick,
+            sm.r_g_in_meters)
+
 
         bh_lum_jet = jet_luminosity(
             bh_mass_merged,
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
             agn_disk.disk_density,
-            agn_disk.disk_aspect_ratio,
-            sm.smbh_mass,
             bh_spin_merged,
-            bh_v_kick)
+            bh_v_kick,
+            agn_disk.disk_sound_speed)
 
         bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
                                            np.full(bh_binary_id_num_merger.size, bh_v_kick),
-                                           sm.smbh_mass)
+                                           sm.smbh_mass, sm.r_g_in_meters)
 
         blackholes_merged = blackholes_binary.copy()
         blackholes_merged.keep_only(bh_binary_id_num_merger)

@@ -1487,6 +1487,7 @@ def circular_binaries_encounters_ecc_prograde(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
+        r_g_in_meters,
         random
         ):
     """"Adjust orb eccentricities due to encounters between BBH and eccentric single BHs
@@ -1517,6 +1518,8 @@ def circular_binaries_encounters_ecc_prograde(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
     random : Generator
         Generator used to generate random numbers
 
@@ -1629,7 +1632,7 @@ def circular_binaries_encounters_ecc_prograde(
     # Set up other values we need
     bin_masses = bin_mass_1 + bin_mass_2
     bin_velocities = const.c.value / np.sqrt(bin_orb_a)
-    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=r_g_in_meters).to("meter")).value
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr/bin_orbital_times
 
@@ -1802,8 +1805,8 @@ def circular_binaries_encounters_ecc_prograde(
             2.  Calculate the binary orbital time and N_orbits/timestep
                 For example, since
                 T_orb =2pi sqrt{bin,orb a}^3/GM_smbh)
-                and {bin,orb a}^3/GM_smbh = (10^3r_g)^3/GM_smbh = 10^9 ({bin,orb a}/10^3r_g)^3 (GM_smbh/c^2)^3/GM_smbh 
-                    = 10^9 ({bin,orb a}/10^3r_g)^3 (G M_smbh/c^3)^2 
+                and {bin,orb a}^3/GM_smbh = (10^3r_g)^3/GM_smbh = 10^9 ({bin,orb a}/10^3r_g)^3 (GM_smbh/c^2)^3/GM_smbh
+                    = 10^9 ({bin,orb a}/10^3r_g)^3 (G M_smbh/c^3)^2
 
                 So,
                 .. math::
@@ -1826,7 +1829,7 @@ def circular_binaries_encounters_ecc_prograde(
                         :math:`v_{ecc,i} =\\sqrt(GM/a_{ecc_i})` ..average Keplerian vel.
 
                     :math:`v_{rel} = abs(v_{bin,i} - v_{ecc,i})`
-            7. Calculate relative K.E. of tertiary, (1/2)m_ecc_i*v_rel_^2     
+            7. Calculate relative K.E. of tertiary, (1/2)m_ecc_i*v_rel_^2
             8. Compare binding en of binary to K.E. of tertiary.
                 Critical velocity for ionization of binary is v_crit, given by:
                     :math:`v_{crit} = \\sqrt(GM_1M_2(M_1+M_2+M_3)/M_3(M_1+M_2)a_{bin})
@@ -1834,8 +1837,8 @@ def circular_binaries_encounters_ecc_prograde(
                     harden binary
                         a_bin -> a_bin -da_bin and
                     new binary eccentricity
-                        e_bin -> e_bin + de 
-                    and give  +da_bin worth of binding energy (GM_bin/(a_bin -da_bin) - GM_bin/a_bin) 
+                        e_bin -> e_bin + de
+                    and give  +da_bin worth of binding energy (GM_bin/(a_bin -da_bin) - GM_bin/a_bin)
                     to extra eccentricity ecc_i and a_ecc,i of m_ecc,i.
                     Say average en of encounter is de=0.1 (10%) then binary a_bin shrinks by 10%, ecc_bin is pumped by 10%
                     And a_ecc_i shrinks by 10% and ecc_i also shrinks by 10%
@@ -1855,25 +1858,25 @@ def circular_binaries_encounters_ecc_prograde(
             9. As 4, except now include interactions between binaries and circularized BH. This should give us primarily
                 hardening encounters as in Leigh+2018, since the v_rel is likely to be small for more binaries.
 
-    Given array of binaries at locations [a_bbh1,a_bbh2] with 
+    Given array of binaries at locations [a_bbh1,a_bbh2] with
     binary semi-major axes [a_bin1,a_bin2,...] and binary eccentricities [e_bin1,e_bin2,...],
-    find all the single BH at locations a_i that within timestep 
+    find all the single BH at locations a_i that within timestep
         either pass between a_i(1-e_i)< a_bbh1 <a_i(1+e_i)
 
     Calculate velocity of encounter compared to a_bin.
     If binary is hard ie GM1M2/a_bin > m3v_rel^2 then:
       harden binary to a_bin = a_bin -da_bin and
       new binary eccentricity e_bin = e_bin + de around com and
-      new binary orb eccentricity e_orb_com = e_orb_com + de and 
+      new binary orb eccentricity e_orb_com = e_orb_com + de and
       now give  da_bin worth of binding energy to extra eccentricity of m3.
     If binary is soft ie GM_bin/a_bin <m3v_rel^2 then:
       soften binary to a_bin = a_bin + da_bin and
       new binary eccentricity e_bin = e_bin + de
-      and take da_bin worth of binary energy from eccentricity of m3. 
+      and take da_bin worth of binary energy from eccentricity of m3.
     If binary is unbound ie GM_bin/a_bin << m3v_rel^2 then:
       remove binary from binary array
       add binary components m1,m2 back to singleton arrays with new orbital eccentricities e_1,e_2 from energy of encounter.
-      Equipartition energy so m1v1^2 =m2 v_2^2 and 
+      Equipartition energy so m1v1^2 =m2 v_2^2 and
       generate new individual orbital eccentricities e1=v1/v_kep_circ and e_2=v_2/v_kep_circ
       Take energy put into destroying binary from orb. eccentricity of m3.
     """
@@ -2024,6 +2027,7 @@ def circular_binaries_encounters_ecc_prograde_star(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
+        r_g_in_meters,
         random
         ):
     """"Adjust orb eccentricities due to encounters between BBH and eccentric single BHs
@@ -2054,6 +2058,8 @@ def circular_binaries_encounters_ecc_prograde_star(
         complete description
     disk_radius_outer : float
         Outer radius of the inner disk (Rg)
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
     random : Generator
         Generator used to generate random numbers
 
@@ -2160,7 +2166,7 @@ def circular_binaries_encounters_ecc_prograde_star(
     # Set up other values we need
     bin_masses = bin_mass_1 + bin_mass_2
     bin_velocities = const.c.value / np.sqrt(bin_orb_a)
-    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=r_g_in_meters).to("meter")).value
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr/bin_orbital_times
     bin_hill_sphere = bin_orb_a * ((bin_masses / smbh_mass) / 3)**(1 / 3)
@@ -2343,8 +2349,9 @@ def circular_binaries_encounters_circ_prograde(
         disk_radius_outer,
         harden_energy_delta_mu,
         harden_energy_delta_sigma,
+        r_g_in_meters,
         random
-):
+        ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
     Parameters
@@ -2373,6 +2380,8 @@ def circular_binaries_encounters_circ_prograde(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
     random : Generator
         Generator used to generate random numbers
 
@@ -2502,7 +2511,7 @@ def circular_binaries_encounters_circ_prograde(
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr / bin_orbital_times
     bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (
-        unit_conversion.si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+        unit_conversion.si_from_r_g(smbh_mass, bin_sep, r_g_defined=r_g_in_meters).to("meter")).value
 
     # Find the e< crit_ecc population. These are the interlopers w. low encounter vel that can harden the circularized population
     circ_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
@@ -2634,8 +2643,9 @@ def circular_binaries_encounters_circ_prograde_star(
         disk_radius_outer,
         harden_energy_delta_mu,
         harden_energy_delta_sigma,
+        r_g_in_meters,
         random
-):
+        ):
     """"Adjust orb ecc due to encounters btw BBH and circularized singles
 
     Parameters
@@ -2664,6 +2674,8 @@ def circular_binaries_encounters_circ_prograde_star(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
     random : Generator
         Generator used to generate random numbers
 
@@ -2785,7 +2797,7 @@ def circular_binaries_encounters_circ_prograde_star(
     bin_velocities = const.c.value / np.sqrt(bin_orb_a)
     bin_orbital_times = 3.15 * (smbh_mass / 1.e8) * ((bin_orb_a / 1.e3) ** 1.5)
     bin_orbits_per_timestep = timestep_duration_yr / bin_orbital_times
-    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep).to("meter")).value
+    bin_binding_energy = const.G.value * (solar_mass ** 2.0) * bin_mass_1 * bin_mass_2 / (si_from_r_g(smbh_mass, bin_sep, r_g_defined=r_g_in_meters).to("meter")).value
     bin_hill_sphere = bin_orb_a * ((bin_masses / smbh_mass) / 3) ** (1 / 3)
     bin_contact_sep = r_g_from_units(smbh_mass, r_schwarzschild_of_m(bin_mass_1) + r_schwarzschild_of_m(bin_mass_2)).value
 
@@ -2965,8 +2977,9 @@ def bin_spheroid_encounter(
         nsc_spheroid_normalization,
         harden_energy_delta_mu,
         harden_energy_delta_sigma,
+        r_g_in_meters,
         random
-):
+        ):
     """Perturb orbits due to encounters with spheroid (NSC) objects
 
     Parameters
@@ -2993,6 +3006,8 @@ def bin_spheroid_encounter(
         Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     harden_energy_delta_mu : float
         Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
     random: numpy.random.Generator
         Generator used to generate random numbers
 
@@ -3136,7 +3151,7 @@ def bin_spheroid_encounter(
     bin_mass = bin_mass_1_all + bin_mass_2_all
     bin_velocities = const.c.value / np.sqrt(bin_orb_a_all)
     bin_binding_energy = const.G.value * (solar_mass ** 2) * bin_mass_1_all * bin_mass_2_all / (
-        unit_conversion.si_from_r_g(smbh_mass, bin_sep_all).to("meter")).value
+        unit_conversion.si_from_r_g(smbh_mass, bin_sep_all, r_g_defined=r_g_in_meters).to("meter")).value
 
     # Calculate encounter rate for each binary based on bin_orb_a, binary size, and time_passed
     # Set up array of encounter rates filled with -1
@@ -3594,6 +3609,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
             sm.disk_radius_outer,
             sm.mean_harden_energy_delta,
             sm.var_harden_energy_delta,
+            sm.r_g_in_meters,
             random_generator
         )
 
@@ -3661,6 +3677,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
             sm.nsc_spheroid_normalization,
             sm.mean_harden_energy_delta,
             sm.var_harden_energy_delta,
+            sm.r_g_in_meters,
             random_generator
         )
 

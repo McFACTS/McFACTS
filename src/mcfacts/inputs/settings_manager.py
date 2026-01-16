@@ -1,6 +1,7 @@
 from typing import Any
 
 from mcfacts.inputs import ReadInputs
+from mcfacts.utilities import unit_conversion
 
 defaults = {
     # IO Parameters
@@ -15,7 +16,7 @@ defaults = {
 
     # Simulation Parameters
     "dynamics_timestep_duration_yr": 1.e4,  # Duration of each timestep (years)
-    "dynamics_timestep_num": 50,  #  Number of timesteps in dynamics timeline
+    "dynamics_timestep_num": 70,  #  Number of timesteps in dynamics timeline
     "capture_time_yr": 1.e5,  # Time between disk captures (years)
     "galaxy_num": 100,  #  Number of iterations of the simulation
     "seed": 223849053863469657747974663531730220530, # Seed of the simulation, should be 128 bits long
@@ -32,7 +33,7 @@ defaults = {
     "disk_aspect_ratio_avg": 0.03,  # Average disk height relative to its radius
     "disk_bh_torque_condition": 0.1,  # Fraction of mass accreted before spin alignment
     "disk_bh_eddington_ratio": 1.0,  # Eddington accretion ratio
-    "disk_bh_orb_ecc_max_init": 0.3,  # Initial maximum orbital eccentricity
+    "disk_bh_orb_ecc_max_init": 0.9,  # Initial maximum orbital eccentricity
     "disk_radius_capture_outer": 2.e3,  # Outer radius for capture (gravitational radii)
     "disk_bh_pro_orb_ecc_crit": 0.01,  # Critical eccentricity for circularized orbits
     "inner_disk_outer_radius": 50.0,  # Outer radius of the inner disk (gravitational radii)
@@ -164,6 +165,11 @@ class SettingsManager:
                 self.settings_finals[key] = self.settings_overrides[key]
             else:
                 self.settings_finals[key] = value
+
+        # Create the single reference point for the R_G conversion
+        # TODO: Update for changing mass SMBH
+        self.r_g_in_meters = unit_conversion.initialize_r_g(self.smbh_mass)
+
 
     def __getattr__(self, item: str) -> Any:
         """
