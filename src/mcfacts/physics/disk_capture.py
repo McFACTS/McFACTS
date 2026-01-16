@@ -536,7 +536,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     tau_p_dyn = np.abs(np.sin(inc)) * ((delta - np.cos(inc)) ** 1.5) \
                 * (smbh_mass ** 2) * period / (
                             retro_mass * disk_surf_model(retrograde_bh_locations) * np.pi * (semi_lat_rec ** 2)) \
-                / (np.sqrt(2)) * kappa * np.abs(np.cos(inc) - zeta)
+                / (np.sqrt(2) * kappa * np.abs(np.cos(inc) - zeta))
 
     assert np.isfinite(tau_p_dyn).all(), \
         "Finite check failure: tau_p_dyn"
