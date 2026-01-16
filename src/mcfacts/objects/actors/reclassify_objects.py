@@ -195,7 +195,7 @@ class FlipRetroProFilter(TimelineActor):
 
         inc_threshhold = 5.0 * np.pi / 180.0
 
-        bh_id_num_flip_to_pro = blackholes_retro.id_num[np.where((np.abs(blackholes_retro.orb_inc) <= inc_threshhold) | (blackholes_retro.orb_ecc == 0.0))]
+        bh_id_num_flip_to_pro = blackholes_retro.id_num[(np.abs(blackholes_retro.orb_inc) <= inc_threshhold)]
 
         blackholes_flipped = blackholes_retro.copy()
         blackholes_flipped.keep_only(bh_id_num_flip_to_pro)

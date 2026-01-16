@@ -818,6 +818,8 @@ class EvolveRetrogradeBlackHoles(TimelineActor):
             random_generator
         )
 
+        blackholes_retro.orb_ecc[blackholes_retro.orb_ecc < sm.disk_bh_pro_orb_ecc_crit] = sm.disk_bh_pro_orb_ecc_crit
+
         blackholes_retro.consistency_check()
 
 
