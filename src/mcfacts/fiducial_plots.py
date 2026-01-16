@@ -1035,13 +1035,14 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
                    label=r'$\geq$3g-Ng'
                    )
 
-    # stall_sep = 0.5 * ((const.G * (1e8 * const.M_sun)) / (const.c ** 2))
-    #
-    # gw_freq_stall = (((const.G * ((lvk["mass_1"] + lvk["mass_2"]) * const.M_sun) / (stall_sep ** 3)) ** 0.5) / np.pi).value
-    #
-    # lisa_axs.vlines(np.mean(gw_freq_stall), 1.0e-26, 1.0e-15, colors="red", alpha=0.5, linewidth=1, linestyle="--", label="Stalling Avg.")
-    #
-    # lisa_axs.axvspan(np.min(gw_freq_stall), np.max(gw_freq_stall), alpha=0.5, color='red', label="Stalling Range")
+    if settings.stalling_separation > 0:
+        stall_sep = settings.stalling_separation * ((const.G * (1e8 * const.M_sun)) / (const.c ** 2))
+
+        gw_freq_stall = (((const.G * ((lvk["mass_1"] + lvk["mass_2"]) * const.M_sun) / (stall_sep ** 3)) ** 0.5) / np.pi).value
+
+        lisa_axs.vlines(np.mean(gw_freq_stall), 1.0e-26, 1.0e-15, colors="red", alpha=0.5, linewidth=1, linestyle="--", label="Stalling Avg.")
+
+        lisa_axs.axvspan(np.min(gw_freq_stall), np.max(gw_freq_stall), alpha=0.5, color='red', label="Stalling Range")
 
     lisa_axs.loglog()
 
