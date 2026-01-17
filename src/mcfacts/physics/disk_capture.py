@@ -410,7 +410,7 @@ def tau_inc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
         Mass [M_sun] of supermassive black hole
     disk_bh_retro_orbs_a : numpy.ndarray
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
-    disk_bh_retro_masses : numpy.ndarray
+    disk_bh_retro_masses : numpy.ndarray | float
         Mass [M_sun] of retrograde singleton BH at start of timestep_duration_yr with :obj:`float` type
     disk_bh_retro_arg_periapse : numpy.ndarray
         Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
@@ -607,7 +607,7 @@ def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
         Mass [M_sun] of supermassive black hole
     disk_bh_retro_orbs_a : numpy.ndarray
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
-    disk_bh_retro_masses : float array
+    disk_bh_retro_masses : float array | float
         Mass [M_sun] of retrograde singleton BH at start of timestep_duration_yr with :obj:`float` type
     disk_bh_retro_arg_periapse : numpy.ndarray
         Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
