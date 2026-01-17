@@ -282,24 +282,32 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     periapse[cos_0_mask] = periapse_0
 
     # Get current tau values
-    # tau_e_current, tau_a_current = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+    # tau_e_current_orig, tau_a_current_orig = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
     #                                            disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
     #                                            disk_surf_density_func, r_g_in_meters)
     tau_e_current, tau_a_current = tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                                disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
                                                disk_surf_density_func, r_g_in_meters)
-    # tau_inc_current = tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+    # assert(np.allclose(tau_a_current, tau_a_current_orig))
+    # assert(np.allclose(tau_e_current, tau_e_current_orig))
+
+    # tau_inc_current_orig = tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
     #                               disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
     #                               disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters)
     tau_inc_current = tau_inc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                   disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
                                   disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters)
+    # assert(np.allclose(tau_inc_current, tau_inc_current_orig))
 
     # Get reference tau values
-    # tau_e_ref, tau_a_ref = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    # tau_e_ref_orig, tau_a_ref_orig = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
     tau_e_ref, tau_a_ref = tau_ecc_dyn_optimized(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
-    # tau_inc_ref = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    # assert(np.allclose(tau_e_ref, tau_e_ref_orig))
+    # assert(np.allclose(tau_a_ref, tau_a_ref_orig))
+
+    # tau_inc_ref_orig = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
     tau_inc_ref = tau_inc_dyn_optimized(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    # assert(np.allclose(tau_inc_ref, tau_inc_ref_orig))
 
     if (tau_e_current == -100.5).sum() > 0:
         print("TAU Warning: retrograde orbital parameters out of range, behavior unreliable")
