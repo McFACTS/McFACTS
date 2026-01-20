@@ -1349,7 +1349,6 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_2")
         ) + int(1)
 
-        # TODO: Track parent unique_ids, maybe a history array?
         new_blackholes = AGNBlackHoleArray(
             unique_id=np.array([uuid_provider(random_generator) for _ in range(bh_binary_id_num_merger.size)], dtype=uuid.UUID),
             parent_unique_id_1=blackholes_merged.at_id_num(bh_binary_id_num_merger, "parent_unique_id_1"),
