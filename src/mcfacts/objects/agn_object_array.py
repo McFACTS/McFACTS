@@ -46,7 +46,7 @@ class AGNObjectArray(ABC):
                  orb_ang_mom: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  orb_arg_periapse: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  migration_velocity: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
-                 gen: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
+                 gen: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  parent_unique_id_1: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  parent_unique_id_2: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  skip_consistency_check: bool = False,
@@ -72,7 +72,7 @@ class AGNObjectArray(ABC):
         self.parent_unique_id_2 = np.full(len(unique_id), uuid.UUID(int=0), dtype=uuid.UUID) if len(parent_unique_id_2) == 0 else parent_unique_id_2
 
         # TODO: One of our modules is passing a float for this value, it should be int. Not game-breaking, but we should ensure type sameness
-        self.gen: npt.NDArray[np.int_] = np.full(len(unique_id), int(1), dtype=np.int_) if len(gen) == 0 else gen
+        self.gen: npt.NDArray[np.int64] = np.full(len(unique_id), int(1), dtype=np.int64) if len(gen) == 0 else gen
 
         self.skip_consistency_check = skip_consistency_check
 
@@ -353,17 +353,21 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
                  bin_sep: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  bin_orb_a: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  time_to_merger_gw: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
-                 flag_merging: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
+                 flag_merging: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  time_merged: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  bin_ecc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
-                 gen_1: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
-                 gen_2: npt.NDArray[np.int_] = np.array([], dtype=np.int_),
+                 gen_1: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
+                 gen_2: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  bin_orb_ang_mom: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  bin_orb_inc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  bin_orb_ecc: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs
                  ):
 
+        self.mass_1 = mass_1
+        self.orb_a_1 = orb_a_1
+        self.spin_1 = spin_1
+        self.spin_angle_1 = spin_angle_1
         self.mass_2 = mass_2
         self.orb_a_2 = orb_a_2
         self.spin_2 = spin_2
@@ -374,84 +378,39 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         self.flag_merging = flag_merging
         self.time_merged = time_merged
         self.bin_ecc = bin_ecc
+        self.gen_1 = gen_1
         self.gen_2 = gen_2
         self.bin_orb_ang_mom = bin_orb_ang_mom
         self.bin_orb_inc = bin_orb_inc
         self.bin_orb_ecc = bin_orb_ecc
 
-        legacy_arguments = {}
+        unused_arguments = {}
 
         if "mass" not in kwargs:
-            legacy_arguments["mass"] = mass_1
+            unused_arguments["mass"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "spin" not in kwargs:
-            legacy_arguments["spin"] = spin_1
+            unused_arguments["spin"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "spin_angle" not in kwargs:
-            legacy_arguments["spin_angle"] = spin_angle_1
+            unused_arguments["spin_angle"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_a" not in kwargs:
-            legacy_arguments["orb_a"] = orb_a_1
+            unused_arguments["orb_a"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "gen" not in kwargs:
-            legacy_arguments["gen"] = gen_1
-
+            unused_arguments["gen"] = np.full(len(kwargs.get("unique_id")), 0, dtype=np.int64)
         if "orb_inc" not in kwargs:
-            legacy_arguments["orb_inc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
+            unused_arguments["orb_inc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_ecc" not in kwargs:
-            legacy_arguments["orb_ecc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
+            unused_arguments["orb_ecc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_ang_mom" not in kwargs:
-            legacy_arguments["orb_ang_mom"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
+            unused_arguments["orb_ang_mom"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_arg_periapse" not in kwargs:
-            legacy_arguments["orb_arg_periapse"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
+            unused_arguments["orb_arg_periapse"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
 
 
         # Since we use the parent class variables for the primary component, we need to call the super init last so our consistency check passes.
         super().__init__(
-            **legacy_arguments,
+            **unused_arguments,
             **kwargs
         )
-
-    # Legacy reference to mass_1
-    @property
-    def mass_1(self):
-        return self.mass
-
-    @mass_1.setter
-    def mass_1(self, new_value):
-        self.mass = new_value
-
-    # Legacy reference to orb_a_1
-    @property
-    def orb_a_1(self):
-        return self.orb_a
-
-    @orb_a_1.setter
-    def orb_a_1(self, new_value):
-        self.orb_a = new_value
-
-    # Legacy reference to spin_1
-    @property
-    def spin_1(self):
-        return self.spin
-
-    @spin_1.setter
-    def spin_1(self, new_value):
-        self.spin = new_value
-
-    # Legacy reference to spin_angle_1
-    @property
-    def spin_angle_1(self):
-        return self.spin_angle
-
-    @spin_angle_1.setter
-    def spin_angle_1(self, new_value):
-        self.spin_angle = new_value
-
-    # Legacy reference to gen_1
-    @property
-    def gen_1(self):
-        return self.gen
-
-    @gen_1.setter
-    def gen_1(self, new_value):
-        self.gen = new_value
 
     @property
     def mass_total(self):
@@ -462,11 +421,11 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         super_list = super().get_super_dict()
 
         # Redundancy for legacy purposes
-        super_list["mass_1"] = self.mass
-        super_list["orb_a_1"] = self.orb_a
-        super_list["spin_1"] = self.spin
-        super_list["spin_angle_1"] = self.spin_angle
-        super_list["gen_1"] = self.gen
+        super_list["mass_1"] = self.mass_1
+        super_list["orb_a_1"] = self.orb_a_1
+        super_list["spin_1"] = self.spin_1
+        super_list["spin_angle_1"] = self.spin_angle_1
+        super_list["gen_1"] = self.gen_1
 
         super_list["mass_2"] = self.mass_2
         super_list["orb_a_2"] = self.orb_a_2
@@ -493,6 +452,10 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         if not isinstance(agn_object_array, AGNBinaryBlackHoleArray):
             raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNBinaryBlackHoleArray.")
 
+        self.mass_1 = np.concatenate((self.mass_1, agn_object_array.mass_1))
+        self.orb_a_1 = np.concatenate((self.orb_a_1, agn_object_array.orb_a_1))
+        self.spin_1 = np.concatenate((self.spin_1, agn_object_array.spin_1))
+        self.spin_angle_1 = np.concatenate((self.spin_angle_1, agn_object_array.spin_angle_1))
         self.mass_2 = np.concatenate((self.mass_2, agn_object_array.mass_2))
         self.orb_a_2 = np.concatenate((self.orb_a_2, agn_object_array.orb_a_2))
         self.spin_2 = np.concatenate((self.spin_2, agn_object_array.spin_2))
@@ -503,6 +466,7 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         self.flag_merging = np.concatenate((self.flag_merging, agn_object_array.flag_merging))
         self.time_merged = np.concatenate((self.time_merged, agn_object_array.time_merged))
         self.bin_ecc = np.concatenate((self.bin_ecc, agn_object_array.bin_ecc))
+        self.gen_1 = np.concatenate((self.gen_1, agn_object_array.gen_1))
         self.gen_2 = np.concatenate((self.gen_2, agn_object_array.gen_2))
         self.bin_orb_ang_mom = np.concatenate((self.bin_orb_ang_mom, agn_object_array.bin_orb_ang_mom))
         self.bin_orb_inc = np.concatenate((self.bin_orb_inc, agn_object_array.bin_orb_inc))
@@ -578,7 +542,6 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         self.mass_2_20hz = np.concatenate((self.mass_2_20hz, agn_object_array.mass_2_20hz))
         self.spin_1_20hz = np.concatenate((self.spin_1_20hz, agn_object_array.spin_1_20hz))
         self.spin_2_20hz = np.concatenate((self.spin_2_20hz, agn_object_array.spin_2_20hz))
-
 
 
 class FilingCabinet:

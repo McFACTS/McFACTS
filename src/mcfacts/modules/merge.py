@@ -1305,7 +1305,9 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                                            sm.smbh_mass, sm.r_g_in_meters)
 
         blackholes_merged = blackholes_binary.copy()
+
         blackholes_merged.keep_only(bh_binary_id_num_merger)
+        blackholes_binary.remove_all(bh_binary_id_num_merger)
 
         blackholes_merged.time_merged = np.full(bh_binary_id_num_merger.size, time_passed)
 
@@ -1325,6 +1327,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             spin_2_20hz=bh_spin_2_20_hz
         )
 
+        blackholes_merged.gen = np.maximum(blackholes_merged.gen_1, blackholes_merged.gen_2) + 1
         blackholes_merged.bin_sep = 2 * (blackholes_merged.mass_1 + blackholes_merged.mass_2) / sm.smbh_mass
 
         bbh_gw_freq, bbh_gw_strain = peters.gw_strain_freq_no_prior(
@@ -1344,25 +1347,20 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         filing_cabinet.ignore_check_array(sm.bbh_gw_array_name)
         filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, AGNBinaryBlackHoleArray(**blackholes_merged.get_super_dict()))
 
-        next_generation = np.maximum(
-            blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_1"),
-            blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_2")
-        ) + int(1)
-
         new_blackholes = AGNBlackHoleArray(
-            unique_id=np.array([uuid_provider(random_generator) for _ in range(bh_binary_id_num_merger.size)], dtype=uuid.UUID),
-            parent_unique_id_1=blackholes_merged.at_id_num(bh_binary_id_num_merger, "parent_unique_id_1"),
-            parent_unique_id_2=blackholes_merged.at_id_num(bh_binary_id_num_merger, "parent_unique_id_2"),
-            mass=blackholes_merged.at_id_num(bh_binary_id_num_merger, "mass_final"),
-            orb_a=blackholes_merged.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
-            spin=blackholes_merged.at_id_num(bh_binary_id_num_merger, "spin_final"),
+            unique_id=np.array([uuid_provider(random_generator) for _ in range(len(blackholes_merged))], dtype=uuid.UUID),
+            parent_unique_id_1=blackholes_merged.parent_unique_id_1,
+            parent_unique_id_2=blackholes_merged.parent_unique_id_2,
+            mass=blackholes_merged.mass_final,
+            orb_a=blackholes_merged.bin_orb_a,
+            spin=blackholes_merged.spin_final,
             spin_angle=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
             orb_inc=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
             orb_ang_mom=np.ones(bh_binary_id_num_merger.size, dtype=np.float64),
             orb_arg_periapse=np.full(bh_binary_id_num_merger.size, -1.5),
             orb_ecc=bh_orb_ecc_merged,
             migration_velocity=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
-            gen=next_generation,
+            gen=blackholes_merged.gen
         )
 
         self.log(f"Number of mergers {len(blackholes_merged)}")
@@ -1370,8 +1368,6 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         # All new BH are prograde, so don't add them to the unsorted array
         filing_cabinet.create_or_append_array(sm.bh_prograde_array_name, new_blackholes)
         filing_cabinet.create_or_append_array(sm.bbh_merged_array_name, blackholes_merged)
-
-        blackholes_binary.remove_all(bh_binary_id_num_merger)
 
 
 class ProcessEMRIMergers(TimelineActor):
