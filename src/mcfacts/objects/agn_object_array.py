@@ -389,6 +389,9 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
             legacy_arguments["spin_angle"] = spin_angle_1
         if "orb_a" not in kwargs:
             legacy_arguments["orb_a"] = orb_a_1
+        if "gen" not in kwargs:
+            legacy_arguments["gen"] = gen_1
+
         if "orb_inc" not in kwargs:
             legacy_arguments["orb_inc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_ecc" not in kwargs:
@@ -397,23 +400,13 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
             legacy_arguments["orb_ang_mom"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
         if "orb_arg_periapse" not in kwargs:
             legacy_arguments["orb_arg_periapse"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
-        if "gen" not in kwargs:
-            legacy_arguments["gen"] = gen_1
+
 
         # Since we use the parent class variables for the primary component, we need to call the super init last so our consistency check passes.
         super().__init__(
             **legacy_arguments,
             **kwargs
         )
-
-    # Legacy reference to unique_id
-    @property
-    def unique_id_1(self):
-        return self.unique_id
-
-    @unique_id_1.setter
-    def unique_id_1(self, new_value):
-        self.unique_id = new_value
 
     # Legacy reference to mass_1
     @property
