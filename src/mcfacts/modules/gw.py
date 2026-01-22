@@ -332,7 +332,7 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
 
         if gw_tracked_ids.size > 0:
             bbh_gw_strain, bbh_gw_freq = peters.gw_strain_freq_prior(
-                blackholes_binary.get_attribute("mass_1", gw_tracked_ids),
+                blackholes_binary.get_attribute("mass", gw_tracked_ids),
                 blackholes_binary.get_attribute("mass_2", gw_tracked_ids),
                 blackholes_binary.get_attribute("bin_sep", gw_tracked_ids),
                 sm.smbh_mass,
@@ -354,7 +354,7 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
             filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, blackholes_gw)
 
         blackholes_binary.gw_freq[~gw_tracked_mask], blackholes_binary.gw_strain[~gw_tracked_mask] = peters.gw_strain_freq_no_prior(
-            blackholes_binary.mass_1[~gw_tracked_mask],
+            blackholes_binary.mass[~gw_tracked_mask],
             blackholes_binary.mass_2[~gw_tracked_mask],
             blackholes_binary.bin_sep[~gw_tracked_mask],
             sm.smbh_mass,
@@ -362,7 +362,7 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
         )
 
         blackholes_binary.bin_sep, blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging \
-            = gw_hardening(blackholes_binary.mass_1, blackholes_binary.mass_2,
+            = gw_hardening(blackholes_binary.mass, blackholes_binary.mass_2,
                      blackholes_binary.bin_ecc, blackholes_binary.bin_sep,
                      blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging,
                      sm.smbh_mass, timestep_length, sm.r_g_in_meters)

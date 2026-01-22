@@ -979,7 +979,7 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
     # # lvk = np.delete(lvk,zero_rows_lvk,0)
     #lvk[~np.isfinite(lvk)] = 1.e-40
 
-    lvk_g1_mask, lvk_g2_mask, lvk_gX_mask = make_gen_masks(lvk["gen_1"], lvk["gen_2"])
+    lvk_g1_mask, lvk_g2_mask, lvk_gX_mask = make_gen_masks(lvk["gen"], lvk["gen_2"])
 
     # ----------Setting the values for the EMRIs and LVKs signals and inverting them----------
     #inv_freq_emris = 1 / emris[:, 6]
@@ -1038,7 +1038,7 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
     if settings.stalling_separation > 0:
         stall_sep = settings.stalling_separation * ((const.G * (1e8 * const.M_sun)) / (const.c ** 2))
 
-        gw_freq_stall = (((const.G * ((lvk["mass_1"] + lvk["mass_2"]) * const.M_sun) / (stall_sep ** 3)) ** 0.5) / np.pi).value
+        gw_freq_stall = (((const.G * ((lvk["mass"] + lvk["mass_2"]) * const.M_sun) / (stall_sep ** 3)) ** 0.5) / np.pi).value
 
         lisa_axs.vlines(np.mean(gw_freq_stall), 1.0e-26, 1.0e-15, colors="red", alpha=0.5, linewidth=1, linestyle="--", label="Stalling Avg.")
 
@@ -1128,7 +1128,7 @@ def main(settings: SettingsManager):
     lvk = population_cabinet["blackholes_lvk"]
     emri = population_cabinet["blackholes_emri"]
 
-    mass_1 = mergers["mass_1"]
+    mass_1 = mergers["mass"]
     mass_2 = mergers["mass_2"]
     chi_eff = mergers["chi_eff"]
     mass_final = mergers["mass_final"]
@@ -1138,7 +1138,7 @@ def main(settings: SettingsManager):
     v_kick = mergers["v_kick"]
     spin_final = mergers["spin_final"]
 
-    merger_masks = (make_gen_masks(mergers["gen_1"], mergers["gen_2"])) # Man, I hate python
+    merger_masks = (make_gen_masks(mergers["gen"], mergers["gen_2"])) # Man, I hate python
 
     num_mergers_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final)
     merger_vs_radius(settings, figsize, plots_dir, merger_masks, mass_final, orb_a)

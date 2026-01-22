@@ -1170,57 +1170,57 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         self.log(bh_binary_id_num_merger)
 
         bh_mass_merged = merged_mass(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
         )
 
         bh_chi_eff_merged = chi_effective(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_ang_mom")
         )
 
         bh_chi_p_merged = chi_p(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_inc")
         )
 
         if sm.flag_use_surrogate == 0:
             bh_spin_merged = merged_spin(
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
                 random_generator
             )
 
             bh_spin_merged = checks.spin_check(
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
                 bh_spin_merged
             )
 
             bh_v_kick = analytical_kick_velocity(
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
                 random_generator
             )
@@ -1240,11 +1240,11 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
              bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) = (
                 evolve_binary.surrogate(
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
                     len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
                     # phi_1 - randomly set in the function file
@@ -1267,11 +1267,11 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
              bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) =\
                 merge_blackholes_precession(
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_sep"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_ecc"),
@@ -1327,11 +1327,10 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             spin_2_20hz=bh_spin_2_20_hz
         )
 
-        blackholes_merged.gen = np.maximum(blackholes_merged.gen_1, blackholes_merged.gen_2) + 1
-        blackholes_merged.bin_sep = 2 * (blackholes_merged.mass_1 + blackholes_merged.mass_2) / sm.smbh_mass
+        blackholes_merged.bin_sep = 2 * (blackholes_merged.mass + blackholes_merged.mass_2) / sm.smbh_mass
 
         bbh_gw_freq, bbh_gw_strain = peters.gw_strain_freq_no_prior(
-            blackholes_merged.mass_1,
+            blackholes_merged.mass,
             blackholes_merged.mass_2,
             blackholes_merged.bin_sep,
             sm.smbh_mass,
@@ -1349,7 +1348,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
 
         new_blackholes = AGNBlackHoleArray(
             unique_id=np.array([uuid_provider(random_generator) for _ in range(len(blackholes_merged))], dtype=uuid.UUID),
-            parent_unique_id_1=blackholes_merged.parent_unique_id_1,
+            parent_unique_id=blackholes_merged.parent_unique_id,
             parent_unique_id_2=blackholes_merged.parent_unique_id_2,
             mass=blackholes_merged.mass_final,
             orb_a=blackholes_merged.bin_orb_a,
@@ -1360,7 +1359,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             orb_arg_periapse=np.full(bh_binary_id_num_merger.size, -1.5),
             orb_ecc=bh_orb_ecc_merged,
             migration_velocity=np.zeros(bh_binary_id_num_merger.size, dtype=np.float64),
-            gen=blackholes_merged.gen
+            gen=np.maximum(blackholes_merged.gen, blackholes_merged.gen_2) + 1
         )
 
         self.log(f"Number of mergers {len(blackholes_merged)}")

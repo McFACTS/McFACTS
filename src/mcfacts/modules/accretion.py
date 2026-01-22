@@ -679,8 +679,8 @@ class BinaryBlackHoleAccretion(TimelineActor):
 
         blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
 
-        blackholes_binary.mass_1, blackholes_binary.mass_2 = change_bin_mass(
-            blackholes_binary.mass_1,
+        blackholes_binary.mass, blackholes_binary.mass_2 = change_bin_mass(
+            blackholes_binary.mass,
             blackholes_binary.mass_2,
             blackholes_binary.flag_merging,
             sm.disk_bh_eddington_ratio,
@@ -688,8 +688,8 @@ class BinaryBlackHoleAccretion(TimelineActor):
             timestep_length,
         )
 
-        blackholes_binary.spin_1, blackholes_binary.spin_2 = change_bin_spin_magnitudes(
-            blackholes_binary.spin_1,
+        blackholes_binary.spin, blackholes_binary.spin_2 = change_bin_spin_magnitudes(
+            blackholes_binary.spin,
             blackholes_binary.spin_2,
             blackholes_binary.flag_merging,
             sm.disk_bh_eddington_ratio,
@@ -697,8 +697,8 @@ class BinaryBlackHoleAccretion(TimelineActor):
             timestep_length,
         )
 
-        blackholes_binary.spin_angle_1, blackholes_binary.spin_angle_2 = change_bin_spin_angles(
-            blackholes_binary.spin_angle_1,
+        blackholes_binary.spin_angle, blackholes_binary.spin_angle_2 = change_bin_spin_angles(
+            blackholes_binary.spin_angle,
             blackholes_binary.spin_angle_2,
             blackholes_binary.flag_merging,
             sm.disk_bh_eddington_ratio,

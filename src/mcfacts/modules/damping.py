@@ -477,7 +477,7 @@ class BinaryBlackHoleDamping(TimelineActor):
 
         blackholes_binary.bin_orb_ecc = orbital_bin_ecc_damping(
             sm.smbh_mass,
-            blackholes_binary.mass_1,
+            blackholes_binary.mass,
             blackholes_binary.mass_2,
             blackholes_binary.bin_orb_a,
             blackholes_binary.bin_ecc,

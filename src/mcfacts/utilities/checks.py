@@ -83,9 +83,9 @@ def binary_reality_check(sm: SettingsManager, filing_cabinet: FilingCabinet, log
 
     # First check that binaries are real (mass and location are not zero)
     bh_binary_id_num_unphysical = bin_check_params(
-        blackholes_binary.mass_1,
+        blackholes_binary.mass,
         blackholes_binary.mass_2,
-        blackholes_binary.orb_a_1,
+        blackholes_binary.orb_a,
         blackholes_binary.orb_a_2,
         blackholes_binary.bin_ecc,
         blackholes_binary.id_num
@@ -150,7 +150,7 @@ def flag_binary_mergers(sm: SettingsManager, filing_cabinet: FilingCabinet):
     blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
 
     blackholes_binary.bin_sep, blackholes_binary.flag_merging = bin_contact_check(
-        blackholes_binary.mass_1,
+        blackholes_binary.mass,
         blackholes_binary.mass_2,
         blackholes_binary.bin_sep,
         blackholes_binary.flag_merging,

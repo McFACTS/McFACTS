@@ -159,7 +159,7 @@ class BinaryBlackHoleGasHardening(TimelineActor):
         time_gw_normalization = filing_cabinet.get_value("time_gw_normalization", mcfacts.modules.gw.normalize_tgw(sm.smbh_mass, sm.inner_disk_outer_radius, sm.r_g_in_meters))
 
         blackholes_binary.bin_sep = gas_hardening_baruteau(
-            blackholes_binary.mass_1,
+            blackholes_binary.mass,
             blackholes_binary.mass_2,
             blackholes_binary.bin_sep,
             blackholes_binary.flag_merging,
