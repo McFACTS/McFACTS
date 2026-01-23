@@ -654,14 +654,14 @@ class AGNMergedBinaryStarArray(AGNBinaryStarArray):
         self.time_merged = np.concatenate((self.time_merged, agn_object_array.time_merged))
 
 
-class AGNExplodedStarArray(AGNStarArray):
+class AGNDisruptedStarArray(AGNStarArray):
     def __init__(self,
                  bh_orb_a: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  bh_mass: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  bh_gen: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  bh_orb_inc: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  bh_orb_ecc: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
-                 time_sn: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 time_disrupted: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs):
 
         self.bh_orb_a = bh_orb_a
@@ -669,9 +669,8 @@ class AGNExplodedStarArray(AGNStarArray):
         self.bh_gen = bh_gen
         self.bh_orb_inc = bh_orb_inc
         self.bh_orb_ecc = bh_orb_ecc
-        self.time_sn = time_sn
+        self.time_disrupted = time_disrupted
 
-        # Call init last so consistency check passes.
         super().__init__(**kwargs)
 
     @override
@@ -683,23 +682,23 @@ class AGNExplodedStarArray(AGNStarArray):
         super_list["bh_gen"] = self.bh_gen
         super_list["bh_orb_inc"] = self.bh_orb_inc
         super_list["bh_orb_ecc"] = self.bh_orb_ecc
-        super_list["time_sn"] = self.time_sn
+        super_list["time_disrupted"] = self.time_disrupted
 
         return super_list
 
     @override
-    def add_objects(self, agn_object_array: 'AGNExplodedStarArray'):
+    def add_objects(self, agn_object_array: 'AGNDisruptedStarArray'):
         super().add_objects(agn_object_array)
 
-        if not isinstance(agn_object_array, AGNExplodedStarArray):
-            raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNExplodedStarArray.")
+        if not isinstance(agn_object_array, AGNDisruptedStarArray):
+            raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNDisruptedStarArray.")
 
         self.bh_orb_a = np.concatenate((self.bh_orb_a, agn_object_array.bh_orb_a))
         self.bh_mass = np.concatenate((self.bh_mass, agn_object_array.bh_mass))
         self.bh_gen = np.concatenate((self.bh_gen, agn_object_array.bh_gen))
         self.bh_orb_inc = np.concatenate((self.bh_orb_inc, agn_object_array.bh_orb_inc))
         self.bh_orb_ecc = np.concatenate((self.bh_orb_ecc, agn_object_array.bh_orb_ecc))
-        self.time_sn = np.concatenate((self.time_sn, agn_object_array.time_sn))
+        self.time_disrupted = np.concatenate((self.time_disrupted, agn_object_array.time_disrupted))
 
 
 class AGNImmortalStarArray(AGNStarArray):
