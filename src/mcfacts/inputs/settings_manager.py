@@ -15,8 +15,8 @@ defaults = {
     "settings_file": "./recipes/model_choice_old.ini",
 
     # Simulation Parameters
-    "dynamics_timestep_duration_yr": 1.e4,  # Duration of each timestep (years)
-    "dynamics_timestep_num": 70,  #  Number of timesteps in dynamics timeline
+    "active_timestep_duration_yr": 1.e4,  # Duration of each timestep (years)
+    "active_timestep_num": 70,  #  Number of timesteps in dynamics timeline
     "capture_time_yr": 1.e5,  # Time between disk captures (years)
     "galaxy_num": 100,  #  Number of iterations of the simulation
     "seed": 223849053863469657747974663531730220530, # Seed of the simulation, should be 128 bits long

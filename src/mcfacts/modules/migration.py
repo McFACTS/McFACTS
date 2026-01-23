@@ -1392,7 +1392,7 @@ class BinaryBlackHoleMigration(TimelineActor):
         if sm.torque_prescription == 'old':
             blackholes_binary.bin_orb_a = type1_migration_binary(
                 sm.smbh_mass,
-                blackholes_binary.mass_1,
+                blackholes_binary.mass,
                 blackholes_binary.mass_2,
                 blackholes_binary.bin_orb_a,
                 blackholes_binary.bin_orb_ecc,
@@ -1409,7 +1409,7 @@ class BinaryBlackHoleMigration(TimelineActor):
             normalized_torque_bh = normalized_torque(
                 sm.smbh_mass,
                 blackholes_binary.bin_orb_a,
-                blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                blackholes_binary.mass + blackholes_binary.mass_2,
                 blackholes_binary.bin_orb_ecc,
                 sm.disk_bh_pro_orb_ecc_crit,
                 agn_disk.disk_surface_density,
@@ -1496,7 +1496,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                 torque_mig_timescales_bh = torque_mig_timescale(
                     sm.smbh_mass,
                     blackholes_binary.bin_orb_a,
-                    blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                    blackholes_binary.mass + blackholes_binary.mass_2,
                     blackholes_binary.bin_orb_ecc,
                     sm.disk_bh_pro_orb_ecc_crit,
                     torque,
@@ -1507,7 +1507,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                 blackholes_binary.bin_orb_a = type1_migration_distance(
                     sm.smbh_mass,
                     blackholes_binary.bin_orb_a,
-                    blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                    blackholes_binary.mass + blackholes_binary.mass_2,
                     blackholes_binary.bin_orb_ecc,
                     sm.disk_bh_pro_orb_ecc_crit,
                     torque_mig_timescales_bh,
