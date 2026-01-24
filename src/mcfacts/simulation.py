@@ -33,7 +33,7 @@ def main(settings: SettingsManager):
         shutil.rmtree(settings.output_dir)
 
     agn_disk = AGNDisk(settings)
-    snapshot_handler = TxtSnapshotHandler(settings)
+    snapshot_handler = TxtSnapshotHandler(settings = settings)
 
     snapshot_handler.save_settings("./runs", "settings", settings)
 
@@ -48,7 +48,7 @@ def main(settings: SettingsManager):
         galaxy_seed = settings.seed - galaxy_id
 
         # Create instance of galaxy
-        galaxy = Galaxy(seed=galaxy_seed, runs_folder="./runs", galaxy_id=galaxy_id, settings=settings)
+        galaxy = Galaxy(seed=galaxy_seed, runs_folder="./runs", galaxy_id=str(galaxy_id), settings=settings)
 
         # Create instance of populators
         single_bh_populator = SingleBlackHolePopulator()
