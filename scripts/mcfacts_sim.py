@@ -1042,6 +1042,7 @@ def main():
 
             # Check for retrograde ecc smaller than the critical value
             blackholes_retro.orb_ecc[blackholes_retro.orb_ecc < opts.disk_bh_pro_orb_ecc_crit] = opts.disk_bh_pro_orb_ecc_crit
+            stars_retro.orb_ecc[stars_retro.orb_ecc < opts.disk_bh_pro_orb_ecc_crit] = opts.disk_bh_pro_orb_ecc_crit
 
             # KN: Does this function apply to all disk objects and if so should we rename it?
             stars_retro.orb_ecc, stars_retro.orb_a, stars_retro.orb_inc = disk_capture.retro_bh_orb_disk_evolve(
@@ -1690,6 +1691,7 @@ def main():
                                                                                    opts.flag_use_spin_check,
                                                                                    disk_aspect_ratio,
                                                                                    disk_density,
+                                                                                   disk_sound_speed,
                                                                                    time_passed,
                                                                                    galaxy)
 
