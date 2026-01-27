@@ -30,7 +30,7 @@ def parse_value(cell):
             return cell
     return cell
 
-def tau_dyn_test(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, tol):
+def test_tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, tol):
     tau_e_orig, tau_a_orig = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                                disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
                                                disk_surf_density_func, r_g_in_meters)
@@ -78,7 +78,7 @@ def main():
         # r_g_in_meters = parse_value(row[7])
         r_g_in_meters = None
 
-        tau_dyn_test(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, 1e-9)
+        test_tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, 1e-9)
 
 
 if __name__ == "__main__":
