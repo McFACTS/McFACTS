@@ -1,5 +1,3 @@
-# read from tau_inputs.csv
-
 import numpy as np
 import pandas as pd
 import scipy
@@ -32,32 +30,7 @@ def parse_value(cell):
             return cell
     return cell
 
-# load 0 and 1 to construct disk_surf_desn_func_log
-spline = pd.read_csv('tests/tau_spline.csv', header=None)
-
-spline_parsed = spline.map(parse_array)
-first_row = spline_parsed.iloc[0]
-x_data = first_row[0]  # first array
-y_data = first_row[1]  # second array
-
-# construct the density function using the spline
-disk_surf_dens_func_log = scipy.interpolate.CubicSpline(
-    np.log(x_data), np.log(y_data))
-disk_surf_density_func = lambda x, f=disk_surf_dens_func_log: np.exp(f(np.log(x)))
-
-# now read from tau_inputs.csv and run
-inputs = pd.read_csv("tests/tau_inputs.csv", header=None)
-
-for _, row in inputs.iterrows():
-    smbh_mass = row[0] # scalar
-    disk_bh_retro_orbs_a = parse_array(row[1]) 
-    disk_bh_retro_masses = parse_array(row[2]) 
-    disk_bh_retro_arg_periapse = parse_array(row[3])
-    disk_bh_retro_orbs_ecc = parse_array(row[4])
-    disk_bh_retro_orbs_inc = parse_array(row[5])
-    # r_g_in_meters = parse_value(row[7])
-    r_g_in_meters = None
-
+def tau_dyn_test(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, tol):
     tau_e_orig, tau_a_orig = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                                disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
                                                disk_surf_density_func, r_g_in_meters)
@@ -65,8 +38,8 @@ for _, row in inputs.iterrows():
                                                disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
                                                disk_surf_density_func, r_g_in_meters)
 
-    assert(np.allclose(tau_e_orig, tau_e_opt, rtol=1e9))
-    assert(np.allclose(tau_a_orig, tau_a_opt, rtol=1e9))
+    assert(np.allclose(tau_e_orig, tau_e_opt, rtol=tol))
+    assert(np.allclose(tau_a_orig, tau_a_opt, rtol=tol))
 
     tau_inc_orig = tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                   disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
@@ -75,6 +48,38 @@ for _, row in inputs.iterrows():
                                   disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
                                   disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters)
 
-    assert(np.allclose(tau_inc_orig, tau_inc_opt, rtol=1e9))
+    assert(np.allclose(tau_inc_orig, tau_inc_opt, rtol=tol))
 
 
+def main():
+    # load 0 and 1 to construct disk_surf_desn_func_log
+    spline = pd.read_csv('tests/tau_spline.csv', header=None)
+
+    spline_parsed = spline.map(parse_array)
+    first_row = spline_parsed.iloc[0]
+    x_data = first_row[0]  # first array
+    y_data = first_row[1]  # second array
+
+    # construct the density function using the spline
+    disk_surf_dens_func_log = scipy.interpolate.CubicSpline(
+        np.log(x_data), np.log(y_data))
+    disk_surf_density_func = lambda x, f=disk_surf_dens_func_log: np.exp(f(np.log(x)))
+
+    # now read from tau_inputs.csv and run
+    inputs = pd.read_csv("tests/tau_inputs.csv", header=None)
+
+    for _, row in inputs.iterrows():
+        smbh_mass = row[0] # scalar
+        disk_bh_retro_orbs_a = parse_array(row[1]) 
+        disk_bh_retro_masses = parse_array(row[2]) 
+        disk_bh_retro_arg_periapse = parse_array(row[3])
+        disk_bh_retro_orbs_ecc = parse_array(row[4])
+        disk_bh_retro_orbs_inc = parse_array(row[5])
+        # r_g_in_meters = parse_value(row[7])
+        r_g_in_meters = None
+
+        tau_dyn_test(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, 1e-9)
+
+
+if __name__ == "__main__":
+    main()
