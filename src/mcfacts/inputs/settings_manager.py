@@ -57,6 +57,7 @@ defaults = {
     "flag_orb_ecc_damping": True,  # Enable orbital eccentricity damping
     "flag_dynamic_enc": True,  # Enable dynamical interactions
     "flag_dynamics_sweep": True,  # Switch to turn on/off sweep function for dynamics functions
+    "flag_enable_bondi": False, # Switch between bondi and eddington accretion.
     "bondi_fraction": 1e-5, # Duty cycle / fraction of bondi accretion onto population.
     "stalling_separation": 0.0,
 

@@ -61,71 +61,75 @@ def main(settings: SettingsManager):
         pre_timeline.add_timeline_actor(SingleBlackHoleRealityCheck())
         galaxy.run(pre_timeline, agn_disk)
 
-        # settings=SettingsManager({**settings.settings_overrides, "verbose": True})
         # Create timeline to run main simulation
         active_phase_timeline = SimulationTimeline("Active Timeline",
                                                timesteps=settings.active_timestep_num,
                                                timestep_length=galaxy.settings.active_timestep_duration_yr)
 
+        # Retrograde evolution and capture
         active_phase_timeline.add_timeline_actor(EvolveRetrogradeBlackHoles())
         active_phase_timeline.add_timeline_actor(FlipRetroProFilter())
+
+        # NSC Capture
         active_phase_timeline.add_timeline_actor(CaptureNSCProgradeBlackHoles())
-
-        active_phase_timeline.add_timeline_actor(InnerDiskFilter())
-
         active_phase_timeline.add_timeline_actor(SingleBlackHoleRealityCheck())
 
-        active_phase_timeline.add_timeline_actor(ProcessEMRIMergers())
-
-        active_phase_timeline.add_timeline_actor(RecaptureBinaryBlackHoles())
+        active_phase_timeline.add_timeline_actor(InnerDiskFilter())
 
         prograde_array = galaxy.settings.bh_prograde_array_name
         innerdisk_array = galaxy.settings.bh_inner_disk_array_name
         inner_gw_only_array = galaxy.settings.bh_inner_gw_array_name
 
-        migration = [
+        # Migration: Single BH, Binary BH
+        active_phase_timeline.add_timeline_actors([
             ProgradeBlackHoleMigration(target_array=innerdisk_array),
             ProgradeBlackHoleMigration(target_array=prograde_array),
             BinaryBlackHoleMigration()
-        ]
+        ])
 
-        accretion = [
-            # ProgradeBlackHoleBondi(target_array=innerdisk_array),
-            # ProgradeBlackHoleBondi(target_array=prograde_array),
-            ProgradeBlackHoleAccretion(target_array=innerdisk_array),
-            ProgradeBlackHoleAccretion(target_array=prograde_array),
-            BinaryBlackHoleAccretion(reality_merge_checks=True),
-        ]
+        # Accretion: Single BH, Binary BH,
+        if settings.flag_enable_bondi:
+            accretion = [
+                ProgradeBlackHoleBondi(target_array=innerdisk_array),
+                ProgradeBlackHoleBondi(target_array=prograde_array),
+            ]
+        else:
+            accretion = [
+                ProgradeBlackHoleAccretion(target_array=innerdisk_array),
+                ProgradeBlackHoleAccretion(target_array=prograde_array),
+            ]
 
-        damping = [
+        active_phase_timeline.add_timeline_actors(accretion)
+        active_phase_timeline.add_timeline_actor(BinaryBlackHoleAccretion(reality_merge_checks=True),)
+
+        # Gas Dynamics: Single BH, Binary BH
+        active_phase_timeline.add_timeline_actors([
             ProgradeBlackHoleDamping(target_array=innerdisk_array),
             ProgradeBlackHoleDamping(target_array=prograde_array),
             BinaryBlackHoleDamping(),
-        ]
+            BinaryBlackHoleGasHardening(reality_merge_checks=True)
+        ])
 
-        gas_dynamics = [
-            BinaryBlackHoleGasHardening(reality_merge_checks=True),
-        ]
-
-        dynamical_encounters = [
+        # Dynamical Encounters: Single BH, Binary BH
+        active_phase_timeline.add_timeline_actors([
             SingleBlackHoleDynamics(target_array=innerdisk_array),
             InnerBlackHoleDynamics(target_array=innerdisk_array),
             InnerBlackHoleDynamics(target_array=inner_gw_only_array),
             SingleBlackHoleDynamics(target_array=prograde_array),
-            BinaryBlackHoleDynamics(reality_merge_checks=True),
-        ]
+            BinaryBlackHoleDynamics(reality_merge_checks=True)
+        ])
 
-        active_phase_timeline.add_timeline_actors(migration)
-        active_phase_timeline.add_timeline_actors(accretion)
-        active_phase_timeline.add_timeline_actors(damping)
-        active_phase_timeline.add_timeline_actors(gas_dynamics)
-        active_phase_timeline.add_timeline_actors(dynamical_encounters)
+        # Misc Evolution: Binary BH
+        active_phase_timeline.add_timeline_actors([
+            RecaptureBinaryBlackHoles(),
+            BinaryBlackHoleRealityCheck(),
+            BinaryBlackHoleEvolveGW(),
+            ProcessBinaryBlackHoleMergers(),
+            BinaryBlackHoleFormation()
+        ])
 
-        active_phase_timeline.add_timeline_actor(BinaryBlackHoleEvolveGW())
-        active_phase_timeline.add_timeline_actor(BinaryBlackHoleRealityCheck())
-
-        active_phase_timeline.add_timeline_actor(BinaryBlackHoleFormation())
-        active_phase_timeline.add_timeline_actor(ProcessBinaryBlackHoleMergers())
+        # EMRI Dynamics: Single BH (inner disk)
+        active_phase_timeline.add_timeline_actor(ProcessEMRIMergers())
 
         galaxy.run(active_phase_timeline, agn_disk)
 
