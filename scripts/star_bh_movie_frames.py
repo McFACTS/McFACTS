@@ -214,7 +214,7 @@ def main():
     if (opts.plot_objects == 0) or (opts.plot_objects == 1):
         # following cols are galaxy, time_sn, orb_a_star, mass_star
         star_disrupted = np.loadtxt(opts.fname_stars_disrupted, usecols=(0, 1, 2, 3))
-        star_merged = np.loadtxt(opts.fname_stars_merge, usecols=(0, 1, 2, 3))
+        star_merged = np.loadtxt(opts.fname_stars_merged, usecols=(0, 1, 2, 3))
         star_unbound = np.loadtxt(opts.fname_stars_unbound, usecols=(0, 1, 2, 3))
         tde = np.loadtxt(opts.fname_star_tde, usecols=(0, 1, 2, 3))
         star_plunge = np.loadtxt(opts.fname_star_plunge, usecols=(0, 1, 2, 3))
