@@ -80,6 +80,5 @@ def main():
 
         test_tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, 1e-9)
 
-
 if __name__ == "__main__":
     main()
