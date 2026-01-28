@@ -32,12 +32,12 @@ def arg():
     parser.add_argument("--fname-stars",
                         default="output_stars_population.dat",
                         type=str, help="output_stars file")
-    parser.add_argument("--fname-stars-merge",
+    parser.add_argument("--fname-stars-merged",
                         default="output_stars_merged.dat",
                         type=str, help="output merged stars file")
-    parser.add_argument("--fname-stars-explode",
-                        default="output_stars_exploded.dat",
-                        type=str, help="output exploded stars file")
+    parser.add_argument("--fname-stars-disrupted",
+                        default="output_stars_disrupted.dat",
+                        type=str, help="output disrupted stars file")
     parser.add_argument("--plots-directory",
                         default=".",
                         type=str, help="directory to save plots")
@@ -78,23 +78,23 @@ def main():
     opts = arg()
 
     stars = np.loadtxt(opts.fname_stars, skiprows=2)
-    stars_merge = np.loadtxt(opts.fname_stars_merge, skiprows=1)
-    stars_explode = np.loadtxt(opts.fname_stars_explode, skiprows=1)
+    stars_merged = np.loadtxt(opts.fname_stars_merged, skiprows=1)
+    stars_disrupted = np.loadtxt(opts.fname_stars_disrupted, skiprows=1)
 
     merger_g1_mask, merger_g2_mask, merger_gX_mask = make_gen_masks(stars, 6)
-    explode_g1_mask, explode_g2_mask, explode_gX_mask = make_gen_masks(stars_explode, 6)
+    disrupted_g1_mask, disrupted_g2_mask, disrupted_gX_mask = make_gen_masks(stars_disrupted, 6)
 
     # Ensure no union between sets
     assert all(merger_g1_mask & merger_g2_mask) == 0
     assert all(merger_g1_mask & merger_gX_mask) == 0
     assert all(merger_g2_mask & merger_gX_mask) == 0
-    assert all(explode_g1_mask & explode_g2_mask) == 0
-    assert all(explode_g1_mask & explode_gX_mask) == 0
-    assert all(explode_g2_mask & explode_gX_mask) == 0
+    assert all(disrupted_g1_mask & disrupted_g2_mask) == 0
+    assert all(disrupted_g1_mask & disrupted_gX_mask) == 0
+    assert all(disrupted_g2_mask & disrupted_gX_mask) == 0
 
     # Ensure no elements are missed
     assert all(merger_g1_mask | merger_g2_mask | merger_gX_mask) == 1
-    assert all(explode_g1_mask | explode_g2_mask | explode_gX_mask) == 1
+    assert all(disrupted_g1_mask | disrupted_g2_mask | disrupted_gX_mask) == 1
 
 
     # ========================================
@@ -224,7 +224,7 @@ def main():
     plt.close()
 
     # ========================================
-    # Merger Mass vs Radius for exploded stars
+    # Merger Mass vs Radius for disrupted stars
     # ========================================
 
     # TQM has a trap at 500r_g, SG has a trap radius at 700r_g.
@@ -232,12 +232,12 @@ def main():
     trap_radius = 700
 
     # Separate generational subpopulations
-    ex_gen1_orb_a = stars_explode[:, 2][explode_g1_mask]
-    ex_gen2_orb_a = stars_explode[:, 2][explode_g2_mask]
-    ex_genX_orb_a = stars_explode[:, 2][explode_gX_mask]
-    ex_gen1_mass = stars_explode[:, 3][explode_g1_mask]
-    ex_gen2_mass = stars_explode[:, 3][explode_g2_mask]
-    ex_genX_mass = stars_explode[:, 3][explode_gX_mask]
+    ex_gen1_orb_a = stars_disrupted[:, 2][disrupted_g1_mask]
+    ex_gen2_orb_a = stars_disrupted[:, 2][disrupted_g2_mask]
+    ex_genX_orb_a = stars_disrupted[:, 2][disrupted_gX_mask]
+    ex_gen1_mass = stars_disrupted[:, 3][disrupted_g1_mask]
+    ex_gen2_mass = stars_disrupted[:, 3][disrupted_g2_mask]
+    ex_genX_mass = stars_disrupted[:, 3][disrupted_gX_mask]
 
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
@@ -277,16 +277,16 @@ def main():
     plt.yscale('log')
 
     if figsize == 'apj_col':
-        plt.legend(fontsize=6, title="Exploded stars", loc="upper left")
+        plt.legend(fontsize=6, title="Disrupted stars", loc="upper left")
     elif figsize == 'apj_page':
-        plt.legend(title="Exploded stars", loc="upper left")
+        plt.legend(title="Disrupted stars", loc="upper left")
 
     plt.ylim(0.4, 400)
 
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
     plt.grid(True, color='gray', ls='dashed')
-    plt.savefig(opts.plots_directory + "/star_exploded_mass_v_radius.png", format='png')
+    plt.savefig(opts.plots_directory + "/star_disrupted_mass_v_radius.png", format='png')
     plt.close()
 
     # ========================================
@@ -417,7 +417,7 @@ def main():
     # ========================================
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    cm = plt.scatter(stars_merge[:,8], stars_merge[:,9], c=stars_merge[:,2], cmap="BuPu", norm="log",
+    cm = plt.scatter(stars_merged[:,8], stars_merged[:,9], c=stars_merged[:,2], cmap="BuPu", norm="log",
                      s=styles.markersize_gen1,
                      marker=styles.marker_gen1)
 
@@ -443,7 +443,7 @@ def main():
     # ========================================
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    _,_,_,cm = plt.hist2d(stars_merge[:, 8], stars_merge[:, 9], bins=10, cmap="binary", norm="log")
+    _,_,_,cm = plt.hist2d(stars_merged[:, 8], stars_merged[:, 9], bins=10, cmap="binary", norm="log")
 
     cbar = fig.colorbar(cm)
     cbar.set_label(r"Number")
@@ -493,12 +493,12 @@ def main():
 
 
     # ========================================
-    # Merged and exploded stars vs time
+    # Merged and disrupted stars vs time
     # ========================================
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    plt.scatter(stars_merge[:, 1]/1e6, stars_merge[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen1, facecolor="None", alpha=styles.markeralpha_gen1, label="Merged star")
-    plt.scatter(stars_explode[:, 1]/1e6, stars_explode[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen2, facecolor="None", alpha=styles.markeralpha_gen1, label="Exploded star")
+    plt.scatter(stars_merged[:, 1]/1e6, stars_merged[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen1, facecolor="None", alpha=styles.markeralpha_gen1, label="Merged star")
+    plt.scatter(stars_disrupted[:, 1]/1e6, stars_disrupted[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen2, facecolor="None", alpha=styles.markeralpha_gen1, label="Disrupted star")
 
     plt.xlabel(r"Time [Myr]")
     plt.ylabel(r"Mass [$M_\odot$]")
@@ -508,17 +508,17 @@ def main():
     elif figsize == 'apj_page':
         plt.legend(loc="upper left")
 
-    plt.savefig(opts.plots_directory + "/stars_merge_explode.png", format="png")
+    plt.savefig(opts.plots_directory + "/stars_merged_disrupted.png", format="png")
     plt.close()
 
 
     # ========================================
-    # Merged and exploded stars vs radius
+    # Merged and disrupted stars vs radius
     # ========================================
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    plt.scatter(stars_merge[:, 2], stars_merge[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen1, facecolor="None", alpha=styles.markeralpha_gen1, label="Merged star")
-    plt.scatter(stars_explode[:, 2], stars_explode[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen2, facecolor="None", alpha=styles.markeralpha_gen1, label="Exploded star")
+    plt.scatter(stars_merged[:, 2], stars_merged[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen1, facecolor="None", alpha=styles.markeralpha_gen1, label="Merged star")
+    plt.scatter(stars_disrupted[:, 2], stars_disrupted[:, 3], s=styles.markersize_gen1, marker="o", edgecolor=styles.color_gen2, facecolor="None", alpha=styles.markeralpha_gen1, label="Disrupted star")
 
     plt.xlabel(r"Radius [$R_{\rm g}$]")
     plt.ylabel(r"Mass [$M_\odot$]")
@@ -533,20 +533,20 @@ def main():
     elif figsize == 'apj_page':
         plt.legend(loc="upper left")
 
-    plt.savefig(opts.plots_directory + "/stars_merge_explode_radius.png", format="png")
+    plt.savefig(opts.plots_directory + "/stars_merged_disrupted_radius.png", format="png")
     plt.close()
 
 
     # ========================================
-    # Merged and exploded stars vs time histogram
+    # Merged and disrupted stars vs time histogram
     # ========================================
     fig = plt.figure(figsize=plotting.set_size(figsize))
 
-    #bins = np.linspace(0, stars_merge[:, 1].max()/1e6, int(np.sqrt(min(len(stars_merge[:, 1]), len(stars_explode[:, 1])))))
-    #bins = np.linspace(0, stars_merge[:, 1].max()/1e6, 20)
-    bins = np.arange(0, (stars_merge[:, 1].max()/1e6) + 0.02, 0.02)
+    #bins = np.linspace(0, stars_merged[:, 1].max()/1e6, int(np.sqrt(min(len(stars_merged[:, 1]), len(stars_disrupted[:, 1])))))
+    #bins = np.linspace(0, stars_merged:, 1].max()/1e6, 20)
+    bins = np.arange(0, (stars_merged[:, 1].max()/1e6) + 0.02, 0.02)
 
-    plt.hist([stars_merge[:, 1]/1e6, stars_explode[:, 1]/1e6], bins=bins, color=[styles.color_gen1, styles.color_gen2], label=["Merged star", "Exploded star"], stacked=True)
+    plt.hist([stars_merged[:, 1]/1e6, stars_disrupted[:, 1]/1e6], bins=bins, color=[styles.color_gen1, styles.color_gen2], label=["Merged star", "Disrupted star"], stacked=True)
 
     plt.xlabel(r"Time [Myr]")
     plt.ylabel(r"Number")
@@ -556,7 +556,7 @@ def main():
     elif figsize == 'apj_page':
         plt.legend(loc="upper left")
 
-    plt.savefig(opts.plots_directory + "/stars_merge_explode_hist.png", format="png")
+    plt.savefig(opts.plots_directory + "/stars_merged_disrupted_hist.png", format="png")
     plt.close()
 
 
