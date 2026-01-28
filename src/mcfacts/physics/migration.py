@@ -172,7 +172,7 @@ def torque_mig_timescale_optimized(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_
     orb_a_si = si_from_r_g(smbh_mass, new_orbs_a, r_g_defined=r_g_in_meters).to("m")
     migration_torque_si = migration_torque * u.newton * u.meter
 
-    return torque_mig_timescale_helper(smbh_mass_si, orb_a_si, masses, orbs_ecc, orb_ecc_crit, migration_torque_si)
+    return torque_mig_timescale_helper(smbh_mass_si.value, orb_a_si, masses, orbs_ecc, orb_ecc_crit, migration_torque_si)
 
 
 def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque, r_g_in_meters):
