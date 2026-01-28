@@ -13,12 +13,12 @@ def arg():
     parser.add_argument("--fpath-snapshots",
                         default="gal000",
                         type=str, help="path to galaxy")
-    parser.add_argument("--fname-stars-merge",
+    parser.add_argument("--fname-stars-merged",
                         default="output_stars_merged.dat",
                         type=str, help="output merged stars file")
-    parser.add_argument("--fname-stars-explode",
-                        default="output_stars_exploded.dat",
-                        type=str, help="output exploded stars file")
+    parser.add_argument("--fname-stars-disrupted",
+                        default="output_stars_disrupted.dat",
+                        type=str, help="output disrupted stars file")
     parser.add_argument("--fname-stars-unbound",
                         default="output_stars_unbound.dat",
                         type=str, help="output unbound stars file")
@@ -62,24 +62,24 @@ bbh_zorder = 15
 
 def plotting(plot_objects, stars_orba, stars_mass, mask_immortal, starsin_orba, starsin_mass, starsretro_orba, starsretro_mass,
              bh_orba, bh_mass, bhin_orba, bhin_mass, bhretro_orba, bhretro_mass, bbh_orba, bbh_mass,
-             bbh_merge_orba, bbh_merge_mass, star_merge_orba, star_merge_mass, star_explode_orba, star_explode_mass,
+             bbh_merged_orba, bbh_merged_mass, star_merged_orba, star_merged_mass, star_disrupted_orba, star_disrupted_mass,
              bh_unbound_orba, bh_unbound_mass, star_unbound_orb_a, star_unbound_mass,
              emri_orba, emri_mass, star_plunge_orba, star_plunge_mass,
-             timestep, mask_label, nomask_label, bh_label, bbh_label, bbh_merge_label, star_merge_label, star_explode_label,
+             timestep, mask_label, nomask_label, bh_label, bbh_label, bbh_merged_label, star_merged_label, star_disrupted_label,
              bh_unbound_label, star_unbound_label, emri_label, star_plunge_label, save_name):
     if (plot_objects == 0) or (plot_objects == 1):
         plt.scatter(stars_orba[~mask_immortal], stars_mass[~mask_immortal], marker="o", edgecolor='#DA627D', facecolor='None', zorder=star_zorder)
         plt.scatter(stars_orba[mask_immortal], stars_mass[mask_immortal], marker="o", edgecolor='#450920', facecolor='None', zorder=star_zorder)
         plt.scatter(starsin_orba, starsin_mass, marker="o", edgecolor='#DA627D', facecolor='None', zorder=star_zorder)
         plt.scatter(starsretro_orba, starsretro_mass, marker="o", edgecolor='#DA627D', facecolor='None', zorder=star_zorder)
-        plt.scatter(star_merge_orba, star_merge_mass, marker="d", edgecolor="k", facecolor="None", zorder=star_zorder)
-        plt.scatter(star_explode_orba, star_explode_mass, marker="X", edgecolor="k", facecolor="None", zorder=star_zorder)
+        plt.scatter(star_merged_orba, star_merged_mass, marker="d", edgecolor="k", facecolor="None", zorder=star_zorder)
+        plt.scatter(star_disrupted_orba, star_disrupted_mass, marker="X", edgecolor="k", facecolor="None", zorder=star_zorder)
         plt.scatter(star_unbound_orb_a, star_unbound_mass, marker=">", edgecolor="k", facecolor="None", zorder=star_zorder)
         plt.scatter(star_plunge_orba, star_plunge_mass, marker="2", color="k", zorder=star_zorder)
         plt.scatter(0, -10, label=nomask_label, color="#DA627D")
         plt.scatter(0, -10, label=mask_label, color="#450920")
-        plt.scatter(0, -10, marker="d", label=star_merge_label, color="k")
-        plt.scatter(0, -10, marker="X", label=star_explode_label, color="k")
+        plt.scatter(0, -10, marker="d", label=star_merged_label, color="k")
+        plt.scatter(0, -10, marker="X", label=star_disrupted_label, color="k")
         plt.scatter(0, -10, marker=">", label=star_unbound_label, color="k")
         plt.scatter(0, -10, marker="2", label=star_plunge_label, color="k")
 
@@ -88,12 +88,12 @@ def plotting(plot_objects, stars_orba, stars_mass, mask_immortal, starsin_orba, 
         plt.scatter(bhin_orba, bhin_mass, marker="o", edgecolor="tab:blue", facecolor="None", zorder=bh_zorder)
         plt.scatter(bhretro_orba, bhretro_mass, marker="o", edgecolor="tab:blue", facecolor="None", zorder=bh_zorder)
         plt.scatter(bbh_orba, bbh_mass, marker="o", edgecolors="#005f73", facecolor="None", zorder=bbh_zorder)
-        plt.scatter(bbh_merge_orba, bbh_merge_mass, marker="D", edgecolor="k", facecolor="None", zorder=bbh_zorder)
+        plt.scatter(bbh_merged_orba, bbh_merged_mass, marker="D", edgecolor="k", facecolor="None", zorder=bbh_zorder)
         plt.scatter(bh_unbound_orba, bh_unbound_mass, marker="^", edgecolor="k", facecolor="None", zorder=bh_zorder)
         plt.scatter(emri_orba, emri_mass, marker="1", color="k", zorder=bh_zorder)
         plt.scatter(0, -10, label=bh_label, color="tab:blue")
         plt.scatter(0, -10, label=bbh_label, color="#005f73")
-        plt.scatter(0, -10, marker="D", label=bbh_merge_label, color="k")
+        plt.scatter(0, -10, marker="D", label=bbh_merged_label, color="k")
         plt.scatter(0, -10, marker="^", label=bh_unbound_label, color="k")
         plt.scatter(0, -10, marker="1", label=emri_label, color="k")
 
@@ -138,7 +138,7 @@ def load_data(fname, orba_idx, mass_idx):
 
 
 def generate_plots(plot_objects, fpath, num_timesteps, timestep_duration_yr,
-                   bbh_merge_data, star_explode_data, star_merge_data,
+                   bbh_merged_data, star_disrupted_data, star_merged_data,
                    bh_unbound_data, star_unbound_data,
                    emri_data, star_plunge_data):
 
@@ -150,9 +150,9 @@ def generate_plots(plot_objects, fpath, num_timesteps, timestep_duration_yr,
     bh_inner_orba, bh_inner_mass = None, None
     bh_retro_orba, bh_retro_mass = None, None
     bh_binary_orba, bh_binary_mass = None, None
-    bbh_merge_orba, bbh_merge_mass = None, None
-    star_merge_orba, star_merge_mass = None, None
-    star_explode_orba, star_explode_mass = None, None
+    bbh_merged_orba, bbh_merged_mass = None, None
+    star_merged_orba, star_merged_mass = None, None
+    star_disrupted_orba, star_disrupted_mass = None, None
     bh_unbound_orba, bh_unbound_mass = None, None
     star_unbound_orba, star_unbound_mass = None, None
     emri_orba, emri_mass = None, None
@@ -164,10 +164,10 @@ def generate_plots(plot_objects, fpath, num_timesteps, timestep_duration_yr,
             star_pro_orba, star_pro_mass = load_data(fpath + f"/output_stars_single_pro_{i}.dat", 1, 2)
             star_inner_orba, star_inner_mass = load_data(fpath + f"/output_stars_single_inner_disk_{i}.dat", 1, 2)
             star_retro_orba, star_retro_mass = load_data(fpath + f"/output_stars_single_retro_{i}.dat", 1, 2)
-            star_merge_orba = star_merge_data[star_merge_data[:, 1] == i * timestep_duration_yr][:, 2]
-            star_merge_mass = star_merge_data[star_merge_data[:, 1] == i * timestep_duration_yr][:, 3]
-            star_explode_orba = star_explode_data[star_explode_data[:, 1] == i * timestep_duration_yr][:, 2]
-            star_explode_mass = star_explode_data[star_explode_data[:, 1] == i * timestep_duration_yr][:, 3]
+            star_merged_orba = star_merged_data[star_merged_data[:, 1] == i * timestep_duration_yr][:, 2]
+            star_merged_mass = star_merged_data[star_merged_data[:, 1] == i * timestep_duration_yr][:, 3]
+            star_disrupted_orba = star_disrupted_data[star_disrupted_data[:, 1] == i * timestep_duration_yr][:, 2]
+            star_disrupted_mass = star_disrupted_data[star_disrupted_data[:, 1] == i * timestep_duration_yr][:, 3]
             star_unbound_orba = star_unbound_data[star_unbound_data[:, 1] == i * timestep_duration_yr][:, 2]
             star_unbound_mass = star_unbound_data[star_unbound_data[:, 1] == i * timestep_duration_yr][:, 3]
             star_plunge_orba = star_plunge_data[star_plunge_data[:, 1] == i * timestep_duration_yr][:, 2]
@@ -181,17 +181,17 @@ def generate_plots(plot_objects, fpath, num_timesteps, timestep_duration_yr,
             bh_binary_orba, bh_binary_mass = load_data(fpath + f"/output_bh_binary_{i}.dat", 9, [2, 3])
             bh_unbound_orba = bh_unbound_data[bh_unbound_data[:, 1] == i * timestep_duration_yr][:, 2]
             bh_unbound_mass = bh_unbound_data[bh_unbound_data[:, 1] == i * timestep_duration_yr][:, 3]
-            bbh_merge_orba = bbh_merge_data[bbh_merge_data[:, 2] == i * timestep_duration_yr][:, 0]
-            bbh_merge_mass = bbh_merge_data[bbh_merge_data[:, 2] == i * timestep_duration_yr][:, 1]
+            bbh_merged_orba = bbh_merged_data[bbh_merged_data[:, 2] == i * timestep_duration_yr][:, 0]
+            bbh_merged_mass = bbh_merged_data[bbh_merged_data[:, 2] == i * timestep_duration_yr][:, 1]
             emri_orba = emri_data[emri_data[:, 1] == i * timestep_duration_yr][:, 2]
             emri_mass = emri_data[emri_data[:, 1] == i * timestep_duration_yr][:, 3]
 
         plotting(plot_objects, star_pro_orba, star_pro_mass, mask_immortal, star_inner_orba, star_inner_mass, star_retro_orba, star_retro_mass,
                  bh_pro_orba, bh_pro_mass, bh_inner_orba, bh_inner_mass, bh_retro_orba, bh_retro_mass,
                  bh_binary_orba, bh_binary_mass,
-                 bbh_merge_orba, bbh_merge_mass,
-                 star_merge_orba, star_merge_mass,
-                 star_explode_orba, star_explode_mass,
+                 bbh_merged_orba, bbh_merged_mass,
+                 star_merged_orba, star_merged_mass,
+                 star_disrupted_orba, star_disrupted_mass,
                  bh_unbound_orba, bh_unbound_mass,
                  star_unbound_orba, star_unbound_mass,
                  emri_orba, emri_mass,
@@ -207,21 +207,21 @@ def main():
     opts = arg()
 
     gal_num = int(opts.fpath_snapshots[len(opts.fpath_snapshots) - 4:-1])
-    bbh_merge, bh_unbound, emri = None, None, None
-    star_explode, star_merge, star_unbound, star_plunge = None, None, None, None
+    bbh_merged, bh_unbound, emri = None, None, None
+    star_disrupted, star_merged, star_unbound, star_plunge = None, None, None, None
 
     # plot stars
     if (opts.plot_objects == 0) or (opts.plot_objects == 1):
         # following cols are galaxy, time_sn, orb_a_star, mass_star
-        star_explode = np.loadtxt(opts.fname_stars_explode, usecols=(0, 1, 2, 3))
-        star_merge = np.loadtxt(opts.fname_stars_merge, usecols=(0, 1, 2, 3))
+        star_disrupted = np.loadtxt(opts.fname_stars_disrupted, usecols=(0, 1, 2, 3))
+        star_merged = np.loadtxt(opts.fname_stars_merged, usecols=(0, 1, 2, 3))
         star_unbound = np.loadtxt(opts.fname_stars_unbound, usecols=(0, 1, 2, 3))
         tde = np.loadtxt(opts.fname_star_tde, usecols=(0, 1, 2, 3))
         star_plunge = np.loadtxt(opts.fname_star_plunge, usecols=(0, 1, 2, 3))
 
         # Cut out other galaxies
-        star_explode = star_explode[star_explode[:, 0] == gal_num]
-        star_merge = star_merge[star_merge[:, 0] == gal_num]
+        star_disrupted = star_disrupted[star_disrupted[:, 0] == gal_num]
+        star_merged = star_merged[star_merged[:, 0] == gal_num]
         star_unbound = star_unbound[star_unbound[:, 0] == gal_num]
         tde = tde[tde[:, 0] == gal_num]
         star_plunge = star_plunge[star_plunge[:, 0] == gal_num]
@@ -231,7 +231,7 @@ def main():
     if (opts.plot_objects == 0) or (opts.plot_objects == 2):
         # Load BBH mergers, star mergers, star explosions
         # BBH cols are bin_orb_a, mass_final, time_merged
-        bbh_merge = np.loadtxt(opts.fpath_snapshots + "/output_mergers.dat", usecols=(1, 2, 14))
+        bbh_merged = np.loadtxt(opts.fpath_snapshots + "/output_mergers.dat", usecols=(1, 2, 14))
         # following cols are galaxy, time_sn, orb_a_star, mass_star
         bh_unbound = np.loadtxt(opts.fname_bh_unbound, usecols=(0, 1, 2, 3))
         emri = np.loadtxt(opts.fname_emri, usecols=(0, 1, 2, 3))
@@ -241,7 +241,7 @@ def main():
         emri = emri[emri[:, 0] == gal_num]
 
     generate_plots(opts.plot_objects, opts.fpath_snapshots, opts.num_timesteps, opts.timestep_duration_yr,
-                   bbh_merge, star_explode, star_merge, bh_unbound, star_unbound,
+                   bbh_merged, star_disrupted, star_merged, bh_unbound, star_unbound,
                    emri, star_plunge)
 
 
