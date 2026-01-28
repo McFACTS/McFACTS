@@ -270,9 +270,13 @@ class AGNBlackHoleArray(AGNObjectArray):
         gw_strain (npt.NDArray[np.float64]): Array of gw strain for black holes around the SMBH.
     """
     def __init__(self,
+                 progenitor_unique_id: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  gw_freq: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  gw_strain: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs):
+
+
+        self.progenitor_unique_id =  np.full(len(kwargs.get("unique_id")), uuid.UUID(int=0), dtype=uuid.UUID) if len(progenitor_unique_id) == 0 else progenitor_unique_id
 
         self.gw_freq: npt.NDArray[np.float64] = gw_freq if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float64)
         self.gw_strain: npt.NDArray[np.float64] = gw_strain if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float64)
@@ -284,6 +288,7 @@ class AGNBlackHoleArray(AGNObjectArray):
     def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
         super_list = super().get_super_dict()
 
+        super_list["progenitor_unique_id"] = self.progenitor_unique_id
         super_list["gw_freq"] = self.gw_freq
         super_list["gw_strain"] = self.gw_strain
 
@@ -296,6 +301,7 @@ class AGNBlackHoleArray(AGNObjectArray):
         if not isinstance(agn_object_array, AGNBlackHoleArray):
             raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNBlackHoleArray.")
 
+        self.progenitor_unique_id = np.concatenate((self.progenitor_unique_id, agn_object_array.progenitor_unique_id))
         self.gw_freq = np.concatenate((self.gw_freq, agn_object_array.gw_freq))
         self.gw_strain = np.concatenate((self.gw_strain, agn_object_array.gw_strain))
 
@@ -437,6 +443,7 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
 
 class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
     def __init__(self,
+                 unique_id_final: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  mass_final: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  spin_final: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  spin_angle_final: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
@@ -452,6 +459,7 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
                  spin_2_20hz: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs):
 
+        self.unique_id_final = unique_id_final
         self.mass_final = mass_final
         self.spin_final = spin_final
         self.spin_angle_final = spin_angle_final
@@ -472,6 +480,7 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
     def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
         super_list = super().get_super_dict()
 
+        super_list["unique_id_final"] = self.unique_id_final
         super_list["mass_final"] = self.mass_final
         super_list["spin_final"] = self.spin_final
         super_list["spin_angle_final"] = self.spin_angle_final
@@ -495,6 +504,7 @@ class AGNMergedBlackHoleArray(AGNBinaryBlackHoleArray):
         if not isinstance(agn_object_array, AGNMergedBlackHoleArray):
             raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNMergedBlackHoleArray.")
 
+        self.unique_id_final = np.concatenate((self.unique_id_final, agn_object_array.unique_id_final))
         self.mass_final = np.concatenate((self.mass_final, agn_object_array.mass_final))
         self.spin_final = np.concatenate((self.spin_final, agn_object_array.spin_final))
         self.spin_angle_final = np.concatenate((self.spin_angle_final, agn_object_array.spin_angle_final))

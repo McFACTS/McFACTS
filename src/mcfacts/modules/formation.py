@@ -562,7 +562,7 @@ class BinaryBlackHoleFormation(TimelineActor):
 
         new_binaries = AGNBinaryBlackHoleArray(
             unique_id=new_unique_ids,
-            parent_unique_id_1=primary_ids,
+            parent_unique_id=primary_ids,
             parent_unique_id_2=secondary_ids,
             orb_a=orb_a_1,
             orb_a_2=orb_a_2,

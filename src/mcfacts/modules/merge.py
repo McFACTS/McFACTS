@@ -1313,6 +1313,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
 
         blackholes_merged = AGNMergedBlackHoleArray(
             **blackholes_merged.get_super_dict(),
+            unique_id_final=np.array([uuid_provider(random_generator) for _ in range(len(blackholes_merged))], dtype=uuid.UUID),
             mass_final=bh_mass_merged,
             spin_final=bh_spin_merged,
             spin_angle_final=bh_spin_angle_merged,
@@ -1348,7 +1349,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, AGNBinaryBlackHoleArray(**blackholes_merged.get_super_dict()))
 
         new_blackholes = AGNBlackHoleArray(
-            unique_id=np.array([uuid_provider(random_generator) for _ in range(len(blackholes_merged))], dtype=uuid.UUID),
+            unique_id=blackholes_merged.unique_id_final,
+            progenitor_unique_id=blackholes_merged.unique_id,
             parent_unique_id=blackholes_merged.parent_unique_id,
             parent_unique_id_2=blackholes_merged.parent_unique_id_2,
             mass=blackholes_merged.mass_final,
