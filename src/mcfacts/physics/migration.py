@@ -9,6 +9,7 @@ import scipy.interpolate
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import si_from_r_g
 import scipy
+from mcfast import torque_mig_timescale_helper 
 
 
 def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func, disk_dlog10temp_dlog10R_func):
@@ -125,6 +126,53 @@ def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_su
         "Finite check failure: normalized_torque"
 
     return normalized_torque
+
+
+def torque_mig_timescale_optimized(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque, r_g_in_meters):
+    """Calculates the migration timescale using an input migration torque
+    t_mig = a/-(dot(a)) where dot(a)=-2aGamma_tot/L so
+    t_mig = L/2Gamma_tot
+    with Gamma_tot=migration torque, L = orb ang mom = m (GMa)^1/2=m Omega a^2 and so
+    t_mig = m Omega a^2/2Gamma_tot in units of s.
+    Gamma_0 = (q/h)^2 * Sigma* a^4 * Omega^2
+        where q= mass_of_bh/smbh_mass, h= disk aspect ratio at location of bh (a_bh),
+        Sigma= disk surface density at a_bh, a=a_bh, Omega = bh orbital frequency at a_bh.
+        Units are kg m^-2 * m^4 *s^-2 = kg (m s^-1)^2 = Nm (= J)
+    Args:
+        smbh_mass : float
+        Mass [M_sun] of the SMBH
+    orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] wrt to SMBH of objects at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    masses : numpy.ndarray
+        Masses [M_sun] of objects at start of timestep with :obj:`float` type
+    orbs_ecc : numpy.ndarray
+        Orbital ecc [unitless] wrt to SMBH of objects at start of timestep :math:`\\mathtt{disk_radius_trap}. Floor in orbital ecc given by e_crit.
+    orb_ecc_crit : float
+        Critical value of orbital eccentricity [unitless] below which we assume Type 1 migration must occur. Do not damp orb ecc below this (e_crit=0.01 is default)
+    migration_torque : numpy.ndarray
+        Migration torque array. E.g. calculated from torque_paardekooper (units = Nm=J)
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
+
+
+    """
+    # Migration only occurs for sufficiently damped orbital ecc. If orb_ecc <= ecc_crit, then migrate.
+    # Otherwise no change in semi-major axis (orb_a).
+    # Get indices of objects with orb_ecc <= ecc_crit so we can only update orb_a for those.
+    migration_indices = np.asarray(orbs_ecc <= orb_ecc_crit).nonzero()[0]
+
+    # If nothing will migrate then end the function
+    if migration_indices.shape == (0,):
+        return np.array([])
+
+    smbh_mass_si = smbh_mass * u.Msun
+    # If things will migrate then copy over the orb_a of objects that will migrate
+    new_orbs_a = orbs_a[migration_indices].copy()
+
+    orb_a_si = si_from_r_g(smbh_mass, new_orbs_a, r_g_defined=r_g_in_meters).to("m")
+    migration_torque_si = migration_torque * u.newton * u.meter
+
+    return torque_mig_timescale_helper(smbh_mass_si, orb_a_si, masses, orbs_ecc, orb_ecc_crit, migration_torque_si)
 
 
 def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque, r_g_in_meters):
