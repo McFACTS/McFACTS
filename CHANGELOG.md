@@ -3,8 +3,7 @@
 <!---
 Last updated: 2025-07-25
 -->
-## <a href=https://github.com/McFACTS/McFACTS/pull/360>
-    [0.4.0] - 2026-02-02</a>
+## <a href=https://github.com/McFACTS/McFACTS/pull/360>[0.4.0] - 2026-02-02</a>
 
 ### Summary
 #### Added
@@ -105,8 +104,7 @@ Last updated: 2025-07-25
 - Clarify a few items in the checklist
 
 
-## <a href=https://github.com/McFACTS/McFACTS/pull/311>
-    [0.3.0] - 2025-06-16</a>
+## <a href=https://github.com/McFACTS/McFACTS/pull/311>[0.3.0] - 2025-06-16</a>
 ### Added
 
   - Output columns moved for easier importing. [#305](https://github.com/McFACTS/McFACTS/pull/305)
