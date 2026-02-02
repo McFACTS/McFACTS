@@ -50,9 +50,6 @@ def shock_luminosity(smbh_mass,
     L_shock : float
         Shock luminosity (in [erg s**-1]).
     """
-
-    print("FAILURE!")
-
     # get the Hill radius in [R_g] and convert to [m]
     r_hill_rg = bin_orb_a * ((mass_final / smbh_mass) / 3)**(1/3) 
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
@@ -133,8 +130,6 @@ def shock_luminosity_opt(smbh_mass,
     L_shock : float
         Shock luminosity (in [erg s**-1]).
     """
-
-    print("Success!")
 
     disk_height_rg = disk_aspect_ratio(bin_orb_a) * bin_orb_a
     disk_density_si = disk_density(bin_orb_a)
