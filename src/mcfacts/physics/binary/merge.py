@@ -8,8 +8,6 @@ from astropy import units as u
 from astropy import constants as const
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics import analytical_velocity, lum
-from mcfacts.external.sxs import evolve_binary
-from mcfacts.external.sxs import fit_modeler
 from mcfacts.physics.point_masses import si_from_r_g
 #from mcfacts.inputs import data
 
@@ -795,6 +793,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
 
     elif flag_use_surrogate == 1:
+        from mcfacts.external.sxs import evolve_binary
+        from mcfacts.external.sxs import fit_modeler
         #bh_v_kick = 200 #evolve_binary.velocity()
         surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
         bh_mass_merged, bh_kick_comp_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
