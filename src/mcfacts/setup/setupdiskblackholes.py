@@ -191,6 +191,11 @@ def setup_disk_blackholes_masses(
         # paper: 2023PhRvX..13a1048A, Section VI.B
         while (np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass) > 0):
             disk_bh_initial_masses[disk_bh_initial_masses > nsc_bh_imf_max_mass] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass))
+    elif nsc_imf_bh_method == "peak":
+        disk_bh_initial_masses = (rng.pareto(nsc_bh_imf_powerlaw_index, size=disk_bh_num) + 1) * nsc_bh_imf_mode
+        # In this case, only draw masses from 35 Msun peak.
+        while (np.sum(disk_bh_initial_masses < 32.0) > 0):
+             disk_bh_initial_masses[disk_bh_initial_masses < 32.0] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses <32.0))
     elif nsc_imf_bh_method == "gaussian":
         # In this case, I'm going to interpret the mode as the sigma,
         # The pileup as mu, and I'm going to ignore everything else.
