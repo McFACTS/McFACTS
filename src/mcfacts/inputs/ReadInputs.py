@@ -360,6 +360,19 @@ def ReadInputs_ini(fname_ini, verbose=0):
         except Exception as exc:
             print("Failed to import precession. Try `pip install precession`")
             raise exc
+    elif input_variables["flag_use_surrogate"] == 1:
+        # Make sure imports work
+        try:
+            from mcfacts.external.sxs import evolve_binary
+            from mcfacts.external.sxs import fit_modeler
+        except Exception as exc:
+            print(
+                "Failed to import sxs module. " + \
+                "This is not a dependency of McFACTS. " + \
+                "You are on your own setting up your python " + \
+                "environment if you want to use this feature."
+            )
+            raise exc
 
     # Print out the dictionary if we are in verbose mode
     if verbose:
