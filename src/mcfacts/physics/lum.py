@@ -5,6 +5,7 @@ import numpy as np
 from astropy import units as u
 from astropy import constants as ct
 from mcfacts.physics.point_masses import si_from_r_g
+from mcfast import shock_luminosity_helper
 
 def shock_luminosity(smbh_mass,
         mass_final,
@@ -49,6 +50,9 @@ def shock_luminosity(smbh_mass,
     L_shock : float
         Shock luminosity (in [erg s**-1]).
     """
+
+    print("FAILURE!")
+
     # get the Hill radius in [R_g] and convert to [m]
     r_hill_rg = bin_orb_a * ((mass_final / smbh_mass) / 3)**(1/3) 
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
@@ -84,6 +88,59 @@ def shock_luminosity(smbh_mass,
     time = 1.577e7 * (r_hill_rg / 3 * r_hill_rg_scale) / (v_kick / v_kick_scale) 
     # calculate the shock luminosity as the energy dissipated into the disk overtime, as in McKernan et al. (2019)
     L_shock = E / time
+    return L_shock
+
+def shock_luminosity_opt(smbh_mass,
+        mass_final,
+        bin_orb_a,
+        disk_aspect_ratio,
+        disk_density,
+        v_kick):
+    """
+    Estimate the shock luminosity from the interaction between a merger remnant 
+    and gas within its Hill sphere.
+
+    Based on McKernan et al. (2019) (arXiv:1907.03746v2), this function computes:
+    - The Hill radius of the remnant system.
+    - The local height of the disk.
+    - The gas volume inside the Hill sphere.
+    - The mass of gas inside the remnant's Hill sphere.
+    - The energy and timescale over which energy is dissipated into the disk.
+
+    The shock luminosity is given by:
+        L_shock ≈ E / t,
+    where
+        E = 1e47 erg * (M_gas / M_sun) * (v_kick / 200 km/s)^2
+        t ~ R_Hill / v_kick
+
+    Parameters:
+    ----------
+    smbh_mass : float
+        Mass of the supermassive black hole (in solar masses).
+    mass_final : numpy.ndarray
+        Final mass of the binary black hole remnant (in solar masses).
+    bin_orb_a : numpy.ndarray
+        Distance between the SMBH and the binary at the time of merger (in gravitational radii).
+    disk_aspect_ratio : callable
+        Function that returns the aspect ratio (height/radius) of the disk at a given radius.
+    disk_density : callable
+        Function that returns the gas density at a given radius (in [kg m**-3]).
+    v_kick : numpy.ndarray
+        Kick velocity imparted to the remnant (in [km s**-1]).
+
+    Returns:
+    -------
+    L_shock : float
+        Shock luminosity (in [erg s**-1]).
+    """
+
+    print("Success!")
+
+    disk_height_rg = disk_aspect_ratio(bin_orb_a) * bin_orb_a
+    disk_density_si = disk_density(bin_orb_a)
+
+    L_shock = shock_luminosity_helper(smbh_mass, mass_final, bin_orb_a, disk_height_rg, disk_density_si, v_kick)
+
     return L_shock
 
 def jet_luminosity(mass_final,

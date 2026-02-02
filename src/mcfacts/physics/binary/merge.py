@@ -831,7 +831,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
     else:
         raise ValueError(f"Invalid option: flag_use_surrogate = {flag_use_surrogate}")
 
-    bh_lum_shock = lum.shock_luminosity(
+    bh_lum_shock = lum.shock_luminosity_opt(
         smbh_mass,
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
