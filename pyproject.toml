@@ -61,20 +61,17 @@ classifiers = [
 "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
-requires-python = ">= 3.10"
+requires-python = ">= 3.10, < 3.14"
 
 dependencies = [
+    "numpy>=2.0,<2.4.0",
     "matplotlib>=3.5.2",
     "scipy>=1.11.2",
     "astropy",
     "pandas",
     "pagn",
     "joblib>=1.4.2",
-    "juliacall>=0.9.23",
-    "quaternionic>=1.0.13",
     "scikit_learn>=1.5.2",
-    "sxs>=2024.0.22",
-    "uncertainties>=3.2.2",
     "mcfast>=0.1.4",
 ]
 

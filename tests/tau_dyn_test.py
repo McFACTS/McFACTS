@@ -30,7 +30,7 @@ def parse_value(cell):
             return cell
     return cell
 
-def test_tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, tol):
+def tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, tol):
     tau_e_orig, tau_a_orig = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                                disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
                                                disk_surf_density_func, r_g_in_meters)
@@ -50,8 +50,7 @@ def test_tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_
 
     assert(np.allclose(tau_inc_orig, tau_inc_opt, rtol=tol))
 
-
-def main():
+def test_tau_dyn():
     # load 0 and 1 to construct disk_surf_desn_func_log
     spline = pd.read_csv('tests/tau_spline.csv', header=None)
 
@@ -78,7 +77,4 @@ def main():
         # r_g_in_meters = parse_value(row[7])
         r_g_in_meters = None
 
-        test_tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, 1e-9)
-
-if __name__ == "__main__":
-    main()
+        tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters, 1e-9)
