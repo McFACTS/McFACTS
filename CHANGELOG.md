@@ -102,6 +102,8 @@ Last updated: 2025-07-25
 #### [359: docs: include instructions for validation steps and optional testing](https://github.com/McFACTS/McFACTS/pull/359)
 - Updates the PULL_REQUEST_TEMPLATE.md file to add instructions for running and installing pytest
 - Clarify a few items in the checklist
+#### [361: Paper 4 housekeeping](https://github.com/McFACTS/McFACTS/pull/361)
+-  Changed paper_em name for .ini file folder to paper_4, reverted phenom_turb_std_dev = 1.0 to 0.1 (default=0.1). 
 
 
 ## <a href=https://github.com/McFACTS/McFACTS/pull/311>[0.3.0] - 2025-06-16</a>
