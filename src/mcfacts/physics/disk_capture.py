@@ -6,6 +6,7 @@ import astropy.constants as const
 import astropy.units as u
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import si_from_r_g
+from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 
 def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
@@ -112,7 +113,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     ----------
     smbh_mass : float
         Mass [M_sun] of supermassive black hole
-    disk_bh_retro_masses : numpy.ndarray
+    disk_bh_retro_masses : numpy.ndarray | float
         Mass [M_sun] of retrograde singleton BH at start of a timestep with :obj:`float` type
     disk_bh_retro_orbs_a : numpy.ndarray
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
@@ -281,16 +282,32 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     periapse[cos_0_mask] = periapse_0
 
     # Get current tau values
-    tau_e_current, tau_a_current = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+    # tau_e_current_orig, tau_a_current_orig = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+    #                                            disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
+    #                                            disk_surf_density_func, r_g_in_meters)
+    tau_e_current, tau_a_current = tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                                disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
                                                disk_surf_density_func, r_g_in_meters)
-    tau_inc_current = tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+    # assert(np.allclose(tau_a_current, tau_a_current_orig))
+    # assert(np.allclose(tau_e_current, tau_e_current_orig))
+
+    # tau_inc_current_orig = tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+    #                               disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
+    #                               disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters)
+    tau_inc_current = tau_inc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                   disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc,
                                   disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters)
+    # assert(np.allclose(tau_inc_current, tau_inc_current_orig))
 
     # Get reference tau values
-    tau_e_ref, tau_a_ref = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
-    tau_inc_ref = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    # tau_e_ref_orig, tau_a_ref_orig = tau_ecc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    tau_e_ref, tau_a_ref = tau_ecc_dyn_optimized(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    # assert(np.allclose(tau_e_ref, tau_e_ref_orig))
+    # assert(np.allclose(tau_a_ref, tau_a_ref_orig))
+
+    # tau_inc_ref_orig = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    tau_inc_ref = tau_inc_dyn_optimized(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
+    # assert(np.allclose(tau_inc_ref, tau_inc_ref_orig))
 
     if (tau_e_current == -100.5).sum() > 0:
         print("TAU Warning: retrograde orbital parameters out of range, behavior unreliable")
@@ -391,6 +408,49 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
 
     return disk_bh_retro_orbs_ecc_new, disk_bh_retro_orbs_a_new, disk_bh_retro_orbs_inc_new
 
+def tau_inc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, omega, ecc, inc, disk_surf_density_func, r_g_in_meters):
+    """Computes inclination damping timescale from actual variables; used only for scaling.
+    Uses Rust-accelerated helper functions for the calculation: compare to tau_inc_dyn
+
+    Parameters
+    ----------
+    smbh_mass : float
+        Mass [M_sun] of supermassive black hole
+    disk_bh_retro_orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    disk_bh_retro_masses : numpy.ndarray | float
+        Mass [M_sun] of retrograde singleton BH at start of timestep_duration_yr with :obj:`float` type
+    disk_bh_retro_arg_periapse : numpy.ndarray
+        Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
+    disk_bh_retro_orbs_ecc : numpy.ndarray
+        Orbital eccentricity [unitless] of retrograde singleton BH at start of a timestep with :obj:`float` type
+    disk_bh_retro_orbs_inc : numpy.ndarray
+        Orbital inclination [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
+    disk_surf_density_func : function
+        Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
+
+    Returns
+    -------
+    tau_i_dyn : numpy.ndarray
+        Inclination damping timescale [s]
+    """
+    # throw most things into SI units (that's right, ENGINEER UNITS!)
+    #    or more locally convenient variable names
+    SI_smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
+    SI_semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a, r_g_defined=r_g_in_meters).to("m").value
+    SI_orbiter_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
+    cos_omega = np.cos(omega)
+
+    disk_surf_res = disk_surf_density_func(disk_bh_retro_orbs_a)
+
+    tau_i_dyn = tau_inc_dyn_helper(SI_smbh_mass, SI_orbiter_mass, ecc, inc, cos_omega, disk_surf_res, SI_semi_maj_axis)
+
+    assert np.isfinite(tau_i_dyn).all(), \
+        "Finite check failure: tau_i_dyn"
+
+    return tau_i_dyn
 
 def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse,
                 disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters):
@@ -403,7 +463,7 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
         Mass [M_sun] of supermassive black hole
     disk_bh_retro_orbs_a : numpy.ndarray
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
-    disk_bh_retro_masses : numpy.ndarray
+    disk_bh_retro_masses : numpy.ndarray | float
         Mass [M_sun] of retrograde singleton BH at start of timestep_duration_yr with :obj:`float` type
     disk_bh_retro_arg_periapse : numpy.ndarray
         Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
@@ -469,7 +529,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
         Mass [M_sun] of supermassive black hole
     retrograde_bh_locations : numpy.ndarray
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
-    retrograde_bh_masses : numpy.ndarray
+    retrograde_bh_masses : numpy.ndarray | float
         Mass [M_sun] of retrograde singleton BH at start of a timestep with :obj:`float` type
     retrograde_bh_orb_ecc : numpy.ndarray
         Orbital eccentricity [unitless] of retrograde singleton BH at start of a timestep with :obj:`float` type
@@ -543,6 +603,53 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
 
     return tau_p_dyn
 
+def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, omega, ecc, inc, disk_surf_density_func, r_g_in_meters):
+    """Computes eccentricity & semi-maj axis damping timescale from actual variables
+    Uses Rust-accelerated helper functions for calculations: compare to tau_ecc_dyn
+
+    This does not including migration; used only for scaling.
+
+    Parameters
+    ----------
+    smbh_mass : float
+        Mass [M_sun] of supermassive black hole
+    disk_bh_retro_orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    disk_bh_retro_masses : float array | float
+        Mass [M_sun] of retrograde singleton BH at start of timestep_duration_yr with :obj:`float` type
+    disk_bh_retro_arg_periapse : numpy.ndarray
+        Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
+    disk_bh_retro_orbs_ecc : numpy.ndarray
+        Orbital eccentricity [unitless] of retrograde singleton BH at start of a timestep with :obj:`float` type
+    disk_bh_retro_orbs_inc : numpy.ndarray
+        Orbital inclination [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
+    disk_surf_density_func : function
+        Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
+
+    Returns
+    -------
+    tau_e_dyn : numpy.ndarray
+        Eccentricity damping timescale [s]
+    tau_a_dyn : numpy.ndarray
+        Semi-major axis damping timescale [s]
+    """
+    smbh_mass *= 1.988409870698051e+30
+
+    retro_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
+
+    semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a, r_g_defined=r_g_in_meters).to("m").value
+    disk_surf_res = disk_surf_density_func(disk_bh_retro_orbs_a)
+    # call out to Rust helper fn
+    tau_e_dyn, tau_a_dyn = tau_ecc_dyn_helper(smbh_mass, retro_mass, ecc, inc, omega, disk_surf_res, semi_maj_axis)
+
+    assert np.isfinite(tau_e_dyn).all(), \
+        "Finite check failure: tau_e_dyn"
+    assert np.isfinite(tau_a_dyn).all(), \
+        "Finite check failure: tau_a_dyn"
+
+    return tau_e_dyn, tau_a_dyn
 
 def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse,
                 disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters):
@@ -556,7 +663,7 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
         Mass [M_sun] of supermassive black hole
     disk_bh_retro_orbs_a : numpy.ndarray
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
-    disk_bh_retro_masses : float array
+    disk_bh_retro_masses : float array | float
         Mass [M_sun] of retrograde singleton BH at start of timestep_duration_yr with :obj:`float` type
     disk_bh_retro_arg_periapse : numpy.ndarray
         Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
