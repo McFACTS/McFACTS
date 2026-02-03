@@ -194,7 +194,7 @@ def setup_disk_blackholes_masses(
     elif nsc_imf_bh_method == "gaussian":
         # In this case, I'm going to interpret the mode as the sigma,
         # The pileup as mu, and I'm going to ignore everything else.
-        disk_bh_initial_masses = rng.normal(loc=mass_pile_up, scale=nsc_bh_imf_mode, size=disk_bh_num) # gaussian of 2.3, nsc_bh_imf_mode = 2.3, mass_pile_up = 35
+        disk_bh_initial_masses = rng.normal(loc=mass_pile_up, scale=nsc_bh_imf_mode, size=disk_bh_num)
     elif nsc_imf_bh_method in ["uniform","linear"]:
         # Here, we're going from mode to max
         disk_bh_initial_masses = rng.uniform(low=nsc_bh_imf_mode,high=nsc_bh_imf_max_mass, size=disk_bh_num)
