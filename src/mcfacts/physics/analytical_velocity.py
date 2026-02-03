@@ -5,6 +5,7 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as ct
 from mcfacts.mcfacts_random_state import rng
+from mcfast import analytical_kick_velocity_helper
 
 def analytical_kick_velocity(
         mass_1,
@@ -90,4 +91,50 @@ def analytical_kick_velocity(
         "v_kick has values <= 0"
     assert np.isfinite(v_kick).all(), \
         "Finite check failure: v_kick"
+    return v_kick
+
+def analytical_kick_velocity_opt(
+        mass_1,
+        mass_2,
+        spin_1,
+        spin_2,
+        spin_angle_1,
+        spin_angle_2):
+    """
+    Compute the analytical gravitational wave recoil (kick) velocity for merging black hole binaries
+    as in Akiba et al. 2024 (arXiv:2410.19881).
+
+    Parameters
+    ----------
+    mass_1 : numpy.ndarray
+        Mass [M_sun] of object 1 with :obj:`float` type
+    mass_2 : numpy.ndarray
+        Mass [M_sun] of object 2 with :obj:`float` type
+    spin_1 : numpy.ndarray
+        Spin magnitude [unitless] of object 1 with :obj:`float` type
+    spin_2 : numpy.ndarray
+        Spin magnitude [unitless] of object 2 with :obj:`float` type
+    spin_angle_1 : numpy.ndarray
+        Spin angle [radian] of object 1 with :obj:`float` type
+    spin_angle_2 : numpy.ndarray
+        Spin angle [radian] of object 2 with :obj:`float` type
+
+    Returns
+    -------
+    v_kick : np.ndarray
+        Kick velocity [km/s] of the remnant BH with :obj:`float` type
+    """
+
+    angle = rng.uniform(0.0, 2*np.pi, size=len(mass_1))
+
+    v_kick = analytical_kick_velocity_helper(
+        mass_1,
+        mass_2,
+        spin_1,
+        spin_2,
+        spin_angle_1,
+        spin_angle_2,
+        angle
+    )
+
     return v_kick
