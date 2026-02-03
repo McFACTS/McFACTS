@@ -839,6 +839,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         disk_density,
         bh_v_kick)
 
+    # assert(np.allclose(bh_lum_shock, bh_lum_shock_opt))
     bh_lum_jet = lum.jet_luminosity(
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
