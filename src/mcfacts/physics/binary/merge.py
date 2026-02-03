@@ -10,6 +10,7 @@ from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics import analytical_velocity, lum
 from mcfacts.physics.point_masses import si_from_r_g
 #from mcfacts.inputs import data
+from mcfast import merged_orb_ecc_helper
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
@@ -452,6 +453,33 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
     v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
 
     merged_ecc = v_kicks/v_kep
+
+    return (merged_ecc)
+
+def merged_orb_ecc_opt(bin_orbs_a, v_kicks, smbh_mass):
+    """Calculates orbital eccentricity of a merged binary.
+
+    Parameters
+    ----------
+    bin_orbs_a : numpy.ndarray
+        Location of binary [r_{g,SMBH}] wrt to the SMBH with :obj:`float` type
+    v_kicks : numpy.ndarray
+        Kick velocity [km/s] with :obj:`float` type
+    smbh_mass : float
+        Mass [Msun] of the SMBH
+
+    Returns
+    -------
+    merged_ecc : numpy.ndarray
+        Orbital eccentricity of merged binary with :obj:`float` type
+    """
+    smbh_mass_units = smbh_mass * u.solMass
+    merged_ecc = merged_orb_ecc_helper(bin_orbs_a, v_kicks, smbh_mass_units.value)
+    # orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+
+    # v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
+
+    # merged_ecc = v_kicks/v_kep
 
     return (merged_ecc)
 
