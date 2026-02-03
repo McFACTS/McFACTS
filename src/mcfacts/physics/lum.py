@@ -5,7 +5,7 @@ import numpy as np
 from astropy import units as u
 from astropy import constants as ct
 from mcfacts.physics.point_masses import si_from_r_g
-from mcfast import shock_luminosity_helper
+from mcfast import shock_luminosity_helper, jet_luminosity_helper
 
 def shock_luminosity(smbh_mass,
         mass_final,
@@ -192,4 +192,52 @@ def jet_luminosity(mass_final,
     kappa = 0.1
     # calculate the jet luminosity as in Kim & Most 2025
     L_jet = (0.1) * (kappa / 0.1) * (0.9 / spin_final)**2 * mdot_bondi * ct.c.cgs.value**2
+    return L_jet
+
+
+def jet_luminosity_opt(mass_final,
+        bin_orb_a,
+        disk_density,
+        spin_final,
+        v_kick,
+        disk_sound_speed):
+    """
+    Estimate the jet luminosity produced by Bondi-Hoyle-Lyttleton (BHL) accretion.
+
+    Based on Graham et al. (2020), the luminosity goes as:
+        L_BHL ≈ 2.5e45 erg s **-1 * (eta / 0.1) * (M / 100 M_sun)**2 * (v_kick / 200 km/s)**-3 * (rho / 1e-9 g/cm^3)
+    where eta is the radiation efficiency, which is well modeled as eta ~ a**2, 
+    where a is the spin of the remnant BH (Tagawa et al. (2023)), M is the mass of the remnant black hole,
+    v_kick is the kick velocity imparted to the remannt upon merger, and rho is the local gas density
+    of the AGN accretion disk.
+
+    Parameters:
+    ----------
+    mass_final : numpy.ndarray
+        mass of remnant post-merger (mass loss accounted for via Tichy & Maronetti 08)
+    bin_orb_a : numpy.ndarray
+        Distance between the SMBH and the binary at the time of merger (in gravitational radii).
+    disk_density : callable
+        Function that returns the gas density at a given radius (in [kg m**-3]).
+    spin_final : numpy.ndarray
+        Spin of the remnant black hole. Unitless.
+    v_kick : numpy.ndarray
+        Kick velocity imparted to the remnant (in [km s**-1]).
+    disk_sound_speed : callable
+        Function that returns the disk sound speed at a given radius (in [m s**-1]).
+
+    Returns:
+    -------
+    LBHL : numpy.ndarray
+        Estimated jet luminosity (in [erg s**-1]).
+    """
+    #print(migration_velocity)
+    # get the local disk density and convert from [kg m**-3] to [g cm**-3]
+    disk_density_cgs = disk_density(bin_orb_a) * 10**-3
+
+    # get the local sound speed of the disk (in [m s**-1])
+    sound_speed = disk_sound_speed(bin_orb_a) 
+
+    L_jet = jet_luminosity_helper(mass_final, disk_density_cgs, spin_final, v_kick, sound_speed)
+
     return L_jet
