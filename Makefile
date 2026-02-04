@@ -8,7 +8,7 @@ tests: mcfacts_sim
 #### Package ####
 # Version number for the repository
 # This is where you change the version number by hand. Not anywhere else.
-VERSION=0.3.0
+VERSION=0.4.0
 
 ### Should work for everyone ###
 # Current directory
@@ -23,13 +23,15 @@ MSTAR_RUNS_EXE = ${HERE}/scripts/vera_mstar_bins.py
 MSTAR_PLOT_EXE = ${HERE}/src/mcfacts/outputs/plot_mcfacts_handler_quantities.py
 STARS_PLOTS = ${HERE}/scripts/stars_plots.py
 DISK_MASS_PLOTS = ${HERE}/scripts/disk_mass_plots.py
-ORBA_MASS_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
+ORBA_MASS_MOVIE_FRAMES = ${HERE}/scripts/star_bh_movie_frames.py
+ORBA_DIST_MOVIE_FRAMES = ${HERE}/scripts/orba_dist_movie_frames.py
 EM_PLOTS = ${HERE}/scripts/em_plots.py
+COMPARE_SUR = ${HERE}/scripts/compare_plots.py
 
 #### Setup ####
-SEED=3456789108 # put an 8 here
+SEED=3456789108
 #FNAME_INI= ${HERE}/recipes/p1_thompson.ini
-FNAME_INI= ${HERE}/recipes/model_choice_old.ini
+FNAME_INI= ${HERE}/recipes/model_choice.ini
 FNAME_INI_MSTAR_SCALE= ${HERE}/recipes/paper_3/p3_scale.ini
 FNAME_INI_MSTAR_FIXED= ${HERE}/recipes/paper_3/p3_fixed.ini
 MSTAR_RUNS_WKDIR_SCALE = ${HERE}/runs_mstar_bins_scale
@@ -127,41 +129,72 @@ vera_plots: mcfacts_sim
 		--cdf-fields chi_eff chi_p final_mass gen1 gen2 time_merge \
 		--verbose
 
-kaila_stars: plots
+stars_plots: plots
 	cd runs; \
 	python ../${STARS_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-stars ${wd}/output_mergers_stars_population.dat \
-	--fname-stars-merge ${wd}/output_mergers_stars_merged.dat \
-	--fname-stars-explode ${wd}/output_mergers_stars_exploded.dat \
+	--fname-stars-final ${wd}/output_stars_population.dat \
+	--fname-stars-merged ${wd}/output_stars_merged.dat \
+	--fname-stars-disrupted ${wd}/output_stars_disrupted.dat \
+	--fname-stars-immortal ${wd}/output_stars_immortal.dat \
+	--fname-log ${wd}/mcfacts.log \
 	--plots-directory ${wd}
 
-kaila_stars_movie: clean
+data_stars_movie: clean
 	mkdir -p runs
 	cd runs; \
 		python ../${MCFACTS_SIM_EXE} \
 		--galaxy_num 100 \
+		--flag_add_stars 1 \
 		--fname-ini ../${FNAME_INI} \
 		--fname-log mcfacts.log \
 		--seed ${SEED} \
 		--save-snapshots
 
-kaila_stars_make_movie: kaila_stars_plots
+movies_orba_mass:
 	cd runs; \
-	python ../${ORBA_MASS_FRAMES} \
+	rm -fr ${wd}/gal000/movie_frames_orba_mass; \
+	mkdir -p ${wd}/gal000/movie_frames_orba_mass; \
+	python ../${ORBA_MASS_MOVIE_FRAMES} \
 	--fpath-snapshots ${wd}/gal000/ \
-	--num-timesteps 50 \
-	--plots-directory ${wd}/gal000
-	rm -fv ${wd}/runs/orba_mass_movie.mp4
-	ffmpeg -f image2 -framerate 5 -i ${wd}/runs/gal000/orba_mass_movie_timestep_%02d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/runs/orba_mass_movie.mp4
+	--fname-log ${wd}/mcfacts.log \
+	--fname-stars-merged ${wd}/output_stars_merged.dat \
+	--fname-stars-disrupted ${wd}/output_stars_disrupted.dat \
+	--fname-stars-unbound ${wd}/output_stars_unbound.dat \
+	--fname-bh-unbound ${wd}/output_mergers_unbound.dat \
+	--fname-emri ${wd}/output_mergers_emris.dat \
+	--fname-star-tde ${wd}/output_tdes.dat \
+	--fname-star-plunge ${wd}/output_stars_plunge.dat \
+	--num-timesteps 70 \
+	--timestep-duration-yr 10000 \
+	--plots-directory ${wd}/gal000/movie_frames_orba_mass \
+	--plot-objects 0; \
+	rm -fv ${wd}/orba_mass_movie.mp4; \
+	ffmpeg -f image2 -framerate 3 -i ${wd}/gal000/movie_frames_orba_mass/orba_mass_movie_timestep_%03d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/orba_mass_movie.mp4; \
 
-kaila_stars_plots: just_plots
+movies_orba_dist:
+	cd runs; \
+	rm -fr ${wd}/gal000/movie_frames_orba_dist; \
+	mkdir -p ${wd}/gal000/movie_frames_orba_dist; \
+	python ../${ORBA_DIST_MOVIE_FRAMES} \
+	--fpath-snapshots ${wd}/gal000/ \
+	--fname-log ${wd}/mcfacts.log \
+	--num-timesteps 70 \
+	--timestep-duration-yr 10000 \
+	--plots-directory ${wd}/gal000/movie_frames_orba_dist \
+	--plot-objects 0; \
+	rm -fv ${wd}/orba_dist_movie.mp4; \
+	ffmpeg -f image2 -framerate 3 -i ${wd}/gal000/movie_frames_orba_dist/orba_dist_movie_timestep_%03d_log.png -vcodec libx264 -pix_fmt yuv420p -crf 22 ${wd}/orba_dist_movie.mp4; \
+
+just_stars_plots:
 	cd runs; \
 	python ../${STARS_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-stars ${wd}/output_mergers_stars_population.dat \
-	--fname-stars-merge ${wd}/output_mergers_stars_merged.dat \
-	--fname-stars-explode ${wd}/output_mergers_stars_exploded.dat \
+	--fname-stars-final ${wd}/output_stars_population.dat \
+	--fname-stars-merged ${wd}/output_stars_merged.dat \
+	--fname-stars-disrupted ${wd}/output_stars_disrupted.dat \
+	--fname-stars-immortal ${wd}/output_stars_immortal.dat \
+	--fname-log ${wd}/mcfacts.log \
 	--plots-directory ${wd}
 
 disk_mass_plots:
@@ -169,15 +202,16 @@ disk_mass_plots:
 	python ../${DISK_MASS_PLOTS} \
 	--runs-directory ${wd} \
 	--fname-disk ${wd}/output_diskmasscycled.dat \
+	--fname-log ${wd}/mcfacts.log \
+	--time-cut -1 \
+	--log-scale 0 \
 	--plots-directory ${wd}		
 		
-em_plots: 
+em_plots:
 	cd runs; \
 	python ../${EM_PLOTS} \
 	--runs-directory ${wd} \
-	--fname-emris ${wd}/output_mergers_emris.dat \
 	--fname-mergers ${wd}/output_mergers_population.dat \
-	--fname-lvk ${wd}/output_mergers_lvk.dat \
 	--plots-directory ${wd}
 
 #### Vera's mstar_runs ####
@@ -199,6 +233,37 @@ setup_mstar_runs_scale:
 		#--nbins 33 
 		#--timestep_num 1000 \
 	#python3 ${MSTAR_PLOT_EXE} --run-directory ${MSTAR_RUNS_WKDIR}
+
+
+# for profiling purposes
+profile_mstar_runs_scale:
+	python -m cProfile -o mstar_profile.prof ${MSTAR_RUNS_EXE} \
+		--fname-ini ${FNAME_INI_MSTAR_SCALE} \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--galaxy_num 100 \
+		--mbins ${MBINS_SCALE} \
+		--mstar-min 1e9 \
+		--mstar-max 1e13 \
+		--scrub \
+		--fname-nal ${FNAME_GWTC2_NAL} \
+		--wkdir ${MSTAR_RUNS_WKDIR_SCALE} \
+		--truncate-opacity
+
+
+profile_mstar_runs_fixed:
+	python -m cProfile -o mstar_fixed.prof ${MSTAR_RUNS_EXE} \
+		--fname-ini ${FNAME_INI_MSTAR_FIXED} \
+		--timestep_num 1000 \
+		--bin_num_max 10000 \
+		--galaxy_num 100 \
+		--mbins ${MBINS_FIXED} \
+		--mstar-min 1e9 \
+		--mstar-max 1e13 \
+		--scrub \
+		--fname-nal ${FNAME_GWTC2_NAL} \
+		--wkdir ${MSTAR_RUNS_WKDIR_FIXED}
+
 
 # Define the setup for mstar_runs with the fixed inifile
 setup_mstar_runs_fixed:
@@ -234,6 +299,41 @@ $(MBINS_SCALE): %: %.run_scale
 mstar_runs_fixed: $(MBINS_FIXED)
 $(MBINS_FIXED): %: %.run_fixed
 
+# Compare surrogate plots (In progress)
+# 
+# ======= CHANGE SPECIFIED ITEMS BEFORE RUNNING MAKE COMMAND =======
+# 
+# For comparison plots between models run in order of the following
+
+# Set in model_choice_old.ini: flag_use_surrogate = 0 ; flag_use_spin_check = 0
+nosur_save: mcfacts_sim
+	cd runs; \
+	cp ${wd}/output_mergers_population.dat ../nosur_output_mergers_population.dat
+
+# Set in model_choice_old.ini: flag_use_surrogate = 0 ; flag_use_spin_check = 1
+nosur_filter_save: mcfacts_sim
+	cd runs; \
+	cp ${wd}/output_mergers_population.dat ../nosur_filter_output_mergers_population.dat
+
+# Set in model_choice_old.ini: flag_use_surrogate = -1 ; flag_use_spin_check = 0
+prec_save: mcfacts_sim
+	cd runs; \
+	cp ${wd}/output_mergers_population.dat ../prec_output_mergers_population.dat
+
+# Set in model_choice_old.ini: flag_use_surrogate = 1 ; flag_use_spin_check = 0
+sur_save: mcfacts_sim
+	cd runs; \
+	cp output_mergers_population.dat sur_output_mergers_population.dat; \
+	cp ../nosur_output_mergers_population.dat nosur_output_mergers_population.dat; \
+	cp ../nosur_filter_output_mergers_population.dat nosur_filter_output_mergers_population.dat; \
+	cp ../prec_output_mergers_population.dat prec_output_mergers_population.dat; \
+	rm ../nosur_output_mergers_population.dat
+	rm ../nosur_filter_output_mergers_population.dat
+	rm ../prec_output_mergers_population.dat
+
+compare_sur: 
+	cd runs; \
+	python ../${COMPARE_SUR} --fname-surmergers ${wd}/sur_output_mergers_population.dat --plots-directory ${wd}
 
 #### CLEAN ####
 

@@ -1,0 +1,26 @@
+text.usetex: True
+font.family: cmr
+text.latex.preamble: \usepackage{siunitx} \sisetup{detect-all, list-final-separator = {, and }, group-separator = {\,}, detect-weight=true,detect-family=true} \usepackage[utf8]{inputenc} \usepackage[T1]{fontenc} \usepackage{amsfonts} \usepackage{amsmath} \usepackage{amssymb} \DeclareSIUnit \msun {\text{\ensuremath{M_\odot}}} \DeclareSIUnit \rsun {\text{\ensuremath{R_\odot}}} \DeclareSIUnit \year {yr} \DeclareSIUnit \msunpyr {\msun \per \year} \DeclareSIUnit \kms {\kilo \meter \per\second} \DeclareSIUnit \rg {r_{\rm g}} \DeclareSIUnit \myr {Myr} \DeclareRobustCommand{\rchi}{{\mathpalette{\raisebox{\depth}{$\relax\chi$}}\relax}} \DeclareSymbolFont{matha}{OML}{txmi}{m}{it} \DeclareMathSymbol{\varv}{\mathord}{matha}{118} \newcommand{\ddif}{\mbox{d}}
+
+# Commented out so auto-scaling works
+# Uncomment if you want fonts scaled for ApJ
+# ApJ: small = 9pt, normal = 10pt, large = 12pt
+#font.size: 10 #9
+#legend.fontsize: 9
+#xtick.labelsize: 9
+#ytick.labelsize: 9
+#axes.labelsize: 9
+axes.labelsize: 12
+xtick.labelsize: 12
+ytick.labelsize: 12
+legend.fontsize: 9
+axes.formatter.use_mathtext: True
+
+figure.facecolor: white
+figure.dpi: 300
+figure.constrained_layout.use: True
+
+xtick.top: True
+xtick.direction: in
+ytick.right: True
+ytick.direction: in

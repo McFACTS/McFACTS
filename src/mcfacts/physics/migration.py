@@ -53,7 +53,7 @@ def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dl
     return Torque_paardekooper_coeff
 
 
-def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_surf_density_func, disk_aspect_ratio_func):
+def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_surf_density_func, disk_aspect_ratio_func, r_g_in_meters):
     """Calculates the normalized torque from e.g. Grishin et al. '24
     Gamma_0 = (q/h)^2 * Sigma* a^4 * Omega^2
         where q= mass_of_bh/smbh_mass, h= disk aspect ratio at location of bh (a_bh),
@@ -76,6 +76,8 @@ def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_su
     disk_aspect_ratio_func : function
         Returns AGN gas disk aspect ratio [unitless] given a distance [r_{g,SMBH}] from the SMBH
         can accept a simple float (constant), but this is deprecated
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     """
     smbh_mass_in_kg = smbh_mass * u.Msun.to("kg")
@@ -104,7 +106,7 @@ def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_su
     # find mass ratios
     mass_ratios = (masses[migration_indices]/smbh_mass)
     # Convert orb_a of migrating BH to meters. r_g =GM_smbh/c^2.
-    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a).to("m").value
+    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a, r_g_defined=r_g_in_meters).to("m").value
     # Omega of migrating BH
     Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg/((orb_a_in_meters)**(3.0)))
     # Normalized torque = (q/h)^2 * Sigma * a^4 * Omega^2
@@ -125,7 +127,7 @@ def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_su
     return normalized_torque
 
 
-def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque):
+def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque, r_g_in_meters):
     """Calculates the migration timescale using an input migration torque
     t_mig = a/-(dot(a)) where dot(a)=-2aGamma_tot/L so
     t_mig = L/2Gamma_tot
@@ -148,6 +150,8 @@ def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migr
         Critical value of orbital eccentricity [unitless] below which we assume Type 1 migration must occur. Do not damp orb ecc below this (e_crit=0.01 is default)
     migration_torque : numpy.ndarray
         Migration torque array. E.g. calculated from torque_paardekooper (units = Nm=J)
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
 
     """
@@ -164,7 +168,7 @@ def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migr
     # If things will migrate then copy over the orb_a of objects that will migrate
     new_orbs_a = orbs_a[migration_indices].copy()
 
-    orb_a_si = si_from_r_g(smbh_mass, new_orbs_a).to("m")
+    orb_a_si = si_from_r_g(smbh_mass, new_orbs_a, r_g_defined=r_g_in_meters).to("m")
     migration_torque_si = migration_torque * u.newton * u.meter
     # Omega of migrating BH in s^-1
     Omega_bh = np.sqrt(const.G * smbh_mass_si/((orb_a_si)**(3.0)))
@@ -194,7 +198,7 @@ def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migr
     return torque_mig_timescale.value
 
 
-def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func, disk_temp_func, orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func, disk_dlog10temp_dlog10R_func):
+def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func, disk_temp_func, orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func, disk_dlog10temp_dlog10R_func, r_g_in_meters):
     """Return the Jimenez & Masset (2017) torque coefficient for Type 1 migration
         Jimenez-Masset_torque = [0.46 + 0.96dSigmadR -1/8dTdR]/gamma
                                 +[-2.34 -0.1dSigmadR +1.5dTdR]*factor
@@ -234,7 +238,7 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
         disk_aspect_ratio = disk_aspect_ratio_func(orbs_a)[migration_indices]
 
     # Convert migrating orbs_a to meters
-    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a).to("m").value
+    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a, r_g_defined=r_g_in_meters).to("m").value
     # Omega of migrating BH in s^-1
     Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg/((orb_a_in_meters)**(3.0)))
     log_new_orbs_a = np.log10(new_orbs_a)
@@ -265,7 +269,7 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
     return Torque_jimenezmasset_coeff
 
 
-def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func, disk_temp_func, disk_bh_eddington_ratio, orbs_a, orbs_ecc, orb_ecc_crit, bh_masses, flag_thermal_feedback, disk_dlog10pressure_dlog10R_func):
+def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func, disk_temp_func, disk_bh_eddington_ratio, orbs_a, orbs_ecc, orb_ecc_crit, bh_masses, flag_thermal_feedback, disk_dlog10pressure_dlog10R_func, r_g_in_meters):
     """Return the Jimenez & Masset (2017) thermal torque coefficient for Type 1 migration
         Jimenez-Masset_thermal_torque_coeff = Torque_hot*(4mu_thermal/(1+4.*mu_thermal))+ Torque_cold*(2mu_thermal/(1+2.*mu_thermal))
             Given   Torque_hot=thermal_factor*(L/L_c)
@@ -321,7 +325,7 @@ def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk
 
     # Convert migrating orbs_a to meters
     # Convert orb_a of migrating BH to meters. r_g =GM_smbh/c^2.
-    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a).to("m").value
+    orb_a_in_meters = si_from_r_g(smbh_mass, new_orbs_a, r_g_defined=r_g_in_meters).to("m").value
     # Omega of migrating BH in s^-1
     Omega_bh = np.sqrt(scipy.constants.G * smbh_mass_in_kg/((orb_a_in_meters)**(3.0)))
 

@@ -152,7 +152,14 @@ def setup_prior_blackholes_indices(prograde_n_bh, prior_bh_locations):
     return bh_indices
 
 
-def setup_disk_blackholes_masses(disk_bh_num, nsc_bh_imf_mode, nsc_bh_imf_max_mass, nsc_bh_imf_powerlaw_index, mass_pile_up):
+def setup_disk_blackholes_masses(
+        disk_bh_num, 
+        nsc_bh_imf_mode, 
+        nsc_bh_imf_max_mass, 
+        nsc_bh_imf_powerlaw_index, 
+        mass_pile_up,
+        nsc_imf_bh_method,
+    ):
     """Generates disk BH initial masses [M_sun] of size disk_bh_num for user defined inputs.
 
     Parameters
@@ -169,18 +176,62 @@ def setup_disk_blackholes_masses(disk_bh_num, nsc_bh_imf_mode, nsc_bh_imf_max_ma
             Mass pile up term < nsc_bh_inf_max_mass [M_sun]. User set (default = 35.).
             Used to make a uniform pile up in mass between [mass_pile_up, nsc_bh_inf_max_mass] for masses selected
             from nsc_bh_imf_powerlaw_index beyond nsc_bh_inf_max_mass. E.g default [35,40] pile up of masses.
+        nsc_imf_bh_method : str
+            Method for IMF population
 
     Returns:
         disk_bh_initial_masses: numpy.ndarray
             Disk BH initial masses with :obj:`float` type
     """
 
-    disk_bh_initial_masses = (rng.pareto(nsc_bh_imf_powerlaw_index, size=disk_bh_num) + 1) * nsc_bh_imf_mode
-    # Masses greater than max mass should be redrawn from a Gaussian set to recreate the mass pile up
-    # mean is set to mass_pile_up (default is 35Msun) and sigma is 2.3, following LVK rates and populations
-    # paper: 2023PhRvX..13a1048A, Section VI.B
-    while (np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass) > 0):
-        disk_bh_initial_masses[disk_bh_initial_masses > nsc_bh_imf_max_mass] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass))
+    if nsc_imf_bh_method == "default":
+        disk_bh_initial_masses = (rng.pareto(nsc_bh_imf_powerlaw_index, size=disk_bh_num) + 1) * nsc_bh_imf_mode
+        # Masses greater than max mass should be redrawn from a Gaussian set to recreate the mass pile up
+        # mean is set to mass_pile_up (default is 35Msun) and sigma is 2.3, following LVK rates and populations
+        # paper: 2023PhRvX..13a1048A, Section VI.B
+        while (np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass) > 0):
+            disk_bh_initial_masses[disk_bh_initial_masses > nsc_bh_imf_max_mass] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass))
+    elif nsc_imf_bh_method == "gaussian":
+        # In this case, I'm going to interpret the mode as the sigma,
+        # The pileup as mu, and I'm going to ignore everything else.
+        disk_bh_initial_masses = rng.normal(loc=mass_pile_up, scale=nsc_bh_imf_mode, size=disk_bh_num)
+    elif nsc_imf_bh_method in ["uniform","linear"]:
+        # Here, we're going from mode to max
+        disk_bh_initial_masses = rng.uniform(low=nsc_bh_imf_mode,high=nsc_bh_imf_max_mass, size=disk_bh_num)
+    elif nsc_imf_bh_method == "power":
+        uniform_samples = rng.uniform(size=disk_bh_num)
+        disk_bh_initial_masses = ( \
+            (nsc_bh_imf_max_mass - nsc_bh_imf_mode) * \
+            uniform_samples**(1/(1+nsc_bh_imf_powerlaw_index)) \
+            ) + nsc_bh_imf_mode
+    else:
+        # Try to see if it's a file
+        try:
+            from os.path import isfile
+        except:
+            raise NotImplementedError("Using a sample-based IMF is not currently supported without os.path")
+        # Check if it's a file
+        if isfile(nsc_imf_bh_method):
+            # Load samples
+            nsc_imf_bh_sample_data = np.loadtxt(nsc_imf_bh_method)
+            nsc_imf_bh_sample_data_mass = nsc_imf_bh_sample_data[:,0]
+            nsc_imf_bh_sample_data_weights = nsc_imf_bh_sample_data[:,1]
+            # Adjust weights
+            # TODO figure out why there are other calls to pareto elsewhere in the code
+            #nsc_imf_bh_sample_data_weights *= nsc_imf_bh_sample_data_mass**nsc_bh_imf_powerlaw_index
+            nsc_imf_bh_sample_data_weights *= nsc_imf_bh_sample_data_mass**(0.5)
+            nsc_imf_bh_sample_data_weights = nsc_imf_bh_sample_data_weights / np.sum(nsc_imf_bh_sample_data_weights)
+            # Draw the samples
+            disk_bh_initial_masses = rng.choice(
+                nsc_imf_bh_sample_data_mass,
+                p=nsc_imf_bh_sample_data_weights,
+                size=disk_bh_num,
+            )
+        else:
+            raise RuntimeError(f"Unknown BH IMF method: {nsc_imf_bh_method}")
+    #print(nsc_imf_bh_method, nsc_bh_imf_powerlaw_index)
+    #print(np.percentile(disk_bh_initial_masses, [0,10,50,75,90,100]))
+    #raise Exception
     return disk_bh_initial_masses
 
 

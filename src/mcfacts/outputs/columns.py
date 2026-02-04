@@ -24,6 +24,10 @@ emri_cols = [
 bh_surviving_cols = [
     "galaxy", "orb_a", "mass", "spin", "spin_angle", "gen", "id_num"
 ]
+bh_cols = [
+    "galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "spin",
+    "spin_angle", "orb_inc", "orb_ang_mom", "gen", "id_num"
+    ]
 population_cols = [
     "galaxy", "bin_orb_a", "mass_final", "chi_eff", "spin_final",
     "spin_angle_final", "mass_1", "mass_2", "spin_1", "spin_2",
@@ -38,16 +42,23 @@ stars_cols = [
     "galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "log_radius", 
     "gen", "id_num", "log_teff", "log_luminosity", "star_X", "star_Y", "star_Z",
 ]
-stars_explode_cols = [
+
+stars_immortal_cols = [
+    "galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "log_radius", 
+    "gen", "id_num", "log_teff", "log_luminosity", "star_X", "star_Y", "star_Z",
+    "mass_initial", "orb_a_initial"
+]
+
+stars_disrupted_cols = [
     "galaxy", "time_sn", "orb_a_star", "mass_star", "orb_ecc_star",
     "star_log_radius", "gen_star", "id_num_star", "orb_inc_star",
     "orb_a_bh", "mass_bh", "orb_ecc_bh", "gen_bh", "id_num_bh", "orb_inc_bh",
 ]
 tde_cols = [
-    "galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "log_radius", "gen", 
-    "id_num", "log_teff", "log_luminosity", "star_X", "star_Y", "star_Z",
+    "galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "log_radius",
+    "gen", "id_num", "log_teff", "log_luminosity", "star_X", "star_Y", "star_Z",
 ]
-stars_merge_cols = [
+stars_merged_cols = [
     "galaxy", "time_merged","orb_a_final", "mass_final", "orb_ecc", 
     "log_radius_final", "gen_final", "id_num", "mass_1", "mass_2",
     "gen_1", "gen_2"

@@ -73,7 +73,7 @@ def change_bin_spin_magnitudes(bin_spin_1, bin_spin_2, bin_flag_merging, disk_bh
         User chosen input set by input file
     disk_bh_torque_condition : float
         Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
+        alignment with the AGN disk. We don't know for sure but (Bogdanovic et al. 2007) says
         between 0.01=1% and 0.1=10% is what is required
         User chosen input set by input file
     timestep_duration_yr : float
@@ -136,7 +136,7 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
         User chosen input set by input file
     disk_bh_torque_condition : float
         Fraction of initial mass required to be accreted before BH spin is torqued fully into
-        alignment with the AGN disk. We don't know for sure but Bogdanovic et al. says
+        alignment with the AGN disk. We don't know for sure but (Bogdanovic et al. 2007) says
         between 0.01=1% and 0.1=10% is what is required
         User chosen input set by input file
     timestep_duration_yr : float
@@ -147,6 +147,7 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
     blackholes_binary : AGNBinaryBlackHole
         Binary black holes with updated spin angles after subtracting angle at prescribed rate for one timestep
     """
+    
     disk_bh_eddington_ratio_normalized = disk_bh_eddington_ratio/1.0  # does nothing?
     timestep_duration_yr_normalized = timestep_duration_yr/1.e4  # yrs to yr/10k?
     disk_bh_torque_condition_normalized = disk_bh_torque_condition/0.1  # what does this do?
@@ -171,6 +172,9 @@ def change_bin_spin_angles(bin_spin_angle_1, bin_spin_angle_2, binary_flag_mergi
 
     bin_spin_angle_1[idx_non_mergers] = spin_angle_1_after
     bin_spin_angle_2[idx_non_mergers] = spin_angle_2_after
+    
+    bin_spin_angle_1[bin_spin_angle_1 < spin_minimum_resolution] = 0.0
+    bin_spin_angle_2[bin_spin_angle_2 < spin_minimum_resolution] = 0.0
 
     return (bin_spin_angle_1, bin_spin_angle_2)
 
@@ -327,7 +331,7 @@ def bin_contact_check(bin_mass_1, bin_mass_2, bin_sep, bin_flag_merging, smbh_ma
     # We assume bh are not spinning when in contact. TODO: Consider spin in future.
     contact_condition = (point_masses.r_schwarzschild_of_m(bin_mass_1) +
                          point_masses.r_schwarzschild_of_m(bin_mass_2))
-    contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition)
+    contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition).value
     mask_condition = (bin_sep <= contact_condition)
 
     # If binary separation <= contact condition, set binary separation to contact condition
@@ -374,7 +378,7 @@ def bin_reality_check(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc,
 
 
 def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging, bin_time_merged, smbh_mass, timestep_duration_yr,
-                        time_gw_normalization, time_passed):
+                        time_gw_normalization, time_passed, r_g_in_meters):
     """Harden black hole binaries using Baruteau+11 prescription
 
     Use Baruteau+11 prescription to harden a pre-existing binary.
@@ -441,7 +445,7 @@ def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_me
     time_to_merger_gw = (point_masses.time_of_orbital_shrinkage(
         bin_mass_1[idx_non_mergers] * u.Msun,
         bin_mass_2[idx_non_mergers] * u.Msun,
-        point_masses.si_from_r_g(smbh_mass, bin_sep_nomerge),
+        point_masses.si_from_r_g(smbh_mass, bin_sep_nomerge, r_g_defined=r_g_in_meters),
         sep_final=sep_crit
     ) * ecc_factor).value
 
