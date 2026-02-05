@@ -3,22 +3,18 @@ import argparse
 from mcfacts import fiducial_plots, simulation
 from mcfacts.inputs.settings_manager import SettingsManager
 
-
-def main():
-    # Create instance of argument parser
-    parser = argparse.ArgumentParser()
-
+def seed_settings_args(sub_parser: argparse.ArgumentParser):
     # Create a default instance of SettingsManager to get the default location of the settings file
     inital_settings = SettingsManager()
 
     # Create a specific flag for passing in a baked settings or ini file
-    parser.add_argument("-s", "--settings", "--fname-ini",
+    sub_parser.add_argument("-s", "--settings", "--fname-ini",
                         dest="settings_file",
                         help="Filename of settings file",
                         default=inital_settings.settings_file, type=str)
 
-    # Using the supplied file, intanciate and populate a new SettingsManager
-    inital_parse, _ = parser.parse_known_args(["-s", inital_settings.settings_file])
+    # Using the supplied file, instantiate and populate a new SettingsManager
+    inital_parse, _ = sub_parser.parse_known_args(["-s", inital_settings.settings_file])
     settings_file = inital_parse.settings_file
 
     # TODO: handle settings file loading.
@@ -38,7 +34,7 @@ def main():
 
         options = []
 
-        for action in parser._actions:
+        for action in sub_parser._actions:
             option_strings = action.option_strings
 
             for option in option_strings:
@@ -47,20 +43,41 @@ def main():
         alias = f"-{str(key)[0]}"
 
         if alias in options:
-            parser.add_argument(f"--{key}",
+            sub_parser.add_argument(f"--{key}",
                                 default=value, type=type(value), metavar=key)
         else:
-            parser.add_argument(alias, f"--{key}",
+            sub_parser.add_argument(alias, f"--{key}",
                                 default=value, type=type(value), metavar=key)
 
+def main():
+    # Create instance of argument parser
+    parser = argparse.ArgumentParser()
+
+    sub_parsers = parser.add_subparsers(dest='subcommand')
+
+    run_parser = sub_parsers.add_parser('run')
+    seed_settings_args(run_parser)
+
+    plot_parser = sub_parsers.add_parser('plot')
+    seed_settings_args(plot_parser)
+
     inputs = parser.parse_args()
+
+    if inputs.subcommand is None:
+        parser.print_help()
+        return
 
     # With the parsed arguments, create a final settings manager including the file defaults and any CLI overrides.
     settings = SettingsManager(vars(inputs))
 
-    simulation.main(settings)
+    if inputs.subcommand == "run":
 
-    fiducial_plots.main(settings)
+        simulation.main(settings)
+        return
+
+    if inputs.subcommand == "plot":
+        fiducial_plots.main(settings)
+        return
 
 
 if __name__ == "__main__":
