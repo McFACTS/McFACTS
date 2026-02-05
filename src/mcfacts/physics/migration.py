@@ -127,7 +127,6 @@ def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_su
 
     return normalized_torque
 
-
 def torque_mig_timescale_optimized(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque, r_g_in_meters):
     """Calculates the migration timescale using an input migration torque
     t_mig = a/-(dot(a)) where dot(a)=-2aGamma_tot/L so
@@ -153,26 +152,16 @@ def torque_mig_timescale_optimized(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_
         Migration torque array. E.g. calculated from torque_paardekooper (units = Nm=J)
     r_g_in_meters: float
         Gravitational radius of the SMBH in meters
-
-
     """
-    # Migration only occurs for sufficiently damped orbital ecc. If orb_ecc <= ecc_crit, then migrate.
-    # Otherwise no change in semi-major axis (orb_a).
-    # Get indices of objects with orb_ecc <= ecc_crit so we can only update orb_a for those.
-    migration_indices = np.asarray(orbs_ecc <= orb_ecc_crit).nonzero()[0]
-
-    # If nothing will migrate then end the function
-    if migration_indices.shape == (0,):
-        return np.array([])
-
-    smbh_mass_si = smbh_mass * u.Msun
-    # If things will migrate then copy over the orb_a of objects that will migrate
-    new_orbs_a = orbs_a[migration_indices].copy()
-
-    orb_a_si = si_from_r_g(smbh_mass, new_orbs_a, r_g_defined=r_g_in_meters).to("m")
-    migration_torque_si = migration_torque * u.newton * u.meter
-
-    return torque_mig_timescale_helper(smbh_mass_si.value, orb_a_si, masses, orbs_ecc, orb_ecc_crit, migration_torque_si)
+    return torque_mig_timescale_helper(
+        smbh_mass,
+        orbs_a,
+        masses,
+        orbs_ecc,
+        orb_ecc_crit,
+        migration_torque,
+        r_g_in_meters.value,
+    )
 
 
 def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque, r_g_in_meters):
