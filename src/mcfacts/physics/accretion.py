@@ -7,6 +7,7 @@ import astropy.constants as const
 import astropy.units as u
 from mcfacts.physics.point_masses import si_from_r_g
 from mcfacts.mcfacts_random_state import rng
+from mcfast import star_wind_mass_loss_helper, accrete_star_mass_helper
 
 
 def star_wind_mass_loss(disk_star_pro_masses,
@@ -71,6 +72,51 @@ def star_wind_mass_loss(disk_star_pro_masses,
 
     return (star_new_masses, mass_lost.sum())
 
+
+def star_wind_mass_loss_optimized(disk_star_pro_masses,
+                        disk_star_pro_log_radius,
+                        disk_star_pro_log_lum,
+                        disk_star_pro_orbs_a,
+                        disk_opacity_func,
+                        timestep_duration_yr):
+    """Removes mass according to the Cantiello+ 2021 prescription
+
+    Takes initial star masses at the start of the timestep and removes mass according
+    to Eqn. 16 in Cantiello+ 2021
+
+    Parameters
+    ----------
+    disk_star_pro_masses : numpy.ndarray
+        Initial masses [M_sun] of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_log_radius : numpy.ndarray
+        Radius (log R/R_sun) of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_log_lum : numpy.ndarray
+        Luminosity (log L/L_sun) of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_star_pro_orbs_a : numpy.narray
+        Semi-major axes [R_{g,SMBH}] of stars in prograde orbits around the SMBH with :obj:`float` type.
+    disk_opacity_func : function
+        Disk opacity function
+    timestep_duration_yr : float
+        Length of timestep [yr]
+
+    Returns
+    -------
+    star_new_masses : numpy.ndarray
+        New masses [M_sun] after removing mass for one timestep at specified mass loss rate with :obj:`float` type.
+    """
+
+    # Get opacity for orb_a values and add SI units
+    disk_opacity = disk_opacity_func(disk_star_pro_orbs_a) # * (u.meter ** 2) / u.kg
+
+    (star_new_masses, mass_lost) = star_wind_mass_loss_helper(
+        disk_star_pro_masses,
+        disk_star_pro_log_radius,
+        disk_star_pro_log_lum,
+        disk_opacity,
+        timestep_duration_yr
+    )
+
+    return (star_new_masses, mass_lost)
 
 def accrete_star_mass(disk_star_pro_masses,
                       disk_star_pro_orbs_a,
@@ -150,6 +196,69 @@ def accrete_star_mass(disk_star_pro_masses,
         "disk_star_pro_new_masses has values <= 0"
 
     return disk_star_pro_new_masses, mass_gained.sum(), immortal_mass_lost.sum()
+
+
+def accrete_star_mass_optimized(disk_star_pro_masses,
+                      disk_star_pro_orbs_a,
+                      disk_star_luminosity_factor,
+                      disk_star_initial_mass_cutoff,
+                      smbh_mass,
+                      disk_sound_speed,
+                      disk_density,
+                      timestep_duration_yr,
+                      r_g_in_meters):
+    """Adds mass according to Fabj+2024 accretion rate
+
+    Takes initial star masses at start of timestep and adds mass according to Fabj+2024.
+
+    Parameters
+    ----------
+    disk_star_pro_masses : numpy.ndarray
+        Initial masses [M_sun] of stars in prograde orbits around SMBH with :obj:`float` type.
+    disk_star_eddington_ratio : float
+        Accretion rate of fully embedded stars [Eddington accretion rate].
+        1.0=embedded star accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+        User chosen input set by input file
+    mdisk_star_eddington_mass_growth_rate : float
+        Fractional rate of mass growth AT Eddington accretion rate per year (fixed at 2.3e-8 in mcfacts_sim) [yr^{-1}]
+    timestep_duration_yr : float
+        Length of timestep [yr]
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
+
+    Returns
+    -------
+    disk_star_pro_new_masses : numpy.ndarray
+        Masses [M_sun] of stars after accreting at prescribed rate for one timestep [M_sun] with :obj:`float` type
+
+    Notes
+    -----
+    Calculate Bondi radius: R_B = (2 G M_*)/(c_s **2) and Hill radius: R_Hill \\approx a(1-e)(M_*/(3(M_* + M_SMBH)))^(1/3).
+    Accretion rate is Mdot = (pi/f) * rho * c_s * min[R_B, R_Hill]**2
+    with f ~ 4 as luminosity dependent factor that accounts for the decrease of the accretion rate onto the star as it
+    approaches the Eddington luminosity (see Cantiello+2021), rho as the disk density, and c_s as the sound speed.
+    """
+
+    # Put things in SI units
+    disk_sound_speed_si = disk_sound_speed(disk_star_pro_orbs_a) #* u.meter/u.second
+    disk_density_si = disk_density(disk_star_pro_orbs_a) #* (u.kg / (u.m ** 3))
+
+    (disk_star_pro_new_masses, mass_gained, immortal_mass_lost) = accrete_star_mass_helper(
+        disk_star_pro_masses,
+        disk_star_pro_orbs_a,
+        disk_star_luminosity_factor,
+        disk_star_initial_mass_cutoff,
+        smbh_mass,
+        disk_sound_speed_si,
+        disk_density_si,
+        timestep_duration_yr,
+    )
+
+    assert np.all(disk_star_pro_new_masses > 0), \
+        "disk_star_pro_new_masses has values <= 0"
+
+    return disk_star_pro_new_masses, mass_gained, immortal_mass_lost
 
 
 def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddington_mass_growth_rate, timestep_duration_yr):
