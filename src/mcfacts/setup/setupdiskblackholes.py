@@ -2,7 +2,7 @@
 
 import numpy as np
 from mcfacts.mcfacts_random_state import rng
-from mcfast import dual_powerlaw, dual_powerlaw_with_grid, generate_r
+from mcfast import generate_r
 
 def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb):
     """Generates initial single BH orbital semi-major axes :math:`r_{g,SMBH}'
@@ -31,7 +31,7 @@ def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_
                                        )
     return bh_initial_locations
 
-def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,
+def setup_disk_blackholes_location_NSC_powerlaw_optimized(disk_bh_num,
                                   disk_radius_outer,
                                   disk_inner_stable_circ_orb,
                                   smbh_mass,
@@ -101,7 +101,7 @@ def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,
 
     return bh_initial_locations
 
-def setup_disk_blackholes_location_NSC_powerlaw_old(disk_bh_num,
+def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,
                                   disk_radius_outer,
                                   disk_inner_stable_circ_orb,
                                   smbh_mass,
@@ -192,11 +192,6 @@ def setup_disk_blackholes_location_NSC_powerlaw_old(disk_bh_num,
 
     # Create the probability distribution: p(r) = f(r) / sum(f(r))
     r_pdf = y / y_sum
-
-    # r_new, r_pdf_new = generate_r(disk_inner_stable_circ_orb, disk_radius_outer, 1000000, nsc_radius_crit_rg, nsc_density_index_inner, nsc_density_index_outer, volume_scaling)
-    #
-    # assert(np.allclose(r, r_new))
-    # assert(np.allclose(r_pdf, r_pdf_new))
 
     # Ensure the total probabiliy is 1.0 accounting for deviations at machine precision
     if not np.isclose(r_pdf.sum(), 1.0):
