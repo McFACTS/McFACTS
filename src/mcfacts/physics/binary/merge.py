@@ -456,7 +456,7 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
 
     return (merged_ecc)
 
-def merged_orb_ecc_opt(bin_orbs_a, v_kicks, smbh_mass):
+def merged_orb_ecc_optimized(bin_orbs_a, v_kicks, smbh_mass):
     """Calculates orbital eccentricity of a merged binary.
 
     Parameters
@@ -473,13 +473,7 @@ def merged_orb_ecc_opt(bin_orbs_a, v_kicks, smbh_mass):
     merged_ecc : numpy.ndarray
         Orbital eccentricity of merged binary with :obj:`float` type
     """
-    smbh_mass_units = smbh_mass * u.solMass
-    merged_ecc = merged_orb_ecc_helper(bin_orbs_a, v_kicks, smbh_mass_units.value)
-    # orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
-
-    # v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
-
-    # merged_ecc = v_kicks/v_kep
+    merged_ecc = merged_orb_ecc_helper(bin_orbs_a, v_kicks, smbh_mass)
 
     return (merged_ecc)
 
@@ -889,15 +883,13 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         disk_sound_speed)
     # assert(np.allclose(bh_lum_jet, bh_lum_jet_opt))
     # ====== Varun here is the function you're changing for the components. Replace the bh_v_kick --> bh_kick_comp_merged ======
-    bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
-                                             np.full(bh_binary_id_num_merger.size, bh_v_kick),
-                                             smbh_mass)
-    # bh_orb_ecc_merged_opt = merged_orb_ecc_opt(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
+    # bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
     #                                          np.full(bh_binary_id_num_merger.size, bh_v_kick),
     #                                          smbh_mass)
-    #
-    # print(bh_orb_ecc_merged[0:10])
-    # print(bh_orb_ecc_merged_opt[0:10])
+    bh_orb_ecc_merged = merged_orb_ecc_optimized(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
+                                             np.full(bh_binary_id_num_merger.size, bh_v_kick),
+                                             smbh_mass)
+
     # assert(np.allclose(bh_orb_ecc_merged, bh_orb_ecc_merged_opt))
 
     # Append new merged BH to arrays of single BH locations, masses, spins, spin angles & gens
