@@ -186,6 +186,53 @@ def setup_disk_blackholes_masses(disk_bh_num, nsc_bh_imf_mode, nsc_bh_imf_max_ma
     #    disk_bh_initial_masses[disk_bh_initial_masses < 32.0] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses <32.0))
     return disk_bh_initial_masses
 
+def capture_blackhole_masses(bh_num, disk_radius_capture_outer, sample_bh):
+    """Selects BH masses from a survivors file from a past episode of AGN activity
+
+    Parameters
+    ----------
+        bh_num : int
+            Integer number of BH captured on a modulo timestep 
+            (e.g. time_passed/capture_time = 0.5Myr/0.1Myr so 5 captures total, but 1 per modulo timestep )
+        disk_radius_capture_outer: float
+            disk radius within which nuclear cluster BH are captured (Secunda+22 assume <2000r_g from Fabj+20)
+        sample_bh: array
+            Array of BH that survived a prior episode of AGN activity & from which we will sample BH
+            sample_bh[:,1] = radii (in r_g)
+            sample_bh[:,2] = mass (in M_sun)
+            sample_bh[:,3] = spin (unitless, [-0.998,0.998])
+            sample_bh[:,4] = spin angle (rad)
+            sample_bh[:,5] = gen
+            sample_bh[:,6] = orb_ecc
+            sample_bh[:.7] = orb_ang_mom
+            sample_bh[:,8] = orb_inc
+        capture_index: int
+            Integer number of BH captured in total
+             
+    Returns
+    -------
+        captured_bh_mass: numpy.ndarray
+        BH mass with :obj: `float` type
+    """
+    
+    number_of_sample_bh = len(sample_bh[:,1])
+    indices_inner_disk_population = np.where(sample_bh[:,1]<disk_radius_capture_outer)[0]
+    #print("len(<2000r_g)",len(indices_inner_disk_population))
+    #print("indices",indices_inner_disk_population)
+    #print("radii_inner_disk",sample_bh[indices_inner_disk_population,1])
+    #num_captures = np.array(time_final/opts.capture_time_yr).astype(int)
+    #print("nc",np.round(num_captures))
+        #indices_of_captures = rng.randint(low =0, high= num_inner_disk, size = 5)
+    indices_of_captures = np.random.choice(indices_inner_disk_population,bh_num)
+    #print("indices_of_captures",indices_of_captures)
+    captures = sample_bh[indices_of_captures,:]
+    #print("captures",captures)
+    #capture_index = capture_index + bh_num
+    captured_bh_mass = captures[:,2]
+    captured_bh_orb_a = captures[:,1]
+    captured_bh_spin = captures[:,3]
+    captured_bh_spin_angle = captures[:,4]
+    return captured_bh_mass,captured_bh_orb_a,captured_bh_spin,captured_bh_spin_angle
 
 def setup_disk_blackholes_spins(disk_bh_num, nsc_bh_spin_dist_mu, nsc_bh_spin_dist_sigma):
     """Generates disk BH initial spins [unitless]

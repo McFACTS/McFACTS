@@ -248,7 +248,7 @@ class AGNObject(object):
 
         if (obj_num == 0):
             obj_num = new_mass.shape[0]
-
+            #obj_num = new_mass.size    
         assert new_mass.shape == (obj_num,), "obj_num must match the number of objects"
 
         self.mass = np.concatenate([self.mass, new_mass])
@@ -818,9 +818,15 @@ class AGNBlackHole(AGNObject):
         """
 
         if (bh_num == 0):
+            #print("bh_num",bh_num)
+            #print("new mass",new_mass)
+            #print("new_mass.size",new_mass.size)
+            #print("new_mass.shape[0]",new_mass.shape[0])
             bh_num = new_mass.shape[0]
-
+            #bh_num = new_mass.size
+            #print("bh_num",bh_num)
         assert new_mass.shape == (bh_num,),"bh_num must match the number of objects"
+        #assert new_mass.size == (bh_num,),"bh_num must match the number of objects"
 
         if new_gw_freq is empty_arr:
             self.gw_freq = np.concatenate([self.gw_freq, np.full(bh_num, -1.5)])
