@@ -34,7 +34,8 @@ authors = [
     {name = "Richard O'Shaughnessy"},
     {name = "Jake Postiglione"},
     {name = "Kaila Nathaniel"},
-    {name = "Shawn Ray"}
+    {name = "Shawn Ray"},
+    {name = "Emily McPike"}
 ]
 
 # In the future, the people actively developing / maintaining the project may be different!
@@ -46,7 +47,8 @@ maintainers = [
     {name = "Richard O'Shaughnessy"},
     {name = "Jake Postiglione"},
     {name = "Kaila Nathaniel"},
-    {name = "Shawn Ray"}
+    {name = "Shawn Ray"},
+    {name = "Emily McPike"}
 ]
 
 classifiers = [
@@ -59,15 +61,18 @@ classifiers = [
 "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
-requires-python = ">= 3.10"
+requires-python = ">= 3.10, < 3.14"
 
 dependencies = [
-    "numpy>=1.23.1,<2.0.0",
+    "numpy>=2.0,<2.4.0",
     "matplotlib>=3.5.2",
     "scipy>=1.11.2",
     "astropy",
     "pandas",
     "pagn",
+    "joblib>=1.4.2",
+    "scikit_learn>=1.5.2",
+    "mcfast==0.1.4",
 ]
 
 #TODO: Add description and other dynamically defined variables created in setup.py

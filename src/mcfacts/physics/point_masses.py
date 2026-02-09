@@ -56,8 +56,8 @@ def time_of_orbital_shrinkage(mass_1, mass_2, sep_initial, sep_final):
     # Assign units
     time_of_shrinkage = time_of_shrinkage * u.s
 
-    assert np.all(time_of_shrinkage > 0), \
-        "time_of_shrinkage contains values <= 0"
+    assert np.all(time_of_shrinkage >= 0), \
+        "time_of_shrinkage contains values < 0"
 
     return time_of_shrinkage
 
@@ -151,7 +151,7 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
     return sep_initial * u.m
 
 
-def si_from_r_g(smbh_mass, distance_rg):
+def si_from_r_g(smbh_mass, distance_rg, r_g_defined=None):
     """Calculate the SI distance from r_g
 
     Parameters
@@ -166,18 +166,29 @@ def si_from_r_g(smbh_mass, distance_rg):
     distance : numpy.ndarray
         Distance in SI with :obj:`astropy.units.quantity.Quantity` type
     """
-    # Calculate c and G in SI
-    c = const.c.to('m/s')
-    G = const.G.to('m^3/(kg s^2)')
-    # Assign units to smbh mass
-    if hasattr(smbh_mass, 'unit'):
-        smbh_mass = smbh_mass.to('solMass')
+
+    # if r_g_defined is not None, we just calculate the 
+    # distance from the provided value
+
+    if r_g_defined is not None:
+        r_g = r_g_defined
     else:
-        smbh_mass = smbh_mass * u.solMass
-    # convert smbh mass to kg
-    smbh_mass = smbh_mass.to('kg')
-    # Calculate r_g in SI
-    r_g = G*smbh_mass/(c ** 2)
+        # Calculate c and G in SI
+        c = const.c.to('m/s')
+        G = const.G.to('m^3/(kg s^2)')
+
+        # Assign units to smbh mass
+        if hasattr(smbh_mass, 'unit'):
+            smbh_mass = smbh_mass.to('solMass')
+        else:
+            smbh_mass = smbh_mass * u.solMass
+
+        # convert smbh mass to kg
+        smbh_mass = smbh_mass.to('kg')
+
+        # Calculate r_g in SI
+        r_g = G*smbh_mass/(c ** 2)
+
     # Calculate distance
     distance = (distance_rg * r_g).to("meter")
 
