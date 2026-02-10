@@ -7,7 +7,7 @@ import numpy as np
 from numpy.random import Generator
 from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
-import mcfacts.utilities.unit_conversion
+from mcfacts.utilities.unit_conversion import si_from_r_g
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
@@ -315,8 +315,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     # assert(np.allclose(tau_e_ref, tau_e_ref_orig))
     # assert(np.allclose(tau_a_ref, tau_a_ref_orig))
 
-    # tau_inc_ref_orig = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0,
-                                       disk_surf_density_func, r_g_in_meters)
+    # tau_inc_ref_orig = tau_inc_dyn(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0,  disk_surf_density_func, r_g_in_meters)
     tau_inc_ref = tau_inc_dyn_optimized(smbh_mass_0, semi_maj_0, orbiter_mass_0, periapse, ecc_0, inc_0, disk_surf_density_func, r_g_in_meters)
     # assert(np.allclose(tau_inc_ref, tau_inc_ref_orig))
 
