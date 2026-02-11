@@ -82,14 +82,20 @@ class Galaxy:
         sys.setrecursionlimit(10000)
 
     def save_state(self, timestep: int = None) -> None:
-        save_folder = os.path.join(self.runs_folder, f"galaxy_{self.galaxy_id}")
-        file_name = f"galaxy_state_{len(self.timeline_history)}"
+        galaxy_id_str = f"gal{self.galaxy_id.zfill(2)}"
+        state_str = f"s{str(len(self.timeline_history)).zfill(2)}"
+
+        save_folder = os.path.join(self.runs_folder, galaxy_id_str)
+        file_name = f"{galaxy_id_str}_{state_str}"
 
         if timestep is not None:
-            history = len(self.timeline_history)
+            timestep_str = f"t{str(timestep).zfill(2)}"
 
-            save_folder = os.path.join(save_folder, f"galaxy_state_{history - 1}_to_{history}")
-            file_name = f"galaxy_state_{history - 1}_to_{history}_T{timestep}"
+            previous_state_str = f"s{str(len(self.timeline_history) - 1).zfill(2)}"
+            current_state_str = f"s{str(len(self.timeline_history)).zfill(2)}"
+
+            save_folder = os.path.join(save_folder, f"{galaxy_id_str}_{previous_state_str}_to_{current_state_str}")
+            file_name = f"{galaxy_id_str}_{previous_state_str}_to_{current_state_str}_{timestep_str}"
 
         self.log(f"Saving state of galaxy to {save_folder} as {file_name}")
 
