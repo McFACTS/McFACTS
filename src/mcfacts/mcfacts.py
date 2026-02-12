@@ -1,4 +1,5 @@
 import argparse
+import cProfile
 
 from mcfacts import fiducial_plots, simulation
 from mcfacts.inputs.settings_manager import SettingsManager
@@ -12,6 +13,9 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
                         dest="settings_file",
                         help="Filename of settings file",
                         default=inital_settings.settings_file, type=str)
+
+    sub_parser.add_argument("--profile", dest="enable_profiling", action="store_true")
+    sub_parser.add_argument("--profile-out", dest="profiling_file", default="mcfacts.prof", type=str)
 
     # Using the supplied file, instantiate and populate a new SettingsManager
     inital_parse, _ = sub_parser.parse_known_args(["-s", inital_settings.settings_file])
@@ -71,8 +75,10 @@ def main():
     settings = SettingsManager(vars(inputs))
 
     if inputs.subcommand == "run":
-
-        simulation.main(settings)
+        if inputs.enable_profiling:
+            cProfile.runctx('simulation.main(settings)', globals(), locals(), filename=inputs.profiling_file)
+        else:
+            simulation.main(settings)
         return
 
     if inputs.subcommand == "plot":
