@@ -5,6 +5,8 @@ dynamical mechanism. Of varying fidelity to reality. Also contains
 GW orbital evolution for BH in the inner disk, which should probably
 move elsewhere.
 """
+import uuid
+
 import astropy.constants as const
 import astropy.units as u
 import numpy as np
@@ -14,7 +16,7 @@ from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.modules import stellar_interpolation, accretion
-from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNStarArray
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNStarArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, checks
 from mcfacts.utilities.random_state import uuid_provider
@@ -3296,6 +3298,23 @@ def bin_spheroid_encounter(
     return (bin_sep_all, bin_ecc_all, bin_orb_ecc_all, bin_orb_inc_all)
 
 
+def ionized_orb_ecc(num_bh, orb_ecc_max, random: Generator):
+    """Calculate new eccentricity for each component of an ionized binary.
+
+    Parameters
+    ----------
+    num_bh : int
+        Number of BHs (num of ionized binaries * 2)
+    orb_ecc_max : float
+        Maximum allowed orb_ecc
+    random : Generator
+        Generator used to generate random numbers
+    """
+    orb_eccs = random.uniform(low=0.0, high=orb_ecc_max, size=num_bh)
+
+    return (orb_eccs)
+
+
 def bin_ionization_check(bin_mass_1, bin_mass_2, bin_orb_a, bin_sep, bin_id_num, smbh_mass):
     """Tests whether binary has been ionized beyond some limit
 
@@ -3344,7 +3363,7 @@ def bin_ionization_check(bin_mass_1, bin_mass_2, bin_orb_a, bin_sep, bin_id_num,
 
     bh_id_nums = bin_id_num[np.where(bin_sep > (frac_rhill*hill_sphere))[0]]
 
-    return (bh_id_nums)
+    return bh_id_nums
 
 
 class SingleBlackHoleDynamics(TimelineActor):
@@ -3564,6 +3583,68 @@ class SingleBlackHoleStarDynamics(TimelineActor):
         # endregion
 
 
+class BinaryBlackHoleIonization(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Binary Black Hole Ionization" if name is None else name, settings)
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator) -> None:
+
+        sm = self.settings
+
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
+
+        # region Parameter Based Binary Ionization
+        # Check and see if any binaries are ionized.
+        ids_ionized = bin_ionization_check(blackholes_binary.mass, blackholes_binary.mass_2,
+                                                                    blackholes_binary.bin_orb_a,
+                                                                    blackholes_binary.bin_sep, blackholes_binary.id_num,
+                                                                    sm.smbh_mass)
+
+        if ids_ionized.size > 0:
+            # Append 2 new BH to arrays of single BH locations, masses, spins, spin angles & gens
+            # For now add 2 new orb ecc term of 0.01. inclination is 0.0 as well. TO DO: calculate v_kick and resulting perturbation to orb ecc.
+
+            print(ids_ionized)
+
+            ionized_binaries = blackholes_binary.copy()
+            ionized_binaries.keep_only(ids_ionized)
+
+            new_length = len(ionized_binaries) * 2
+
+            new_orb_ecc = ionized_orb_ecc(new_length, sm.disk_bh_orb_ecc_max_init, random_generator)
+
+            new_id_nums = np.array([uuid_provider(random_generator) for _ in range(new_length)], dtype=uuid.UUID)
+
+            new_prograde = AGNBlackHoleArray(
+                unique_id=new_id_nums,
+                progenitor_unique_id=np.concatenate([ionized_binaries.unique_id, ionized_binaries.unique_id]),
+                mass=np.concatenate([ionized_binaries.mass, ionized_binaries.mass_2]),
+                orb_a=np.concatenate([ionized_binaries.bin_orb_a, ionized_binaries.bin_orb_a + ionized_binaries.bin_sep]),
+                spin=np.concatenate([ionized_binaries.spin, ionized_binaries.spin_2]),
+                spin_angle=np.concatenate([ionized_binaries.spin_angle, ionized_binaries.spin_angle_2]),
+                orb_inc=np.concatenate([ionized_binaries.orb_inc, ionized_binaries.orb_inc]),
+                orb_ang_mom=np.concatenate([ionized_binaries.orb_ang_mom, ionized_binaries.orb_ang_mom]),
+                orb_arg_periapse=np.concatenate([ionized_binaries.orb_arg_periapse, ionized_binaries.orb_arg_periapse]),
+                orb_ecc=new_orb_ecc,
+                migration_velocity=np.zeros(new_length, dtype=np.float64),
+                gen=np.concatenate([ionized_binaries.gen, ionized_binaries.gen_2]),
+            )
+
+            blackholes_pro.add_objects(new_prograde)
+            blackholes_binary.remove_all(ids_ionized)
+        # endregion
+
+        pass
+
+
 class BinaryBlackHoleDynamics(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
         super().__init__("Binary Black Hole Dynamics" if name is None else name, settings)
@@ -3581,7 +3662,7 @@ class BinaryBlackHoleDynamics(TimelineActor):
             return
 
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
-        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBlackHoleArray)
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
 
         non_merge_mask = blackholes_binary.flag_merging >= 0
 
@@ -3687,3 +3768,5 @@ class BinaryBlackHoleDynamics(TimelineActor):
         if self.reality_merge_checks:
             checks.binary_reality_check(sm, filing_cabinet, self.log)
             checks.flag_binary_mergers(sm, filing_cabinet)
+
+

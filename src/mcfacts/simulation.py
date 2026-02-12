@@ -8,7 +8,7 @@ from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHol
 from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
 from mcfacts.modules.disk_capture import EvolveRetrogradeBlackHoles, RecaptureBinaryBlackHoles, \
     CaptureNSCProgradeBlackHoles
-from mcfacts.modules.dynamics import SingleBlackHoleDynamics, BinaryBlackHoleDynamics
+from mcfacts.modules.dynamics import SingleBlackHoleDynamics, BinaryBlackHoleDynamics, BinaryBlackHoleIonization
 from mcfacts.modules.formation import BinaryBlackHoleFormation
 from mcfacts.modules.gas_hardening import BinaryBlackHoleGasHardening
 from mcfacts.modules.gw import BinaryBlackHoleEvolveGW, InnerBlackHoleDynamics
@@ -122,7 +122,8 @@ def main(settings: SettingsManager):
             BinaryBlackHoleRealityCheck(),
             BinaryBlackHoleEvolveGW(),
             ProcessBinaryBlackHoleMergers(),
-            BinaryBlackHoleFormation()
+            BinaryBlackHoleFormation(),
+            BinaryBlackHoleIonization()
         ])
 
         # EMRI Dynamics: Single BH (inner disk)
