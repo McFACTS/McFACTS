@@ -3601,7 +3601,6 @@ class BinaryBlackHoleIonization(TimelineActor):
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
         blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
 
-        # region Parameter Based Binary Ionization
         # Check and see if any binaries are ionized.
         ids_ionized = bin_ionization_check(blackholes_binary.mass, blackholes_binary.mass_2,
                                                                     blackholes_binary.bin_orb_a,
@@ -3638,9 +3637,6 @@ class BinaryBlackHoleIonization(TimelineActor):
 
             blackholes_pro.add_objects(new_prograde)
             blackholes_binary.remove_all(ids_ionized)
-        # endregion
-
-        pass
 
 
 class BinaryBlackHoleDynamics(TimelineActor):
