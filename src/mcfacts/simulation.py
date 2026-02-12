@@ -1,5 +1,3 @@
-import warnings
-import argparse
 import os
 import shutil
 
@@ -23,7 +21,6 @@ from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator
 from mcfacts.objects.snapshot import TxtSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
-from mcfacts import fiducial_plots
 
 def main(settings: SettingsManager):
     if settings.overwrite_files == False and os.path.isdir(settings.output_dir):
