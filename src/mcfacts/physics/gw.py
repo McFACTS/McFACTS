@@ -202,15 +202,6 @@ def evolve_gw(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_redshift):
         BBH with GW strain [unitless] and frequency [Hz] updated
     """
 
-    # char_strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
-    #                                     mass_2=bin_mass_2,
-    #                                     obj_sep=bin_sep,
-    #                                     timestep_duration_yr=-1,
-    #                                     old_gw_freq=-1,
-    #                                     smbh_mass=smbh_mass,
-    #                                     agn_redshift=agn_redshift,
-    #                                     flag_include_old_gw_freq=0)
-
     char_strain, nu_gw = gw_strain_freq_optimized(mass_1=bin_mass_1,
                                         mass_2=bin_mass_2,
                                         obj_sep=bin_sep,
@@ -219,9 +210,6 @@ def evolve_gw(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_redshift):
                                         smbh_mass=smbh_mass,
                                         agn_redshift=agn_redshift,
                                         flag_include_old_gw_freq=0)
-
-    # assert(np.allclose(char_strain, char_strain_opt))
-    # assert(np.allclose(nu_gw, nu_gw_opt))
 
     return (nu_gw, char_strain)
 
@@ -262,15 +250,6 @@ def bbh_gw_params(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_
     # while (num_tracked < len(old_bbh_freq)):
     #     old_bbh_freq = np.delete(old_bbh_freq, 0)
 
-    # char_strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
-    #                                     mass_2=bin_mass_2,
-    #                                     obj_sep=bin_sep,
-    #                                     timestep_duration_yr=timestep_duration_yr,
-    #                                     old_gw_freq=old_bbh_freq,
-    #                                     smbh_mass=smbh_mass,
-    #                                     agn_redshift=agn_redshift,
-    #                                     flag_include_old_gw_freq=1)
-
     char_strain, nu_gw = gw_strain_freq_optimized(mass_1=bin_mass_1,
                                         mass_2=bin_mass_2,
                                         obj_sep=bin_sep,
@@ -279,7 +258,5 @@ def bbh_gw_params(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_
                                         smbh_mass=smbh_mass,
                                         agn_redshift=agn_redshift,
                                         flag_include_old_gw_freq=1)
-    # assert(np.allclose(char_strain, char_strain_opt))
-    # assert(np.allclose(nu_gw, nu_gw_opt))
 
     return (char_strain, nu_gw)

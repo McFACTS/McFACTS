@@ -800,15 +800,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         else:
             bh_spin_merged = bh_spin_merged
 
-        # angle = rng.uniform(0.0, 2*np.pi, size=len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1")))
-        # bh_v_kick = analytical_velocity.analytical_kick_velocity(
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
-        # )
         bh_v_kick = analytical_velocity.analytical_kick_velocity_opt(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -817,8 +808,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
         )
-
-        # assert(np.allclose(bh_v_kick, bh_v_kick_opt))
         
         bh_mass_1_20Hz = np.zeros(bh_binary_id_num_merger.size)
         bh_mass_2_20Hz = np.zeros(bh_binary_id_num_merger.size)
@@ -873,7 +862,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         disk_density,
         bh_v_kick)
 
-    # assert(np.allclose(bh_lum_shock, bh_lum_shock_opt))
     bh_lum_jet = lum.jet_luminosity_opt(
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
@@ -881,16 +869,10 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_spin_merged,
         bh_v_kick,
         disk_sound_speed)
-    # assert(np.allclose(bh_lum_jet, bh_lum_jet_opt))
     # ====== Varun here is the function you're changing for the components. Replace the bh_v_kick --> bh_kick_comp_merged ======
-    # bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
-    #                                          np.full(bh_binary_id_num_merger.size, bh_v_kick),
-    #                                          smbh_mass)
     bh_orb_ecc_merged = merged_orb_ecc_optimized(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
                                              np.full(bh_binary_id_num_merger.size, bh_v_kick),
                                              smbh_mass)
-
-    # assert(np.allclose(bh_orb_ecc_merged, bh_orb_ecc_merged_opt))
 
     # Append new merged BH to arrays of single BH locations, masses, spins, spin angles & gens
     blackholes_merged.add_blackholes(new_id_num=bh_binary_id_num_merger,

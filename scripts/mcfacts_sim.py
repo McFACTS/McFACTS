@@ -824,27 +824,6 @@ def main():
                     torque_bh,
                     opts.r_g_in_meters
                 )
-                # torque_mig_timescales_bh = migration.torque_mig_timescale(
-                #     opts.smbh_mass,
-                #     blackholes_pro.orb_a,
-                #     blackholes_pro.mass,
-                #     blackholes_pro.orb_ecc,
-                #     opts.disk_bh_pro_orb_ecc_crit,
-                #     torque_bh,
-                #     opts.r_g_in_meters
-                # )
-
-                # assert(np.allclose(torque_mig_timescales_bh, torque_mig_timescales_bh_opt))
-
-                # torque_mig_timescales_star = migration.torque_mig_timescale(
-                #     opts.smbh_mass,
-                #     stars_pro.orb_a,
-                #     stars_pro.mass,
-                #     stars_pro.orb_ecc,
-                #     opts.disk_bh_pro_orb_ecc_crit,
-                #     torque_star,
-                #     opts.r_g_in_meters
-                # )
 
                 torque_mig_timescales_star = migration.torque_mig_timescale_optimized(
                     opts.smbh_mass,
@@ -855,8 +834,6 @@ def main():
                     torque_star,
                     opts.r_g_in_meters
                 )
-
-                # assert(np.allclose(torque_mig_timescales_star, torque_mig_timescales_star_opt))
 
                 # Calculate new bh_orbs_a using torque (here including details from Jimenez & Masset '17 & Grishin+'24)
                 new_orb_a_bh = migration.type1_migration_distance(
@@ -2352,16 +2329,6 @@ def main():
                             if opts.smbh_mass < 1.e6:
                                 disk_trap_radius = opts.disk_radius_trap * (opts.smbh_mass/1.e8)**(-0.97)
                                 disk_anti_trap_radius = opts.disk_radius_trap * (opts.smbh_mass/1.e8)**(0.099)
-
-                        # torque_mig_timescales_bh = migration.torque_mig_timescale(
-                        #     opts.smbh_mass,
-                        #     blackholes_binary.bin_orb_a,
-                        #     blackholes_binary.mass_1 + blackholes_binary.mass_2,
-                        #     blackholes_binary.bin_orb_ecc,
-                        #     opts.disk_bh_pro_orb_ecc_crit,
-                        #     torque,
-                        #     opts.r_g_in_meters
-                        # )
 
                         torque_mig_timescales_bh = migration.torque_mig_timescale_optimized(
                             opts.smbh_mass,
