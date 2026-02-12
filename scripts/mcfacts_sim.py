@@ -928,7 +928,7 @@ def main():
                 filing_cabinet.remove_id_num(bh_pro_id_num_ecc_hyperbolic)
 
             # Stars lose mass via stellar winds
-            stars_pro.mass, star_mass_lost = accretion.star_wind_mass_loss_optimized(
+            stars_pro.mass, star_mass_lost = accretion.star_wind_mass_loss(
                 stars_pro.mass,
                 stars_pro.log_radius,
                 stars_pro.log_luminosity,
@@ -936,18 +936,6 @@ def main():
                 disk_opacity,
                 opts.timestep_duration_yr
             )
-
-            # stars_pro_mass_opt, star_mass_lost_opt = accretion.star_wind_mass_loss_optimized(
-            #     stars_pro.mass,
-            #     stars_pro.log_radius,
-            #     stars_pro.log_luminosity,
-            #     stars_pro.orb_a,
-            #     disk_opacity,
-            #     opts.timestep_duration_yr
-            # )
-
-            # assert(np.allclose(stars_pro.mass, stars_pro_mass_opt))
-            # assert(np.isclose(star_mass_lost, star_mass_lost_opt))
 
             # Mass lost from stars is gained by the disk
             disk_mass_gained.append(np.abs(star_mass_lost))
@@ -961,7 +949,7 @@ def main():
             )
 
             disk_star_luminosity_factor = 4.  # Hardcoded from Cantiello+2021 and Fabj+2024
-            stars_pro.mass, star_mass_gained, star_immortal_mass_lost = accretion.accrete_star_mass_optimized(
+            stars_pro.mass, star_mass_gained, star_immortal_mass_lost = accretion.accrete_star_mass(
                 stars_pro.mass,
                 stars_pro.orb_a,
                 disk_star_luminosity_factor,
@@ -972,22 +960,6 @@ def main():
                 opts.timestep_duration_yr,
                 opts.r_g_in_meters
             )
-
-            # stars_pro_mass_opt, star_mass_gained_opt, star_immortal_mass_lost_opt = accretion.accrete_star_mass_optimized(
-            #     stars_pro.mass,
-            #     stars_pro.orb_a,
-            #     disk_star_luminosity_factor,
-            #     opts.disk_star_initial_mass_cutoff,
-            #     opts.smbh_mass,
-            #     disk_sound_speed,
-            #     disk_density,
-            #     opts.timestep_duration_yr,
-            #     opts.r_g_in_meters
-            # )
-            #
-            # assert(np.allclose(stars_pro.mass, stars_pro_mass_opt))
-            # assert(np.isclose(star_mass_gained, star_mass_gained_opt))
-            # assert(np.isclose(star_immortal_mass_lost, star_immortal_mass_lost_opt))
 
             # Mass gained by stars is lost from disk
             disk_mass_lost.append(star_mass_gained)
