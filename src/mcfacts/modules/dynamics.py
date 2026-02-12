@@ -3621,10 +3621,8 @@ class BinaryBlackHoleIonization(TimelineActor):
 
             new_orb_ecc = ionized_orb_ecc(new_length, sm.disk_bh_orb_ecc_max_init, random_generator)
 
-            new_id_nums = np.array([uuid_provider(random_generator) for _ in range(new_length)], dtype=uuid.UUID)
-
             new_prograde = AGNBlackHoleArray(
-                unique_id=new_id_nums,
+                unique_id=np.concatenate([ionized_binaries.parent_unique_id, ionized_binaries.parent_unique_id_2]),
                 progenitor_unique_id=np.concatenate([ionized_binaries.unique_id, ionized_binaries.unique_id]),
                 mass=np.concatenate([ionized_binaries.mass, ionized_binaries.mass_2]),
                 orb_a=np.concatenate([ionized_binaries.bin_orb_a, ionized_binaries.bin_orb_a + ionized_binaries.bin_sep]),
