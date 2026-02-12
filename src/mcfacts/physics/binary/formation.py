@@ -280,9 +280,11 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
     #                                     old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
     #                                     flag_include_old_gw_freq=0)
 
-    gw_strain, gw_freq = gw_strain_freq_optimized(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+    gw_strain, gw_freq = gw_strain_freq_optimized(
+        mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                         old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
-                                        flag_include_old_gw_freq=0)
+                                        flag_include_old_gw_freq=0
+    )
 
     # assert(np.allclose(gw_strain, gw_strain_opt))
     # assert(np.allclose(gw_freq, gw_freq_opt))
