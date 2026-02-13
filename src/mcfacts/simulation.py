@@ -18,7 +18,7 @@ from mcfacts.objects.actors import InitialObjectReclassification, InnerDiskFilte
 from mcfacts.objects.actors.reality_checks import SingleBlackHoleRealityCheck, BinaryBlackHoleRealityCheck
 from mcfacts.objects.agn_object_array import *
 from mcfacts.objects.galaxy import Galaxy
-from mcfacts.objects.populators import SingleBlackHolePopulator
+from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopulator
 from mcfacts.objects.snapshot import TxtSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 
@@ -49,8 +49,8 @@ def main(settings: SettingsManager):
 
         # Create instance of populators
         single_bh_populator = SingleBlackHolePopulator()
-        # single_star_populator = SingleStarPopulator("single_stars")
-        galaxy.populate([single_bh_populator], agn_disk)
+        single_star_populator = SingleStarPopulator()
+        galaxy.populate([single_bh_populator, single_star_populator], agn_disk)
 
         # Create timeline to classify objects created during population
         pre_timeline = SimulationTimeline("Reclassification", timesteps=1, timestep_length=0)

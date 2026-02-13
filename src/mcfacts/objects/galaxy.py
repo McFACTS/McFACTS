@@ -8,6 +8,7 @@ from numpy.random import Generator
 from tqdm.auto import tqdm
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.objects.log import LogFunction
 from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
 from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet
 from mcfacts.objects.timeline import SimulationTimeline
@@ -16,11 +17,37 @@ from mcfacts.objects.timeline import SimulationTimeline
 class GalaxyPopulator(ABC):
     def __init__(self, name: str, settings: SettingsManager = SettingsManager()):
         self.name: str = name
-        self.settings_manager: SettingsManager = settings
+        self.settings: SettingsManager = settings
+        self.parent_log_func: LogFunction = None
 
     @abstractmethod
     def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
         return NotImplemented
+
+    def set_log_func(self, log_func: LogFunction) -> None:
+        self.parent_log_func = log_func
+
+    def log(self, msg: str, new_line: bool = False) -> None:
+        if not self.settings.verbose:
+            return
+
+        msg = f"{self.name} :: {msg}"
+
+        if self.parent_log_func is None:
+            print(f"{(os.linesep if new_line else '')}(ID:??) {msg}")
+        else:
+            self.parent_log_func(msg, new_line)
+
+    def __str__(self) -> str:
+        """
+        Returns a string representation of the simulation actor.
+
+        The string includes the actor's name and its class type.
+
+        Returns:
+            str: A formatted string representation of the simulation actor.
+        """
+        return f"{self.name} ({type(self)})"
 
 
 class Galaxy:
@@ -123,21 +150,20 @@ class Galaxy:
 
         # Loop over the populators
         for populator in populators:
+            if populator.name in self.filing_cabinet and not join_populations:
+                raise Exception(f"Galaxy populator with name {populator.name} already exist.")
+
+            populator.set_log_func(self.nocheck_log)
             galaxy_object_array: AGNObjectArray = populator.populate(agn_disk, self.random_generator)
-
-            if join_populations:
-                self.filing_cabinet.create_or_append_array(populator.name, galaxy_object_array)
-            else:
-                if populator.name in self.filing_cabinet:
-                    raise Exception(f"Galaxy populator with name {populator.name} already exist.")
-
-                self.filing_cabinet.set_array(populator.name, galaxy_object_array)
-
-                self.log("Beginning galaxy population.")
 
             # In strict mode, check to make sure that we actually created some objects, otherwise throw an exception.
             if strict_fill and len(galaxy_object_array) == 0:
                 raise Exception(f"Galaxy populator with name {populator.name} failed to create any object populations.")
+
+            if join_populations:
+                self.filing_cabinet.create_or_append_array(populator.name, galaxy_object_array)
+            else:
+                self.filing_cabinet.set_array(populator.name, galaxy_object_array)
 
         self.log("Checking filing cabinet for duplicate entries.")
         self.filing_cabinet.consistency_check()
@@ -197,7 +223,7 @@ class Galaxy:
     def nocheck_log(self, msg: str, new_line: bool = True) -> None:
         print(f"{(os.linesep if new_line else '')}(ID:{self.galaxy_id}) {msg}")
 
-    def log(self, msg: str, new_line: bool = False) -> None:
+    def log(self, msg: str, new_line: bool = True) -> None:
         if not self.settings.verbose:
             return
 

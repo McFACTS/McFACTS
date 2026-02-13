@@ -59,14 +59,14 @@ class AGNObjectArray(ABC):
         # Since its not raw byte, that number is a bit smaller, but it should not cause any space issues.
         self.unique_id = unique_id
 
-        self.mass = mass
-        self.spin = spin
-        self.spin_angle = spin_angle
-        self.orb_a = orb_a
-        self.orb_inc = orb_inc
-        self.orb_ecc = orb_ecc
-        self.orb_ang_mom = orb_ang_mom
-        self.orb_arg_periapse = orb_arg_periapse
+        self.mass = mass # Mass is required, if this is missing the consistency check with throw an error.
+        self.spin = np.full(len(unique_id), 0., dtype=np.float64) if len(spin) == 0 else spin
+        self.spin_angle = np.full(len(unique_id), 0., dtype=np.float64) if len(spin_angle) == 0 else spin_angle
+        self.orb_a = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_a) == 0 else orb_a
+        self.orb_inc = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_inc) == 0 else orb_inc
+        self.orb_ecc = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_ecc) == 0 else orb_ecc
+        self.orb_ang_mom = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_ang_mom) == 0 else orb_ang_mom
+        self.orb_arg_periapse = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_arg_periapse) == 0 else orb_arg_periapse
         self.migration_velocity = np.full(len(unique_id), 0., dtype=np.float64) if len(migration_velocity) == 0 else migration_velocity
         self.parent_unique_id = np.full(len(unique_id), uuid.UUID(int=0), dtype=uuid.UUID) if len(parent_unique_id) == 0 else parent_unique_id
         self.parent_unique_id_2 = np.full(len(unique_id), uuid.UUID(int=0), dtype=uuid.UUID) if len(parent_unique_id_2) == 0 else parent_unique_id_2
@@ -532,7 +532,7 @@ class AGNStarArray(AGNObjectArray):
 
         self.star_x = star_x
         self.star_y = star_y
-        self.star_z = star_z,
+        self.star_z = star_z
         self.log_radius = log_radius
         self.log_teff = log_teff
         self.log_luminosity = log_luminosity

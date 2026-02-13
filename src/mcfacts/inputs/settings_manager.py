@@ -66,6 +66,10 @@ defaults = {
     "disk_star_mass_min_init": 5.0,
     "disk_star_mass_max_init": 40,
     "rstar_rhill_exponent_ratio": 2.0,
+    "disk_star_scale_factor": 1.e-3,
+    "flag_coalesce_initial_stars": False,
+    "flag_initial_stars_BH_immortal": False,
+    "disk_star_initial_mass_cutoff": 298.0,
 
     # Nuclear Star Cluster Parameters
     "nsc_radius_outer": 5.0,  # Outer radius of the Nuclear Star Cluster (pc)
@@ -107,7 +111,8 @@ defaults = {
     "bbh_array_name": "blackholes_binary",
     "bbh_gw_array_name": "blackholes_binary_gw",
     "bbh_merged_array_name": "blackholes_merged",
-    "emri_array_name": "blackholes_emri"
+    "emri_array_name": "blackholes_emri",
+    "star_array_name": "stars_unsort"
 }
 
 # Static values that we do not want the user to change (Sorry user)
