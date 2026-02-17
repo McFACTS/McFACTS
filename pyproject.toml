@@ -72,7 +72,7 @@ dependencies = [
     "pagn",
     "joblib>=1.4.2",
     "scikit_learn>=1.5.2",
-    "mcfast==0.1.4",
+    "mcfast==0.1.6",
 ]
 
 #TODO: Add description and other dynamically defined variables created in setup.py
