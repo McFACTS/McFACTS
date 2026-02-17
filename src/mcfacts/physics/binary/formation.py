@@ -4,7 +4,7 @@ Module for handling the formation of binaries.
 import numpy as np
 
 from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.gw import gw_strain_freq
+from mcfacts.physics.gw import gw_strain_freq, gw_strain_freq_optimized
 
 
 def close_encounters_check(id_nums,
@@ -276,9 +276,18 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
             # (1-fraction_bin_retro: fraction_bin_retro)
             bin_orb_ang_mom[i] = rng.choice(a=[1, -1], p=[1-fraction_bin_retro, fraction_bin_retro])
 
-    gw_strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+    # gw_strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+    #                                     old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
+    #                                     flag_include_old_gw_freq=0)
+
+    gw_strain, gw_freq = gw_strain_freq_optimized(
+        mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                         old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
-                                        flag_include_old_gw_freq=0)
+                                        flag_include_old_gw_freq=0
+    )
+
+    # assert(np.allclose(gw_strain, gw_strain_opt))
+    # assert(np.allclose(gw_freq, gw_freq_opt))
 
     blackholes_binary.add_binaries(new_orb_a_1=orb_a_1,
                                    new_orb_a_2=orb_a_2,
