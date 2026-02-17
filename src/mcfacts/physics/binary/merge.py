@@ -800,16 +800,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         else:
             bh_spin_merged = bh_spin_merged
 
-        # angle = rng.uniform(0.0, 2*np.pi, size=len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1")))
-        # bh_v_kick = analytical_velocity.analytical_kick_velocity(
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-        #     blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
-        # )
-        bh_v_kick = analytical_velocity.analytical_kick_velocity_opt(
+        bh_v_kick = analytical_velocity.analytical_kick_velocity(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
@@ -817,8 +808,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
         )
-
-        # assert(np.allclose(bh_v_kick, bh_v_kick_opt))
         
         bh_mass_1_20Hz = np.zeros(bh_binary_id_num_merger.size)
         bh_mass_2_20Hz = np.zeros(bh_binary_id_num_merger.size)

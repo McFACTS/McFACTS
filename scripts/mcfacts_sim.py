@@ -311,7 +311,7 @@ def main():
 
         # generate initial BH parameter arrays
         print("Generate initial BH parameter arrays")
-        bh_orb_a_initial = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw_optimized(
+        bh_orb_a_initial = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
                 disk_bh_num, opts.disk_radius_outer, opts.disk_inner_stable_circ_orb,
                 opts.smbh_mass, opts.nsc_radius_crit, opts.nsc_density_index_inner,
                 opts.nsc_density_index_outer, volume_scaling=True)
@@ -2733,7 +2733,7 @@ def main():
             # Assuming captured objects are not in the inner disk? (KN)
             capture = time_passed % opts.capture_time_yr
             if capture == 0:
-                bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw_optimized(
+                bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
                     1, opts.disk_radius_capture_outer, opts.disk_inner_stable_circ_orb,
                     opts.smbh_mass, opts.nsc_radius_crit, opts.nsc_density_index_inner,
                     opts.nsc_density_index_outer, volume_scaling=True)
