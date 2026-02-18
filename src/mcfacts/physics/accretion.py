@@ -175,10 +175,10 @@ def accrete_star_mass(disk_star_pro_masses,
     min_radius = np.minimum(r_bondi, r_hill_m)
 
     # Calculate the mass accretion rate
-    mdot = ((np.pi / disk_star_luminosity_factor) * disk_density_si * disk_sound_speed_si * (min_radius ** 2)).to("kg/yr")
+    mdot = ((np.pi / disk_star_luminosity_factor) * disk_density_si * disk_sound_speed_si * (min_radius ** 2)).to(u.kg/u.yr)
 
     # Accrete mass onto stars
-    disk_star_pro_new_masses = ((star_masses_si + mdot * timestep_duration_yr_si).to("Msun")).value
+    disk_star_pro_new_masses = ((star_masses_si + mdot * timestep_duration_yr_si).to(u.Msun)).value
 
     # Stars can't accrete over disk_star_initial_mass_cutoff
     disk_star_pro_new_masses[disk_star_pro_new_masses > disk_star_initial_mass_cutoff] = disk_star_initial_mass_cutoff
