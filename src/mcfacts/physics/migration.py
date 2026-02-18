@@ -9,6 +9,7 @@ import scipy.interpolate
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import si_from_r_g
 import scipy
+from mcfast import torque_mig_timescale_helper 
 
 
 def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func, disk_dlog10temp_dlog10R_func):
@@ -125,6 +126,42 @@ def normalized_torque(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, disk_su
         "Finite check failure: normalized_torque"
 
     return normalized_torque
+
+def torque_mig_timescale_optimized(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque, r_g_in_meters):
+    """Calculates the migration timescale using an input migration torque
+    t_mig = a/-(dot(a)) where dot(a)=-2aGamma_tot/L so
+    t_mig = L/2Gamma_tot
+    with Gamma_tot=migration torque, L = orb ang mom = m (GMa)^1/2=m Omega a^2 and so
+    t_mig = m Omega a^2/2Gamma_tot in units of s.
+    Gamma_0 = (q/h)^2 * Sigma* a^4 * Omega^2
+        where q= mass_of_bh/smbh_mass, h= disk aspect ratio at location of bh (a_bh),
+        Sigma= disk surface density at a_bh, a=a_bh, Omega = bh orbital frequency at a_bh.
+        Units are kg m^-2 * m^4 *s^-2 = kg (m s^-1)^2 = Nm (= J)
+    Args:
+        smbh_mass : float
+        Mass [M_sun] of the SMBH
+    orbs_a : numpy.ndarray
+        Orbital semi-major axes [r_{g,SMBH}] wrt to SMBH of objects at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
+    masses : numpy.ndarray
+        Masses [M_sun] of objects at start of timestep with :obj:`float` type
+    orbs_ecc : numpy.ndarray
+        Orbital ecc [unitless] wrt to SMBH of objects at start of timestep :math:`\\mathtt{disk_radius_trap}. Floor in orbital ecc given by e_crit.
+    orb_ecc_crit : float
+        Critical value of orbital eccentricity [unitless] below which we assume Type 1 migration must occur. Do not damp orb ecc below this (e_crit=0.01 is default)
+    migration_torque : numpy.ndarray
+        Migration torque array. E.g. calculated from torque_paardekooper (units = Nm=J)
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
+    """
+    return torque_mig_timescale_helper(
+        smbh_mass,
+        orbs_a,
+        masses,
+        orbs_ecc,
+        orb_ecc_crit,
+        migration_torque,
+        r_g_in_meters.value,
+    )
 
 
 def torque_mig_timescale(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, migration_torque, r_g_in_meters):
