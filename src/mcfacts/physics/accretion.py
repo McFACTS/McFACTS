@@ -167,7 +167,7 @@ def accrete_star_mass(disk_star_pro_masses,
     timestep_duration_yr_si = timestep_duration_yr * u.year
 
     # Calculate Bondi and Hill radii
-    r_bondi = (2 * const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
+    r_bondi = (2 * const.G * star_masses_si / (disk_sound_speed_si ** 2)).to(u.m)
     r_hill_rg = (disk_star_pro_orbs_a * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg, r_g_defined=r_g_in_meters)
 
@@ -175,10 +175,10 @@ def accrete_star_mass(disk_star_pro_masses,
     min_radius = np.minimum(r_bondi, r_hill_m)
 
     # Calculate the mass accretion rate
-    mdot = ((np.pi / disk_star_luminosity_factor) * disk_density_si * disk_sound_speed_si * (min_radius ** 2)).to("kg/yr")
+    mdot = ((np.pi / disk_star_luminosity_factor) * disk_density_si * disk_sound_speed_si * (min_radius ** 2)).to(u.kg/u.yr)
 
     # Accrete mass onto stars
-    disk_star_pro_new_masses = ((star_masses_si + mdot * timestep_duration_yr_si).to("Msun")).value
+    disk_star_pro_new_masses = ((star_masses_si + mdot * timestep_duration_yr_si).to(u.Msun)).value
 
     # Stars can't accrete over disk_star_initial_mass_cutoff
     disk_star_pro_new_masses[disk_star_pro_new_masses > disk_star_initial_mass_cutoff] = disk_star_initial_mass_cutoff

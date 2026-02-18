@@ -40,13 +40,13 @@ def time_of_orbital_shrinkage(mass_1, mass_2, sep_initial, sep_final):
         Time [s] of orbital shrinkage
     """
     # Calculate c and G in SI
-    c = const.c.to('m/s').value
-    G = const.G.to('m^3/(kg s^2)').value
+    c = const.c.value
+    G = const.G.value
     # Assert SI units
-    mass_1 = mass_1.to('kg').value
-    mass_2 = mass_2.to('kg').value
-    sep_initial = sep_initial.to('m').value
-    sep_final = sep_final.to('m').value
+    mass_1 = mass_1.to(u.kg).value
+    mass_2 = mass_2.to(u.kg).value
+    sep_initial = sep_initial.to(u.m).value
+    sep_final = sep_final.to(u.m).value
     # Set up the constant as a single float
     const_G_c = ((64 / 5) * (G ** 3)) * (c ** -5)
     # Calculate the beta array
@@ -82,8 +82,8 @@ def orbital_separation_evolve(mass_1, mass_2, sep_initial, evolve_time):
         Final separation [m] of two bodies
     """
     # Calculate c and G in SI
-    c = const.c.to('m/s').value
-    G = const.G.to('m^3/(kg s^2)').value
+    c = const.c.value
+    G = const.G.value
     # Assert SI units
     mass_1 = mass_1.to('kg').value
     mass_2 = mass_2.to('kg').value
@@ -127,8 +127,8 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
         Initial separation [m] of two bodies
     """
     # Calculate c and G in SI
-    c = const.c.to('m/s').value
-    G = const.G.to('m^3/(kg s^2)').value
+    c = const.c.value
+    G = const.G.value
     # Assert SI units
     mass_1 = mass_1.to('kg').value
     mass_2 = mass_2.to('kg').value
@@ -173,10 +173,6 @@ def si_from_r_g(smbh_mass, distance_rg, r_g_defined=None):
     if r_g_defined is not None:
         r_g = r_g_defined
     else:
-        # Calculate c and G in SI
-        c = const.c.to('m/s')
-        G = const.G.to('m^3/(kg s^2)')
-
         # Assign units to smbh mass
         if hasattr(smbh_mass, 'unit'):
             smbh_mass = smbh_mass.to('solMass')
@@ -187,7 +183,7 @@ def si_from_r_g(smbh_mass, distance_rg, r_g_defined=None):
         smbh_mass = smbh_mass.to('kg')
 
         # Calculate r_g in SI
-        r_g = G*smbh_mass/(c ** 2)
+        r_g = const.G*smbh_mass/(const.c ** 2)
 
     # Calculate distance
     distance = (distance_rg * r_g).to("meter")
@@ -215,20 +211,18 @@ def r_g_from_units(smbh_mass, distance):
     distance_rg : numpy.ndarray
         Distances [r_g]
     """
-    # Calculate c and G in SI
-    c = const.c.to('m/s')
-    G = const.G.to('m^3/(kg s^2)')
     # Assign units to smbh mass
     if hasattr(smbh_mass, 'unit'):
-        smbh_mass = smbh_mass.to('solMass')
+        smbh_mass = smbh_mass.to(u.solMass)
     else:
         smbh_mass = smbh_mass * u.solMass
     # convert smbh mass to kg
-    smbh_mass = smbh_mass.to('kg')
+    smbh_mass = smbh_mass.to(u.kg)
+
     # Calculate r_g in SI
-    r_g = G*smbh_mass/(c ** 2)
+    r_g = const.G*smbh_mass/(const.c ** 2)
     # Calculate distance
-    distance_rg = distance.to("meter") / r_g
+    distance_rg = distance.to(u.m) / r_g
 
     # Check to make sure units are okay.
     assert u.dimensionless_unscaled == distance_rg.unit, \
@@ -257,11 +251,11 @@ def r_schwarzschild_of_m(mass):
 
     # Assign units to mass
     if hasattr(mass, 'unit'):
-        mass = mass.to('solMass')
+        mass = mass.to(u.solMass)
     else:
         mass = mass * u.solMass
 
-    r_sch = (2. * const.G * mass / (const.c ** 2)).to("meter")
+    r_sch = (2. * const.G * mass / (const.c ** 2)).to(u.m)
 
     assert np.isfinite(r_sch).all(), \
         "Finite check failure: r_sch"
