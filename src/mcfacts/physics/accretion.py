@@ -167,7 +167,7 @@ def accrete_star_mass(disk_star_pro_masses,
     timestep_duration_yr_si = timestep_duration_yr * u.year
 
     # Calculate Bondi and Hill radii
-    r_bondi = (2 * const.G.to("m^3 / kg s^2") * star_masses_si / (disk_sound_speed_si ** 2)).to("meter")
+    r_bondi = (2 * const.G * star_masses_si / (disk_sound_speed_si ** 2)).to(u.m)
     r_hill_rg = (disk_star_pro_orbs_a * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
     r_hill_m = si_from_r_g(smbh_mass, r_hill_rg, r_g_defined=r_g_in_meters)
 
