@@ -46,4 +46,4 @@ def test_change_bh_mass(bh_pro_masses, bh_eddington_ratio, bh_eddington_mass_gro
 
     # Compare to the expected value
     # Don't use boolean operator `==` because of possible machine precision limitations
-    assert np.isclose(new_masses, expected, rtol=1.e-4)
+    assert np.isclose(new_masses, expected, rtol=1.e-9)
