@@ -849,7 +849,7 @@ def circular_singles_encounters_prograde_sweep(
                 num_poss_ints = 0
                 num_encounters = 0
 
-    print(disk_bh_pro_orbs_a)
+
 
     # Check finite
     assert np.isfinite(disk_bh_pro_orbs_a).all(), \
@@ -3612,8 +3612,6 @@ class BinaryBlackHoleIonization(TimelineActor):
         if ids_ionized.size > 0:
             # Append 2 new BH to arrays of single BH locations, masses, spins, spin angles & gens
             # For now add 2 new orb ecc term of 0.01. inclination is 0.0 as well. TO DO: calculate v_kick and resulting perturbation to orb ecc.
-
-            print(ids_ionized)
 
             ionized_binaries = blackholes_binary.copy()
             ionized_binaries.keep_only(ids_ionized)

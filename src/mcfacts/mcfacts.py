@@ -4,21 +4,36 @@ import cProfile
 from mcfacts import fiducial_plots, simulation
 from mcfacts.inputs.settings_manager import SettingsManager
 
+# Source - https://stackoverflow.com/a/43357954
+# Posted by Maxim, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-02-24, License - CC BY-SA 4.0
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 def seed_settings_args(sub_parser: argparse.ArgumentParser):
     # Create a default instance of SettingsManager to get the default location of the settings file
-    inital_settings = SettingsManager()
+    initial_settings = SettingsManager()
 
     # Create a specific flag for passing in a baked settings or ini file
     sub_parser.add_argument("-s", "--settings", "--fname-ini",
-                        dest="settings_file",
-                        help="Filename of settings file",
-                        default=inital_settings.settings_file, type=str)
+                            dest="settings_file",
+                            help="Filename of settings file",
+                            default=initial_settings.settings_file, type=str)
 
     sub_parser.add_argument("--profile", dest="enable_profiling", action="store_true")
     sub_parser.add_argument("--profile-out", dest="profiling_file", default="mcfacts.prof", type=str)
 
     # Using the supplied file, instantiate and populate a new SettingsManager
-    inital_parse, _ = sub_parser.parse_known_args(["-s", inital_settings.settings_file])
+    inital_parse, _ = sub_parser.parse_known_args(["-s", initial_settings.settings_file])
     settings_file = inital_parse.settings_file
 
     # TODO: handle settings file loading.
@@ -46,12 +61,20 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
 
         alias = f"-{str(key)[0]}"
 
-        if alias in options:
-            sub_parser.add_argument(f"--{key}",
-                                default=value, type=type(value), metavar=key)
+        if type(value) is bool:
+            if alias in options:
+                sub_parser.add_argument(f"--{key}",
+                                    default=value, type=str2bool, metavar=key, dest=key)
+            else:
+                sub_parser.add_argument(alias, f"--{key}",
+                                    default=value, type=str2bool, metavar=key, dest=key)
         else:
-            sub_parser.add_argument(alias, f"--{key}",
-                                default=value, type=type(value), metavar=key)
+            if alias in options:
+                sub_parser.add_argument(f"--{key}",
+                                    default=value, type=type(value), metavar=key, dest=key)
+            else:
+                sub_parser.add_argument(alias, f"--{key}",
+                                    default=value, type=type(value), metavar=key, dest=key)
 
 def main():
     # Create instance of argument parser
