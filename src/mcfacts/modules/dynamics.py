@@ -698,8 +698,6 @@ def circular_singles_encounters_prograde(
         "Finite check failed for disk_bh_pro_orbs_a"
     assert np.isfinite(disk_bh_pro_orbs_ecc).all(), \
         "Finite check failed for disk_bh_pro_orbs_ecc"
-    assert np.all(disk_bh_pro_orbs_a < disk_radius_outer), \
-        "disk_bh_pro_orbs_a contains values greater than disk_radius_outer"
     assert np.all(disk_bh_pro_orbs_a > 0), \
         "disk_bh_pro_orbs_a contains values <= 0"
 
@@ -856,8 +854,6 @@ def circular_singles_encounters_prograde_sweep(
         "Finite check failed for disk_bh_pro_orbs_a"
     assert np.isfinite(disk_bh_pro_orbs_ecc).all(), \
         "Finite check failed for disk_bh_pro_orbs_ecc"
-    assert np.all(disk_bh_pro_orbs_a < disk_radius_outer), \
-        f"disk_bh_pro_orbs_a contains values greater than disk_radius_outer{disk_bh_pro_orbs_a[disk_bh_pro_orbs_a >= disk_radius_outer]}"
     assert np.all(disk_bh_pro_orbs_a > 0), \
         "disk_bh_pro_orbs_a contains values <= 0"
 
@@ -1732,8 +1728,6 @@ def circular_binaries_encounters_ecc_prograde(
         "Finite check failure: bin_orbital_eccentricities"
     assert np.isfinite(bin_ecc).all(), \
         "Finite check failure: bin_eccentricities"
-    assert np.all(ecc_prograde_population_locations < disk_radius_outer), \
-        "ecc_prograde_population_locations has values greater than disk_radius_outer"
     assert np.all(ecc_prograde_population_locations > 0), \
         "ecc_prograde_population_locations contains values <= 0"
     assert np.all(bin_sep >= 0), \
@@ -2003,8 +1997,6 @@ def circular_binaries_encounters_ecc_prograde(
         "Finite check failure: bin_orbital_eccentricities"
     assert np.isfinite(bin_ecc).all(), \
         "Finite check failure: bin_eccentricities"
-    assert np.all(ecc_prograde_population_locations < disk_radius_outer), \
-        "ecc_prograde_population_locations has values greater than disk_radius_outer"
     assert np.all(ecc_prograde_population_locations > 0), \
         "ecc_prograde_population_locations contains values <= 0"
     assert np.all(bin_sep >= 0), \
@@ -2617,8 +2609,6 @@ def circular_binaries_encounters_circ_prograde(
         "Finite check failure: bin_orbital_eccentricities"
     assert np.isfinite(bin_ecc).all(), \
         "Finite check failure: bin_eccentricities"
-    assert np.all(circ_prograde_population_locations < disk_radius_outer), \
-        "ecc_prograde_population_locations has values greater than disk_radius_outer"
     assert np.all(circ_prograde_population_locations > 0), \
         "circ_prograde_population_locations contains values <= 0"
     assert np.all(bin_sep >= 0), \
@@ -3407,6 +3397,15 @@ class SingleBlackHoleDynamics(TimelineActor):
                 random_generator
             )
 
+        ejected_ids = blackholes_array.unique_id[blackholes_array.orb_a >= sm.disk_radius_outer]
+
+        ejected = blackholes_array.copy()
+        ejected.keep_only(ejected_ids)
+
+        blackholes_array.remove_all(ejected_ids)
+
+        filing_cabinet.create_or_append_array(sm.bh_ejected_array_name, ejected)
+
 
 class SingleStarDynamics(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
@@ -3755,6 +3754,15 @@ class BinaryBlackHoleDynamics(TimelineActor):
             sm.r_g_in_meters,
             random_generator
         )
+
+        ejected_ids = blackholes_pro.unique_id[blackholes_pro.orb_a >= sm.disk_radius_outer]
+
+        ejected = blackholes_pro.copy()
+        ejected.keep_only(ejected_ids)
+
+        blackholes_pro.remove_all(ejected_ids)
+
+        filing_cabinet.create_or_append_array(sm.bh_ejected_array_name, ejected)
 
         blackholes_pro.consistency_check()
         blackholes_binary.consistency_check()

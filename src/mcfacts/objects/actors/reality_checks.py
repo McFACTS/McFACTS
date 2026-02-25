@@ -17,11 +17,22 @@ class SingleBlackHoleRealityCheck(TimelineActor):
         # Prograde black hole hyperbolic check
         if sm.bh_prograde_array_name in filing_cabinet:
             blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
-            bh_pro_id_ecc_hyperbolic = blackholes_pro.unique_id[blackholes_pro.orb_ecc >= 1.]
 
+            bh_pro_id_ecc_hyperbolic = blackholes_pro.unique_id[blackholes_pro.orb_ecc >= 1.]
             if len(bh_pro_id_ecc_hyperbolic) > 0:
                 self.log(f"{len(bh_pro_id_ecc_hyperbolic)} prograde bh have an orb_ecc > 1.0 and will be removed.")
                 blackholes_pro.remove_all(bh_pro_id_ecc_hyperbolic)
+
+            ejected_ids = blackholes_pro.unique_id[blackholes_pro.orb_a >= sm.disk_radius_outer]
+            if len(ejected_ids) > 0:
+                self.log(f"{len(ejected_ids)} prograde bh have an orb_a > disk_outer_radius and will be ejected.")
+
+                ejected = blackholes_pro.copy()
+                ejected.keep_only(ejected_ids)
+
+                blackholes_pro.remove_all(ejected_ids)
+
+                filing_cabinet.create_or_append_array(sm.bh_ejected_array_name, ejected)
 
             blackholes_pro.consistency_check()
 

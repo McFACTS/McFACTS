@@ -657,8 +657,6 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
 
     assert np.isfinite(orbs_a).all(), \
         "Finite check failure: orbs_a"
-    assert np.all(new_orbs_a < disk_radius_outer), \
-        "new_orbs_a contains values greater than disk_radius_outer"
     assert np.all(new_orbs_a > 0), \
         "new_orbs_a contains values <= 0"
 
@@ -843,8 +841,6 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
 
     assert np.isfinite(new_orbs_a).all(), \
         "Finite check failure: new_orbs_a"
-    assert np.all(new_orbs_a < disk_radius_outer), \
-        "new_orbs_a has values greater than disk_radius_outer"
 
     return (orbs_a)
 
@@ -1355,6 +1351,14 @@ class ProgradeBlackHoleMigration(TimelineActor):
         blackholes_array.migration_velocity = (delta_distance_meters / (timestep_length * u.yr).to(u.s)).value
 
         blackholes_array.orb_a = new_orb_a_bh
+
+        ejected_ids = blackholes_array.unique_id[blackholes_array.orb_a >= sm.disk_radius_outer]
+
+        ejected = blackholes_array.copy()
+        ejected.keep_only(ejected_ids)
+        blackholes_array.remove_all(ejected_ids)
+
+        filing_cabinet.create_or_append_array(sm.bh_ejected_array_name, ejected)
 
         blackholes_array.consistency_check()
 

@@ -142,9 +142,13 @@ def main(settings: SettingsManager):
         bbh_merged_array = galaxy.settings.bbh_merged_array_name
         bbh_lvk_array = galaxy.settings.bbh_gw_array_name
         emri_merged_array = galaxy.settings.emri_array_name
+        bh_ejected_array = galaxy.settings.bh_ejected_array_name
+
+        if bh_ejected_array in galaxy.filing_cabinet:
+            population_cabinet.create_or_append_array("blackholes_ejected", galaxy.filing_cabinet.get_array(bh_ejected_array))
 
         if bbh_merged_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array("blackholes_merged",galaxy.filing_cabinet.get_array(bbh_merged_array))
+            population_cabinet.create_or_append_array("blackholes_merged", galaxy.filing_cabinet.get_array(bbh_merged_array))
 
         if bbh_lvk_array in galaxy.filing_cabinet:
             population_cabinet.create_or_append_array("blackholes_lvk", galaxy.filing_cabinet.get_array(bbh_lvk_array))
