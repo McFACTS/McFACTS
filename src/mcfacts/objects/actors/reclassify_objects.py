@@ -2,12 +2,13 @@ import numpy as np
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
-from mcfacts.objects.agn_object_array import AGNBlackHoleArray, FilingCabinet
+from mcfacts.objects.agn_object_array import AGNBlackHoleArray, FilingCabinet, AGNStarArray
 from mcfacts.objects.timeline import TimelineActor
+from mcfacts.setup import setupdiskblackholes
 from mcfacts.utilities import checks
 
 
-class InitialObjectReclassification(TimelineActor):
+class InitialBlackHoleReclassification(TimelineActor):
     """
     This simulation actor looks at the initial seeded array of objects and distributes them
     based on different classifications.
@@ -36,7 +37,7 @@ class InitialObjectReclassification(TimelineActor):
             name (str): Optional. The name of the actor. Defaults to "Reclassify Disk Objects".
             settings (SettingsManager): A settings manager instance. Defaults to base instance of `SettingsManager`.
         """
-        super().__init__("Initial Object Reclassification" if name is None else name, settings)
+        super().__init__("Initial Black Hole Reclassification" if name is None else name, settings)
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
@@ -203,3 +204,70 @@ class FlipRetroProFilter(TimelineActor):
 
         blackholes_pro.add_objects(blackholes_flipped)
         blackholes_retro.remove_all(bh_id_num_flip_to_pro)
+
+
+class InitialStarReclassification(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Initial Star Reclassification" if name is None else name, settings)
+
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
+        sm = self.settings
+
+        blackholes_unsort = filing_cabinet.get_array(sm.bh_array_name, AGNBlackHoleArray, True)
+        stars = filing_cabinet.get_array(sm.star_array_name, AGNStarArray, True)
+
+        if (sm.flag_initial_stars_BH_immortal == 1):
+            # Stars over disk_star_initial_mass_cutoff will turn into BH
+
+            star_to_bh_id_num = stars.id_num[stars.mass > sm.disk_star_initial_mass_cutoff]
+
+            star_to_bh_spin = setupdiskblackholes.setup_disk_blackholes_spins(
+                len(star_to_bh_id_num),
+                sm.nsc_bh_spin_dist_mu,
+                sm.nsc_bh_spin_dist_sigma,
+                random_generator
+            )
+
+            star_to_bh_spin_angle = setupdiskblackholes.setup_disk_blackholes_spin_angles(
+                len(star_to_bh_id_num),
+                star_to_bh_spin,
+                random_generator
+            )
+
+            star_to_bh_orb_ang_mom = setupdiskblackholes.setup_disk_blackholes_orb_ang_mom(
+                len(star_to_bh_id_num),
+                random_generator
+
+            )
+
+            star_to_bh_inc = setupdiskblackholes.setup_disk_blackholes_incl(
+                len(star_to_bh_id_num),
+                stars.at_id_num(star_to_bh_id_num, "orb_a"),
+                star_to_bh_orb_ang_mom,
+                agn_disk.disk_aspect_ratio,
+                random_generator
+            )
+
+            stars_to_bh = stars.copy()
+            stars_to_bh.keep_only(star_to_bh_id_num)
+
+            new_blackholes = AGNBlackHoleArray(
+                unique_id= stars_to_bh.unique_id,
+                mass = stars_to_bh.mass,
+                orb_ecc = stars_to_bh.orb_ecc,
+                orb_arg_periapse = stars_to_bh.orb_arg_periapse,
+                orb_a = stars_to_bh.orb_a,
+                spin = star_to_bh_spin,
+                spin_angle=star_to_bh_spin_angle,
+                orb_ang_mom = star_to_bh_orb_ang_mom,
+                orb_inc = star_to_bh_inc,
+            )
+
+            blackholes_unsort.add_objects(new_blackholes)
+
+            # Remove from stars array
+            stars.remove_all(star_to_bh_id_num)
+
+        pass

@@ -14,7 +14,8 @@ from mcfacts.modules.gas_hardening import BinaryBlackHoleGasHardening
 from mcfacts.modules.gw import BinaryBlackHoleEvolveGW, InnerBlackHoleDynamics
 from mcfacts.modules.merge import ProcessBinaryBlackHoleMergers, ProcessEMRIMergers
 from mcfacts.modules.migration import ProgradeBlackHoleMigration, BinaryBlackHoleMigration
-from mcfacts.objects.actors import InitialObjectReclassification, InnerDiskFilter, FlipRetroProFilter
+from mcfacts.objects.actors import InitialBlackHoleReclassification, InnerDiskFilter, FlipRetroProFilter, \
+    InitialStarReclassification
 from mcfacts.objects.actors.reality_checks import SingleBlackHoleRealityCheck, BinaryBlackHoleRealityCheck
 from mcfacts.objects.agn_object_array import *
 from mcfacts.objects.galaxy import Galaxy
@@ -54,8 +55,12 @@ def main(settings: SettingsManager):
 
         # Create timeline to classify objects created during population
         pre_timeline = SimulationTimeline("Reclassification", timesteps=1, timestep_length=0)
-        pre_timeline.add_timeline_actor(InitialObjectReclassification())
+
+        # Run stars reclassification first, since it can convert stars to bh under certain conditions
+        pre_timeline.add_timeline_actor(InitialStarReclassification())
+        pre_timeline.add_timeline_actor(InitialBlackHoleReclassification())
         pre_timeline.add_timeline_actor(SingleBlackHoleRealityCheck())
+
         galaxy.run(pre_timeline, agn_disk)
 
         # Create timeline to run main simulation

@@ -849,13 +849,15 @@ def circular_singles_encounters_prograde_sweep(
                 num_poss_ints = 0
                 num_encounters = 0
 
+    print(disk_bh_pro_orbs_a)
+
     # Check finite
     assert np.isfinite(disk_bh_pro_orbs_a).all(), \
         "Finite check failed for disk_bh_pro_orbs_a"
     assert np.isfinite(disk_bh_pro_orbs_ecc).all(), \
         "Finite check failed for disk_bh_pro_orbs_ecc"
     assert np.all(disk_bh_pro_orbs_a < disk_radius_outer), \
-        "disk_bh_pro_orbs_a contains values greater than disk_radius_outer"
+        f"disk_bh_pro_orbs_a contains values greater than disk_radius_outer{disk_bh_pro_orbs_a[disk_bh_pro_orbs_a >= disk_radius_outer]}"
     assert np.all(disk_bh_pro_orbs_a > 0), \
         "disk_bh_pro_orbs_a contains values <= 0"
 
