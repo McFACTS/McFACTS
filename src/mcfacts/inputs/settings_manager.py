@@ -59,7 +59,8 @@ defaults = {
     "flag_dynamics_sweep": True,  # Switch to turn on/off sweep function for dynamics functions
     "flag_enable_bondi": False, # Switch between bondi and eddington accretion.
     "bondi_fraction": 1e-5, # Duty cycle / fraction of bondi accretion onto population.
-    "stalling_separation": 0.0,
+    "stalling_separation": 0.0, # Distance in Rg of where binaries will stop hardening due to gas drag (> 0 values are Rg, -1 stalls when the binary period = local sound speed)
+    "gas_hardening_prescription": "baruteau", # Gas hardening prescription (baruteau, stahler)
 
     # Star Parameters
     "flag_add_stars": False,  # Enable or disable stars
