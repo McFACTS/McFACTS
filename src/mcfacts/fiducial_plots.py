@@ -1,3 +1,6 @@
+import sys
+from uuid import UUID
+
 import matplotlib.ticker as mticker
 import numpy as np
 import os
@@ -1113,6 +1116,61 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
     plt.close()
 
 
+def time_vs_freq(settings, figsize, save_dir, lvk):
+    unique_id = lvk["unique_id"]
+
+    unique_unique = []
+
+    inc = []
+    dec = []
+
+    for uid in unique_id:
+        if uid in unique_unique:
+            continue
+        unique_unique.append(uid)
+
+        #time = lvk["time"][lvk["unique_id"] == uid]
+        freq_raw = lvk["gw_freq"][lvk["unique_id"] == uid]
+        sep = lvk["bin_sep"][lvk["unique_id"] == uid]
+
+        trim_freq = []
+
+        for freq, sep in zip(freq_raw, sep):
+            if sep > settings.stalling_separation:
+                continue
+            if np.any(np.isclose(freq, trim_freq, atol=1e-9)):
+                continue
+            trim_freq.append(freq)
+
+        last_freq = sys.float_info.min
+
+        increases = 0
+        decreases = 0
+
+        for f in trim_freq:
+            if f > last_freq:
+                increases += 1
+            else:
+                decreases += 1
+
+            last_freq = f
+
+        inc.append(increases)
+        dec.append(decreases)
+
+    plt.hist(inc, bins=range(1, np.max(inc)), color='b', label='Hardening Encounters')
+    plt.hist(dec, bins=range(1, np.max(dec)), color='r', label='Softening Encounters')
+
+    plt.xlabel('# of Dynamical Encounters')
+    plt.ylabel('# of Binaries')
+    plt.legend()
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    plt.savefig(os.path.join(save_dir, 'time_vs_freq.png'), format='png')
+    plt.close()
+
 def main(settings: SettingsManager):
     plt.style.use("mcfacts.vis.mcfacts_figures")
 
@@ -1157,6 +1215,8 @@ def main(settings: SettingsManager):
     kick_velocity_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, v_kick)
     kick_velocity_vs_chi_eff(settings, figsize, plots_dir, merger_masks, chi_eff, v_kick)
     kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
+
+    time_vs_freq(settings, figsize, plots_dir, lvk)
 
 if __name__ == "__main__":
     main(SettingsManager())

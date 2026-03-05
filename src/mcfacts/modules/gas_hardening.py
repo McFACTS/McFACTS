@@ -191,6 +191,8 @@ def gas_hardening_variable_stalling(mass_1, mass_2, bin_sep, bin_orb_a, disk_sou
     else:
         assert "No gas hardening prescription specified... Available values: (baruteau, stahler)"
 
+    calc_bin_sep = np.maximum(calc_bin_sep, effective_stalling_separation[flag_not_merging])
+
     new_bin_sep = np.zeros(len(mass_1))
     new_bin_sep[~flag_not_merging] = bin_sep[~flag_not_merging]
     new_bin_sep[flag_not_merging] = calc_bin_sep
@@ -207,6 +209,8 @@ def gas_hardening_fixed_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mas
         calc_bin_sep = stahler_drag(mass_1[flag_not_merging], mass_2[flag_not_merging], bin_sep[flag_not_merging], orb_a[flag_not_merging], disk_sound_speed, disk_density, timestep_duration_yr, smbh_mass, r_g_in_meters)
     else:
         assert "No gas hardening prescription specified... Available values: (baruteau, stahler)"
+
+    calc_bin_sep[calc_bin_sep < stalling_separation] = stalling_separation
 
     new_bin_sep = np.zeros(len(mass_1))
     new_bin_sep[~flag_not_merging] = bin_sep[~flag_not_merging]

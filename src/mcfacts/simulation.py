@@ -136,8 +136,8 @@ def main(settings: SettingsManager):
 
         galaxy.run(active_phase_timeline, agn_disk)
 
-        population_cabinet.ignore_check_array("blackholes_merged")
-        population_cabinet.ignore_check_array("blackholes_lvk")
+        population_cabinet.ignore_consistency_check("blackholes_merged")
+        population_cabinet.ignore_consistency_check("blackholes_lvk")
 
         bbh_merged_array = galaxy.settings.bbh_merged_array_name
         bbh_lvk_array = galaxy.settings.bbh_gw_array_name

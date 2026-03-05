@@ -350,7 +350,8 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
             blackholes_gw.consistency_check()
             blackholes_binary.consistency_check()
 
-            filing_cabinet.ignore_check_array(sm.bbh_gw_array_name)
+            filing_cabinet.ignore_consistency_check(sm.bbh_gw_array_name)
+            filing_cabinet.ignore_time_update(sm.bbh_gw_array_name)
             filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, blackholes_gw)
 
         blackholes_binary.gw_freq[~gw_tracked_mask], blackholes_binary.gw_strain[~gw_tracked_mask] = peters.gw_strain_freq_no_prior(

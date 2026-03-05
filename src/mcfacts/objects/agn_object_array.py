@@ -49,6 +49,7 @@ class AGNObjectArray(ABC):
                  gen: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  parent_unique_id: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  parent_unique_id_2: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
+                 time: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  skip_consistency_check: bool = False,
                  **kwargs):
 
@@ -73,6 +74,8 @@ class AGNObjectArray(ABC):
 
         # TODO: One of our modules is passing a float for this value, it should be int. Not game-breaking, but we should ensure type sameness
         self.gen: npt.NDArray[np.int64] = np.full(len(unique_id), int(1), dtype=np.int64) if len(gen) == 0 else gen
+
+        self.time = np.full(len(unique_id), 0., dtype=np.float64) if len(time) == 0 else time
 
         self.skip_consistency_check = skip_consistency_check
 
@@ -235,7 +238,8 @@ class AGNObjectArray(ABC):
             "migration_velocity": self.migration_velocity,
             "parent_unique_id": self.parent_unique_id,
             "parent_unique_id_2": self.parent_unique_id_2,
-            "gen": self.gen
+            "gen": self.gen,
+            "time": self.time
         }
 
     @abstractmethod
@@ -256,6 +260,7 @@ class AGNObjectArray(ABC):
         self.migration_velocity = np.concatenate((self.migration_velocity, agn_object_array.migration_velocity))
         self.parent_unique_id = np.concatenate((self.parent_unique_id, agn_object_array.parent_unique_id))
         self.parent_unique_id_2 = np.concatenate((self.parent_unique_id_2, agn_object_array.parent_unique_id_2))
+        self.time = np.concatenate((self.time, agn_object_array.time))
 
     def __len__(self):
         return len(self.unique_id)
@@ -752,6 +757,8 @@ class FilingCabinet:
         self.agn_objects: dict[str, AGNObjectArray] = dict()
         self.everything_else: dict[str, Any] = dict()
         self.ignore_check: list[str] = list()
+        self.ignore_time: list[str] = list()
+
 
     def list_occurrence(self, unique_id: uuid.UUID) -> list[str]:
         occurrence: list[str] = list()
@@ -766,6 +773,7 @@ class FilingCabinet:
 
         return occurrence
 
+
     def consistency_check(self):
         for key, value in self.agn_objects.items():
             if key in self.ignore_check:
@@ -777,15 +785,37 @@ class FilingCabinet:
                 if len(occurrence) > 1:
                     raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. {entry} Found in: {occurrence}")
 
-    def ignore_check_array(self, name: str):
+
+    def update_time(self, new_time: float):
+        for key, value in self.agn_objects.items():
+            if key in self.ignore_time:
+                continue
+
+            value.time = np.full(len(value.unique_id), new_time, dtype=np.float64)
+
+
+    def ignore_consistency_check(self, name: str):
         if name in self.ignore_check:
             return
 
         self.ignore_check.append(name)
 
-    def unignore_check_aray(self, name: str):
+    def unignore_consistency_check(self, name: str):
         if name in self.ignore_check:
             self.ignore_check.remove(name)
+
+
+    def ignore_time_update(self, name: str):
+        if name in self.ignore_time:
+            return
+
+        self.ignore_time.append(name)
+
+
+    def unignore_time_update(self, name: str):
+        if name in self.ignore_time:
+            self.ignore_time.remove(name)
+
 
     def create_or_append_array(self, name: str, agn_object_array: AGNObjectArray):
         if len(agn_object_array) == 0:
@@ -799,14 +829,15 @@ class FilingCabinet:
         else:
             self.set_array(name, agn_object_array)
 
+
     def set_array(self, name: str, agn_object_array: AGNObjectArray):
         if not isinstance(agn_object_array, AGNObjectArray):
             raise TypeError(f"The filing cabinet does not except type of f{type(agn_object_array).__name__}")
 
         self.agn_objects[name] = agn_object_array
 
-    T = TypeVar("T", bound=AGNObjectArray)
 
+    T = TypeVar("T", bound=AGNObjectArray)
     def get_array(self, name: str, agn_object_array_class: Type[T] = AGNObjectArray, create_empty_if_missing=False) -> T:
         if create_empty_if_missing and name not in self.agn_objects.keys():
             empty_agn_object = agn_object_array_class()
@@ -822,8 +853,8 @@ class FilingCabinet:
 
         return attribute_array
 
-    U = TypeVar("U")
 
+    U = TypeVar("U")
     def get_value(self, name: str, default_value: U = None) -> U:
         if default_value is not None:
             self.set_value(name, default_value)
@@ -835,11 +866,14 @@ class FilingCabinet:
 
         return value
 
+
     def set_value(self, name: str, value: Any):
         self.everything_else[name] = value
 
+
     def __contains__(self, item):
         return item in self.agn_objects.keys() or item in self.everything_else.keys()
+
 
     def __len__(self):
         return len(self.agn_objects) + len(self.everything_else)

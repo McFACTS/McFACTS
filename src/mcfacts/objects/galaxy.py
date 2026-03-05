@@ -200,6 +200,8 @@ class Galaxy:
             self.log("---------------------")
             self.log(f"Timestep: {timestep}, Time passed: {time_passed}", False)
 
+            self.filing_cabinet.update_time(time_passed)
+
             for actor in active_timeline.get_ordered_actor_list():
 
                 if actor.settings is None:
