@@ -93,7 +93,7 @@ def analytical_kick_velocity(
         "Finite check failure: v_kick"
     return v_kick
 
-def analytical_kick_velocity_opt(
+def analytical_kick_velocity_optimized(
         mass_1,
         mass_2,
         spin_1,
