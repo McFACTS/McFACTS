@@ -800,7 +800,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         else:
             bh_spin_merged = bh_spin_merged
 
-        bh_v_kick = analytical_velocity.analytical_kick_velocity(
+        bh_v_kick = analytical_velocity.analytical_kick_velocity_optimized(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),

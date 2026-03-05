@@ -6,7 +6,7 @@ import pandas as pd
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.analytical_velocity import (
     analytical_kick_velocity,
-    analytical_kick_velocity_opt,
+    analytical_kick_velocity_optimized,
 )
 
 SEED = 483445
@@ -42,7 +42,7 @@ def test_analytical_velocity(
     )
 
     rng.seed(seed=SEED)
-    optimized = analytical_kick_velocity_opt(
+    optimized = analytical_kick_velocity_optimized(
         mass_1, mass_2, spin_1, spin_2, spin_angle_1, spin_angle_2
     )
 
