@@ -278,13 +278,15 @@ class AGNBlackHoleArray(AGNObjectArray):
                  progenitor_unique_id: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
                  gw_freq: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  gw_strain: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
+                 gw_char_strain: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  **kwargs):
 
 
         self.progenitor_unique_id =  np.full(len(kwargs.get("unique_id")), uuid.UUID(int=0), dtype=uuid.UUID) if len(progenitor_unique_id) == 0 else progenitor_unique_id
 
         self.gw_freq: npt.NDArray[np.float64] = gw_freq if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float64)
-        self.gw_strain: npt.NDArray[np.float64] = gw_strain if len(gw_freq) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float64)
+        self.gw_strain: npt.NDArray[np.float64] = gw_strain if len(gw_strain) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float64)
+        self.gw_char_strain: npt.NDArray[np.float64] = gw_char_strain if len(gw_char_strain) > 0 else np.full(len(kwargs.get("unique_id")), -1., dtype=np.float64)
 
         # Call init last so consistency check passes.
         super().__init__(**kwargs)
@@ -296,6 +298,7 @@ class AGNBlackHoleArray(AGNObjectArray):
         super_list["progenitor_unique_id"] = self.progenitor_unique_id
         super_list["gw_freq"] = self.gw_freq
         super_list["gw_strain"] = self.gw_strain
+        super_list["gw_char_strain"] = self.gw_char_strain
 
         return super_list
 
@@ -309,6 +312,7 @@ class AGNBlackHoleArray(AGNObjectArray):
         self.progenitor_unique_id = np.concatenate((self.progenitor_unique_id, agn_object_array.progenitor_unique_id))
         self.gw_freq = np.concatenate((self.gw_freq, agn_object_array.gw_freq))
         self.gw_strain = np.concatenate((self.gw_strain, agn_object_array.gw_strain))
+        self.gw_char_strain = np.concatenate((self.gw_char_strain, agn_object_array.gw_char_strain))
 
 
 class AGNBinaryBlackHoleArray(AGNBlackHoleArray):

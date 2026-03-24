@@ -1330,17 +1330,19 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
 
         blackholes_merged.bin_sep = 2 * (blackholes_merged.mass + blackholes_merged.mass_2) / sm.smbh_mass
 
-        bbh_gw_freq, bbh_gw_strain = peters.gw_strain_freq_no_prior(
-            blackholes_merged.mass,
-            blackholes_merged.mass_2,
-            blackholes_merged.bin_sep,
-            sm.smbh_mass,
-            sm.agn_redshift,
-            final_lvk=True
-        )
+        char_strain, gw_strain, gw_freq = peters.gw_strain_freq(mass_1=blackholes_merged.mass,
+                                                    mass_2=blackholes_merged.mass_2,
+                                                    obj_sep=blackholes_merged.bin_sep,
+                                                    timestep_duration_yr=-1,
+                                                    old_gw_freq=-1,
+                                                    smbh_mass=sm.smbh_mass,
+                                                    agn_redshift=sm.agn_redshift,
+                                                    flag_include_old_gw_freq=0)
 
-        blackholes_merged.gw_freq = bbh_gw_freq
-        blackholes_merged.gw_strain = bbh_gw_strain
+
+        blackholes_merged.gw_freq = gw_freq
+        blackholes_merged.gw_strain = gw_strain
+        blackholes_merged.gw_char_strain = char_strain
 
         blackholes_merged.consistency_check()
 

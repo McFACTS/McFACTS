@@ -146,7 +146,9 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
     # char amplitude = strain_factor*h0
     #                = sqrt(freq^2/(dfreq/dt)/8)*h0
     if (flag_include_old_gw_freq == 1):
-        delta_nu = np.abs(old_gw_freq - nu_gw)
+        old_gw_freq_units = old_gw_freq * u.Hz
+
+        delta_nu = np.abs(old_gw_freq_units - nu_gw)
         delta_nu_delta_timestep = delta_nu/timestep_units
         nu_squared = (nu_gw * nu_gw)
         nu_factor = (nu_gw)**(-5./6.)
@@ -204,51 +206,3 @@ def gw_strain_freq_no_prior(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_reds
                                         flag_include_old_gw_freq=0)
 
     return nu_gw, strain if final_lvk else char_strain
-
-
-def gw_strain_freq_prior(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_yr, old_bbh_freq, agn_redshift):
-    """Wrapper function to calculate GW strain and frequency for BBH at the end of each timestep
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black hole parameters
-    bh_binary_id_num_gw : numpy.ndarray
-        ID numbers of binaries with separations below :math:`mathtt_{min_bbh_gw_separation}` with :obj:`float` type
-    smbh_mass : float
-        Mass [M_sun] of the SMBH
-    timestep_duration_yr : float
-        Length of timestep [yr]
-    old_bbh_freq : numpy.ndarray
-        Previous GW frequency [Hz] with :obj:`float` type
-    agn_redshift : float
-        Redshift [unitless] of the AGN, used to set d_obs
-
-    Returns
-    -------
-    char_strain : numpy.ndarray
-        Characteristic strain [unitless] with :obj:`float` type
-    nu_gw : numpy.ndarray
-        GW frequency [Hz] with :obj:`float` type
-    """
-
-    num_tracked = bin_mass_1.size
-
-    old_bbh_freq = old_bbh_freq * u.Hz
-
-    # while (num_tracked > len(old_bbh_freq)):
-    #     old_bbh_freq = np.append(old_bbh_freq, (9.e-7) * u.Hz)
-    #
-    # while (num_tracked < len(old_bbh_freq)):
-    #     old_bbh_freq = np.delete(old_bbh_freq, 0)
-
-    char_strain, strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
-                                        mass_2=bin_mass_2,
-                                        obj_sep=bin_sep,
-                                        timestep_duration_yr=timestep_duration_yr,
-                                        old_gw_freq=old_bbh_freq,
-                                        smbh_mass=smbh_mass,
-                                        agn_redshift=agn_redshift,
-                                        flag_include_old_gw_freq=1)
-
-    return (char_strain, nu_gw)

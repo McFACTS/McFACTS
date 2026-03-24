@@ -103,43 +103,6 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
     return sep_initial * u.m
 
 
-def evolve_emri_gw(mass, orb_a, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift):
-    """Evaluates the EMRI gravitational wave frequency and strain at the end of each timestep_duration_yr
-
-    Parameters
-    ----------
-    blackholes_inner_disk : AGNBlackHole
-        Parameters of black holes in the inner disk
-    timestep_duration_yr : float
-        Length of timestep [yr]
-    old_gw_freq : numpy.ndarray
-        Previous GW frequency [Hz] with :obj:`float` type
-    smbh_mass : float
-        Mass [M_sun] of the SMBH
-    agn_redshift : float
-        Redshift [unitless] of the AGN
-    """
-
-    old_gw_freq = old_gw_freq * u.Hz
-
-    # If number of EMRIs has grown since last timestep_duration_yr, add a new component to old_gw_freq to carry out dnu/dt calculation
-    # while (blackholes_inner_disk.num < len(old_gw_freq)):
-    #     old_gw_freq = np.delete(old_gw_freq, 0)
-    # while blackholes_inner_disk.num > len(old_gw_freq):
-    #     old_gw_freq = np.append(old_gw_freq, (9.e-7) * u.Hz)
-
-    char_strain, strain, nu_gw = peters.gw_strain_freq(mass_1=smbh_mass,
-                                        mass_2=mass,
-                                        obj_sep=orb_a,
-                                        timestep_duration_yr=timestep_duration_yr,
-                                        old_gw_freq=old_gw_freq,
-                                        smbh_mass=smbh_mass,
-                                        agn_redshift=agn_redshift,
-                                        flag_include_old_gw_freq=1)
-
-    return char_strain, nu_gw
-
-
 def normalize_tgw(smbh_mass, inner_disk_outer_radius, r_g_in_meters):
     """Normalizes Gravitational wave timescale.
 
@@ -331,18 +294,19 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
         gw_tracked_ids = blackholes_binary.unique_id[gw_tracked_mask]
 
         if gw_tracked_ids.size > 0:
-            bbh_gw_strain, bbh_gw_freq = peters.gw_strain_freq_prior(
-                blackholes_binary.get_attribute("mass", gw_tracked_ids),
-                blackholes_binary.get_attribute("mass_2", gw_tracked_ids),
-                blackholes_binary.get_attribute("bin_sep", gw_tracked_ids),
-                sm.smbh_mass,
-                timestep_length,
-                blackholes_binary.get_attribute("gw_freq", gw_tracked_ids), # old_bbh_gw_freq
-                sm.agn_redshift
-            )
+            bbh_char_strain, bbh_gw_strain, bbh_gw_freq = peters.gw_strain_freq(mass_1=blackholes_binary.get_attribute("mass", gw_tracked_ids),
+                                                        mass_2=blackholes_binary.get_attribute("mass_2", gw_tracked_ids),
+                                                        obj_sep=blackholes_binary.get_attribute("bin_sep", gw_tracked_ids),
+                                                        timestep_duration_yr=timestep_length,
+                                                        old_gw_freq=blackholes_binary.get_attribute("gw_freq", gw_tracked_ids),
+                                                        smbh_mass=sm.smbh_mass,
+                                                        agn_redshift=sm.agn_redshift,
+                                                        flag_include_old_gw_freq=1)
+
 
             blackholes_binary.gw_freq[gw_tracked_mask] = bbh_gw_freq
             blackholes_binary.gw_strain[gw_tracked_mask] = bbh_gw_strain
+            blackholes_binary.gw_char_strain[gw_tracked_mask] = bbh_char_strain
 
             blackholes_gw = blackholes_binary.copy()
             blackholes_gw.keep_only(gw_tracked_ids)
@@ -354,13 +318,17 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
             filing_cabinet.ignore_time_update(sm.bbh_gw_array_name)
             filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, blackholes_gw)
 
-        blackholes_binary.gw_freq[~gw_tracked_mask], blackholes_binary.gw_strain[~gw_tracked_mask] = peters.gw_strain_freq_no_prior(
-            blackholes_binary.mass[~gw_tracked_mask],
-            blackholes_binary.mass_2[~gw_tracked_mask],
-            blackholes_binary.bin_sep[~gw_tracked_mask],
-            sm.smbh_mass,
-            sm.agn_redshift
-        )
+        blackholes_binary.gw_char_strain[~gw_tracked_mask], blackholes_binary.gw_freq[~gw_tracked_mask], blackholes_binary.gw_strain[~gw_tracked_mask] = (
+            peters.gw_strain_freq(
+                mass_1=blackholes_binary.mass[~gw_tracked_mask],
+                mass_2=blackholes_binary.mass_2[~gw_tracked_mask],
+                obj_sep=blackholes_binary.bin_sep[~gw_tracked_mask],
+                timestep_duration_yr=-1,
+                old_gw_freq=-1,
+                smbh_mass=sm.smbh_mass,
+                agn_redshift=sm.agn_redshift,
+                flag_include_old_gw_freq=0)
+            )
 
         blackholes_binary.bin_sep, blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging \
             = gw_hardening(blackholes_binary.mass, blackholes_binary.mass_2,
@@ -400,17 +368,20 @@ class InnerBlackHoleDynamics(TimelineActor):
         zero_strain_mask = inner_bh.gw_strain == 0
         inner_bh.gw_strain[zero_strain_mask] = 9.e-7
 
-        emri_gw_strain, emri_gw_freq = evolve_emri_gw(
-            inner_bh.mass,
-            inner_bh.orb_a,
-            timestep_length,
-            inner_bh.gw_freq,
-            sm.smbh_mass,
-            sm.agn_redshift
+        char_strain, strain, nu_gw = peters.gw_strain_freq(
+            mass_1=sm.smbh_mass,
+           mass_2=inner_bh.mass,
+           obj_sep=inner_bh.orb_a,
+           timestep_duration_yr=timestep_length,
+           old_gw_freq=inner_bh.gw_freq,
+           smbh_mass=sm.smbh_mass,
+           agn_redshift=sm.agn_redshift,
+           flag_include_old_gw_freq=1
         )
 
-        inner_bh.gw_freq = emri_gw_freq
-        inner_bh.gw_strain = emri_gw_strain
+        inner_bh.gw_freq = nu_gw
+        inner_bh.gw_strain = strain
+        inner_bh.gw_char_strain = char_strain
 
 
 
