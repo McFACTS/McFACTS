@@ -1006,12 +1006,34 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
                     color='tab:orange',
                     zorder=0)
 
-    lisa_axs.scatter(emri["gw_freq"], emri["gw_strain"],
+    # linked = {}
+    #
+    # for uid, freq, strain in zip(lvk["unique_id"], lvk["gw_freq"], lvk["gw_char_strain"]):
+    #
+    #     linker = linked.get(str(uid), [])
+    #
+    #     linker.append((freq, strain))
+    #     linked[str(uid)] = linker
+    #
+    # count = 0
+    #
+    # for uid, links in linked.items():
+    #     count += 1
+    #
+    #     if count % 50 != 0:
+    #         continue
+    #
+    #     rfreq, rstrain = zip(*links)
+    #     freq = list(rfreq)
+    #     strain = list(rstrain)
+    #     lisa_axs.plot(freq, strain, alpha=1)
+
+    lisa_axs.scatter(emri["gw_freq"], emri["gw_char_strain"],
                s=0.4 * styles.markersize_gen1,
                alpha=styles.markeralpha_gen1
                )
 
-    lisa_axs.scatter(lvk["gw_freq"][lvk_g1_mask], lvk["gw_strain"][lvk_g1_mask],
+    lisa_axs.scatter(lvk["gw_freq"][lvk_g1_mask], lvk["gw_char_strain"][lvk_g1_mask],
                    s=0.4 * styles.markersize_gen1,
                    marker=styles.marker_gen1,
                    edgecolor=styles.color_gen1,
@@ -1020,7 +1042,7 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
                    label='1g-1g'
                    )
 
-    lisa_axs.scatter(lvk["gw_freq"][lvk_g2_mask], lvk["gw_strain"][lvk_g2_mask],
+    lisa_axs.scatter(lvk["gw_freq"][lvk_g2_mask], lvk["gw_char_strain"][lvk_g2_mask],
                    s=0.4 * styles.markersize_gen2,
                    marker=styles.marker_gen2,
                    edgecolor=styles.color_gen2,
@@ -1029,7 +1051,7 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
                    label='2g-1g or 2g-2g'
                    )
 
-    lisa_axs.scatter(lvk["gw_freq"][lvk_gX_mask], lvk["gw_strain"][lvk_gX_mask],
+    lisa_axs.scatter(lvk["gw_freq"][lvk_gX_mask], lvk["gw_char_strain"][lvk_gX_mask],
                    s=0.4 * styles.markersize_genX,
                    marker=styles.marker_genX,
                    edgecolor=styles.color_genX,
