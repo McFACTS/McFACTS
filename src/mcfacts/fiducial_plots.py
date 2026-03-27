@@ -1020,13 +1020,20 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
     # for uid, links in linked.items():
     #     count += 1
     #
-    #     if count % 50 != 0:
+    #     if count % 10 != 0:
     #         continue
     #
     #     rfreq, rstrain = zip(*links)
     #     freq = list(rfreq)
     #     strain = list(rstrain)
-    #     lisa_axs.plot(freq, strain, alpha=1)
+    #
+    #     for i in range(len(freq) - 1):
+    #         lisa_axs.annotate(
+    #             '',
+    #             xy=(freq[i+1], strain[i+1]),
+    #             xytext=(freq[i], strain[i]),
+    #             arrowprops=dict(arrowstyle="<-", color='black', alpha=0.7, lw=(i / (len(freq) - 1)) + 0.2)  # Customize arrow properties
+    #         )
 
     lisa_axs.scatter(emri["gw_freq"], emri["gw_char_strain"],
                s=0.4 * styles.markersize_gen1,

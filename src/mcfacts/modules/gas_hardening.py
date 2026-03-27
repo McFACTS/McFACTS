@@ -15,111 +15,6 @@ from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import peters, checks, unit_conversion
 
-
-def bin_harden_baruteau(bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging, bin_time_merged, smbh_mass, timestep_duration_yr,
-                        time_gw_normalization, time_passed, r_g_in_meters):
-    """Harden black hole binaries using Baruteau+11 prescription
-
-    Use Baruteau+11 prescription to harden a pre-existing binary.
-    For every 1000 orbits of binary around its center of mass, the
-    separation (between binary components) is halved.
-
-    Parameters
-    ----------
-    blackholes_binary : AGNBinaryBlackHole
-        Binary black hole parameters
-    smbh_mass : float
-        Mass [M_sun] of the SMBH
-    timestep_duration_yr : float
-        Length of timestep [yr]
-    time_gw_normalization : float
-        A normalization for GW decay timescale [s], set by `smbh_mass` & normalized for
-        a binary total mass of 10 solar masses.
-    bin_index : int
-        Count of number of binaries
-    time_passed : float
-        Time elapsed [yr] since beginning of simulation.
-
-    Returns
-    -------
-    blackholes_binary : AGNBinaryBlackHole
-        Black hole binaries with time_to_merger_gw, bin_sep, flag_merging, and time_merged updated
-    """
-
-    # 1. Find active binaries
-    # 2. Find number of binary orbits around its center of mass within the timestep
-    # 3. For every 10^3 orbits, halve the binary separation.
-
-    # Only interested in BH that have not merged
-    idx_non_mergers = np.where(bin_flag_merging >= 0)[0]
-
-    # If all binaries have merged then nothing to do
-    if (idx_non_mergers.shape[0] == 0):
-        return bin_sep, bin_flag_merging, bin_time_merged, bin_time_to_merger_gw
-
-    # Set up variables
-    mass_binary = bin_mass_1[idx_non_mergers] + bin_mass_2[idx_non_mergers]
-    bin_sep_nomerge = bin_sep[idx_non_mergers]
-    bin_ecc_nomerge = bin_ecc[idx_non_mergers]
-
-    # Find eccentricity factor (1-e_b^2)^7/2
-    ecc_factor_1 = np.power(1 - np.power(bin_ecc_nomerge, 2), 3.5)
-    # and eccentricity factor [1+(73/24)e_b^2+(37/96)e_b^4]
-    ecc_factor_2 = 1 + ((73/24) * np.power(bin_ecc_nomerge, 2)) + ((37/96) * np.power(bin_ecc_nomerge, 4))
-    # overall ecc factor = ecc_factor_1/ecc_factor_2
-    ecc_factor = ecc_factor_1/ecc_factor_2
-
-    # Binary period = 2pi*sqrt((delta_r)^3/GM_bin)
-    # or T_orb = 10^7s*(1r_g/m_smmbh=10^8Msun)^(3/2) *(M_bin/10Msun)^(-1/2) = 0.32yrs
-    bin_period = 0.32 * np.power(bin_sep_nomerge, 1.5) * np.power(smbh_mass/1.e8, 1.5) * np.power(mass_binary/10.0, -0.5)
-
-    # Find how many binary orbits in timestep. Binary separation is halved for every 10^3 orbits.
-    num_orbits_in_timestep = np.zeros(len(bin_period))
-    num_orbits_in_timestep[bin_period > 0] = timestep_duration_yr / bin_period[bin_period > 0]
-    scaled_num_orbits = num_orbits_in_timestep / 1000.0
-
-    # Timescale for binary merger via GW emission alone in seconds, scaled to bin parameters
-    sep_crit = (unit_conversion.r_schwarzschild_of_m(bin_mass_1[idx_non_mergers]) +
-                unit_conversion.r_schwarzschild_of_m(bin_mass_2[idx_non_mergers]))
-    time_to_merger_gw = (peters.time_of_orbital_shrinkage(
-        bin_mass_1[idx_non_mergers] * u.Msun,
-        bin_mass_2[idx_non_mergers] * u.Msun,
-        unit_conversion.si_from_r_g(smbh_mass, bin_sep_nomerge, r_g_defined=r_g_in_meters),
-        sep_final=sep_crit
-    ) * ecc_factor).value
-
-    # Finite check
-    assert np.isfinite(time_to_merger_gw).all(),\
-        "Finite check failure: time_to_merger_gw"
-    bin_time_to_merger_gw[idx_non_mergers] = time_to_merger_gw
-
-    # Create mask for things that WILL merge in this timestep
-    # need timestep_duration_yr in seconds
-    timestep_duration_sec = (timestep_duration_yr * u.year).to("second").value
-    merge_mask = time_to_merger_gw <= timestep_duration_sec
-
-    # Binary will not merge in this timestep
-    # new bin_sep according to Baruteau+11 prescription
-    bin_sep_nomerge[~merge_mask] = bin_sep_nomerge[~merge_mask] * (0.5 ** scaled_num_orbits[~merge_mask])
-    bin_sep[idx_non_mergers[~merge_mask]] = bin_sep_nomerge[~merge_mask]
-    # Finite check
-    assert np.isfinite(bin_sep_nomerge).all(),\
-        "Finite check failure: bin_sep_nomerge"
-
-    # Otherwise binary will merge in this timestep
-    # Update flag_merging to -2 and time_merged to current time
-    bin_flag_merging[idx_non_mergers[merge_mask]] = -2
-    bin_time_merged[idx_non_mergers[merge_mask]] = time_passed
-    # Finite check
-    assert np.isfinite(bin_flag_merging).all(),\
-        "Finite check failure: bin_flag_merging"
-    # Finite check
-    assert np.isfinite(bin_time_merged).all(),\
-        "Finite check failure: bin_time_merged"
-
-    return (bin_sep, bin_flag_merging, bin_time_merged, bin_time_to_merger_gw)
-
-
 def baruteau_drag(mass_1, mass_2, bin_sep, smbh_mass, timestep_duration_yr):
     binary_mass = mass_1 + mass_2
     bin_period = 0.32 * np.power(bin_sep, 1.5) * np.power(smbh_mass / 1.e8, 1.5) * np.power(
@@ -159,6 +54,143 @@ def stahler_drag(mass_1, mass_2, bin_sep, orb_a, disk_sound_speed, disk_density,
     return new_bin_sep
 
 
+def primary_drag_force_components_base(mach_number):
+    radial_component = 0.3 * (mach_number ** 2)
+    azimuthal_component = np.log(10 / ((0.11 * mach_number) + 1.65))
+
+    if mach_number < 6.2:
+        radial_component = 4 + (mach_number ** 2) * (np.e ** -(mach_number - 7)) * np.sin(((mach_number - 4.4) / 4)) / 5
+
+    if 1.1 <= mach_number < 4.4:
+        radial_component = 0.5 * np.log(9.33 * (mach_number ** 2) * (mach_number ** 2 - 0.95))
+    if 1.0 <= mach_number < 4.4:
+        azimuthal_component = np.log(3300 * ((mach_number - 0.71) ** 5.72) * (mach_number ** -9.58))
+
+    if mach_number < 1.1:
+        radial_component = (mach_number ** 2) * (10 ** ((3.51 * mach_number) - 4.22))
+    if mach_number < 1.0:
+        azimuthal_component = 0.7706 * np.log(
+            (1 + mach_number) / (1.0004 - 0.9185 * mach_number)) - 1.4703 * mach_number
+
+    if mach_number <= 0.0523352:
+        azimuthal_component = 0.0
+
+    return radial_component, azimuthal_component
+
+
+def secondary_drag_force_components_base(mach_number):
+    radial_component = 0.56 - (0.027 * (mach_number + ((mach_number - 6) ** -1)))
+    azimuthal_component = -0.13 + 0.07 * np.arctan((5 * mach_number) - 15)
+
+    if 2.97 <= mach_number < 6.2:
+        radial_component = 0.76 - (0.08 * (mach_number + ((mach_number - 2.76) ** -1)))
+
+    if mach_number < 2.97:
+        radial_component = 0.5 - (0.43 * (1 - np.cosh(2.2 * mach_number) ** -0.36))
+        azimuthal_component = -0.022 * (10 - mach_number) * np.tanh(3 * mach_number / 2)
+
+    radial_component *= mach_number ** 2
+    azimuthal_component *= mach_number ** 2
+
+    return radial_component, azimuthal_component
+
+
+def drag_forces(mass, velocity, density, sound_speed, func_drag_force_components):
+    mach_number = velocity / sound_speed
+
+    drag_force_components = func_drag_force_components(mach_number.value)
+    force_component = (4 * np.pi * density) * (((const.G * mass) / velocity) ** 2)
+
+    return (-force_component * drag_force_components[0]), (-force_component * drag_force_components[1])
+
+
+def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound_speed, disk_density, timestep_length, smbh_mass):
+    # Return early if there are no binaries
+    if len(mass_1) == 0:
+        return bin_sep
+
+    # Define the drag force methods to allow for numpy array operations
+    primary_drag_force_components = np.vectorize(primary_drag_force_components_base)
+    secondary_drag_force_components = np.vectorize(secondary_drag_force_components_base)
+
+    # Mass Ratio
+    q = np.minimum(mass_1, mass_2) / np.maximum(mass_1, mass_2)
+
+    # Convert binary separation to si units
+    si_unit_bin_sep = unit_conversion.si_from_r_g(smbh_mass, bin_sep)
+
+    # Add units to mass and calc total mass
+    unit_mass_1 = (mass_1 * u.M_sun).si
+    unit_mass_2 = (mass_2 * u.M_sun).si
+    total_mass = unit_mass_1 + unit_mass_2
+
+    # Get the local sound speed and density at the binary's location in the disk
+    sound_speed = disk_sound_speed(bin_orb_a) * (u.m / u.s)
+    density = disk_density(bin_orb_a) * (u.kg / u.m ** 3)
+
+    # Size of sub steps (in years) to take within the simulation timestep
+    # Need to take substeps since analytical function can run away under large timesteps
+    sub_step_size = 100 * u.yr
+    sub_steps = (timestep_length * u.yr) / sub_step_size
+
+    # Merging flag might be stale, so lets run a contact check just incase
+    _, flag_merging = checks.bin_contact_check(
+        mass_1,
+        mass_2,
+        bin_sep,
+        flag_merging,
+        smbh_mass,
+    )
+
+    # Loop over the number of sub-timesteps
+    # TODO: Possible implementation for system handling sub-timesteps for multiple modules
+    for n in range(int(sub_steps.value)):
+        # Turn our merging flag into a mask
+        not_merging = flag_merging >= 0
+
+        # Find the semi-major axis of each binary component to the center of mass based on mass ratio
+        sep_1 = si_unit_bin_sep[not_merging] / ((1 / q[not_merging]) + 1)
+        sep_2 = si_unit_bin_sep[not_merging] / (q[not_merging] + 1)
+
+        # Find the Keplerian orbital velocity for w.r.t. the center of mass for each binary component
+        orb_vel_1 = np.sqrt((const.G * total_mass[not_merging] / sep_1))
+        orb_vel_2 = np.sqrt((const.G * total_mass[not_merging] / sep_2))
+
+        # Using Kim+Kim+Sánchez-Salcedo semi-analytical model for double peturbers,
+        # find the drag force acting on each component due to the tails of the component and the companion
+        prime_df_1 = drag_forces(unit_mass_1[not_merging], orb_vel_1, density[not_merging], sound_speed[not_merging], primary_drag_force_components)
+        second_df_1 = drag_forces(unit_mass_2[not_merging], orb_vel_2, density[not_merging], sound_speed[not_merging], secondary_drag_force_components)
+
+        prime_df_2 = drag_forces(unit_mass_2[not_merging], orb_vel_2, density[not_merging], sound_speed[not_merging], primary_drag_force_components)
+        second_df_2 = drag_forces(unit_mass_1[not_merging], orb_vel_1, density[not_merging], sound_speed[not_merging], secondary_drag_force_components)
+
+        # Find the acceleration on each component using the force in the phi direction
+        accel_phi_1 = (prime_df_1[1] + second_df_1[1]) / unit_mass_1[not_merging]
+        accel_phi_2 = (prime_df_2[1] + second_df_2[1]) / unit_mass_2[not_merging]
+
+        # Calculate a new orbital velocity for each component, change of velocity over substep
+        new_orb_vel_1 = orb_vel_1 + (accel_phi_1 * (sub_step_size.to(u.s)))
+        new_orb_vel_2 = orb_vel_2 + (accel_phi_2 * (sub_step_size.to(u.s)))
+
+        # Find the new separations corresponding to the new orbital velocities
+        new_sep_1 = ((const.G * total_mass[not_merging]) / (new_orb_vel_1 ** 2))
+        new_sep_2 = ((const.G * total_mass[not_merging]) / (new_orb_vel_2 ** 2))
+
+        # Add the component separations back together
+        si_unit_bin_sep[not_merging] = new_sep_1 + new_sep_2
+
+        # Check if any binaries would merge, if so update our flag_merging array so they don't get evolved in the next substep
+        merged_bin_sep, flag_merging = checks.bin_contact_check(
+            mass_1,
+            mass_2,
+            si_unit_bin_sep.value,
+            flag_merging,
+            smbh_mass,
+        )
+
+    return unit_conversion.r_g_from_units(smbh_mass, si_unit_bin_sep).value
+
+
 def gas_hardening_no_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mass, gas_hardening_prescription, orb_a, disk_sound_speed, disk_density, timestep_duration_yr, r_g_in_meters):
     flag_not_merging = np.array([(flag_merging[i] >= 0) for i in range(len(mass_1))], dtype=bool)
 
@@ -166,8 +198,10 @@ def gas_hardening_no_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mass, 
         calc_bin_sep = baruteau_drag(mass_1[flag_not_merging], mass_2[flag_not_merging], bin_sep[flag_not_merging], smbh_mass, timestep_duration_yr)
     elif gas_hardening_prescription == "stahler":
         calc_bin_sep = stahler_drag(mass_1[flag_not_merging], mass_2[flag_not_merging], bin_sep[flag_not_merging], orb_a[flag_not_merging], disk_sound_speed, disk_density, timestep_duration_yr, smbh_mass, r_g_in_meters)
+    elif gas_hardening_prescription == "analytical":
+        calc_bin_sep = analytical_drag(mass_1[flag_not_merging], mass_2[flag_not_merging], bin_sep[flag_not_merging], orb_a[flag_not_merging], flag_merging[flag_not_merging], disk_sound_speed, disk_density, timestep_duration_yr, smbh_mass)
     else:
-        assert "No gas hardening prescription specified... Available values: (baruteau, stahler)"
+        assert False, "Incorrect gas hardening prescription specified... Available values: (baruteau, stahler, analytical)"
 
     new_bin_sep = np.zeros(len(mass_1))
     new_bin_sep[~flag_not_merging] = bin_sep[~flag_not_merging]
@@ -189,7 +223,7 @@ def gas_hardening_variable_stalling(mass_1, mass_2, bin_sep, bin_orb_a, disk_sou
     elif gas_hardening_prescription == "stahler":
         calc_bin_sep = stahler_drag(mass_1[flag_not_merging], mass_2[flag_not_merging], bin_sep[flag_not_merging], bin_orb_a[flag_not_merging], disk_sound_speed, disk_density, timestep_duration_yr, smbh_mass, r_g_in_meters)
     else:
-        assert "No gas hardening prescription specified... Available values: (baruteau, stahler)"
+        assert False, "Incorrect gas hardening prescription specified... Available values: (baruteau, stahler)"
 
     calc_bin_sep = np.maximum(calc_bin_sep, effective_stalling_separation[flag_not_merging])
 
@@ -208,7 +242,7 @@ def gas_hardening_fixed_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mas
     elif gas_hardening_prescription == "stahler":
         calc_bin_sep = stahler_drag(mass_1[flag_not_merging], mass_2[flag_not_merging], bin_sep[flag_not_merging], orb_a[flag_not_merging], disk_sound_speed, disk_density, timestep_duration_yr, smbh_mass, r_g_in_meters)
     else:
-        assert "No gas hardening prescription specified... Available values: (baruteau, stahler)"
+        assert False, "Incorrect gas hardening prescription specified... Available values: (baruteau, stahler)"
 
     calc_bin_sep[calc_bin_sep < stalling_separation] = stalling_separation
 
