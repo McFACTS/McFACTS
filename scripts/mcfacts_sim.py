@@ -254,8 +254,11 @@ def main():
 
     #Load up the sample of BH that we want to draw from
     #Usually in ../recipes/output_mergers_quiescence.dat' or equivalent file.
-    file_path_relative = "../recipes/output_mergers_quiet1.dat"
-    sample_bh = np.loadtxt(os.path.join(opts.work_directory,file_path_relative), skiprows=2)
+    if opts.flag_quiescence == 1:
+        file_path_relative = opts.quiescence_file
+        sample_bh = np.loadtxt(os.path.join(opts.work_directory,file_path_relative), skiprows=2)
+
+
 
     for galaxy in range(opts.galaxy_num):
         print("Galaxy", galaxy)
@@ -324,7 +327,7 @@ def main():
                 opts.nsc_density_index_outer, volume_scaling=True)
         bh_mass_initial = setupdiskblackholes.setup_disk_blackholes_masses(
                 disk_bh_num,
-                opts.nsc_imf_bh_mode, opts.nsc_imf_bh_mass_max, opts.nsc_imf_bh_powerlaw_index, opts.mass_pile_up)
+                opts.nsc_imf_bh_mode, opts.nsc_imf_bh_mass_max, opts.nsc_imf_bh_powerlaw_index, opts.mass_pile_up, opts.flag_gaussian_imf)
         bh_spin_initial = setupdiskblackholes.setup_disk_blackholes_spins(
                 disk_bh_num,
                 opts.nsc_bh_spin_dist_mu, opts.nsc_bh_spin_dist_sigma)
@@ -339,6 +342,7 @@ def main():
             bh_orb_ecc_initial = setupdiskblackholes.setup_disk_blackholes_circularized(disk_bh_num, opts.disk_bh_pro_orb_ecc_crit)
 
         bh_orb_inc_initial = setupdiskblackholes.setup_disk_blackholes_incl(disk_bh_num, bh_orb_a_initial, bh_orb_ang_mom_initial, disk_aspect_ratio)
+        bh_gen_initial = setupdiskblackholes.setup_disk_blackholes_gen(disk_bh_num)
         #bh_orb_arg_periapse_initial = setupdiskblackholes.setup_disk_blackholes_arg_periapse(disk_bh_num)
 
         time_final = opts.timestep_duration_yr*opts.timestep_num
@@ -349,72 +353,66 @@ def main():
         # So use radii (sample_bh[:,1]) and generate a probability [0,1] uniform 
         # then multiply by factor P(r^-7/4) scaled to P=1 at r=100r_g, P=0.0178 at r=1000r_g, P=3.16e-4 at 10000r_g.
         
-        #capture_index = 0
-        #number_of_sample_bh = len(sample_bh[:,1])
-        #indices_inner_disk_population = np.where(sample_bh[:,1]<2000.0)[0]
-        ##print("len(<2000r_g)",len(indices_inner_disk_population))
-        ##print("indices",indices_inner_disk_population)
-        ##print("radii_inner_disk",sample_bh[indices_inner_disk_population,1])
-        #num_inner_disk = len(indices_inner_disk_population)
-        #num_captures = np.array(time_final/opts.capture_time_yr).astype(int)
-        ##print("nc",np.round(num_captures))
-        ##indices_of_captures = rng.randint(low =0, high= num_inner_disk, size = 5)
-        #indices_of_captures = np.random.choice(indices_inner_disk_population,num_captures)
-        ##print("indices_of_captures",indices_of_captures)
-        #captures = sample_bh[indices_of_captures,:]
-        ##print("captures",captures)
-        ##capture_index = 0
-        ##Generate a probability function based on sample_bh^-1.75
-        ##prob_sample = sample_bh[:,1]**(-1.75)
-        ##indices_to_ditch = np.where(prob_sample<3.e-6)[0]
-        ##print("len(indices_keep)",len(indices_to_ditch))
-        ##Remove all bh that are now outside the disk (or outside 10,000r_g!)
-        ##new_sample_bh= np.delete(sample_bh,indices_to_ditch,axis=0)
-        #indices_to_remove = np.where(sample_bh[:,1] >= (opts.disk_radius_outer-40000.0))[0]
-        #new_sample_bh = np.delete(sample_bh,indices_to_remove,axis=0)
-        #number_of_new_sample_bh = len(new_sample_bh[:,1])
+        if opts.flag_quiescence == 1:
+            capture_index = 0
+            number_of_sample_bh = len(sample_bh[:,1])
+            indices_inner_disk_population = np.where(sample_bh[:,1]<2000.0)[0]
+            num_inner_disk = len(indices_inner_disk_population)
+            num_captures = np.array(np.ceil(time_final/opts.capture_time_yr)).astype(int)
+            #print("num_captures",num_captures)
+            #indices_of_captures = np.random.choice(indices_inner_disk_population,num_captures)
+            #captures = sample_bh[indices_of_captures,:]
+            ##Remove all bh that are now outside the disk (or outside 10,000r_g!)
+            #indices_to_remove = np.where(sample_bh[:,1] >= (opts.disk_radius_outer-40000.0))[0]
+            indices_to_remove = np.where(sample_bh[:,1] >= (opts.disk_radius_outer))[0]
+            new_sample_bh = np.delete(sample_bh,indices_to_remove,axis=0)
+            number_of_new_sample_bh = len(new_sample_bh[:,1])
         
-        ##Now choose a similar fraction of BH that lie within 5^deg of the plane.
-        #inc_indices_to_remove = np.where((np.abs(new_sample_bh[:,8]>0.09)) & (np.abs(new_sample_bh[:,8]<3.0515)))[0]
-        #new2_sample_bh = np.delete(new_sample_bh,inc_indices_to_remove,axis=0)
-        #number_of_new2_sample_bh = len(new2_sample_bh[:,1])
-        #print("n0,n1,n2",number_of_sample_bh,number_of_new_sample_bh,number_of_new2_sample_bh)
-        ##choose_from = np.arange(number_of_sample_bh)
-        ## Pick the indices at random from the length of the set of sample BH. No repeat indices.
-        
-        ##from mcfacts.mcfacts_random_state import rng
-        ##print("random",rng)
-        
-        ##shuffle_choice = rng.shuffle(choose_from)
-        ##print("shuffle_choice",shuffle_choice)
-        ##indices_of_sample_bh = shuffle_choice[:disk_bh_num]
-        #indices_of_sample_bh = rng.randint(low =0, high= number_of_new2_sample_bh, size = disk_bh_num)
-        
-        ##indices_of_sample_bh = rng.choice(number_of_sample_bh, size=disk_bh_num, replace = False)
-        ##index_copy = np.copy(indices_of_sample_bh)
-        #uni_val = np.unique(indices_of_sample_bh)
-        #print("lens 1,2",len(indices_of_sample_bh),len(uni_val))
-        ##print("indices",indices_of_sample_bh)
-        ##Appropriate for the survivors file: Use only unique values. Replace indices_of_sample_bh with uni_val
-        ##AND replace disk_bh_num with len(uni_val)
-        #disk_bh_num = len(uni_val)
-        #bh_orb_a_initial = new2_sample_bh[uni_val,1]
-        ##if bh_orb_a outside, then put inside (occurs if quiescent on outskirts of disk)
-        ##bh_orb_a_initial = np.where(bh_orb_a_initial<opts.disk_radius_outer,bh_orb_a_initial, bh_orb_a_initial-5412.1)
-        #bh_mass_initial = new2_sample_bh[uni_val,2]
-        #bh_spin_initial = new2_sample_bh[uni_val,3]
-        #bh_spin_angle_initial = new2_sample_bh[uni_val,4]
-#       #bh_gen_initial = sample_bh[indices_of_sample_bh,5]
-        #bh_orb_ecc_initial = new2_sample_bh[uni_val,6]
-        #bh_orb_ang_mom_initial = new2_sample_bh[uni_val,7]
-        #bh_orb_inc_initial = new2_sample_bh[uni_val,8]
-        
-        #Comment out down to here!
-        ##print("bh_orb_inc_initial",bh_orb_inc_initial)
-        ##Redo org_arg_periapse based on new disk_bh_num here
+            #First keep everything within say 100r_g. 
+            # We expect that within 1 timestep this will be captured by repeated collisions with the disk (orbital period is 1mo over 10kyrs!)
+            indices_to_keep =np.where(sample_bh[:,1] <= 100.)[0]
+            
+            ##Now choose a similar fraction of BH that lie within 5^deg of the plane.
+            inc_indices_to_remove = np.where((np.abs(new_sample_bh[:,8]>0.09)) & (np.abs(new_sample_bh[:,8]<3.0515)))[0]
+            #Keep BH inside 100r_g and delete those outside 5^deg of plane atR>100r_g.
+            new2_sample_bh = np.delete(new_sample_bh,inc_indices_to_remove,axis=0)
+            #new3_sample_bh=  new2_sample_bh + new_sample_bh[indices_to_keep]
+            number_of_new2_sample_bh = len(new2_sample_bh[:,1])
+            
+            indices_of_sample_bh = rng.randint(low =0, high= number_of_new2_sample_bh, size = disk_bh_num + num_captures)
+            uni_val = np.unique(indices_of_sample_bh)
+            #Use 5 of the unique indices as captures, so no identical repeats.
+            disk_bh_num = len(uni_val) - num_captures
+            # the first uni_val - num_captures of uni_val contains the indices of the initial disk pop
+            #the last num_captures of uni_val contain the indices of the captured bh
+            uni_val_init = uni_val[:disk_bh_num]
+            #captures are the last (5) num_captures of the uni_val array
+            capture_indices = uni_val[-num_captures:]
+            #print("capture_indices",capture_indices)
+            init_disk_num = len(uni_val_init)
+            print("disk_bh_num",disk_bh_num, len(uni_val),len(uni_val_init),init_disk_num)
+            bh_orb_a_initial = new2_sample_bh[uni_val_init,1]
+            # print("bh_orb_a_initial",bh_orb_a_initial)
+            ##if bh_orb_a outside, then put inside (occurs if quiescent on outskirts of disk)
+            ##bh_orb_a_initial = np.where(bh_orb_a_initial<opts.disk_radius_outer,bh_orb_a_initial, bh_orb_a_initial-5412.1)
+            bh_mass_initial = new2_sample_bh[uni_val_init,2]
+            bh_spin_initial = new2_sample_bh[uni_val_init,3]
+            bh_spin_angle_initial = new2_sample_bh[uni_val_init,4]
+            bh_gen_initial = new2_sample_bh[uni_val_init,5]
+            bh_orb_ecc_initial = new2_sample_bh[uni_val_init,6]
+            bh_orb_ang_mom_initial = new2_sample_bh[uni_val_init,7]
+            bh_orb_inc_initial = new2_sample_bh[uni_val_init,8]
+            #End of sampling initial population from quiescent population.
+        #
+
         bh_orb_arg_periapse_initial = setupdiskblackholes.setup_disk_blackholes_arg_periapse(disk_bh_num)
         #print("bh_orb_a_initial",bh_orb_a_initial)
         
+        #Remove duplicates if there are any!
+        #if len(np.unique(new_orb_a_bh)) != len(new_orb_a_bh):
+        #            print("Duplicate!",time_passed)
+        #            print(len(np.unique(new_orb_a_bh)),len(new_orb_a_bh))
+
         # Initialize black holes
         blackholes = AGNBlackHole(mass=bh_mass_initial,
                                   spin=bh_spin_initial,
@@ -423,6 +421,7 @@ def main():
                                   orb_a=bh_orb_a_initial,
                                   orb_inc=bh_orb_inc_initial,
                                   orb_ecc=bh_orb_ecc_initial,
+                                  gen=bh_gen_initial,
                                   orb_arg_periapse=bh_orb_arg_periapse_initial,
                                   bh_num=disk_bh_num,
                                   galaxy=np.full(disk_bh_num, galaxy),
@@ -902,6 +901,10 @@ def main():
                     opts.torque_prescription
                 )
 
+                #Check to see if any new_orb_a_bh are identical. If len(unique new_orb_a_bh) != len(new_orb_a_bh)
+                #then there must be a duplicate element
+                
+
                 new_orb_a_star = migration.type1_migration_distance(
                     opts.smbh_mass,
                     stars_pro.orb_a,
@@ -1300,7 +1303,7 @@ def main():
 
             # Do things to the binaries--first check if there are any:
             if blackholes_binary.num > 0:
-
+                # print("# Binaries!,time passed",blackholes_binary.num,time_passed)
                 # First check that binaries are real (mass and location are not zero)
                 bh_binary_id_num_unphysical = evolve.bin_reality_check(blackholes_binary.mass_1,
                                                                        blackholes_binary.mass_2,
@@ -1317,6 +1320,14 @@ def main():
                 if bh_binary_id_num_ecc_hyperbolic.size > 0:
                     blackholes_binary.remove_id_num(bh_binary_id_num_ecc_hyperbolic)
                     filing_cabinet.remove_id_num(bh_binary_id_num_ecc_hyperbolic)
+
+                #Check for binaries with zero separation
+                #Kill any false binaries (where captured an identical element)
+                bh_binary_id_num_zero_sep = blackholes_binary.id_num[blackholes_binary.bin_sep == 0.]
+                if bh_binary_id_num_zero_sep.size > 0:
+                    blackholes_binary.remove_id_num(bh_binary_id_num_zero_sep)
+                    filing_cabinet.remove_id_num(bh_binary_id_num_zero_sep)    
+                
 
                 # If there are binaries, evolve them
                 # Damp binary orbital eccentricity
@@ -1338,8 +1349,14 @@ def main():
                                       attr="orb_ecc",
                                       new_info=blackholes_binary.bin_orb_ecc)
 
+                #If binary of same elements, delete it (captured identical BH) and replace with single BH 
+                # 
+                
+
                 if (opts.flag_dynamic_enc > 0):
                     # Harden/soften binaries via dynamical encounters
+
+                    
                     # Harden binaries due to encounters with circular singletons (e.g. Leigh et al. 2018)
                     blackholes_binary.bin_sep, blackholes_binary.bin_ecc, blackholes_binary.bin_orb_ecc, blackholes_pro.orb_a, blackholes_pro.orb_ecc = dynamics.circular_binaries_encounters_circ_prograde(
                         opts.smbh_mass,
@@ -1932,7 +1949,7 @@ def main():
 
                     new_orb_ecc = eccentricity.ionized_orb_ecc(bh_binary_id_num_ionization.size * 2, opts.disk_bh_orb_ecc_max_init)
                     new_id_nums = np.arange(filing_cabinet.id_max+1, filing_cabinet.id_max + 1 + bh_binary_id_num_ionization.size * 2, 1)
-                    print("Ionized BBH masses,time",blackholes_binary.at_id_num(bh_binary_id_num_ionization,"mass_1"),blackholes_binary.at_id_num(bh_binary_id_num_ionization, "mass_2"),time_passed)
+                    #print("Ionized BBH masses,time",blackholes_binary.at_id_num(bh_binary_id_num_ionization,"mass_1"),blackholes_binary.at_id_num(bh_binary_id_num_ionization, "mass_2"),time_passed)
                     blackholes_pro.add_blackholes(
                         new_mass=np.concatenate([
                             blackholes_binary.at_id_num(bh_binary_id_num_ionization, "mass_1"),
@@ -1959,6 +1976,10 @@ def main():
                         new_time_passed=np.full(bh_binary_id_num_ionization.size * 2, time_passed),
                         new_id_num=new_id_nums                        
                     )
+
+                    #Test and see if any 2 BH in blackholes_pro are identical
+                    # Is the length of the unique elements in blackholes_pro.orb_a different from the length of blackholes_pro.orb_a?
+                    # If yes then there is a duplicate element (which should be deleted)
 
                     # Update filing cabinet
                     filing_cabinet.add_objects(
@@ -2051,21 +2072,25 @@ def main():
                 # Get ID nums for BH pairs, star pairs, and BH-star pairs
                 bhbh_id_nums, starstar_id_nums, bhstar_id_nums = formation.divide_types_encounters(close_encounters_id_nums, [[0, 0], [1, 1], [0, 1]], filing_cabinet)
                 #Comment this next if statement out if you don't want to test the Whitehead+25 module.    
-                if (bhbh_id_nums.size > 0):
+                if opts.flag_hill_sphere_mass == 1:
+                    if (bhbh_id_nums.size > 0):
                     #Test BBH Hill sphere mass module
-                    test_hs_locations_masses,max_com,min_com,bhbh_id_nums = formation.mass_hill_sphere(bhbh_id_nums, 
+                    #First test if any 2 BH in blackholes pro are identical & we're making a "false binary" with separation 0!
+
+                        test_hs_locations_masses,max_com,min_com,bhbh_id_nums = formation.mass_hill_sphere(bhbh_id_nums, 
                                                                           blackholes_pro, 
                                                                           opts.smbh_mass,
                                                                           disk_surface_density, 
                                                                           disk_aspect_ratio,
                                                                           opts.timestep_duration_yr)
-                    counter_prob_less_half = counter_prob_less_half + test_hs_locations_masses
-                    if max_com > biggest_com:
-                        biggest_com = max_com
-                    if min_com < smallest_com:
-                        smallest_com = min_com    
+                        counter_prob_less_half = counter_prob_less_half + test_hs_locations_masses
+                        if max_com > biggest_com:
+                            biggest_com = max_com
+                        if min_com < smallest_com:
+                            smallest_com = min_com    
 
-                if (bhbh_id_nums.size > 0):        
+                if (bhbh_id_nums.size > 0):  
+                        
                     # BH and BH encounter each other: form a binary
                     blackholes_binary, bh_binary_id_num_new = formation.add_to_binary_obj(
                         blackholes_binary,
@@ -2220,54 +2245,61 @@ def main():
             capture = time_passed % opts.capture_time_yr
             if capture == 0:
                 
-                #bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
-                #    1, opts.disk_radius_capture_outer, opts.disk_inner_stable_circ_orb,
-                #    opts.smbh_mass, opts.nsc_radius_crit, opts.nsc_density_index_inner,
-                #    opts.nsc_density_index_outer, volume_scaling=True)
-                #bh_mass_captured = setupdiskblackholes.setup_disk_blackholes_masses(
-                #    1, opts.nsc_imf_bh_mode, opts.nsc_imf_bh_mass_max, opts.nsc_imf_bh_powerlaw_index, opts.mass_pile_up)
-                #bh_spin_captured = setupdiskblackholes.setup_disk_blackholes_spins(
-                #    1, opts.nsc_bh_spin_dist_mu, opts.nsc_bh_spin_dist_sigma)
-                #bh_spin_angle_captured = setupdiskblackholes.setup_disk_blackholes_spin_angles(
-                #    1, bh_spin_captured)
-                bh_gen_captured = [1]
-                bh_orb_ecc_captured = [0.01]
-                bh_orb_inc_captured = [0.0]
-                capture_index = np.array(time_passed/opts.capture_time_yr).astype(int)
-                bh_mass_captured,bh_orb_a_captured,bh_spin_captured,bh_spin_angle_captured = setupdiskblackholes.capture_blackhole_masses(1, opts.disk_radius_capture_outer, sample_bh)
-                #bh_orb_a_captured = np.array(captures[capture_index,1])
-                #print("len bh_mass_capt",len(bh_mass_captured))
-                #bh_mass_captured = np.array(captures[capture_index,2])
-                #print("bh_mass_captured",bh_mass_captured)
-                #print("len bh_mass_capt",bh_mass_captured.size)
-                #print("bh_mass_captured_shape",bh_mass_captured.shape[0])
-                capture_index = capture_index + 1
-                #bh_spin_captured = np.array(captures[capture_index,3])
-                #bh_spin_angle_captured = np.array(captures[capture_index,4])
-                #bh_gen_captured = np.array(captures[capture_index,5])
-                #bh_orb_ecc_captured = [0.01]
-                #bh_orb_inc_captured = [0.0]
-                #if bh_mass_captured.size == 0:
-                #    temp_thing = 0
-                #else:    
-                #print("bh mass captured",bh_mass_captured,bh_mass_captured.size)
-                #print("bh params", bh_spin_captured, bh_spin_angle_captured,bh_orb_a_captured,bh_orb_inc_captured[0])
-                    
-                #print("more params",bh_orb_ecc_captured[0],bh_gen_captured)
-                #bh_id_num_captured = np.arange(filing_cabinet.id_max+1, len(bh_mass_captured) + filing_cabinet.id_max+1, 1)
-                bh_id_num_captured = np.arange(filing_cabinet.id_max+1, bh_mass_captured.size + filing_cabinet.id_max+1, 1)
+                if opts.flag_quiescence ==0:
+                    bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
+                        1, opts.disk_radius_capture_outer, opts.disk_inner_stable_circ_orb,
+                        opts.smbh_mass, opts.nsc_radius_crit, opts.nsc_density_index_inner,
+                        opts.nsc_density_index_outer, volume_scaling=True)
+                    #bh_mass_captured = setupdiskblackholes.setup_disk_blackholes_masses(
+                    #    1, opts.nsc_imf_bh_mode, opts.nsc_imf_bh_mass_max, opts.nsc_imf_bh_powerlaw_index, opts.mass_pile_up)
+                    # Masses captured just from a Gaussian pile up at 35Msun pm 2.3
+                    bh_mass_captured = rng.normal(loc=opts.mass_pile_up, scale=2.3, size=1)
+                    bh_spin_captured = setupdiskblackholes.setup_disk_blackholes_spins(
+                        1, opts.nsc_bh_spin_dist_mu, opts.nsc_bh_spin_dist_sigma)
+                    bh_spin_angle_captured = setupdiskblackholes.setup_disk_blackholes_spin_angles(
+                        1, bh_spin_captured)
+                    bh_gen_captured = [1]
+                    bh_orb_ecc_captured = [0.01]
+                    bh_orb_inc_captured = [0.0]
+                    capture_index = np.array(time_passed/opts.capture_time_yr).astype(int)
+                
+                if opts.flag_quiescence == 1:
+                    index_of_capture = capture_indices[capture_index]
+                    bh_mass_captured = [new2_sample_bh[index_of_capture,2]]
+                    bh_orb_a_captured = [new2_sample_bh[index_of_capture,1]]
+                    bh_spin_captured = [new2_sample_bh[index_of_capture,3]]
+                    bh_spin_angle_captured = [new2_sample_bh[index_of_capture,4]]
+                    bh_gen_captured = [new2_sample_bh[index_of_capture,5]]
+                    #bh_mass_captured,bh_orb_a_captured,bh_spin_captured,bh_spin_angle_captured, bh_gen_captured = setupdiskblackholes.capture_blackhole_masses(1, opts.disk_radius_capture_outer, sample_bh)
+                    #If captured same as any existing BH sample (can happen on step 1) then resample
+                    #while bh_mass_captured == np.any(blackholes_pro.mass):
+                    #   bh_mass_captured,bh_orb_a_captured,bh_spin_captured,bh_spin_angle_captured, bh_gen_captured = setupdiskblackholes.capture_blackhole_masses(1, opts.disk_radius_capture_outer, sample_bh) 
+                    bh_orb_ecc_captured = [0.01]
+                    bh_orb_inc_captured = [0.0]
+                    capture_index = np.array(time_passed/opts.capture_time_yr).astype(int)
+                
+                
+                #print("bh_mass_captured",bh_mass_captured,time_passed)
+                #print("bh_mass_captured size",len(bh_mass_captured))
+                capture_index = capture_index + 1                
+                bh_id_num_captured = np.arange(filing_cabinet.id_max+1, len(bh_mass_captured) + filing_cabinet.id_max+1, 1)
+                #bh_id_num_captured = np.arange(filing_cabinet.id_max+1, bh_mass_captured.size + filing_cabinet.id_max+1, 1)
                 # Append captured BH to existing singleton arrays. Assume prograde and 1st gen BH.
+                #print("captured",bh_id_num_captured,index_of_capture, bh_mass_captured)
+                #if bh_mass_captured == np.any(blackholes_pro.mass):
+                    #print("same!",bh_mass_captured, blackholes_pro.mass)
+                
                 blackholes_pro.add_blackholes(new_mass=bh_mass_captured,
                                               new_spin=bh_spin_captured,
                                               new_spin_angle=bh_spin_angle_captured,
                                               new_orb_a=bh_orb_a_captured,
                                               new_orb_inc=bh_orb_inc_captured,
-                                              new_orb_ang_mom=np.ones(bh_mass_captured.size),
+                                              new_orb_ang_mom=np.ones(len(bh_mass_captured)),
                                               new_orb_ecc=bh_orb_ecc_captured,
-                                              new_orb_arg_periapse=np.full(bh_mass_captured.size, -1.5),
+                                              new_orb_arg_periapse=np.full(len(bh_mass_captured), -1.5),
                                               new_gen=bh_gen_captured,
-                                              new_galaxy=np.full(bh_mass_captured.size,galaxy),
-                                              new_time_passed=np.full(bh_mass_captured.size,time_passed),
+                                              new_galaxy=np.full(len(bh_mass_captured),galaxy),
+                                              new_time_passed=np.full(len(bh_mass_captured),time_passed),
                                               new_id_num=bh_id_num_captured)
                 # Update filing cabinet
                 filing_cabinet.add_objects(new_id_num=bh_id_num_captured,
@@ -2734,7 +2766,7 @@ def main():
                 inner_num = inner_num + blackholes_inner_disk.num
                 
         # End Loop of Timesteps at Final Time, end all changes & print out results
-
+               # print("final locations",blackholes_pro.orb_a)
         #print("End Loop!")
         #print("Final Time (yrs) = ", time_passed)
         if opts.verbose:
@@ -3027,17 +3059,26 @@ def main():
     print("Total prob cap=",counter_prob_less_half, biggest_com, smallest_com)
     #Quiescence phase lives here!
     #Quiescence time in units of Myrs
-    quiescence_time=5
+    #quiescence_time=50
     survivors = np.loadtxt(os.path.join(opts.work_directory,survivors_save_name), skiprows=2)
     #the_leftovers = blackholes_survivors_pop
-    quiescence_pop = dynamics.quiescence_relaxation_time(opts.smbh_mass,survivors,quiescence_time,opts.galaxy_num)
+    quiescence_pop = dynamics.quiescence_relaxation_time(
+        opts.smbh_mass,survivors,
+        opts.quiescence_time,
+        opts.galaxy_num,
+        opts.norm_sinking_in_timescale,
+        opts.norm_diffuse_out_timescale,
+        opts.bh_scat_timescale,
+        opts.scaled_ecc,
+        opts.new_ecc_std_dev
+        )
     print("shape post relaxation",np.shape(quiescence_pop))
     # Add all BH quiescent pop  to quiescent population level object
         #       First add all the prograde BH survivors on last timestep
         #Make a place-holder orb_arg_periapse and time passed
     num_elements = len(quiescence_pop[:,9])
     quiescence_orb_arg_periapse =  setupdiskblackholes.setup_disk_blackholes_arg_periapse(num_elements)
-    quiescence_time_passed = time_passed+(quiescence_time*1.e6)*np.ones(num_elements)
+    quiescence_time_passed = time_passed+(opts.quiescence_time*1.e6)*np.ones(num_elements)
 
     blackholes_quiescence_pop.add_blackholes(new_id_num = quiescence_pop[:,9],
                                                 new_galaxy = quiescence_pop[:,0],

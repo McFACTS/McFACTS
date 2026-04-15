@@ -139,6 +139,7 @@ class AGNObject(object):
                  orb_inc=empty_arr,  # of CoM for binary around SMBH
                  orb_ang_mom=empty_arr,  # redundant, should be computed from keplerian orbit formula for L in terms of mass, a, eccentricity
                  orb_ecc=empty_arr,
+                 gen=empty_arr,
                  orb_arg_periapse=empty_arr,
                  galaxy=empty_arr,
                  time_passed=empty_arr,
@@ -189,7 +190,7 @@ class AGNObject(object):
         self.orb_ang_mom = orb_ang_mom
         self.orb_ecc = orb_ecc
         self.orb_arg_periapse = orb_arg_periapse
-        self.gen = np.full(obj_num, 1)
+        self.gen = gen
         self.id_num = np.arange(id_start_val, id_start_val + obj_num, 1)
         self.galaxy = galaxy
         self.time_passed = time_passed
@@ -247,10 +248,13 @@ class AGNObject(object):
         """
 
         if (obj_num == 0):
-            obj_num = new_mass.shape[0]
-            #obj_num = new_mass.size    
-        assert new_mass.shape == (obj_num,), "obj_num must match the number of objects"
-
+            #obj_num = new_mass.shape[0]
+            obj_num = new_mass.size    
+        #assert new_mass.shape == (obj_num,), "obj_num must match the number of objects"
+        #assert new_mass.size == (obj_num,), "obj_num must match the number of objects"
+        
+        #print("new_mass",new_mass)
+        #print(len(self.mass))
         self.mass = np.concatenate([self.mass, new_mass])
         self.spin = np.concatenate([self.spin, new_spin])
         self.spin_angle = np.concatenate([self.spin_angle, new_spin_angle])
@@ -822,10 +826,10 @@ class AGNBlackHole(AGNObject):
             #print("new mass",new_mass)
             #print("new_mass.size",new_mass.size)
             #print("new_mass.shape[0]",new_mass.shape[0])
-            bh_num = new_mass.shape[0]
-            #bh_num = new_mass.size
+            #bh_num = new_mass.shape[0]
+            bh_num = len(new_mass)
             #print("bh_num",bh_num)
-        assert new_mass.shape == (bh_num,),"bh_num must match the number of objects"
+        ##assert new_mass.shape == (bh_num,),"bh_num must match the number of objects"
         #assert new_mass.size == (bh_num,),"bh_num must match the number of objects"
 
         if new_gw_freq is empty_arr:
@@ -1958,7 +1962,8 @@ class AGNFilingCabinet(AGNObject):
         """
 
         if (fc_num == 0):
-            fc_num = new_mass.shape[0]
+            fc_num = len(new_mass)
+            #fc_num = new_mass.shape[0]
 
         self.id_num = np.concatenate([self.id_num, new_id_num])
         self.category = np.concatenate([self.category, new_category])

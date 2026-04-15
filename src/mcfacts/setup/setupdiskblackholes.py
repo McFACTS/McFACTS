@@ -152,7 +152,7 @@ def setup_prior_blackholes_indices(prograde_n_bh, prior_bh_locations):
     return bh_indices
 
 
-def setup_disk_blackholes_masses(disk_bh_num, nsc_bh_imf_mode, nsc_bh_imf_max_mass, nsc_bh_imf_powerlaw_index, mass_pile_up):
+def setup_disk_blackholes_masses(disk_bh_num, nsc_bh_imf_mode, nsc_bh_imf_max_mass, nsc_bh_imf_powerlaw_index, mass_pile_up, flag_gaussian_imf):
     """Generates disk BH initial masses [M_sun] of size disk_bh_num for user defined inputs.
 
     Parameters
@@ -180,10 +180,17 @@ def setup_disk_blackholes_masses(disk_bh_num, nsc_bh_imf_mode, nsc_bh_imf_max_ma
     # Masses greater than max mass should be redrawn from a Gaussian set to recreate the mass pile up
     # mean is set to mass_pile_up (default is 35Msun) and sigma is 2.3, following LVK rates and populations
     # paper: 2023PhRvX..13a1048A, Section VI.B
-    while (np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass) > 0):
-        disk_bh_initial_masses[disk_bh_initial_masses > nsc_bh_imf_max_mass] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass))
-    #while (np.sum(disk_bh_initial_masses < 32.0) > 0):
-    #    disk_bh_initial_masses[disk_bh_initial_masses < 32.0] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses <32.0))
+    #Default mass distrib.
+    if flag_gaussian_imf == 0:
+        while (np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass) > 0):
+            disk_bh_initial_masses[disk_bh_initial_masses > nsc_bh_imf_max_mass] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses > nsc_bh_imf_max_mass))
+    #Test Gaussian IMF
+    if flag_gaussian_imf == 1:
+        while (np.sum(disk_bh_initial_masses < 32.0) > 0):
+            disk_bh_initial_masses[disk_bh_initial_masses < 32.0] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses <32.0))
+        while (np.sum(disk_bh_initial_masses >40.0) > 0):
+            disk_bh_initial_masses[disk_bh_initial_masses >40.0] = rng.normal(loc=mass_pile_up, scale=2.3, size=np.sum(disk_bh_initial_masses >40.0))
+    
     return disk_bh_initial_masses
 
 def capture_blackhole_masses(bh_num, disk_radius_capture_outer, sample_bh):
@@ -232,7 +239,8 @@ def capture_blackhole_masses(bh_num, disk_radius_capture_outer, sample_bh):
     captured_bh_orb_a = captures[:,1]
     captured_bh_spin = captures[:,3]
     captured_bh_spin_angle = captures[:,4]
-    return captured_bh_mass,captured_bh_orb_a,captured_bh_spin,captured_bh_spin_angle
+    captured_bh_gen = captures[:,5]
+    return captured_bh_mass,captured_bh_orb_a,captured_bh_spin,captured_bh_spin_angle,captured_bh_gen
 
 def setup_disk_blackholes_spins(disk_bh_num, nsc_bh_spin_dist_mu, nsc_bh_spin_dist_sigma):
     """Generates disk BH initial spins [unitless]
@@ -305,6 +313,25 @@ def setup_disk_blackholes_orb_ang_mom(disk_bh_num):
 
     disk_bh_initial_orb_ang_mom = rng.choice(a=[1.,-1.],size=disk_bh_num)
     return disk_bh_initial_orb_ang_mom
+
+def setup_disk_blackholes_gen(disk_bh_num):
+    """Generates disk BH initial generation [unitless]
+
+    Assume either initially 1st gen
+
+    Parameters
+    ----------
+        disk_bh_num : int
+            Integer number of BH initially embedded in disk
+
+    Returns
+    -------
+        disk_bh_initial_gen : numpy.ndarray
+            Initial BH orb gen [unitless] with :obj:`float` type. No units because it is an on/off switch.
+    """
+
+    disk_bh_initial_gen = np.ones(disk_bh_num)
+    return disk_bh_initial_gen
 
 
 def setup_disk_blackholes_eccentricity_thermal(disk_bh_num):

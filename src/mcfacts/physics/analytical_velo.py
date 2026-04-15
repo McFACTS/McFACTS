@@ -86,6 +86,11 @@ def analytical_kick_velocity(
                      (v_perp * np.sin(xi))**2 +
                      v_par**2)
     v_kick = np.array(v_kick.value)
+    v_kick_index_neg = np.where(v_kick <=0)
+    #If kick <=0 then reset to 200km/s
+    if len(v_kick_index_neg) > 0:
+        v_kick[v_kick_index_neg]=200.0
+
     assert np.all(v_kick > 0), \
         "v_kick has values <= 0"
     assert np.isfinite(v_kick).all(), \

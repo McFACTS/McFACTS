@@ -180,6 +180,9 @@ def si_from_r_g(smbh_mass, distance_rg):
     r_g = G*smbh_mass/(c ** 2)
     # Calculate distance
     distance = (distance_rg * r_g).to("meter")
+    if np.any(distance<0):
+        print (distance)
+        
 
     assert np.isfinite(distance).all(), \
         "Finite check failure: distance"

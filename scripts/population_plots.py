@@ -79,10 +79,12 @@ def make_gen_masks(table, col1, col2):
     # Pipe operator (|) = logical OR. (&)= logical AND.
     g1_mask = (gen_obj1 == 1) & (gen_obj2 == 1)
     g2_mask = ((gen_obj1 == 2) | (gen_obj2 == 2)) & ((gen_obj1 <= 2) & (gen_obj2 <= 2))
+    #g22_mask = ((gen_obj1 == 2) & (gen_obj2 == 2)) 
+    #g21_mask = ((gen_obj1 == 2) | (gen_obj2 == 2)) & ((gen_obj1 = 1) | (gen_obj2 = 1))
     gX_mask = (gen_obj1 >= 3) | (gen_obj2 >= 3)
 
+    #return g1_mask, g21_mask, g22_mask, gX_mask
     return g1_mask, g2_mask, gX_mask
-
 
 def make_survivor_gen_masks(table, col1):
     """Create masks for retrieving different sets of a merged or binary population based on generation.
@@ -138,16 +140,23 @@ def main():
     merger_nan_mask = (np.isfinite(mergers[:, 2])) & (mergers[:, 2] != 0)
     mergers = mergers[merger_nan_mask]
 
-    merger_g1_mask, merger_g2_mask, merger_gX_mask = make_gen_masks(mergers, 12, 13)
-    survivors_g1_mask, survivors_g2_mask, survivors_gX_mask = make_survivor_gen_masks(survivors,5)
-    quiescence_g1_mask, quiescence_g2_mask, quiescence_gX_mask =make_quiescence_gen_masks(quiescence,5)
+    merger_g1_mask,merger_g2_mask, merger_gX_mask = make_gen_masks(mergers, 12, 13)
+    survivors_g1_mask,survivors_g2_mask, survivors_gX_mask = make_survivor_gen_masks(survivors,5)
+    quiescence_g1_mask, quiescence_g2_mask, quiescence_gX_mask = make_quiescence_gen_masks(quiescence,5)
+    #merger_g1_mask, merger_g21_mask, merger_g22_mask, merger_gX_mask = make_gen_masks(mergers, 12, 13)
+    #survivors_g1_mask, survivors_g21_mask, survivors_g22_mask, survivors_gX_mask = make_survivor_gen_masks(survivors,5)
+    #quiescence_g1_mask, quiescence_g21_mask, quiescence_g22_mask, quiescence_gX_mask =make_quiescence_gen_masks(quiescence,5)
     # Ensure no union between sets
     assert all(merger_g1_mask & merger_g2_mask) == 0
+    #assert all(merger_g1_mask & merger_g21_mask) == 0
+    #assert all(merger_g1_mask & merger_g22_mask) == 0
     assert all(merger_g1_mask & merger_gX_mask) == 0
     assert all(merger_g2_mask & merger_gX_mask) == 0
-
+    #assert all(merger_g21_mask & merger_gX_mask) == 0
+    #assert all(merger_g22_mask & merger_gX_mask) == 0
     # Ensure no elements are missed
     assert all(merger_g1_mask | merger_g2_mask | merger_gX_mask) == 1
+    #assert all(merger_g1_mask | merger_g22_mask | merger_g21_mask | merger_gX_mask) == 1
 
 
     # ========================================
@@ -291,12 +300,17 @@ def main():
     # Get 1g-1g population
     gen1_chi_eff = chi_eff[merger_g1_mask]
     gen1_mass_ratio = mass_ratio[merger_g1_mask]
+    print("Size gen 1 mergers",len(gen1_mass_ratio))
     # 2g-1g and 2g-2g population
     gen2_chi_eff = chi_eff[merger_g2_mask]
     gen_mass_ratio = mass_ratio[merger_g2_mask]
+    print("Size gen 2 mergers q>0.7",np.sum(gen_mass_ratio > 0.7))
+    print("size gen 2 mergers q<0.7",np.sum(gen_mass_ratio < 0.7))
     # >=3g-Ng population (i.e., N=1,2,3,4,...)
     genX_chi_eff = chi_eff[merger_gX_mask]
     genX_mass_ratio = mass_ratio[merger_gX_mask]
+    print("size gen >=3 mergers q>0.33",np.sum(genX_mass_ratio > 0.33))
+    print("size_gen>=3 mergers q<0.33", np.sum(genX_mass_ratio <0.33))
     # all 2+g mergers; H = hierarchical
     genH_chi_eff = chi_eff[(merger_g2_mask + merger_gX_mask)]
     genH_mass_ratio = mass_ratio[(merger_g2_mask + merger_gX_mask)]
@@ -755,11 +769,12 @@ def main():
     svf_ax.set_ylim(1.0e-28, 1.0e-15)
 
     # ----------Finding the rows in which EMRIs signals are either identical or zeroes and removing them----------
-    identical_rows_emris = np.where(emris[:, 5] == emris[:, 6])
-    zero_rows_emris = np.where(emris[:, 6] == 0)
-    emris = np.delete(emris, identical_rows_emris, 0)
-    # emris = np.delete(emris,zero_rows_emris,0)
-    emris[~np.isfinite(emris)] = 1.e-40
+    if emris.size > 0:
+        identical_rows_emris = np.where(emris[:, 5] == emris[:, 6])
+        zero_rows_emris = np.where(emris[:, 6] == 0)
+        emris = np.delete(emris, identical_rows_emris, 0)
+        # emris = np.delete(emris,zero_rows_emris,0)
+        emris[~np.isfinite(emris)] = 1.e-40
 
     # ----------Finding the rows in which LVKs signals are either identical or zeroes and removing them----------
     identical_rows_lvk = np.where(lvk[:, 5] == lvk[:, 6])
@@ -775,7 +790,8 @@ def main():
     lvk_gX = lvk[lvk_gX_mask]
 
     # ----------Setting the values for the EMRIs and LVKs signals and inverting them----------
-    inv_freq_emris = 1 / emris[:, 6]
+    if emris.size > 0:
+        inv_freq_emris = 1 / emris[:, 6]
     # inv_freq_lvk = 1/lvk[:,6]
     # ma_freq_emris = np.ma.where(freq_emris == 0)
     # ma_freq_lvk = np.ma.where(freq_lvk == 0)
@@ -786,8 +802,8 @@ def main():
     # inv_freq_emris = 1.0/ma_freq_emris
     # inv_freq_lvk = 1.0/ma_freq_lvk
     # timestep =1.e4yr
-    timestep = 1.e4
-    strain_per_freq_emris = emris[:, 5] # * inv_freq_emris / timestep
+        timestep = 1.e4
+        strain_per_freq_emris = emris[:, 5] # * inv_freq_emris / timestep
 
     strain_per_freq_lvk_g1 = lvk_g1[:, 5] # * (1 / lvk_g1[:, 6]) / timestep
     strain_per_freq_lvk_g2 = lvk_g2[:, 5] # * (1 / lvk_g2[:, 6]) / timestep
@@ -804,10 +820,11 @@ def main():
               #   color='darkblue',
               zorder=0)
 
-    svf_ax.scatter(emris[:, 6], strain_per_freq_emris,
-               s=0.4 * styles.markersize_gen1,
-               alpha=styles.markeralpha_gen1
-               )
+    if emris.size >0:
+        svf_ax.scatter(emris[:, 6], strain_per_freq_emris,
+                   s=0.4 * styles.markersize_gen1,
+                   alpha=styles.markeralpha_gen1
+                   )
 
     svf_ax.scatter(lvk_g1[:, 6], strain_per_freq_lvk_g1,
                    s=0.4 * styles.markersize_gen1,
@@ -962,6 +979,7 @@ def main():
         plt.legend()
 
     plt.ylim(10, 1000)
+    plt.xlim(left=10., right=7.e4)
 
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
@@ -1082,6 +1100,7 @@ def main():
     plt.xlabel(r'Radius [$R_g$]')
     plt.xscale('log')
     plt.yscale('log')
+    plt.xlim(left=None, right=7.e4)
 
     if figsize == 'apj_col':
         plt.legend(fontsize=6)
@@ -1089,6 +1108,7 @@ def main():
         plt.legend()
 
     plt.ylim(10, 1000)
+    plt.xlim(left=10., right=7.e4)
 
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)
@@ -1162,6 +1182,7 @@ def main():
         plt.legend()
 
     plt.ylim(0, 3.14)
+    plt.xlim(left=10., right=7.e4)
 
     svf_ax = plt.gca()
     svf_ax.set_axisbelow(True)

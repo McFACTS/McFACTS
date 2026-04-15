@@ -364,8 +364,15 @@ def bin_reality_check(bin_mass_1, bin_mass_2, bin_orb_a_1, bin_orb_a_2, bin_ecc,
     orb_a_2_id_num = bin_id_num[bin_orb_a_2 == 0]
     bin_ecc_id_num = bin_id_num[bin_ecc >= 1]
 
+    #If a captured BH is the same as a previously selected BH
+    
+
     id_nums = np.concatenate([mass_1_id_num, mass_2_id_num,
                              orb_a_1_id_num, orb_a_2_id_num, bin_ecc_id_num])
+
+    #If captured BH is same as previously selected BH
+    if bin_mass_1.any() == bin_mass_2.any():
+        id_nums = np.array([])
 
     if id_nums.size > 0:
         return (id_nums)
