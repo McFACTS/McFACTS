@@ -3519,7 +3519,9 @@ class SingleBlackHoleStarDynamics(TimelineActor):
             timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong_mu,
-            sm.disk_radius_outer
+            sm.delta_energy_strong_sigma,
+            sm.disk_radius_outer,
+            random_generator
         )
 
         if bh_star_touch_id_nums.size > 0:

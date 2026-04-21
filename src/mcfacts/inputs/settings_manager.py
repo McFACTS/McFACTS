@@ -52,6 +52,7 @@ defaults = {
     "mean_harden_energy_delta": 0.9, # Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     "var_harden_energy_delta": 0.025, # Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
     "delta_energy_strong_mu": 0.1, # Mean of Delta Energy per Strong interaction (can be up to 20%,0.2)
+    "delta_energy_strong_sigma": 0.02, # Sigma of delta energy per strong interaction
     "delta_energy_strong": 0.1,  # ::DEPRECIATED:: Change in orbital energy/eccentricity post-interaction
     "flag_thermal_feedback": True,  # Enable thermal feedback for BH torque modifications
     "flag_orb_ecc_damping": True,  # Enable orbital eccentricity damping
@@ -114,7 +115,8 @@ defaults = {
     "bbh_merged_array_name": "blackholes_merged",
     "emri_array_name": "blackholes_emri",
     "star_array_name": "stars_unsort",
-    "bh_ejected_array_name": "blackholes_ejected"
+    "bh_ejected_array_name": "blackholes_ejected",
+    "bbh_inter_array_name": "blackholes_binary_inter",
 }
 
 # Static values that we do not want the user to change (Sorry user)

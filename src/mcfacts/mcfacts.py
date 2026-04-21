@@ -3,6 +3,7 @@ import cProfile
 
 from mcfacts import fiducial_plots, simulation
 from mcfacts.inputs.settings_manager import SettingsManager
+from mcfacts.objects.snapshot import TxtSnapshotHandler
 
 # Source - https://stackoverflow.com/a/43357954
 # Posted by Maxim, modified by community. See post 'Timeline' for change history
@@ -33,18 +34,11 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
     sub_parser.add_argument("--profile-out", dest="profiling_file", default="mcfacts.prof", type=str)
 
     # Using the supplied file, instantiate and populate a new SettingsManager
-    inital_parse, _ = sub_parser.parse_known_args(["-s", initial_settings.settings_file])
-    settings_file = inital_parse.settings_file
+    initial_parse, unknown = sub_parser.parse_known_args()
+    settings_file = initial_parse.settings_file
 
-    # TODO: handle settings file loading.
-    loaded_settings = SettingsManager({
-        "verbose": False,
-        "override_files": True,
-        "save_state": True,
-        "save_each_timestep": True,
-        "flag_use_pagn": True,
-        "stalling_separation": 0.0
-    })
+    snapshot_handler = TxtSnapshotHandler()
+    loaded_settings = snapshot_handler.load_settings("", settings_file)
 
     # Parse through the loaded settings and create the corresponding arguments with the loaded settings as defaults
     for key, value in loaded_settings.settings_finals.items():
@@ -88,6 +82,9 @@ def main():
     plot_parser = sub_parsers.add_parser('plot')
     seed_settings_args(plot_parser)
 
+    rp_parser = sub_parsers.add_parser('rp')
+    seed_settings_args(rp_parser)
+
     inputs = parser.parse_args()
 
     if inputs.subcommand is None:
@@ -105,6 +102,15 @@ def main():
         return
 
     if inputs.subcommand == "plot":
+        fiducial_plots.main(settings)
+        return
+
+    if inputs.subcommand == "rp":
+        if inputs.enable_profiling:
+            cProfile.runctx('simulation.main(settings)', globals(), locals(), filename=inputs.profiling_file)
+        else:
+            simulation.main(settings)
+
         fiducial_plots.main(settings)
         return
 

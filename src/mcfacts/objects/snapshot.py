@@ -178,8 +178,6 @@ class TxtSnapshotHandler(SnapshotHandler):
         temp_types = list(self.get_fully_qualified_type(x) for x in settings.settings_finals.values())
         temp_array = np.column_stack(tuple([temp_keys, temp_values, temp_types]))
 
-        print(temp_array)
-
         spacing_array = []
 
         longest = max([str(x) for x in temp_keys], key=len)
@@ -200,5 +198,35 @@ class TxtSnapshotHandler(SnapshotHandler):
 
 
     def load_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
-        pass
 
+        final_path = os.path.join(file_path, file_name + ".txt")
+
+        if file_name.lower().endswith(".txt"):
+            final_path = os.path.join(file_path, file_name)
+
+        data = np.genfromtxt(final_path, skip_header=1, dtype=str)
+
+        settings = {}
+
+        for row in data:
+            name = row[0]
+            value = row[1]
+            type = row[2]
+
+            if type == "int":
+                settings[str(name)] = int(value)
+            elif type == "float":
+                settings[str(name)] = float(value)
+            elif type == "str":
+                settings[str(name)] = str(value)
+            elif type == "bool":
+                # Adapted from: https://stackoverflow.com/a/18472142, jzwiener
+                val = value.lower()
+                if val in ('y', 'yes', 't', 'true', 'on', '1'):
+                    settings[str(name)] = True
+                elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+                    settings[str(name)] = False
+            else:
+                raise TypeError(f"Unknown type {type}")
+
+        return SettingsManager(settings)
