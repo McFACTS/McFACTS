@@ -4,7 +4,7 @@ Module for calculating bolometric luminosities from a merger remnant interacting
 import numpy as np
 from astropy import units as u
 from astropy import constants as ct
-from mcfacts.physics.point_masses import si_from_r_g
+from mcfacts.physics.point_masses import si_from_r_g, si_from_r_g_optimized
 from mcfast import shock_luminosity_helper, jet_luminosity_helper
 
 def shock_luminosity(smbh_mass,
@@ -52,7 +52,8 @@ def shock_luminosity(smbh_mass,
     """
     # get the Hill radius in [R_g] and convert to [m]
     r_hill_rg = bin_orb_a * ((mass_final / smbh_mass) / 3)**(1/3) 
-    r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
+    # r_hill_m = si_from_r_g(smbh_mass, r_hill_rg)
+    r_hill_m = si_from_r_g_optimized(smbh_mass, r_hill_rg)
     r_hill_m = r_hill_m.value
 
     # initalize scaling value for Hill radius from McKernan et al. (2019)
@@ -60,7 +61,8 @@ def shock_luminosity(smbh_mass,
 
     # get the height of the disk in [R_g] and convert to [m]
     disk_height_rg = disk_aspect_ratio(bin_orb_a) * bin_orb_a
-    disk_height_m = si_from_r_g(smbh_mass, disk_height_rg)
+    # disk_height_m = si_from_r_g(smbh_mass, disk_height_rg)
+    disk_height_m = si_from_r_g_optimized(smbh_mass, disk_height_rg)
     disk_height_m = disk_height_m.value
 
     # compute the volume of the Hill sphere in [m**3]

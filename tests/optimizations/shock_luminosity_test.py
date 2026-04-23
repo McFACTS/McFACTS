@@ -4,7 +4,7 @@ import ast
 from importlib import resources as impresources
 from mcfacts.inputs import ReadInputs
 from mcfacts.inputs import data as mcfacts_input_data
-from mcfacts.physics.lum import jet_luminosity, jet_luminosity_opt
+from mcfacts.physics.lum import shock_luminosity, shock_luminosity_opt
 
 # parse array out of the csv file
 def parse_array(cell):
@@ -45,49 +45,49 @@ disk_surface_density, disk_aspect_ratio, disk_opacity, disk_sound_speed, disk_de
                                  verbose=False
                                  )
 
-def jet_lum(
-    bh_mass_merged,
-    bin_orbs_a, 
+def shock_lum(
+    smbh_mass,
+    mass_final,
+    bin_orb_a,
+    disk_aspect_ratio,
     disk_density,
-    bh_spin_merged,
-    bh_v_kick,
-    disk_sound_speed
+    v_kick
 ):
-    original = bh_lum_jet = jet_luminosity(
-        bh_mass_merged,
-        bin_orbs_a, 
+    original = bh_lum_shock = shock_luminosity(
+        smbh_mass,
+        mass_final,
+        bin_orb_a,
+        disk_aspect_ratio,
         disk_density,
-        bh_spin_merged,
-        bh_v_kick,
-        disk_sound_speed)
-    optimized = bh_lum_jet = jet_luminosity_opt(
-        bh_mass_merged,
-        bin_orbs_a, 
+        v_kick)
+    optimized = bh_lum_shock = shock_luminosity_opt(
+        smbh_mass,
+        mass_final,
+        bin_orb_a,
+        disk_aspect_ratio,
         disk_density,
-        bh_spin_merged,
-        bh_v_kick,
-        disk_sound_speed)
+        v_kick)
 
-    assert(np.allclose(original, optimized, rtol=1e-9))
+    assert(np.allclose(original, optimized, rtol=1e-7))
 
-def test_jet_lum():
-    # now read from jet_inputs.csv and run
-    inputs = pd.read_csv("tests/jet_inputs.csv", header=None)
+def test_shock_lum():
+    # now read from shock_inputs.csv and run
+    inputs = pd.read_csv("tests/optimizations/shock_inputs.csv", header=None)
 
     for _, row in inputs.iterrows():
-        bh_mass_merged = parse_array(row[0]) # scalar
-        bin_orbs_a = parse_array(row[1]) 
-        bh_spin_merged = parse_array(row[2]) 
-        bh_v_kick = parse_array(row[3])
+        smbh_mass = parse_value(row[0])
+        mass_final = parse_array(row[1])
+        bin_orb_a = parse_array(row[2])
+        v_kick = parse_array(row[3])
 
-        jet_lum(
-            bh_mass_merged,
-            bin_orbs_a, 
+        shock_lum(
+            smbh_mass,
+            mass_final,
+            bin_orb_a,
+            disk_aspect_ratio,
             disk_density,
-            bh_spin_merged,
-            bh_v_kick,
-            disk_sound_speed
+            v_kick
         )
 
 if __name__ == "__main__":
-    test_jet_lum()
+    test_shock_lum()

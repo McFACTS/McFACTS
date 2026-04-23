@@ -66,7 +66,7 @@ def gw_strain(
 
 def test_gw_strain():
     # now read from jet_inputs.csv and run
-    inputs = pd.read_csv("tests/gw_strain_inputs.csv", header=None)
+    inputs = pd.read_csv("tests/optimizations/gw_strain_inputs.csv", header=None)
 
     for _, row in inputs.iterrows():
         mass_1 = parse_array(row[0])

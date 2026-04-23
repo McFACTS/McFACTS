@@ -8,7 +8,7 @@ from astropy import units as u
 from astropy import constants as const
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics import analytical_velocity, lum
-from mcfacts.physics.point_masses import si_from_r_g
+from mcfacts.physics.point_masses import si_from_r_g, si_from_r_g_optimized
 #from mcfacts.inputs import data
 from mcfast import merged_orb_ecc_helper
 
@@ -199,7 +199,9 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius):
     time_gw_normalization = time_of_orbital_shrinkage(
         smbh_mass * u.solMass,
         bin_mass_ref * u.solMass,
-        si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius),
+        # note: works everywhere but here
+        # si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius),
+        si_from_r_g_optimized(smbh_mass, inner_disk_outer_radius),
         0 * u.m,
     )
     return time_gw_normalization.si.value
@@ -448,7 +450,8 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass):
         Orbital eccentricity of merged binary with :obj:`float` type
     """
     smbh_mass_units = smbh_mass * u.solMass
-    orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+    # orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+    orbs_a_units = si_from_r_g_optimized(smbh_mass, bin_orbs_a)
 
     v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
 
@@ -564,7 +567,8 @@ def merge_blackholes_precession(
     # Draw random deltaphi
     deltaphi = rng.uniform(low=0.,high=2*np.pi,size=mass_ratio.size)
     # Get binary separation
-    bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g)
+    # bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g)
+    bin_sep_si = si_from_r_g_optimized(smbh_mass, bin_sep_r_g)
     orbital_period_si = np.sqrt(
         (4 * np.pi**2 * bin_sep_si**3) / \
         (const.G * (mass_1 * u.solMass + mass_2 * u.solMass))

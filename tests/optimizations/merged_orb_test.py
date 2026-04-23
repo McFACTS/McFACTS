@@ -64,7 +64,7 @@ def merged_orb(
     assert(np.allclose(original, optimized, rtol=1e-9))
 
 def test_merged_orb():
-    inputs = pd.read_csv("tests/merged_orb_inputs.csv", header=None)
+    inputs = pd.read_csv("tests/optimizations/merged_orb_inputs.csv", header=None)
 
     for _, row in inputs.iterrows():
         bin_orbs_a = parse_array(row[0])

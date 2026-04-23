@@ -14,7 +14,7 @@ TEST_SEED = 483445
 
 def setup_powerlaw_params():
     """Return input parameters read from CSV."""
-    inputs = pd.read_csv("tests/powerlaw_inputs.csv", header=None)
+    inputs = pd.read_csv("tests/optimizations/powerlaw_inputs.csv", header=None)
     inputs[0] = inputs[0].astype(int)
     return [row.tolist() for _, row in inputs.iterrows()]
 

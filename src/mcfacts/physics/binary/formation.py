@@ -93,7 +93,7 @@ def close_encounters_check(id_nums,
                 # Index of smallest sorted fractional Hill radius binary so far
                 checked_encounter_index = np.array([idx_poss_encounter[idx_sort_sequences[0]]])
             else:
-                checked_encounter_index = []
+                checked_encounter_index = np.array([])
 
             for idx_seq in idx_sort_sequences:
                 # If we haven't already counted it

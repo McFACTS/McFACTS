@@ -64,7 +64,7 @@ def torque(
 
 def test_torque():
     # now read from torque_inputs.csv and run
-    inputs = pd.read_csv("tests/torque_inputs.csv", header=None)
+    inputs = pd.read_csv("tests/optimizations/torque_inputs.csv", header=None)
 
     for _, row in inputs.iterrows():
         smbh_mass = parse_value(row[0])

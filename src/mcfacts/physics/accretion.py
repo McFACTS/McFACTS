@@ -5,7 +5,7 @@ Module for calculating change of mass, spin magnitude, and spin angle due to acc
 import numpy as np
 import astropy.constants as const
 import astropy.units as u
-from mcfacts.physics.point_masses import si_from_r_g
+from mcfacts.physics.point_masses import si_from_r_g, si_from_r_g_optimized
 from mcfacts.mcfacts_random_state import rng
 from mcfast import star_wind_mass_loss_helper, accrete_star_mass_helper
 
@@ -169,7 +169,8 @@ def accrete_star_mass(disk_star_pro_masses,
     # Calculate Bondi and Hill radii
     r_bondi = (2 * const.G * star_masses_si / (disk_sound_speed_si ** 2)).to(u.m)
     r_hill_rg = (disk_star_pro_orbs_a * ((disk_star_pro_masses / (3 * (disk_star_pro_masses + smbh_mass))) ** (1./3.)))
-    r_hill_m = si_from_r_g(smbh_mass, r_hill_rg, r_g_defined=r_g_in_meters)
+    # r_hill_m = si_from_r_g(smbh_mass, r_hill_rg, r_g_defined=r_g_in_meters)
+    r_hill_m = si_from_r_g_optimized(smbh_mass, r_hill_rg)
 
     # Determine which is smaller for each star
     min_radius = np.minimum(r_bondi, r_hill_m)

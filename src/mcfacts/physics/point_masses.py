@@ -14,6 +14,10 @@ import scipy
 import astropy.units as u
 import astropy.constants as const
 
+from mcfast import r_schwarzschild_of_m_helper
+from mcfast import si_from_r_g_helper
+from mcfast import r_g_from_units_helper
+
 ######## Functions ########
 
 
@@ -151,6 +155,24 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
     return sep_initial * u.m
 
 
+
+def si_from_r_g_optimized(smbh_mass, distance_rg, r_g_defined=None):
+    """Calculate the SI distance from r_g
+
+    Parameters
+    ----------
+    smbh_mass : float
+        Mass [M_sun] of the SMBH
+    distance_rg : array_like
+        Distances [r_{g,SMBH}]
+
+    Returns
+    -------
+    distance : numpy.ndarray
+        Distance in SI with :obj:`astropy.units.quantity.Quantity` type
+    """
+    return si_from_r_g_helper(smbh_mass, distance_rg) * u.m
+
 def si_from_r_g(smbh_mass, distance_rg, r_g_defined=None):
     """Calculate the SI distance from r_g
 
@@ -195,9 +217,27 @@ def si_from_r_g(smbh_mass, distance_rg, r_g_defined=None):
 
     return distance
 
+def r_g_from_units_optimized(smbh_mass, distance):
+    """Calculate the r_g distance from SI
+
+    Parameters
+    ----------
+    smbh_mass : float
+        Mass [M_sun] of the SMBH
+    distance_rg : astropy.units.quantity.Quantity
+        Distances
+
+    Returns
+    -------
+    distance_rg : numpy.ndarray
+        Distances [r_g]
+    """
+
+    return r_g_from_units_helper(smbh_mass, distance) * u.m
+
 
 def r_g_from_units(smbh_mass, distance):
-    """Calculate the SI distance from r_g
+    """Calculate the r_g distance from SI
 
     Parameters
     ----------
@@ -234,6 +274,27 @@ def r_g_from_units(smbh_mass, distance):
 
     return distance_rg
 
+def r_schwarzschild_of_m_optimized(mass):
+    """Calculate the Schwarzschild radius from the mass of the object.
+
+    Parameters
+    ----------
+    mass : numpy.ndarray or float
+        Mass [Msun] of the object(s)
+
+    Returns
+    -------
+    r_sch : numpy.ndarray
+        Schwarzschild radius [m] with `astropy.units.quantity.Quantity`
+    """
+
+    if mass.shape == (0,):
+        if hasattr(mass, 'unit'):
+            return mass.to(u.m)
+        else:
+            return mass * u.m
+    else:
+        return r_schwarzschild_of_m_helper(mass) * u.m
 
 def r_schwarzschild_of_m(mass):
     """Calculate the Schwarzschild radius from the mass of the object.
