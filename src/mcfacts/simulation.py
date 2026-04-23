@@ -8,7 +8,8 @@ from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHol
 from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
 from mcfacts.modules.disk_capture import EvolveRetrogradeBlackHoles, RecaptureBinaryBlackHoles, \
     CaptureNSCProgradeBlackHoles
-from mcfacts.modules.dynamics import SingleBlackHoleDynamics, BinaryBlackHoleDynamics, BinaryBlackHoleIonization
+from mcfacts.modules.dynamics import SingleBlackHoleDynamics, BinaryBlackHoleDynamics, BinaryBlackHoleIonization, \
+    BinaryBlackHoleSpheroidDynamics
 from mcfacts.modules.formation import BinaryBlackHoleFormation
 from mcfacts.modules.gas_hardening import BinaryBlackHoleGasHardening
 from mcfacts.modules.gw import BinaryBlackHoleEvolveGW, InnerBlackHoleDynamics
@@ -109,7 +110,6 @@ def main(settings: SettingsManager):
             ProgradeBlackHoleDamping(target_array=innerdisk_array),
             ProgradeBlackHoleDamping(target_array=prograde_array),
             BinaryBlackHoleDamping(),
-            BinaryBlackHoleGasHardening(reality_merge_checks=True)
         ])
 
         # Dynamical Encounters: Single BH, Binary BH
@@ -120,6 +120,9 @@ def main(settings: SettingsManager):
             SingleBlackHoleDynamics(target_array=prograde_array),
             BinaryBlackHoleDynamics(reality_merge_checks=True)
         ])
+
+        active_phase_timeline.add_timeline_actor(BinaryBlackHoleGasHardening(reality_merge_checks=True))
+        active_phase_timeline.add_timeline_actor(BinaryBlackHoleSpheroidDynamics(reality_merge_checks=True),)
 
         # Misc Evolution: Binary BH
         active_phase_timeline.add_timeline_actors([

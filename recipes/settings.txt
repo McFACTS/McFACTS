@@ -6,7 +6,7 @@ save_state                         False                                   bool
 save_each_timestep                 False                                   bool 
 save_snapshots                     0                                       int  
 output_dir                         ./runs                                  str  
-settings_file                      ./recipes/model_choice_old.ini          str  
+settings_file                      ./recipes/settings.txt                  str
 active_timestep_duration_yr        10000.0                                 float
 active_timestep_num                70                                      int  
 capture_time_yr                    100000.0                                float

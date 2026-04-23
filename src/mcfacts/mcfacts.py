@@ -28,7 +28,7 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
     sub_parser.add_argument("-s", "--settings", "--fname-ini",
                             dest="settings_file",
                             help="Filename of settings file",
-                            default=initial_settings.settings_file, type=str)
+                            default=None, type=str)
 
     sub_parser.add_argument("--profile", dest="enable_profiling", action="store_true")
     sub_parser.add_argument("--profile-out", dest="profiling_file", default="mcfacts.prof", type=str)
@@ -37,8 +37,11 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
     initial_parse, unknown = sub_parser.parse_known_args()
     settings_file = initial_parse.settings_file
 
-    snapshot_handler = TxtSnapshotHandler()
-    loaded_settings = snapshot_handler.load_settings("", settings_file)
+    if settings_file is not None:
+        snapshot_handler = TxtSnapshotHandler()
+        loaded_settings = snapshot_handler.load_settings("", settings_file)
+    else:
+        loaded_settings = initial_settings
 
     # Parse through the loaded settings and create the corresponding arguments with the loaded settings as defaults
     for key, value in loaded_settings.settings_finals.items():
@@ -72,7 +75,7 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
 
 def main():
     # Create instance of argument parser
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
 
     sub_parsers = parser.add_subparsers(dest='subcommand')
 

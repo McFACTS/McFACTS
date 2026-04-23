@@ -12,6 +12,7 @@ import astropy.units as u
 import numpy as np
 import scipy
 import scipy.optimize
+from h2.settings import Settings
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
@@ -3640,6 +3641,56 @@ class BinaryBlackHoleIonization(TimelineActor):
             blackholes_binary.remove_all(ids_ionized)
 
 
+class BinaryBlackHoleSpheroidDynamics(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
+        super().__init__("Binary Spheroid Dynamics" if name is None else name, settings)
+
+        self.reality_merge_checks = reality_merge_checks
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+        sm = self.settings
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
+
+        non_merge_mask = blackholes_binary.flag_merging >= 0
+
+        # Spheroid encounters
+        # FIX THIS: Replace nsc_imf_bh below with nsc_imf_stars_ since pulling from stellar MF
+        (
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_inc[non_merge_mask]
+        ) = bin_spheroid_encounter(
+            sm.smbh_mass,
+            timestep_length,
+            blackholes_binary.mass[non_merge_mask],
+            blackholes_binary.mass_2[non_merge_mask],
+            blackholes_binary.bin_orb_a[non_merge_mask],
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_inc[non_merge_mask],
+            time_passed,
+            sm.nsc_imf_bh_powerlaw_index,
+            sm.delta_energy_strong_mu,
+            sm.nsc_spheroid_normalization,
+            sm.mean_harden_energy_delta,
+            sm.var_harden_energy_delta,
+            sm.r_g_in_meters,
+            random_generator
+        )
+
+
+        blackholes_binary.consistency_check()
+
+        if self.reality_merge_checks:
+            checks.binary_reality_check(sm, filing_cabinet, self.log)
+            checks.flag_binary_mergers(sm, filing_cabinet)
+
 class BinaryBlackHoleDynamics(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
         super().__init__("Binary Black Hole Dynamics" if name is None else name, settings)
@@ -3724,38 +3775,6 @@ class BinaryBlackHoleDynamics(TimelineActor):
 
         blackholes_pro.consistency_check()
         blackholes_binary.consistency_check()
-
-        if self.reality_merge_checks:
-            checks.binary_reality_check(sm, filing_cabinet, self.log)
-            checks.flag_binary_mergers(sm, filing_cabinet)
-            non_merge_mask = blackholes_binary.flag_merging >= 0
-
-        # Spheroid encounters
-        # FIX THIS: Replace nsc_imf_bh below with nsc_imf_stars_ since pulling from stellar MF
-        (
-            blackholes_binary.bin_sep[non_merge_mask],
-            blackholes_binary.bin_ecc[non_merge_mask],
-            blackholes_binary.bin_orb_ecc[non_merge_mask],
-            blackholes_binary.bin_orb_inc[non_merge_mask]
-        ) = bin_spheroid_encounter(
-            sm.smbh_mass,
-            timestep_length,
-            blackholes_binary.mass[non_merge_mask],
-            blackholes_binary.mass_2[non_merge_mask],
-            blackholes_binary.bin_orb_a[non_merge_mask],
-            blackholes_binary.bin_sep[non_merge_mask],
-            blackholes_binary.bin_ecc[non_merge_mask],
-            blackholes_binary.bin_orb_ecc[non_merge_mask],
-            blackholes_binary.bin_orb_inc[non_merge_mask],
-            time_passed,
-            sm.nsc_imf_bh_powerlaw_index,
-            sm.delta_energy_strong_mu,
-            sm.nsc_spheroid_normalization,
-            sm.mean_harden_energy_delta,
-            sm.var_harden_energy_delta,
-            sm.r_g_in_meters,
-            random_generator
-        )
 
         ejected_ids = blackholes_pro.unique_id[blackholes_pro.orb_a >= sm.disk_radius_outer]
 
