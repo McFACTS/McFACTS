@@ -1126,7 +1126,8 @@ def merge_blackholes_precession(
 
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
-                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, disk_sound_speed, time_passed, galaxy):
+                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, disk_sound_speed, time_passed, galaxy,
+                     r_g_in_meters, random):
     # TODO: Vectorize this function, lists should be modified on the outside after this function returns new values
     """Calculates parameters for merged BHs and adds them to :code:`blackholes_pro` and :code:`blackholes_merged`
 
@@ -1196,7 +1197,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+            random=random
         )
         if flag_use_spin_check == 1:
             bh_spin_merged = checks.spin_check(
@@ -1213,6 +1215,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+            random=random
         )
 
         bh_mass_1_20Hz = np.zeros(bh_binary_id_num_merger.size)
@@ -1266,7 +1269,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
         disk_aspect_ratio,
         disk_density,
-        bh_v_kick)
+        bh_v_kick,
+        r_g_in_meters=r_g_in_meters)
 
     bh_lum_jet = jet_luminosity(
         bh_mass_merged,

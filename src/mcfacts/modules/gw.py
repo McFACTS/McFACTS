@@ -14,7 +14,7 @@ from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, peters
 
 
-def evolve_emri_gw(blackholes_inner_disk, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift):
+def evolve_emri_gw(blackholes_inner_disk_mass, blackholes_inner_disk_orb_a, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift):
     """Evaluates the EMRI gravitational wave frequency and strain at the end of each timestep_duration_yr
 
     Parameters
@@ -48,9 +48,9 @@ def evolve_emri_gw(blackholes_inner_disk, timestep_duration_yr, old_gw_freq, smb
     #                                     agn_redshift=agn_redshift,
     #                                     flag_include_old_gw_freq=1)
 
-    char_strain, nu_gw = unit_conversion.gw_strain_freq_optimized(mass_1=smbh_mass,
-                                        mass_2=blackholes_inner_disk.mass,
-                                        obj_sep=blackholes_inner_disk.orb_a,
+    char_strain, nu_gw = peters.gw_strain_freq_optimized(mass_1=smbh_mass,
+                                        mass_2=blackholes_inner_disk_mass,
+                                        obj_sep=blackholes_inner_disk_orb_a,
                                         timestep_duration_yr=timestep_duration_yr,
                                         old_gw_freq=old_gw_freq,
                                         smbh_mass=smbh_mass,
@@ -274,6 +274,7 @@ def bh_near_smbh(
         "Finite check failure: new_disk_bh_pro_orbs_a"
 
     return new_disk_bh_pro_orbs_a
+
 
 def gw_hardening(mass_1, mass_2, bin_ecc, bin_sep, bin_time_to_merge, flag_merging, smbh_mass, timestep_length, r_g_in_meters):
     array_length = len(mass_1)

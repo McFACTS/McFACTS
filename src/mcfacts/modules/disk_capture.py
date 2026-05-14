@@ -8,6 +8,7 @@ from numpy.random import Generator
 from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 from mcfacts.utilities import unit_conversion
+from mcfacts.utilities.constants import M_SUN_KG
 from mcfacts.utilities.unit_conversion import si_from_r_g
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray

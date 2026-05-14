@@ -10,10 +10,14 @@ import scipy.interpolate
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.utilities.constants import M_SUN_KG
 from mcfacts.utilities import unit_conversion, checks
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfast import torque_mig_timescale_helper
+
+from mcfacts.utilities.constants import SEC_IN_YR
+
 
 def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dlog10R_func,
                           disk_dlog10temp_dlog10R_func):
