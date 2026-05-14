@@ -102,7 +102,9 @@ defaults = {
     "min_bbh_gw_separation": 2.0,
     "agn_redshift": 0.1,
 
-    # Filing cabinet array names
+    # Filing cabinet array names so users don't have to type strings directly.
+    # The variable names generally follow our conventions, while the string is kept more human-friendly.
+    # Population cabinets will use the human-friendly strings internally and for file outputs.
     "bh_array_name": "blackholes_unsort",
     "bh_inner_disk_array_name": "blackholes_inner_disk",
     "bh_inner_gw_array_name": "blackholes_inner_gw_only",
@@ -126,7 +128,7 @@ static_settings = [
     "disk_bh_spin_resolution_min",
     "min_bbh_gw_separation",
     "agn_redshift",
-    # Array names, users shouldn't change these
+    # Array names, users shouldn't change these (Again, sorry user)
     "bh_array_name",
     "bh_inner_disk_array_name",
     "bh_inner_gw_array_name",
@@ -138,18 +140,21 @@ static_settings = [
     "bbh_array_name",
     "bbh_gw_array_name",
     "bbh_merged_array_name",
-    "emri_array_name"
+    "emri_array_name",
+    "star_array_name",
+    "bh_ejected_array_name",
+    "bbh_inter_array_name",
 ]
 
 
 class SettingsManager:
     """
-    Manages settings by providing a mechanism to override default values with user-defined values.
+    Central management for simulation settings.
 
     Attributes
     ----------
     settings_overrides : dict[str, Any]
-        A dictionary containing user-provided overrides for the default settings.
+        A dictionary containing user-provided overrides.
     """
 
     def __init__(self, settings_overrides: dict[str, Any] = None):
@@ -161,6 +166,8 @@ class SettingsManager:
         settings_overrides : dict[str, Any]
             A dictionary containing user-provided overrides for specific settings.
         """
+        # TODO: Allow users to pass custom settings that we don't have defaults for.
+
         self.settings_overrides: dict[str, Any] = dict() if settings_overrides is None else settings_overrides
         self.settings_defaults = defaults
         self.settings_finals = dict()
@@ -184,9 +191,8 @@ class SettingsManager:
 
     def __getattr__(self, item: str) -> Any:
         """
-        Retrieves the value of a setting, checking for overrides first.
-        If no override exists, the default value is returned. If the key
-        is not found in either, an AttributeError is raised.
+        Retrieves the value of a setting from the final compiled dictionary. If the setting
+        is not, an AttributeError is raised.
 
         Parameters
         ----------
@@ -196,14 +202,16 @@ class SettingsManager:
         Returns
         -------
         Any
-            The value of the setting, either overridden or default.
+            The final value of the setting.
 
         Raises
         ------
         AttributeError
-            If the setting is not found in both the overrides and the defaults.
+            If the setting is not found, or a private attribute is being accessed
         """
-        if item.startswith("__"):  # this allows for deepcopy
+
+        # Compatability for deepcopy
+        if item.startswith("__"):
             raise AttributeError(
                 "attempted to get missing private attribute '{}'".format(item)
             )
@@ -215,6 +223,10 @@ class SettingsManager:
 
 
 class AGNDisk:
+    """
+    Container class for the construct_disk_interp method, allowing for pass-by-reference access to disk functions.
+    """
+
     def __init__(self, settings: SettingsManager):
         # TODO: More advanced handling?
 
