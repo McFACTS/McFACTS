@@ -14,6 +14,55 @@ from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, peters
 
 
+def evolve_emri_gw(blackholes_inner_disk, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift):
+    """Evaluates the EMRI gravitational wave frequency and strain at the end of each timestep_duration_yr
+
+    Parameters
+    ----------
+    blackholes_inner_disk : AGNBlackHole
+        Parameters of black holes in the inner disk
+    timestep_duration_yr : float
+        Length of timestep [yr]
+    old_gw_freq : numpy.ndarray
+        Previous GW frequency [Hz] with :obj:`float` type
+    smbh_mass : float
+        Mass [M_sun] of the SMBH
+    agn_redshift : float
+        Redshift [unitless] of the AGN
+    """
+
+    old_gw_freq = old_gw_freq * u.Hz
+
+    # If number of EMRIs has grown since last timestep_duration_yr, add a new component to old_gw_freq to carry out dnu/dt calculation
+    # while (blackholes_inner_disk.num < len(old_gw_freq)):
+    #     old_gw_freq = np.delete(old_gw_freq, 0)
+    # while blackholes_inner_disk.num > len(old_gw_freq):
+    #     old_gw_freq = np.append(old_gw_freq, (9.e-7) * u.Hz)
+
+    # char_strain, nu_gw = gw_strain_freq(mass_1=smbh_mass,
+    #                                     mass_2=blackholes_inner_disk.mass,
+    #                                     obj_sep=blackholes_inner_disk.orb_a,
+    #                                     timestep_duration_yr=timestep_duration_yr,
+    #                                     old_gw_freq=old_gw_freq,
+    #                                     smbh_mass=smbh_mass,
+    #                                     agn_redshift=agn_redshift,
+    #                                     flag_include_old_gw_freq=1)
+
+    char_strain, nu_gw = unit_conversion.gw_strain_freq_optimized(mass_1=smbh_mass,
+                                        mass_2=blackholes_inner_disk.mass,
+                                        obj_sep=blackholes_inner_disk.orb_a,
+                                        timestep_duration_yr=timestep_duration_yr,
+                                        old_gw_freq=old_gw_freq,
+                                        smbh_mass=smbh_mass,
+                                        agn_redshift=agn_redshift,
+                                        flag_include_old_gw_freq=1)
+
+    # assert(np.allclose(char_strain, char_strain_opt))
+    # assert(np.allclose(nu_gw, nu_gw_opt))
+
+    return (char_strain, nu_gw)
+
+
 def orbital_separation_evolve(mass_1, mass_2, sep_initial, evolve_time):
     """Calculates the final separation of an evolved orbit
 
@@ -34,8 +83,8 @@ def orbital_separation_evolve(mass_1, mass_2, sep_initial, evolve_time):
         Final separation [m] of two bodies
     """
     # Calculate c and G in SI
-    c = const.c.to('m/s').value
-    G = const.G.to('m^3/(kg s^2)').value
+    c = const.c.value
+    G = const.G.value
     # Assert SI units
     mass_1 = mass_1.to('kg').value
     mass_2 = mass_2.to('kg').value
@@ -79,8 +128,8 @@ def orbital_separation_evolve_reverse(mass_1, mass_2, sep_final, evolve_time):
         Initial separation [m] of two bodies
     """
     # Calculate c and G in SI
-    c = const.c.to('m/s').value
-    G = const.G.to('m^3/(kg s^2)').value
+    c = const.c.value
+    G = const.G.value
     # Assert SI units
     mass_1 = mass_1.to('kg').value
     mass_2 = mass_2.to('kg').value
@@ -159,19 +208,14 @@ def bh_near_smbh(
         timestep_duration_yr,
         inner_disk_outer_radius,
         disk_inner_stable_circ_orb,
-        r_g_in_meters
-):
+        r_g_in_meters,
+        ):
     """Evolve semi-major axis of single BH near SMBH according to Peters64
-    also eccentricity
 
     Test whether there are any BH near SMBH.
     Flag if anything within min_safe_distance (default=50r_g) of SMBH.
     Time to decay into SMBH can be parameterized from Peters(1964) as:
     .. math:: t_{gw} =38Myr (1-e^2)(7/2) (a/50r_{g})^4 (M_{smbh}/10^8M_{sun})^3 (m_{bh}/10M_{sun})^{-1}
-    Time to eccentricity decay to zero from Peters(1964) as an annoying piecewise function:
-    .. math:: t_{e_0} =t_{gw} * f(e_0) where f(e_0)=(1-e_0^2)^4/(1+ (121/304)e_0^2)^(870/2299) if e_0<0.8
-    .. math:: f(e_0) = (768/425) * (1-e_0^2)^3.5 if e_0>0.95
-    .. math:: f(e_0) = some other function if 0.8 < e_0 < 0.95
 
     Parameters
     ----------
@@ -189,6 +233,8 @@ def bh_near_smbh(
         Outer radius of the inner disk [r_{g,SMBH}]
     disk_inner_stable_circ_orb : float
         Innermost stable circular orbit around the SMBH [r_{g,SMBH}]
+    r_g_in_meters: float
+        Gravitational radius of the SMBH in meters
 
     Returns
     -------
@@ -202,20 +248,19 @@ def bh_near_smbh(
     # Create a new bh_pro_orbs array
     new_disk_bh_pro_orbs_a = disk_bh_pro_orbs_a.copy()
     # Estimate the eccentricity factor for orbital decay time
-    ecc_factor_arr = (1.0 - (disk_bh_pro_orbs_ecc) ** (2.0)) ** (7 / 2)
+    ecc_factor_arr = (1.0 - (disk_bh_pro_orbs_ecc)**(2.0))**(7/2)
     # Estimate the orbital decay time of each bh
     decay_time_arr = peters.time_of_orbital_shrinkage(
-        smbh_mass * u.solMass,
-        disk_bh_pro_masses * u.solMass,
-        unit_conversion.si_from_r_g(smbh_mass * u.solMass, disk_bh_pro_orbs_a, r_g_defined=r_g_in_meters),
-        0 * u.m,
+        smbh_mass*u.solMass,
+        disk_bh_pro_masses*u.solMass,
+        # si_from_r_g(smbh_mass*u.solMass, disk_bh_pro_orbs_a, r_g_defined=r_g_in_meters),
+        unit_conversion.si_from_r_g_optimized(smbh_mass, disk_bh_pro_orbs_a),
+        0*u.m,
     )
-    # Estimate the decay time to zero eccentricity
-
     # Estimate the number of timesteps to decay
     decay_timesteps = decay_time_arr.to('yr').value / timestep_duration_yr
     # Estimate decrement
-    decrement_arr = (1.0 - (1. / decay_timesteps))
+    decrement_arr = (1.0-(1./decay_timesteps))
     # Fix decrement
     decrement_arr[decay_timesteps == 0.] = 0.
     # Estimate new location
@@ -228,9 +273,7 @@ def bh_near_smbh(
     assert np.isfinite(new_disk_bh_pro_orbs_a).all(), \
         "Finite check failure: new_disk_bh_pro_orbs_a"
 
-    # TODO: Update eccentricity as well
     return new_disk_bh_pro_orbs_a
-
 
 def gw_hardening(mass_1, mass_2, bin_ecc, bin_sep, bin_time_to_merge, flag_merging, smbh_mass, timestep_length, r_g_in_meters):
     array_length = len(mass_1)

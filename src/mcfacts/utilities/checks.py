@@ -4,6 +4,7 @@ from scipy.stats import truncnorm
 import mcfacts.utilities
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray
+from mcfacts.utilities import unit_conversion
 from mcfacts.utilities.unit_conversion import r_schwarzschild_of_m, r_g_from_units
 
 
@@ -125,9 +126,11 @@ def bin_contact_check(bin_mass_1, bin_mass_2, bin_sep, bin_flag_merging, smbh_ma
     """
 
     # We assume bh are not spinning when in contact. TODO: Consider spin in future.
-    contact_condition = (r_schwarzschild_of_m(bin_mass_1) +
-                         r_schwarzschild_of_m(bin_mass_2))
-    contact_condition = r_g_from_units(smbh_mass, contact_condition).value
+    # contact_condition = (point_masses.r_schwarzschild_of_m_optimized(bin_mass_1) +
+    #                      point_masses.r_schwarzschild_of_m_optimized(bin_mass_2))
+    contact_condition = unit_conversion.r_schwarzschild_of_m_optimized(bin_mass_1 + bin_mass_2)
+    # contact_condition = point_masses.r_g_from_units(smbh_mass, contact_condition).value
+    contact_condition = unit_conversion.r_g_from_units_optimized(smbh_mass, contact_condition).value
     mask_condition = (bin_sep <= contact_condition)
 
     # If binary separation <= contact condition, set binary separation to contact condition

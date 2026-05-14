@@ -7,7 +7,7 @@ from numpy.random import Generator
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
-from mcfacts.utilities.peters import gw_strain_freq
+from mcfacts.utilities.peters import gw_strain_freq, gw_strain_freq_optimized
 from mcfacts.utilities.random_state import uuid_provider
 
 
@@ -97,7 +97,7 @@ def close_encounters_check(id_nums,
                 # Index of smallest sorted fractional Hill radius binary so far
                 checked_encounter_index = np.array([idx_poss_encounter[idx_sort_sequences[0]]])
             else:
-                checked_encounter_index = []
+                checked_encounter_index = np.array([])
 
             for idx_seq in idx_sort_sequences:
                 # If we haven't already counted it
@@ -284,9 +284,18 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
             # (1-fraction_bin_retro: fraction_bin_retro)
             bin_orb_ang_mom[i] = random.choice(a=[1, -1], p=[1 - fraction_bin_retro, fraction_bin_retro])
 
-    gw_strain, strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+    # gw_strain, strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+    #                                     old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
+    #                                     flag_include_old_gw_freq=0)
+
+    gw_strain, gw_freq = gw_strain_freq_optimized(
+        mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                         old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
-                                        flag_include_old_gw_freq=0)
+                                        flag_include_old_gw_freq=0
+    )
+
+    # assert(np.allclose(gw_strain, gw_strain_opt))
+    # assert(np.allclose(gw_freq, gw_freq_opt))
 
     blackholes_binary.add_binaries(new_orb_a_1=orb_a_1,
                                    new_orb_a_2=orb_a_2,

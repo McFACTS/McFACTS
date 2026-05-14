@@ -15,6 +15,21 @@ from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import peters, checks, unit_conversion
 
+def bin_harden_baruteau_optimized( bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging, bin_time_merged, smbh_mass, timestep_duration_yr, time_gw_normalization, time_passed, r_g_in_meters):
+    return baruteau_helper(
+        bin_mass_1,
+        bin_mass_2,
+        bin_sep,
+        bin_ecc,
+        bin_time_to_merger_gw,
+        bin_flag_merging,
+        bin_time_merged,
+        smbh_mass,
+        timestep_duration_yr,
+        time_passed
+    )
+
+
 def baruteau_drag(mass_1, mass_2, bin_sep, smbh_mass, timestep_duration_yr):
     binary_mass = mass_1 + mass_2
     bin_period = 0.32 * np.power(bin_sep, 1.5) * np.power(smbh_mass / 1.e8, 1.5) * np.power(
