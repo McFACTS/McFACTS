@@ -3515,6 +3515,7 @@ class BinaryBlackHoleEccDynamics(TimelineActor):
             sm.disk_bh_pro_orb_ecc_crit,
             sm.delta_energy_strong_mu,
             sm.disk_radius_outer,
+            sm.r_g_in_meters,
             random_generator
         )
 
