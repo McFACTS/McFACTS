@@ -1208,11 +1208,12 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                 random_generator
             )
 
-            bh_spin_merged = checks.spin_check(
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen"),
-                blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
-                bh_spin_merged
-            )
+            if sm.flag_use_spin_check:
+                bh_spin_merged = checks.spin_check(
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen"),
+                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
+                    bh_spin_merged
+                )
 
             bh_v_kick = analytical_kick_velocity(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),

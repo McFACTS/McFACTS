@@ -515,7 +515,7 @@ class BinaryBlackHoleFormation(TimelineActor):
             gen_2=blackholes_pro.get_attribute("gen", secondary_ids),
             bin_orb_ang_mom=np.array(bin_orb_ang_mom, dtype=np.float64),
             bin_orb_inc=np.zeros(primary_ids.size, dtype=np.float64),
-            bin_orb_ecc=np.full(primary_ids.size, sm.initial_binary_orbital_ecc, dtype=np.float64),
+            bin_orb_ecc=np.full(primary_ids.size, sm.disk_bh_pro_orb_ecc_crit, dtype=np.float64),
             gw_freq=gw_freq,
             gw_strain=gw_strain,
             gw_char_strain=gw_char_strain,

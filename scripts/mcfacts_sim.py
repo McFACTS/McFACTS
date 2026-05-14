@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 from astropy import units as u
+from numpy.random import Generator
 
 import mcfacts.modules.gw
 import mcfacts.utilities.peters
@@ -16,7 +17,6 @@ from mcfacts.inputs import data as input_data
 from mcfacts.modules import accretion, merge, formation, gas_hardening, damping, disk_capture_stars
 from mcfacts.modules import disk_capture
 from mcfacts.modules import dynamics
-from mcfacts.modules import eccentricity
 from mcfacts.modules import gw
 from mcfacts.modules import migration
 from mcfacts.modules import stellar_interpolation
@@ -24,7 +24,6 @@ from mcfacts.modules import tde
 from mcfacts.objects.agnobject import AGNBlackHole, AGNBinaryBlackHole, AGNMergedBlackHole, AGNStar, AGNMergedStar, AGNDisruptedStar, AGNImmortalStar, AGNFilingCabinet
 from mcfacts.setup import setupdiskblackholes, setupdiskstars, initializediskstars
 from mcfacts.utilities import checks, unit_conversion
-from mcfacts.utilities.random_state import reset_random
 from mcfacts.outputs import merger_cols, binary_cols
 from mcfacts.outputs import emri_cols, bh_surviving_cols, bh_cols, \
     population_cols, binary_gw_cols, stars_cols, stars_disrupted_cols, \
@@ -232,7 +231,7 @@ def main():
     for galaxy in range(opts.galaxy_num):
         print("Galaxy", galaxy)
         # Set random number generator for this run with incremented seed
-        rng = reset_random(opts.seed + galaxy)
+        rng = Generator(np.random.Philox(opts.seed + galaxy))
 
         # Make subdirectories for each galaxy
         # Fills run number with leading zeros to stay sequential
@@ -1525,7 +1524,7 @@ def main():
                         # Append 2 new BH to arrays of single BH locations, masses, spins, spin angles & gens
                         # For now add 2 new orb ecc term of 0.01. inclination is 0.0 as well. TO DO: calculate v_kick and resulting perturbation to orb ecc.
 
-                        new_orb_ecc = eccentricity.ionized_orb_ecc(bbh_id_nums_ionized.size * 2, opts.disk_bh_orb_ecc_max_init)
+                        new_orb_ecc = dynamics.ionized_orb_ecc(bbh_id_nums_ionized.size * 2, opts.disk_bh_orb_ecc_max_init)
                         new_id_nums = np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + bbh_id_nums_ionized.size * 2, 1)
                         blackholes_pro.add_blackholes(
                             new_mass=np.concatenate([
@@ -1840,7 +1839,7 @@ def main():
                         # BBH is ionized from star encounter
                         # Append 2 new BH to arrays of single BH locations, masses, spins, spin angles & gens
                         # For now add 2 new orb ecc term of 0.01. inclination is 0.0 as well. TO DO: calculate v_kick and resulting perturbation to orb ecc.
-                        new_orb_ecc = eccentricity.ionized_orb_ecc(bbh_id_nums_ionized.size * 2, opts.disk_bh_orb_ecc_max_init)
+                        new_orb_ecc = dynamics.ionized_orb_ecc(bbh_id_nums_ionized.size * 2, opts.disk_bh_orb_ecc_max_init)
                         new_id_nums = np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + bbh_id_nums_ionized.size * 2, 1)
                         blackholes_pro.add_blackholes(
                             new_mass=np.concatenate([
@@ -2466,7 +2465,7 @@ def main():
                     # Append 2 new BH to arrays of single BH locations, masses, spins, spin angles & gens
                     # For now add 2 new orb ecc term of 0.01. inclination is 0.0 as well. TO DO: calculate v_kick and resulting perturbation to orb ecc.
 
-                    new_orb_ecc = eccentricity.ionized_orb_ecc(bh_binary_id_num_ionization.size * 2, opts.disk_bh_orb_ecc_max_init)
+                    new_orb_ecc = dynamics.ionized_orb_ecc(bh_binary_id_num_ionization.size * 2, opts.disk_bh_orb_ecc_max_init)
                     new_id_nums = np.arange(filing_cabinet.id_max + 1, filing_cabinet.id_max + 1 + bh_binary_id_num_ionization.size * 2, 1)
                     blackholes_pro.add_blackholes(
                         new_mass=np.concatenate([

@@ -49,6 +49,7 @@ defaults = {
     "initial_binary_orbital_ecc": 0.01, # The initial common orbital eccentricity around the SMBH to be assumed of a binary when it forms
     "fraction_bin_retro": 0, # Fraction of formed binaries that should be retrograde orbiters
     "flag_use_surrogate": False, # (flag_use_surrogate = False) Use analytical kick prescription from Akiba et al. (2024). (flag_use_surrogate = True) uses NRsurrogate (Published by Varma+2019 and modified by Keeffe Mitman) to individually solve for each merger's kick velocity.
+    "flag_use_spin_check": False, # Spin filter check flag (0/1)
     "mean_harden_energy_delta": 0.9, # Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
     "var_harden_energy_delta": 0.025, # Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
     "delta_energy_strong_mu": 0.1, # Mean of Delta Energy per Strong interaction (can be up to 20%,0.2)

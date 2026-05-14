@@ -47,7 +47,7 @@ flag_dynamics_sweep                True                                    bool
 flag_enable_bondi                  False                                   bool 
 bondi_fraction                     1e-05                                   float
 stalling_separation                0.0                                     float
-gas_hardening_prescription         analytical                              str  
+gas_hardening_prescription         baruteau                                str
 flag_add_stars                     False                                   bool 
 disk_star_mass_min_init            5.0                                     float
 disk_star_mass_max_init            40                                      int  

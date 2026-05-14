@@ -1409,6 +1409,53 @@ class BinaryBlackHoleMigration(TimelineActor):
                 timestep_length
             )
 
+        if sm.torque_prescription == 'paardekooper':
+            paardekooper_torque_coeff_bh = paardekooper10_torque(
+                blackholes_binary.bin_orb_a,
+                blackholes_binary.bin_orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                agn_disk.disk_dlog10surfdens_dlog10R_func,
+                agn_disk.disk_dlog10temp_dlog10R_func
+            )
+
+        # Jimenez-Masset torque coeff (from Grishin+24)
+        if sm.torque_prescription == 'jimenez_masset':
+            jimenez_masset_torque_coeff_bh = jimenezmasset17_torque(
+                sm.smbh_mass,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_opacity,
+                agn_disk.disk_aspect_ratio,
+                agn_disk.temp_func,
+                blackholes_binary.bin_orb_a,
+                blackholes_binary.bin_orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                agn_disk.disk_dlog10surfdens_dlog10R_func,
+                agn_disk.disk_dlog10temp_dlog10R_func,
+                sm.r_g_in_meters
+            )
+
+            jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
+                sm.smbh_mass,
+                agn_disk.disk_surface_density,
+                agn_disk.disk_opacity,
+                agn_disk.disk_aspect_ratio,
+                agn_disk.temp_func,
+                sm.disk_bh_eddington_ratio,
+                blackholes_binary.bin_orb_a,
+                blackholes_binary.bin_orb_ecc,
+                sm.disk_bh_pro_orb_ecc_crit,
+                blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                sm.flag_thermal_feedback,
+                agn_disk.disk_dlog10pressure_dlog10R_func,
+                sm.r_g_in_meters
+            )
+
+            if sm.flag_thermal_feedback > 0:
+                total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh + jimenez_masset_thermal_torque_coeff_bh
+            else:
+                total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh
+
+        # Normalized torque (multiplies torque coeff)
         if sm.torque_prescription == 'paardekooper' or sm.torque_prescription == 'jimenez_masset':
             normalized_torque_bh = normalized_torque(
                 sm.smbh_mass,
@@ -1422,76 +1469,25 @@ class BinaryBlackHoleMigration(TimelineActor):
             )
 
             if np.size(normalized_torque_bh) > 0:
-                torque = None
-                disk_trap_radius = None
-                disk_anti_trap_radius = None
-
-                # Paardekooper torque coeff (default)
                 if sm.torque_prescription == 'paardekooper':
-                    paardekooper_torque_coeff_bh = paardekooper10_torque(
-                        blackholes_binary.bin_orb_a,
-                        blackholes_binary.bin_orb_ecc,
-                        sm.disk_bh_pro_orb_ecc_crit,
-                        agn_disk.disk_dlog10surfdens_dlog10R_func,
-                        agn_disk.disk_dlog10temp_dlog10R_func
-                    )
-
                     torque = paardekooper_torque_coeff_bh * normalized_torque_bh
                     disk_trap_radius = sm.disk_radius_trap
                     disk_anti_trap_radius = sm.disk_radius_trap
 
-                # Jimenez-Masset torque coeff (from Grishin+24)
                 if sm.torque_prescription == 'jimenez_masset':
-                    jimenez_masset_torque_coeff_bh = jimenezmasset17_torque(
-                        sm.smbh_mass,
-                        agn_disk.disk_surface_density,
-                        agn_disk.disk_opacity,
-                        agn_disk.disk_aspect_ratio,
-                        agn_disk.temp_func,
-                        blackholes_binary.bin_orb_a,
-                        blackholes_binary.bin_orb_ecc,
-                        sm.disk_bh_pro_orb_ecc_crit,
-                        agn_disk.disk_dlog10surfdens_dlog10R_func,
-                        agn_disk.disk_dlog10temp_dlog10R_func,
-                        sm.r_g_in_meters
-                    )
-                    jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
-                        sm.smbh_mass,
-                        agn_disk.disk_surface_density,
-                        agn_disk.disk_opacity,
-                        agn_disk.disk_aspect_ratio,
-                        agn_disk.temp_func,
-                        sm.disk_bh_eddington_ratio,
-                        blackholes_binary.bin_orb_a,
-                        blackholes_binary.bin_orb_ecc,
-                        sm.disk_bh_pro_orb_ecc_crit,
-                        blackholes_binary.mass_1 + blackholes_binary.mass_2,
-                        sm.flag_thermal_feedback,
-                        agn_disk.disk_dlog10pressure_dlog10R_func
-                    )
-
-                    if sm.flag_thermal_feedback > 0:
-                        total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh + jimenez_masset_thermal_torque_coeff_bh
-                    else:
-                        total_jimenez_masset_torque_bh = jimenez_masset_torque_coeff_bh
-
                     torque = total_jimenez_masset_torque_bh * normalized_torque_bh
-
                     # Set up trap scaling as a function of mass for Jimenez-Masset (for SG-like disk)
                     # No traps if M_smbh >10^8Msun (approx.)
                     if sm.smbh_mass > 1.e8:
                         disk_trap_radius = sm.disk_inner_stable_circ_orb
                         disk_anti_trap_radius = sm.disk_inner_stable_circ_orb
-
                     if sm.smbh_mass == 1.e8:
                         disk_trap_radius = sm.disk_radius_trap
                         disk_anti_trap_radius = sm.disk_radius_trap
-
                     # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
                     if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
                         disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
                         disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
-
                     # Trap location changes again at low SMBH mass (Grishin+24)
                     if sm.smbh_mass < 1.e6:
                         disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-0.97)
@@ -1504,7 +1500,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                     blackholes_binary.bin_orb_ecc,
                     sm.disk_bh_pro_orb_ecc_crit,
                     torque,
-                    sm.r_g_in_meters,
+                    sm.r_g_in_meters
                 )
 
                 # Calculate new bh_orbs_a using torque
@@ -1527,3 +1523,4 @@ class BinaryBlackHoleMigration(TimelineActor):
                     sm.torque_prescription,
                     random_generator
                 )
+

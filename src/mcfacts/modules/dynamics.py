@@ -3684,12 +3684,74 @@ class BinaryBlackHoleSpheroidDynamics(TimelineActor):
             random_generator
         )
 
-
         blackholes_binary.consistency_check()
 
         if self.reality_merge_checks:
             checks.binary_reality_check(sm, filing_cabinet, self.log)
             checks.flag_binary_mergers(sm, filing_cabinet)
+
+
+class BinaryBlackHoleEccDynamics(TimelineActor):
+    def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
+        super().__init__("Binary Ecc Dynamics" if name is None else name, settings)
+
+        self.reality_merge_checks = reality_merge_checks
+
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
+        sm = self.settings
+
+        if sm.bh_prograde_array_name not in filing_cabinet:
+            return
+
+        if sm.bbh_array_name not in filing_cabinet:
+            return
+
+        blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
+        blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBinaryBlackHoleArray)
+
+        non_merge_mask = blackholes_binary.flag_merging >= 0
+
+        # Soften / ionize binaries due to encounters with eccentric singletons
+        (
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
+            blackholes_pro.orb_a,
+            blackholes_pro.orb_ecc
+        ) = circular_binaries_encounters_ecc_prograde(
+            sm.smbh_mass,
+            blackholes_pro.orb_a,
+            blackholes_pro.mass,
+            blackholes_pro.orb_ecc,
+            blackholes_binary.mass[non_merge_mask],
+            blackholes_binary.mass_2[non_merge_mask],
+            blackholes_binary.bin_orb_a[non_merge_mask],
+            blackholes_binary.bin_sep[non_merge_mask],
+            blackholes_binary.bin_ecc[non_merge_mask],
+            blackholes_binary.bin_orb_ecc[non_merge_mask],
+            timestep_length,
+            sm.disk_bh_pro_orb_ecc_crit,
+            sm.delta_energy_strong_mu,
+            sm.disk_radius_outer,
+            random_generator
+        )
+
+        # ejected_ids = blackholes_pro.unique_id[blackholes_pro.orb_a >= sm.disk_radius_outer]
+        #
+        # ejected = blackholes_pro.copy()
+        # ejected.keep_only(ejected_ids)
+        #
+        # blackholes_pro.remove_all(ejected_ids)
+        #
+        # filing_cabinet.create_or_append_array(sm.bh_ejected_array_name, ejected)
+
+        blackholes_pro.consistency_check()
+        blackholes_binary.consistency_check()
+
+        if self.reality_merge_checks:
+            checks.binary_reality_check(sm, filing_cabinet, self.log)
+            checks.flag_binary_mergers(sm, filing_cabinet)
+
 
 class BinaryBlackHoleDynamics(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
@@ -3743,47 +3805,14 @@ class BinaryBlackHoleDynamics(TimelineActor):
         blackholes_pro.consistency_check()
         blackholes_binary.consistency_check()
 
-        if self.reality_merge_checks:
-            checks.binary_reality_check(sm, filing_cabinet, self.log)
-            checks.flag_binary_mergers(sm, filing_cabinet)
-            non_merge_mask = blackholes_binary.flag_merging >= 0
-
-        # Soften / ionize binaries due to encounters with eccentric singletons
-        (
-            blackholes_binary.bin_sep[non_merge_mask],
-            blackholes_binary.bin_ecc[non_merge_mask],
-            blackholes_binary.bin_orb_ecc[non_merge_mask],
-            blackholes_pro.orb_a,
-            blackholes_pro.orb_ecc
-        ) = circular_binaries_encounters_ecc_prograde(
-            sm.smbh_mass,
-            blackholes_pro.orb_a,
-            blackholes_pro.mass,
-            blackholes_pro.orb_ecc,
-            blackholes_binary.mass[non_merge_mask],
-            blackholes_binary.mass_2[non_merge_mask],
-            blackholes_binary.bin_orb_a[non_merge_mask],
-            blackholes_binary.bin_sep[non_merge_mask],
-            blackholes_binary.bin_ecc[non_merge_mask],
-            blackholes_binary.bin_orb_ecc[non_merge_mask],
-            timestep_length,
-            sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong_mu,
-            sm.disk_radius_outer,
-            random_generator
-        )
-
-        blackholes_pro.consistency_check()
-        blackholes_binary.consistency_check()
-
-        ejected_ids = blackholes_pro.unique_id[blackholes_pro.orb_a >= sm.disk_radius_outer]
-
-        ejected = blackholes_pro.copy()
-        ejected.keep_only(ejected_ids)
-
-        blackholes_pro.remove_all(ejected_ids)
-
-        filing_cabinet.create_or_append_array(sm.bh_ejected_array_name, ejected)
+        # ejected_ids = blackholes_pro.unique_id[blackholes_pro.orb_a >= sm.disk_radius_outer]
+        #
+        # ejected = blackholes_pro.copy()
+        # ejected.keep_only(ejected_ids)
+        #
+        # blackholes_pro.remove_all(ejected_ids)
+        #
+        # filing_cabinet.create_or_append_array(sm.bh_ejected_array_name, ejected)
 
         blackholes_pro.consistency_check()
         blackholes_binary.consistency_check()
