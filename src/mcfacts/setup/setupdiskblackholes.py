@@ -2,7 +2,7 @@
 
 import numpy as np
 from mcfacts.mcfacts_random_state import rng
-
+from mcfast import generate_r
 
 def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb):
     """Generates initial single BH orbital semi-major axes :math:`r_{g,SMBH}'
@@ -29,6 +29,76 @@ def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_
                                        high=disk_outer_radius,
                                        size=disk_bh_num,
                                        )
+    return bh_initial_locations
+
+def setup_disk_blackholes_location_NSC_powerlaw_optimized(disk_bh_num,
+                                  disk_radius_outer,
+                                  disk_inner_stable_circ_orb,
+                                  smbh_mass,
+                                  nsc_radius_crit,
+                                  nsc_density_index_inner,
+                                  nsc_density_index_outer,
+                                  volume_scaling=True):
+    """Draw initial single black hole orbital semi-major axes :math:`r_{g,SMBH}`
+    from a nuclear star cluster with a broken powerlaw density distribution
+    (i.e. two slopes).
+
+    Uses a Rust function from mcfast to perform steps 2-5.
+
+    Algorithm:
+    1. convert all parsec units to gravitational radii
+    2. create a radius array r with the bounds
+        minimum = disk_inner_stable_circ_orb
+        maximum = disk_radius_outer
+    3. create y = f(r) using power law indices
+            for r < nsc_radius_crit
+            for r > nsc_radius_crit
+    4. Optional: scale y by each radial shell's volume
+    5. calculate pdf: p(r) = y / sum(y)
+    6. draw locations from the pdf:
+            `rng.choice(r, size=disk_bh_num, p=y_pdf)`
+
+    Parameters
+    ----------
+    disk_bh_num : int
+        Integer number of black holes in the disk that need locations
+    disk_radius_outer : float
+        Outer radius of disk :math:`r_{g,SMBH}` in gravitational radii
+    disk_inner_stable_circ_orb :
+        Inner radius of disk :math:`r_{g,SMBH}` in gravitational radii
+    smbh_mass : float
+        Mass of the supermassive black hole in solar masses
+    nsc_radius_crit : float
+        Radius at which the powerlaw index changes in parsecs
+    nsc_density_index_inner : int
+        Powerlaw index of the nuclear star cluster interior to `nsc_radius_crit`
+    nsc_density_index_outer : ing
+        Powerlaw index of the nuclear star cluster exterior to `nsc_radius_crit`
+    volume_scaling=True : bool
+        A switch to normalize by each radial shell's volume such that the total
+        probability over the range is 1. When :obj`True`, each radial bin of the
+        powerlaw function is multiplied by :math:`\pi r^2 dr`. Default :obj:`True`.
+
+    Returns
+    -------
+    bh_initial_locations : numpy.ndarray
+        Initial BH locations in disk :math:`r_{g,SMBH}` with :obj:`float` type
+    """
+
+    # Unit conversions from Parsec to Gravitational radii
+    convert_1pc_to_rg_SMBH = 2.e5 * (smbh_mass / 1.e8)**(-1.0)
+    # nsc_radius_outer_rg = nsc_radius_outer * convert_1pc_to_rg_SMBH
+    nsc_radius_crit_rg = nsc_radius_crit * convert_1pc_to_rg_SMBH
+
+    r, r_pdf = generate_r(disk_inner_stable_circ_orb, disk_radius_outer, 1000000, nsc_radius_crit_rg, nsc_density_index_inner, nsc_density_index_outer, volume_scaling)
+
+    # Ensure the total probabiliy is 1.0 accounting for deviations at machine precision
+    if not np.isclose(r_pdf.sum(), 1.0):
+        raise ValueError(f"[Setup BH Locs] Sum of p(r) must be less than 1 but is {r_pdf.sum()}.")
+
+    # Draw locations for all the black holes from the r array with the associated probabilities.
+    bh_initial_locations = rng.choice(r, size=disk_bh_num, p=r_pdf)
+
     return bh_initial_locations
 
 def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,

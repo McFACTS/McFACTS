@@ -52,7 +52,7 @@ def tau_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro
 
 def test_tau_dyn():
     # load 0 and 1 to construct disk_surf_desn_func_log
-    spline = pd.read_csv('tests/tau_spline.csv', header=None)
+    spline = pd.read_csv('tests/optimizations/tau_spline.csv', header=None)
 
     spline_parsed = spline.map(parse_array)
     first_row = spline_parsed.iloc[0]
@@ -65,7 +65,7 @@ def test_tau_dyn():
     disk_surf_density_func = lambda x, f=disk_surf_dens_func_log: np.exp(f(np.log(x)))
 
     # now read from tau_inputs.csv and run
-    inputs = pd.read_csv("tests/tau_inputs.csv", header=None)
+    inputs = pd.read_csv("tests/optimizations/tau_inputs.csv", header=None)
 
     for _, row in inputs.iterrows():
         smbh_mass = row[0] # scalar
