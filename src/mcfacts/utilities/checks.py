@@ -1,3 +1,6 @@
+"""
+checks.py contains code to conduct various checks across multiple McFACTS modules.
+"""
 import numpy as np
 from scipy.stats import truncnorm
 

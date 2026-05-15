@@ -1,3 +1,7 @@
+"""
+Module for computing eccentricity damping due to gas interactions.
+"""
+
 import numpy as np
 from numpy.random import Generator
 

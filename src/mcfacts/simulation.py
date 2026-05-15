@@ -1,3 +1,7 @@
+"""
+simulation.py contains the canonical simulation supported by the McFACTS collaboration.
+"""
+
 import os
 import shutil
 
@@ -24,8 +28,11 @@ from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopul
 from mcfacts.objects.snapshot import TxtSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 
+
+#### Methods
 def main(settings: SettingsManager):
     # Check for existing output files and overwrite flags
+    # TODO: These checks probably should be done via the snapshot handler
     if settings.overwrite_files == False and os.path.isdir(settings.output_dir):
         assert False, f"Output directory {settings.output_dir} already exist. Set --overwrite_files=True to clear the directory."
 
@@ -42,7 +49,7 @@ def main(settings: SettingsManager):
 
     pbar = tqdm(total=settings.galaxy_num, position=0, leave=True)
 
-    for galaxy_id in range(settings.galaxy_num,):
+    for galaxy_id in range(settings.galaxy_num):
         pbar.set_description(f"Running Galaxy {galaxy_id}")
         pbar.update(1)
 
@@ -178,6 +185,7 @@ def main(settings: SettingsManager):
 
     # Save the entire population cabinet
     snapshot_handler.save_cabinet("./runs", "population", population_cabinet)
+
 
 if __name__ == "__main__":
     main(SettingsManager())

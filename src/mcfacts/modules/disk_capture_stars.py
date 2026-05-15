@@ -7,6 +7,7 @@ import numpy as np
 
 from mcfacts.utilities import unit_conversion
 
+#TODO: Combine with disk_capture.py
 
 def stellar_mass_captured_nsc(disk_lifetime, smbh_mass, nsc_density_index_inner, nsc_mass,
                               nsc_ratio_bh_num_star_num, nsc_ratio_bh_mass_star_mass, disk_surface_density_func,

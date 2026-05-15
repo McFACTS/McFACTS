@@ -53,7 +53,7 @@ class GalaxyPopulator(ABC):
 class Galaxy:
     """
     Galaxy:
-        A class representing a galaxy in a simulation, with capabilities to populate AGN objects and run simulations.
+        A class representing a galaxy in the simulation.
 
         Attributes:
             seed (int): Random seed for generating reproducible results.
@@ -69,7 +69,7 @@ class Galaxy:
             populate(populators: list[GalaxyPopulator], strict_fill: bool = True, join_populations: bool = False):
                 Populates the galaxy using a list of GalaxyPopulator instances.
             simulate(simulationTimeline: SimulationTimeline):
-                Runs a simulation using the specified SimulationTimeline, updating the state of the galaxy.
+                Evolves the galaxy using the specified SimulationTimeline, updating the state of the galaxy.
     """
 
     def __init__(self, seed: int, runs_folder: str, galaxy_id: str, settings: SettingsManager = SettingsManager(), snapshot_handler: SnapshotHandler = None):

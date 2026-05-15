@@ -1,5 +1,5 @@
 """
-Module for hardening the binary via gas.
+Module containing methods for hardening binaries via gas.
 """
 import astropy.units as u
 import astropy.constants as const

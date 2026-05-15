@@ -1,3 +1,8 @@
+"""
+fiducial_plots.py contains methods for creating default diagnostic and scientific plots from a computed McFACTS run.
+"""
+
+#### IMPORTS
 import sys
 from uuid import UUID
 
@@ -19,6 +24,8 @@ from mcfacts.vis import data
 from mcfacts.vis import styles
 from mcfacts.vis import plotting
 
+
+#### METHODS
 def make_gen_masks(gen_obj1, gen_obj2):
     """Create masks for retrieving different sets of a merged or binary population based on generation.
     """
@@ -1232,7 +1239,11 @@ def time_vs_freq(settings, figsize, save_dir, lvk):
     plt.savefig(os.path.join(save_dir, 'time_vs_freq.png'), format='png')
     plt.close()
 
+
 def main(settings: SettingsManager):
+    """
+    Main function called to produce diagnostic and scientific plots when this module is called as a script.
+    """
     plt.style.use("mcfacts.vis.mcfacts_figures")
 
     figsize = "apj_col"
@@ -1271,13 +1282,14 @@ def main(settings: SettingsManager):
 
     strain_vs_freq(settings, figsize, plots_dir, merger_masks, lvk, emri)
 
-    # TODO: EM Flag
+    # TODO: Add EM plots flag, or make sub command -per Barry
     kick_velocity_hist(settings, figsize, plots_dir, merger_masks, v_kick)
     kick_velocity_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, v_kick)
     kick_velocity_vs_chi_eff(settings, figsize, plots_dir, merger_masks, chi_eff, v_kick)
     kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
 
     time_vs_freq(settings, figsize, plots_dir, lvk)
+
 
 if __name__ == "__main__":
     main(SettingsManager())

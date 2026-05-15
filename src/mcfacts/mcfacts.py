@@ -1,26 +1,28 @@
+"""
+mcfacts.py is main script that orchestrates the launching of simulations with provided settings.
+"""
+
+#### IMPORTS
 import argparse
 import cProfile
 
 from mcfacts import fiducial_plots, simulation
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.snapshot import TxtSnapshotHandler
-
-# Source - https://stackoverflow.com/a/43357954
-# Posted by Maxim, modified by community. See post 'Timeline' for change history
-# Retrieved 2026-02-24, License - CC BY-SA 4.0
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+from mcfacts.utilities.unit_conversion import str2bool
 
 
+#### METHODS
 def seed_settings_args(sub_parser: argparse.ArgumentParser):
+    """
+    This method compiles the settings for the simulation based on the defaults from SettingsManager and the
+    overrides passed by the user.
+
+    Parameters
+    ----------
+    sub_parser: argparse.ArgumentParser
+        The sub parser representing the sub command to add the settings to.
+    """
     # Create a default instance of SettingsManager to get the default location of the settings file
     initial_settings = SettingsManager()
 
@@ -73,7 +75,12 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
                 sub_parser.add_argument(alias, f"--{key}",
                                     default=value, type=type(value), metavar=key, dest=key)
 
+
 def main():
+    """
+    Main method that interprets user input and runs the simulation based on the provided
+    sub command and settings.
+    """
     # Create instance of argument parser
     parser = argparse.ArgumentParser(allow_abbrev=False)
 

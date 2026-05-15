@@ -1,10 +1,9 @@
 """
-Utilities for random used throughout McFACTS simulations.
+Utilities utilizing randomization throughout McFACTS modules.
 """
 import uuid
 
 from numpy.random import Generator
-
 
 
 def uuid_provider(random_generator: Generator) -> uuid.UUID:

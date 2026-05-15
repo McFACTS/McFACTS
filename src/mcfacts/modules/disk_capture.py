@@ -518,6 +518,7 @@ def tau_inc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
 
     return tau_i_dyn
 
+
 def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse,
                 disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters):
     """Computes inclination damping timescale from actual variables; used only for scaling.
@@ -671,6 +672,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
 
     return tau_p_dyn
 
+
 def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, omega, ecc, inc, disk_surf_density_func, r_g_in_meters):
     """Computes eccentricity & semi-maj axis damping timescale from actual variables
     Uses Rust-accelerated helper functions for calculations: compare to tau_ecc_dyn
@@ -719,6 +721,7 @@ def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
         "Finite check failure: tau_a_dyn"
 
     return tau_e_dyn, tau_a_dyn
+
 
 def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_arg_periapse,
                 disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc, disk_surf_density_func, r_g_in_meters):

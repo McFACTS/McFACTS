@@ -1,3 +1,8 @@
+"""
+unit_conversion.py provides common functions to convert between different units.
+"""
+
+#### IMPORTS
 import astropy.units
 import numpy as np
 from astropy import constants as const, units as u
@@ -7,6 +12,7 @@ from mcfast import si_from_r_g_helper
 from mcfast import r_g_from_units_helper
 
 
+#### METHODS
 def initialize_r_g(smbh_mass):
     """Initilializes the r_g value in meters
 
@@ -50,6 +56,9 @@ def si_from_r_g_optimized(smbh_mass, distance_rg, r_g_defined=None):
         Mass [M_sun] of the SMBH
     distance_rg : array_like
         Distances [r_{g,SMBH}]
+    r_g_defined: float
+        Precalculated r_g for the given SMBH mass
+        # TODO: optimized might not need r_g_defined? Ask Nico!
 
     Returns
     -------
@@ -68,6 +77,8 @@ def si_from_r_g(smbh_mass, distance_rg, r_g_defined=None):
         Mass [M_sun] of the SMBH
     distance_rg : array_like
         Distances [r_{g,SMBH}]
+    r_g_defined: float
+        Precalculated r_g for the given SMBH mass
 
     Returns
     -------
@@ -213,3 +224,30 @@ def r_schwarzschild_of_m(mass):
         "r_sch contains values <= 0"
 
     return (r_sch)
+
+
+def str2bool(v):
+    """
+    Function to convert from string to boolean.
+
+    Source - https://stackoverflow.com/a/43357954
+    Posted by Maxim, modified by community. See post 'Timeline' for change history
+    Retrieved 2026-02-24, License - CC BY-SA 4.0
+
+    Parameters
+    ----------
+    v: str
+        String to convert to boolean.
+
+    Returns
+    -------
+        boolean
+    """
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')

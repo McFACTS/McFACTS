@@ -1,8 +1,5 @@
 """
 Module for calculating the gw strain and freq of a binary and handling simple GR orbital evolution (Peters 1964)
-
-Contain functions for orbital evolution and converting between
-    units of r_g and SI units
 """
 import numpy as np
 from astropy import units as u, constants as const
