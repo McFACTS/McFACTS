@@ -12,7 +12,6 @@ import astropy.units as u
 import numpy as np
 import scipy
 import scipy.optimize
-from h2.settings import Settings
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager

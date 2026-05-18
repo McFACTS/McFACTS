@@ -70,6 +70,8 @@ dependencies = [
     "astropy",
     "pandas",
     "pagn",
+    "tqdm",
+    "typing-extensions",
     "joblib>=1.4.2",
     "scikit_learn>=1.5.2",
     "mcfast==0.1.8",
