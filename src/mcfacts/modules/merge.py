@@ -1586,8 +1586,8 @@ class ProcessEMRIMergers(TimelineActor):
         emris = innerdisk_array.copy()
         emris_gw_only = innerdisk_gw_only_array.copy()
 
-        emris.keep_only(merged_ids)
-        emris_gw_only.keep_only(gw_only_merged_ids)
+        #emris.keep_only(merged_ids)
+        #emris_gw_only.keep_only(gw_only_merged_ids)
 
         innerdisk_array.remove_all(merged_ids)
         innerdisk_gw_only_array.remove_all(gw_only_merged_ids)
@@ -1607,6 +1607,8 @@ class ProcessEMRIMergers(TimelineActor):
 
         emris.gw_freq = nu_gw
         emris.gw_strain = char_strain
+
+        filing_cabinet.ignore_consistency_check(sm.emri_array_name)
 
         filing_cabinet.create_or_append_array(sm.emri_array_name, emris)
 

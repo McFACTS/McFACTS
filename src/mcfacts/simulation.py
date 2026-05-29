@@ -155,6 +155,7 @@ def main(settings: SettingsManager):
         # Ignore consistency checks on these arrays since they are allowed to have duplicates
         population_cabinet.ignore_consistency_check("blackholes_merged")
         population_cabinet.ignore_consistency_check("blackholes_lvk")
+        population_cabinet.ignore_consistency_check("blackholes_emri")
 
         # Grab array names from settings manager
         bbh_merged_array = galaxy.settings.bbh_merged_array_name
