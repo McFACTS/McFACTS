@@ -247,6 +247,11 @@ def main():
     print("opts.smbh_mass", opts.smbh_mass)
     print("opts.fraction_bin_retro", opts.fraction_bin_retro)
 
+    dbhn = 201
+    cap_rate = disk_capture.disk_capture_rate(opts.smbh_mass, opts.disk_inner_stable_circ_orb, opts.disk_radius_outer, disk_surface_density, opts.nsc_radius_crit, opts.nsc_density_index_inner, opts.nsc_density_index_outer, opts.nsc_imf_bh_mode, opts.nsc_imf_bh_mass_max, opts.nsc_imf_bh_powerlaw_index, opts.mass_pile_up, opts.nsc_imf_bh_method, dbhn, opts.disk_aspect_ratio_avg)
+    print("capture rate", cap_rate)
+    print(ff)
+
     for galaxy in range(opts.galaxy_num):
         print("Galaxy", galaxy)
         # Set random number generator for this run with incremented seed

@@ -4,6 +4,7 @@ Module for computing disk-orbiter interactions, which may lead to capture.
 import numpy as np
 import astropy.constants as const
 import astropy.units as u
+import mcfacts.setup.setupdiskblackholes as setup
 from mcfacts.mcfacts_random_state import rng
 from mcfacts.physics.point_masses import si_from_r_g
 
@@ -610,3 +611,117 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
         "Finite check failure: tau_a_dyn"
 
     return tau_e_dyn.value, tau_a_dyn.value
+
+def disk_capture_rate(smbh_mass, disk_inner_stable_circ_orb, disk_radius_outer, disk_surf_density_func, nsc_radius_crit, nsc_density_index_inner, nsc_density_index_outer, nsc_imf_bh_mode, nsc_imf_bh_mass_max, nsc_imf_bh_powerlaw_index, mass_pile_up, nsc_imf_bh_method, disk_bh_num, disk_aspect_ratio_avg):
+    """Function to compute the disk capture rate of BH, based on scaling to results of WZL and Fabj et al. 2020
+    i.e. 10 captured BH per Myr around a 1e8 SMBH for an SG disk, default BH IMF, default NSC radial distribution,
+    thermal eccentricity distribution. Scales for variable BH IMF, number of BH in NSC, radial distribution,
+    eccentricity distribution, disk surface density and SMBH mass. BUT: crude average only.
+
+    Parameters
+    ----------
+    smbh_mass : float
+        from inputs
+    disk_inner_stable_circ_orb : float
+        from inputs
+    disk_radius_outer : float
+        from inputs
+    disk_surf_density_func : function
+        from inputs
+    nsc_radius_crit : float
+        from inputs
+    nsc_density_index_inner : float
+        from inputs
+    nsc_density_index_outer : float
+        from inputs
+    nsc_imf_bh_mode : float
+        from inputs
+    nsc_imf_bh_mass_max : float
+        from inputs
+    nsc_imf_bh_powerlaw_index : float
+        from inputs
+    mass_pile_up : float
+        from inputs
+    nsc_imf_bh_method : string
+        from inputs
+    disk_bh_num : int
+        computed--careful on ooo
+    disk_aspect_ratio_avg : float
+        from inputs, but should be computed (again careful on ooo)
+
+    Returns
+    -------
+    rate : float
+        number of captured BH per Myr of disk lifetime
+    """
+    rate_0 = 10.0 # fiducial captures per Myr
+    smbh_mass_0 = 1.e8 # fiducial SMBH mass for capture rate--see Fabj et al. 2020 and WZL
+    num_nsc_obj_0 = 6700.0 # fiducial number of NSC objects with semi-maj axis inside disk R_out
+    avg_nsc_obj_mass_0 = 17.1 # fiducial avg mass of NSC orbiter (BH only) out to disk R_out
+    avg_semi_lat_nsc_obj_0 = 13994.1 # fiducial avg semi-latus-rectum (p=a(1-e^2)) of NSC orbiter (BH only) to to disk R_out
+    avg_disk_surf_dens_0 = 683587.08 # fiducial avg surface density of disk out to disk R_out
+
+    sample_size = 1e4 # how many objects do you need to get a consistent average, hopefully this is ok.
+    
+    # undo the scaling with disk aspect ratio and count everything (may need to round to nearest int)
+    # This will not work when Miranda fixes how we count the number of BH, but then we can just call their func
+    num_nsc_obj = disk_bh_num/disk_aspect_ratio_avg
+
+    # careful here: do we always use these methods to get orb_a, orb_ecc and masses? Or do we sometimes use other methods?
+    nsc_obj_masses = setup.setup_disk_blackholes_masses(int(sample_size), nsc_imf_bh_mode, nsc_imf_bh_mass_max, nsc_imf_bh_powerlaw_index, mass_pile_up, nsc_imf_bh_method)
+    avg_nsc_obj_mass = sum(nsc_obj_masses)/sample_size # draw 1e4 times from setup disk black holes mass func and take average?
+
+    orb_a_dist = setup.setup_disk_blackholes_location_NSC_powerlaw(int(sample_size), disk_radius_outer, disk_inner_stable_circ_orb, smbh_mass, nsc_radius_crit, nsc_density_index_inner, nsc_density_index_outer, volume_scaling=True)
+    orb_ecc_dist = setup.setup_disk_blackholes_eccentricity_thermal(int(sample_size))
+    orb_semi_lat_dist = orb_a_dist * (1.0 - orb_ecc_dist**2)
+    avg_semi_lat_nsc_obj = sum(orb_semi_lat_dist)/sample_size # draw 1e4 times from setupdisk black holes orb a and ecc and take average?
+
+    #disk_radii = np.arange(disk_inner_stable_circ_orb, disk_radius_outer, 0.01)
+    # had to replace isco with 13.0 rg because pAGN can't handle radii < 13.0rg... fix later
+    disk_radii = np.arange(13.0, disk_radius_outer, 0.01)
+    disk_surf_density_array = disk_surf_density_func(disk_radii)
+    avg_disk_surf_dens = sum(disk_surf_density_array)/len(disk_radii) # compute avg disk surf density to disk R_out for this disk
+
+    rate = rate_0 * (num_nsc_obj/num_nsc_obj_0) * (avg_nsc_obj_mass/avg_nsc_obj_mass_0) * (avg_semi_lat_nsc_obj/avg_semi_lat_nsc_obj_0)**2 * (avg_disk_surf_dens/avg_disk_surf_dens_0) * (smbh_mass_0/smbh_mass)**2 
+
+    return rate
+
+def disk_capture_crit_radius(time, R_out, R_in):
+    """computes time dependent critical radius for disk capture of BH; inside of this radius, probability of
+    capture radius scales as r^-1/4, outside scales as r^-2; critical capture radius grows with time until it
+    reaches the outer radius of the disk. Roughly should be SMBH mass invariant and scale up an order of magnitude
+    in units of Rg per order of magnitude in time, starting with 100Rg at ~10^5yrs (see WZL fig 15).
+
+    Parameters
+    ----------
+    time : float
+        time in simulation at capture (units?)
+    R_out : float
+        Outer radius of disk in units of Rg (from inputs)
+    R_in : float
+        innermost radius of disk or innermost radius where objects can capture (R_tidal?) units of Rg
+
+    Returns
+    -------
+    cap_crit_radius : float
+        break radius between P(capture) propto r^-1/4 and r^-2 behavior units of Rg
+    """
+    
+    # This is literally eyeballing a plot: roughly the critical capture radius seems to be 100rg at 10^5 yrs
+    # then 1000rg at 10^6 yrs, and 10^4rg at 10^7 yrs
+    idx_crit_rad = np.log10(time/year) - 3.0
+    cap_crit_radius = pow(10.0, idx_crit_rad)
+
+    # then make sure the crit radius isn't bigger than the disk or smaller than the disk
+    if cap_crit_radius >= R_out:
+        cap_crit_radius = R_out
+    elif cap_crit_radius <= R_in:
+        cap_crit_radius = R_in + 0.01
+
+    return cap_crit_radius
+
+def where_capture(R_in, R_out, R_cap_crit):
+
+    
+
+    return where_capture
