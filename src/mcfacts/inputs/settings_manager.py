@@ -49,11 +49,6 @@ class SettingsProperty:
         return self._prop_type
 
 
-    @property
-    def name_length(self) -> int:
-        return len(self._name)
-
-
 class StaticSettingsProperty(SettingsProperty):
     T = TypeVar("T")
 
@@ -65,7 +60,6 @@ class StaticSettingsProperty(SettingsProperty):
         _ = self.category
         _ = self.value
         _ = self.prop_type
-        _ = self.name_length
 
 
     @cached_property
@@ -86,11 +80,6 @@ class StaticSettingsProperty(SettingsProperty):
     @cached_property
     def prop_type(self) -> Type[T]:
         return self._prop_type
-
-
-    @cached_property
-    def name_length(self) -> int:
-        return len(self.name)
 
 
 class OptionalSettingsProperty(SettingsProperty):
