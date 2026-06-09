@@ -92,7 +92,7 @@ def main(settings: SettingsManager):
 
         # Single Object Physics
         active_phase_timeline.add_timeline_actors([
-            #ProgradeBlackHoleMigration(target_array=innerdisk_array),
+            ProgradeBlackHoleMigration(target_array=innerdisk_array),
             ProgradeBlackHoleMigration(target_array=prograde_array),
             SingleBlackHoleRealityCheck(),
 
