@@ -1,161 +1,343 @@
-from typing import Any
+import warnings
+from functools import cached_property
+from types import NoneType
+from typing import Any, TypeVar, Type
 
 from mcfacts.inputs import ReadInputs
 from mcfacts.utilities import unit_conversion
 
-defaults = {
-    # IO Parameters
-    "verbose": False, # Print all debug messages
-    "show_timeline_progress": False, # Shows a progress bar for the active timeline
-    "overwrite_files": False, # Override any output files that exist, throws errors otherwise
-    "save_state": False, # Pickle and save the entire state of a galaxy after each population or timeline is run
-    "save_each_timestep": False, # Pickle and save the state of a galaxy for each timestep during a simulation timeline
-    "save_snapshots": 0, # :: DEPRECIATED :: Whether to save snapshots (0 for off)
-    "output_dir": "./runs", # Output directory relative to the base directory
-    "settings_file": "./recipes/model_choice_old.ini",
 
-    # Simulation Parameters
-    "active_timestep_duration_yr": 1.e4,  # Duration of each timestep (years)
-    "active_timestep_num": 70,  #  Number of timesteps in dynamics timeline
-    "capture_time_yr": 1.e5,  # Time between disk captures (years)
-    "galaxy_num": 100,  #  Number of iterations of the simulation
-    "seed": 223849053863469657747974663531730220530, # Seed of the simulation, should be 128 bits long
+class SettingsProperty:
+    T = TypeVar("T")
 
-    # AGN Parameters
-    "smbh_mass": 1.e8,  # Supermassive black hole mass (solar masses)
+    def __init__(self, name: str, category: str, value: Any, prop_type: Type[T] = str):
+        assert type(value) == prop_type, f"SettingsProperty: the type of value ({type(value)}) must match prop_type {prop_type}"
 
-    # Disk Parameters
-    "flag_use_pagn": True,  # Enable or disable the pAGN program
-    "disk_model_name": "sirko_goodman",  # Disk model options: sirko_goodman, thompson_etal
-    "disk_radius_trap": 700.0,  # Migration trap radius (gravitational radii)
-    "disk_radius_outer": 50000.0,  # Outer radius of the disk (gravitational radii)
-    "disk_alpha_viscosity": 0.01,  # Disk viscosity parameter
-    "disk_aspect_ratio_avg": 0.03,  # Average disk height relative to its radius
-    "disk_bh_torque_condition": 0.1,  # Fraction of mass accreted before spin alignment
-    "disk_bh_eddington_ratio": 1.0,  # Eddington accretion ratio
-    "disk_bh_orb_ecc_max_init": 0.9,  # Initial maximum orbital eccentricity
-    "disk_radius_capture_outer": 2.e3,  # Outer radius for capture (gravitational radii)
-    "disk_bh_pro_orb_ecc_crit": 0.01,  # Critical eccentricity for circularized orbits
-    "inner_disk_outer_radius": 50.0,  # Outer radius of the inner disk (gravitational radii)
-    "disk_radius_max_pc": 0.,  # Maximum disk size in parsecs (negative for off)
-    "disk_inner_stable_circ_orb": 6.0,  # Innermost stable circular orbit (gravitational radii)
-    "torque_prescription": "paardekooper",  # Torque prescription ('old','paardekooper','jimenez_masset': Paaardekooper default; Jimenez-Masset option)
-    "flag_phenom_turb": False,  # Phenomenological turbulence
-    "phenom_turb_centroid": 0.,  # Centroid of Gaussian w.r.t. to migrating BH. (default = 0.)
-    "phenom_turb_std_dev": 1.0,  # Variance of Gaussian around Centroid (default=0.1)
+        self._name = name
+        self._category = category
+        self._value = value
+        self._prop_type = prop_type
 
-    # Black Hole Parameters
-    "mass_pile_up": 35.0,  # Mass pile-up term (solar masses)
-    "initial_binary_orbital_ecc": 0.01, # The initial common orbital eccentricity around the SMBH to be assumed of a binary when it forms
-    "fraction_bin_retro": 0, # Fraction of formed binaries that should be retrograde orbiters
-    "flag_use_surrogate": False, # (flag_use_surrogate = False) Use analytical kick prescription from Akiba et al. (2024). (flag_use_surrogate = True) uses NRsurrogate (Published by Varma+2019 and modified by Keeffe Mitman) to individually solve for each merger's kick velocity.
-    "flag_use_spin_check": False, # Spin filter check flag (0/1)
-    "mean_harden_energy_delta": 0.9, # Average energy exchanged in a strong 2 + 1 interaction that hardens the binary
-    "var_harden_energy_delta": 0.025, # Variance of the energy exchanged in a strong 2 + 1 interaction that hardens the binary
-    "delta_energy_strong_mu": 0.1, # Mean of Delta Energy per Strong interaction (can be up to 20%,0.2)
-    "delta_energy_strong_sigma": 0.02, # Sigma of delta energy per strong interaction
-    "delta_energy_strong": 0.1,  # ::DEPRECIATED:: Change in orbital energy/eccentricity post-interaction
-    "flag_thermal_feedback": True,  # Enable thermal feedback for BH torque modifications
-    "flag_orb_ecc_damping": True,  # Enable orbital eccentricity damping
-    "flag_dynamic_enc": True,  # Enable dynamical interactions
-    "flag_dynamics_sweep": True,  # Switch to turn on/off sweep function for dynamics functions
-    "flag_enable_bondi": False, # Switch between bondi and eddington accretion.
-    "bondi_fraction": 1e-5, # Duty cycle / fraction of bondi accretion onto population.
-    "stalling_separation": 0.0, # Distance in Rg of where binaries will stop hardening due to gas drag (> 0 values are Rg, -1 stalls when the binary period = local sound speed)
-    "gas_hardening_prescription": "baruteau", # Gas hardening prescription (baruteau, stahler)
 
-    # Star Parameters
-    "flag_add_stars": False,  # Enable or disable stars
-    "disk_star_mass_min_init": 5.0,
-    "disk_star_mass_max_init": 40,
-    "rstar_rhill_exponent_ratio": 2.0,
-    "disk_star_scale_factor": 1.e-3,
-    "flag_coalesce_initial_stars": False,
-    "flag_initial_stars_BH_immortal": False,
-    "disk_star_initial_mass_cutoff": 298.0,
+    @property
+    def name(self) -> str:
+        return self._name
 
-    # Nuclear Star Cluster Parameters
-    "nsc_radius_outer": 5.0,  # Outer radius of the Nuclear Star Cluster (pc)
-    "nsc_mass": 3.e7,  # Mass of the Nuclear Star Cluster (solar masses)
-    "nsc_radius_crit": 0.25,  # Critical radius of the Nuclear Star Cluster (pc)
-    "nsc_ratio_bh_num_star_num": 1.e-3,  # Ratio of BH to stars in the Nuclear Star Cluster
-    "nsc_ratio_bh_mass_star_mass": 10.0,  # Ratio of BH mass to star mass in the Nuclear Star Cluster
-    "nsc_density_index_inner": 1.75,  # Inner density profile index
-    "nsc_density_index_outer": 2.5,  # Outer density profile index
-    "nsc_imf_star_powerlaw_index": 2.35,
-    "nsc_imf_bh_mode": 10.0,  # Mode of the BH mass initial distribution (solar masses)
-    "nsc_imf_bh_powerlaw_index": 2.0,  # Index of the BH mass initial distribution
-    "nsc_imf_bh_mass_max": 40.0,  # Maximum BH mass (solar masses)
-    "nsc_bh_spin_dist_mu": 0.0,  # Mean of the BH spin magnitude distribution
-    "nsc_bh_spin_dist_sigma": 0.1,  # Standard deviation of the BH spin magnitude distribution
-    "nsc_spheroid_normalization": 1.0,  # Sphericity normalization factor
-    "nsc_star_spin_dist_mu": 100,
-    "nsc_star_spin_dist_sigma": 20,
-    "nsc_star_metallicity_x_init": 0.7274,
-    "nsc_star_metallicity_y_init": 0.2638,
-    "nsc_star_metallicity_z_init": 0.0088,
-    "nsc_imf_bh_method": "default",
 
-    # Static values, these should not be changed by the user (See static_settings below)
-    "disk_bh_eddington_mass_growth_rate": 2.3e-8,
-    "disk_bh_spin_resolution_min": 0.02,
-    "min_bbh_gw_separation": 2.0,
-    "agn_redshift": 0.1,
+    @name.setter
+    def name(self, value: str):
+        self._name = value
 
-    # Filing cabinet array names so users don't have to type strings directly.
-    # The variable names generally follow our conventions, while the string is kept more human-friendly.
-    # Population cabinets will use the human-friendly strings internally and for file outputs.
-    "bh_array_name": "blackholes_unsort",
-    "bh_inner_disk_array_name": "blackholes_inner_disk",
-    "bh_inner_gw_array_name": "blackholes_inner_gw_only",
-    "bh_prograde_array_name": "blackholes_prograde",
-    "bh_retrograde_array_name": "blackholes_retrograde",
-    "stars_prograde_array_name": "stars_prograde",
-    "stars_retrograde_array_name": "stars_retrograde",
-    "stars_merged_array_name": "stars_merged",
-    "bbh_array_name": "blackholes_binary",
-    "bbh_gw_array_name": "blackholes_binary_gw",
-    "bbh_merged_array_name": "blackholes_merged",
-    "emri_array_name": "blackholes_emri",
-    "star_array_name": "stars_unsort",
-    "bh_ejected_array_name": "blackholes_ejected",
-    "bbh_inter_array_name": "blackholes_binary_inter",
-}
 
-# Static values that we do not want the user to change (Sorry user)
-static_settings = [
-    "disk_bh_eddington_mass_growth_rate",
-    "disk_bh_spin_resolution_min",
-    "min_bbh_gw_separation",
-    "agn_redshift",
-    # Array names, users shouldn't change these (Again, sorry user)
-    "bh_array_name",
-    "bh_inner_disk_array_name",
-    "bh_inner_gw_array_name",
-    "bh_prograde_array_name",
-    "bh_retrograde_array_name",
-    "stars_prograde_array_name",
-    "stars_retrograde_array_name",
-    "stars_merged_array_name",
-    "bbh_array_name",
-    "bbh_gw_array_name",
-    "bbh_merged_array_name",
-    "emri_array_name",
-    "star_array_name",
-    "bh_ejected_array_name",
-    "bbh_inter_array_name",
-]
+    @property
+    def category(self) -> str:
+        return self._category
+
+
+    @category.setter
+    def category(self, value: str):
+        self._category = value
+
+
+    @property
+    def value(self) -> T:
+        return self._value
+
+
+    @property
+    def prop_type(self) -> Type[T]:
+        return self._prop_type
+
+
+    @property
+    def name_length(self) -> int:
+        return len(self._name)
+
+
+class StaticSettingsProperty(SettingsProperty):
+    T = TypeVar("T")
+
+    def __init__(self, name: str, category: str, value: Any, prop_type: Type[T] = str):
+        super().__init__(name, category, value, prop_type)
+
+        # Pre-cache properties
+        _ = self.name
+        _ = self.category
+        _ = self.value
+        _ = self.prop_type
+        _ = self.name_length
+
+
+    @cached_property
+    def name(self) -> str:
+        return self._name
+
+
+    @cached_property
+    def category(self) -> str:
+        return self._category
+
+
+    @cached_property
+    def value(self) -> T:
+        return self._value
+
+
+    @cached_property
+    def prop_type(self) -> Type[T]:
+        return self._prop_type
+
+
+    @cached_property
+    def name_length(self) -> int:
+        return len(self.name)
+
+
+class OptionalSettingsProperty(SettingsProperty):
+    T = TypeVar("T")
+
+    def __init__(self, name: str, category: str, value: Any, prop_type: Type[T] = str):
+        super().__init__(name, category, value, prop_type)
+
+
+default_settings: list[SettingsProperty | StaticSettingsProperty] = [
+        # IO Parameters
+        SettingsProperty("verbose", "io", False, bool),
+        SettingsProperty("show_timeline_progress", "io", False, bool),
+        SettingsProperty("overwrite_files", "io", False, bool),
+        SettingsProperty("save_state", "io", False, bool),
+        SettingsProperty("save_each_timestep", "io", False, bool),
+        SettingsProperty("output_dir", "io", "./runs", str),
+        OptionalSettingsProperty("settings_file", "io", "", str),
+
+        # Simulation Parameters
+        SettingsProperty("active_timestep_duration_yr", "sim", 1.e4, float),
+        SettingsProperty("active_timestep_num", "sim", 70, int),
+        SettingsProperty("capture_time_yr", "sim", 1.e5, float),
+        SettingsProperty("galaxy_num", "sim", 100, int),
+        SettingsProperty("seed", "sim", 223849053863469657747974663531730220530, int),
+        SettingsProperty("smbh_mass", "sim", 1.e8, float),
+        StaticSettingsProperty("agn_redshift", "sim", 0.1, float),
+
+        # Disk Parameters
+        SettingsProperty("flag_use_pagn", "disk", True, bool),
+        SettingsProperty("disk_model_name", "disk", "sirko_goodman", str),
+        SettingsProperty("disk_radius_trap", "disk", 700.0, float),
+        SettingsProperty("disk_radius_outer", "disk", 50000.0, float),
+        SettingsProperty("disk_alpha_viscosity", "disk", 0.01, float),
+        SettingsProperty("disk_aspect_ratio_avg", "disk", 0.03, float),
+        SettingsProperty("disk_bh_torque_condition", "disk", 0.1, float),
+        SettingsProperty("disk_bh_eddington_ratio", "disk", 1.0, float),
+        SettingsProperty("disk_bh_orb_ecc_max_init", "disk", 0.9, float),
+        SettingsProperty("disk_radius_capture_outer", "disk", 2.e3, float),
+        SettingsProperty("disk_bh_pro_orb_ecc_crit", "disk", 0.01, float),
+        SettingsProperty("inner_disk_outer_radius", "disk", 50.0, float),
+        SettingsProperty("disk_radius_max_pc", "disk", 0., float),
+        SettingsProperty("disk_inner_stable_circ_orb", "disk", 6.0, float),
+        SettingsProperty("torque_prescription", "disk", "paardekooper", str),
+        SettingsProperty("flag_phenom_turb", "disk", False, bool),
+        SettingsProperty("phenom_turb_centroid", "disk", 0., float),
+        SettingsProperty("phenom_turb_std_dev", "disk", 1.0, float),
+
+        # Black Hole Parameters
+        SettingsProperty("mass_pile_up", "bh", 35.0, float),
+        SettingsProperty("initial_binary_orbital_ecc", "bh", 0.01, float),
+        SettingsProperty("fraction_bin_retro", "bh", 0, int),
+        SettingsProperty("flag_use_surrogate", "bh", False, bool),
+        SettingsProperty("flag_use_spin_check", "bh", False, bool),
+        SettingsProperty("mean_harden_energy_delta", "bh", 0.9, float),
+        SettingsProperty("var_harden_energy_delta", "bh", 0.025, float),
+        SettingsProperty("delta_energy_strong_mu", "bh", 0.1, float),
+        SettingsProperty("delta_energy_strong_sigma", "bh", 0.02, float),
+        SettingsProperty("flag_thermal_feedback", "bh", True, bool),
+        SettingsProperty("flag_orb_ecc_damping", "bh", True, bool),
+        SettingsProperty("flag_dynamic_enc", "bh", True, bool),
+        SettingsProperty("flag_dynamics_sweep", "bh", True, bool),
+        SettingsProperty("flag_enable_bondi", "bh", False, bool),
+        SettingsProperty("bondi_fraction", "bh", 1e-5, float),
+        SettingsProperty("stalling_separation", "bh", 0.0, float),
+        SettingsProperty("gas_hardening_prescription", "bh", "baruteau", str),
+        StaticSettingsProperty("disk_bh_eddington_mass_growth_rate", "bh", 2.3e-8, float),
+        StaticSettingsProperty("disk_bh_spin_resolution_min", "bh", 0.02, float),
+        StaticSettingsProperty("min_bbh_gw_separation", "bh", 2.0, float),
+
+        # Star Parameters
+        SettingsProperty("flag_add_stars", "star", False, bool),
+        SettingsProperty("disk_star_mass_min_init", "star", 5.0, float),
+        SettingsProperty("disk_star_mass_max_init", "star", 40.0, float),
+        SettingsProperty("rstar_rhill_exponent_ratio", "star", 2.0, float),
+        SettingsProperty("disk_star_scale_factor", "star", 1.e-3, float),
+        SettingsProperty("flag_coalesce_initial_stars", "star", False, bool),
+        SettingsProperty("flag_initial_stars_BH_immortal", "star", False, bool),
+        SettingsProperty("disk_star_initial_mass_cutoff", "star", 298.0, float),
+
+        # Nuclear Star Cluster Parameters
+        SettingsProperty("nsc_radius_outer", "nsc", 5.0, float),
+        SettingsProperty("nsc_mass", "nsc", 3.e7, float),
+        SettingsProperty("nsc_radius_crit", "nsc", 0.25, float),
+        SettingsProperty("nsc_ratio_bh_num_star_num", "nsc", 1.e-3, float),
+        SettingsProperty("nsc_ratio_bh_mass_star_mass", "nsc", 10.0, float),
+        SettingsProperty("nsc_density_index_inner", "nsc", 1.75, float),
+        SettingsProperty("nsc_density_index_outer", "nsc", 2.5, float),
+        SettingsProperty("nsc_imf_star_powerlaw_index", "nsc", 2.35, float),
+        SettingsProperty("nsc_imf_bh_mode", "nsc", 10.0, float),
+        SettingsProperty("nsc_imf_bh_powerlaw_index", "nsc", 2.0, float),
+        SettingsProperty("nsc_imf_bh_mass_max", "nsc", 40.0, float),
+        SettingsProperty("nsc_bh_spin_dist_mu", "nsc", 0.0, float),
+        SettingsProperty("nsc_bh_spin_dist_sigma", "nsc", 0.1, float),
+        SettingsProperty("nsc_spheroid_normalization", "nsc", 1.0, float),
+        SettingsProperty("nsc_star_spin_dist_mu", "nsc", 100.0, float),
+        SettingsProperty("nsc_star_spin_dist_sigma", "nsc", 20.0, float),
+        SettingsProperty("nsc_star_metallicity_x_init", "nsc", 0.7274, float),
+        SettingsProperty("nsc_star_metallicity_y_init", "nsc", 0.2638, float),
+        SettingsProperty("nsc_star_metallicity_z_init", "nsc", 0.0088, float),
+        SettingsProperty("nsc_imf_bh_method", "nsc", "default", str),
+
+        # Filing cabinet array names
+        StaticSettingsProperty("bh_array_name", "arrays", "blackholes_unsort", str),
+        StaticSettingsProperty("bh_inner_disk_array_name", "arrays", "blackholes_inner_disk", str),
+        StaticSettingsProperty("bh_inner_gw_array_name", "arrays", "blackholes_inner_gw_only", str),
+        StaticSettingsProperty("bh_prograde_array_name", "arrays", "blackholes_prograde", str),
+        StaticSettingsProperty("bh_retrograde_array_name", "arrays", "blackholes_retrograde", str),
+        StaticSettingsProperty("stars_prograde_array_name", "arrays", "stars_prograde", str),
+        StaticSettingsProperty("stars_retrograde_array_name", "arrays", "stars_retrograde", str),
+        StaticSettingsProperty("stars_merged_array_name", "arrays", "stars_merged", str),
+        StaticSettingsProperty("bbh_array_name", "arrays", "blackholes_binary", str),
+        StaticSettingsProperty("bbh_gw_array_name", "arrays", "blackholes_binary_gw", str),
+        StaticSettingsProperty("bbh_merged_array_name", "arrays", "blackholes_merged", str),
+        StaticSettingsProperty("emri_array_name", "arrays", "blackholes_emri", str),
+        StaticSettingsProperty("star_array_name", "arrays", "stars_unsort", str),
+        StaticSettingsProperty("bh_ejected_array_name", "arrays", "blackholes_ejected", str),
+        StaticSettingsProperty("bbh_inter_array_name", "arrays", "blackholes_binary_inter", str),
+    ]
+
+
+class CategoryProxy:
+    """
+    A proxy object that holds settings for a single property category
+    """
+
+    def __init__(self, props: dict[str, Any] = None):
+        self._props: dict[str, Any] = props if props is not None else {}
+
+    def __getattr__(self, item: str) -> Any:
+        if item.startswith("_"):
+            raise AttributeError(f"No private attribute '{item}'")
+        try:
+            return self._props[item]
+        except KeyError:
+            raise AttributeError(f"No setting '{item}' in this category")
+
+    def __repr__(self):
+        return f"CategoryProxy({self._props})"
 
 
 class SettingsManager:
     """
     Central management for simulation settings.
-
-    Attributes
-    ----------
-    settings_overrides : dict[str, Any]
-        A dictionary containing user-provided overrides.
     """
+
+    @staticmethod
+    def _cast_str_to_int(prop: SettingsProperty, override: str) -> int:
+        try:
+            return int(override)
+        except ValueError:
+            pass
+
+        try:
+            float_val = float(override)
+            warnings.warn(
+                f"Setting '{prop.name}' expects an int, but got string '{override}' "
+                f"which looks like a float. Precision may be lost after conversion to {int(float_val)}.",
+                UserWarning,
+                stacklevel=4,
+            )
+            return int(float_val)
+        except (ValueError, TypeError) as e:
+            raise TypeError(
+                f"Setting '{prop.name}' expects type int, "
+                f"but could not cast string '{override}' to that type"
+            ) from e
+
+
+    @staticmethod
+    def _cast_str_to_float(prop: SettingsProperty, override: str) -> float:
+        try:
+            return float(override)
+        except (ValueError, TypeError) as e:
+            raise TypeError(
+                f"Setting '{prop.name}' expects type float, "
+                f"but could not cast string '{override}' to that type"
+            ) from e
+
+
+    @staticmethod
+    def _cast_override(prop: SettingsProperty, override: Any) -> Any:
+        """
+        Attempts to safely cast an override value to the expected type of a SettingsProperty.
+
+        Parameters
+        ----------
+        prop : SettingsProperty
+            The property whose type the override should be cast to.
+        override : Any
+            The override value to cast.
+
+        Returns
+        -------
+        Any
+            The cast value.
+
+        Raises
+        ------
+        TypeError
+            If the override value cannot be cast to the expected type.
+        """
+        expected = prop.prop_type
+
+        if type(override) == expected:
+            return override
+
+        if isinstance(override, str):
+            if expected == bool:
+                if override.lower() in ('yes', 'true', 't', 'y', '1'):
+                    return True
+                elif override.lower() in ('no', 'false', 'f', 'n', '0'):
+                    return False
+                else:
+                    raise TypeError(
+                        f"Setting '{prop.name}' expects a bool, but could not convert string '{override}' as a boolean."
+                    )
+            if expected == int:
+                return SettingsManager._cast_str_to_int(prop, override)
+            if expected == float:
+                return SettingsManager._cast_str_to_float(prop, override)
+            try:
+                return expected(override)
+            except (ValueError, TypeError) as e:
+                raise TypeError(
+                    f"Setting '{prop.name}' expects type {expected.__name__}, but could not cast string '{override}' to that type."
+                ) from e
+
+        if isinstance(override, float) and expected == int:
+            warnings.warn(
+                f"Setting '{prop.name}' expects an int, but got float {override}. Precision may be lost after conversion to {int(override)}.",
+                UserWarning,
+                stacklevel=3,
+            )
+            return int(override)
+
+        if isinstance(override, int) and expected == float:
+            return float(override)
+
+        if isinstance(prop, OptionalSettingsProperty) and isinstance(override, NoneType):
+            return override
+
+        raise TypeError(
+            f"Setting '{prop.name}' expects type {expected.__name__}, "
+            f"but got {type(override).__name__}"
+        )
+
 
     def __init__(self, settings_overrides: dict[str, Any] = None):
         """
@@ -165,61 +347,98 @@ class SettingsManager:
         ----------
         settings_overrides : dict[str, Any]
             A dictionary containing user-provided overrides for specific settings.
+
+        Raises
+        ------
+        TypeError
+            If an override value is not the expected type and cannot be cast to it.
         """
-        # TODO: Allow users to pass custom settings that we don't have defaults for.
+        settings_overrides = dict() if settings_overrides is None else settings_overrides
 
-        self.settings_overrides: dict[str, Any] = dict() if settings_overrides is None else settings_overrides
-        self.settings_defaults = defaults
-        self.settings_finals = dict()
-        self.static_settings = static_settings
+        self.settings_finals: dict[str, Any] = {}
+        category_props: dict[str, dict[str, Any]] = {}
 
-        # TODO: Argument validity checking / scaling
+        for prop in default_settings:
+            is_static = isinstance(prop, StaticSettingsProperty)
+            override = settings_overrides.get(prop.name, prop.value)
+            final_value = prop.value if is_static else self._cast_override(prop, override)
 
-        for key, value in self.settings_defaults.items():
-            if key not in self.settings_overrides:
-                self.settings_overrides[key] = value
+            self.settings_finals[prop.name] = final_value
+            category_props.setdefault(prop.category, {})[prop.name] = final_value
 
-            if (key in self.settings_overrides) and (key not in static_settings):
-                self.settings_finals[key] = self.settings_overrides[key]
-            else:
-                self.settings_finals[key] = value
+        self._categories = {cat: CategoryProxy(props) for cat, props in category_props.items()}
 
-        # Create the single reference point for the R_G conversion
         # TODO: Update for changing mass SMBH
         self.r_g_in_meters = unit_conversion.initialize_r_g(self.smbh_mass)
 
 
     def __getattr__(self, item: str) -> Any:
         """
-        Retrieves the value of a setting from the final compiled dictionary. If the setting
-        is not, an AttributeError is raised.
+        Retrieves a category proxy (settings.sim) or a flat setting value
+        (settings.smbh_mass) from the final compiled dictionary.
 
         Parameters
         ----------
         item : str
-            The name of the setting to retrieve.
+            A category name or setting name.
 
         Returns
         -------
         Any
-            The final value of the setting.
+            A CategoryProxy for category-level settings, or the final value of the setting.
 
         Raises
         ------
         AttributeError
-            If the setting is not found, or a private attribute is being accessed
+            If neither a category nor a setting is found with that name.
         """
 
-        # Compatability for deepcopy
+        # Compatibility for deepcopy
         if item.startswith("__"):
             raise AttributeError(
-                "attempted to get missing private attribute '{}'".format(item)
+                f"attempted to get missing private attribute '{item}'"
             )
 
+        # Category access: settings.sim -> CategoryProxy
+        if item in self._categories:
+            return self._categories[item]
+
+        # Flat access: settings.smbh_mass (backwards compatibility)
         try:
             return self.settings_finals[item]
-        except KeyError as exception:
-            raise AttributeError(f"SettingsManager has no key {item!r}") from exception
+        except KeyError:
+            raise AttributeError(f"SettingsManager has no key {item!r}")
+
+
+    def add_custom_category(self, category: str, props: dict[str, Any]) -> None:
+        """
+        Adds a custom settings category with user-defined properties to the SettingsManager.
+        Custom settings are only accessible via settings.category.property_name
+        and are not added to the flat settings_finals dictionary.
+
+        Parameters
+        ----------
+        category : str
+            The name of the custom category to create.
+        props : dict[str, Any]
+            A dictionary of property names and their values.
+
+        Raises
+        ------
+        ValueError
+            If the category name conflicts with an existing category or setting.
+        """
+        if category in self._categories:
+            raise ValueError(f"Category '{category}' already exists")
+        if category in self.settings_finals:
+            raise ValueError(f"'{category}' conflicts with an existing setting name")
+
+        self._categories[category] = CategoryProxy(props)
+
+
+    @property
+    def categories(self):
+        return self._categories
 
 
 class AGNDisk:

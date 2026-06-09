@@ -1,3 +1,4 @@
+import configparser
 import os
 import uuid
 from abc import ABC, abstractmethod
@@ -8,6 +9,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from mcfacts.inputs import settings_manager
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
 from mcfacts.objects.log import LogFunction
@@ -198,7 +200,6 @@ class TxtSnapshotHandler(SnapshotHandler):
 
 
     def load_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
-
         final_path = os.path.join(file_path, file_name + ".txt")
 
         if file_name.lower().endswith(".txt"):
@@ -209,24 +210,100 @@ class TxtSnapshotHandler(SnapshotHandler):
         settings = {}
 
         for row in data:
-            name = row[0]
-            value = row[1]
-            type = row[2]
+            name = str(row[0])
+            value = str(row[1])
+            type_str = str(row[2])
 
-            if type == "int":
-                settings[str(name)] = int(value)
-            elif type == "float":
-                settings[str(name)] = float(value)
-            elif type == "str":
-                settings[str(name)] = str(value)
-            elif type == "bool":
-                # Adapted from: https://stackoverflow.com/a/18472142, jzwiener
-                val = value.lower()
-                if val in ('y', 'yes', 't', 'true', 'on', '1'):
-                    settings[str(name)] = True
-                elif val in ('n', 'no', 'f', 'false', 'off', '0'):
-                    settings[str(name)] = False
+            if type_str == "int":
+                settings[name] = int(value)
+            elif type_str == "float":
+                settings[name] = float(value)
+            elif type_str == "str":
+                settings[name] = str(value)
+            elif type_str == "bool":
+                settings[name] = value  # Let SettingsManager._cast_override handle bool parsing
             else:
-                raise TypeError(f"Unknown type {type}")
+                raise TypeError(f"Unknown type '{type_str}' for setting '{name}'")
 
         return SettingsManager(settings)
+
+
+class IniSnapshotHandler(SnapshotHandler):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Ini Snapshot Handler" if name is None else name, settings)
+
+    def save_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
+        raise NotImplementedError("IniSnapshotHandler does not support saving FilingCabinets")
+
+    def load_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> Any:
+        raise NotImplementedError("IniSnapshotHandler does not support loading FilingCabinets")
+
+    def save_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike,
+                      settings: SettingsManager = None):
+        directory = Path(file_path)
+        directory.mkdir(parents=True, exist_ok=True)
+
+        final_path = os.path.join(file_path, file_name + ".ini")
+        if file_name.lower().endswith(".ini"):
+            final_path = os.path.join(file_path, file_name)
+
+        name_to_category = {prop.name: prop.category for prop in settings_manager.default_settings}
+
+        config = configparser.ConfigParser()
+
+        # Write all standard settings, grouped by category
+        for name, value in settings.settings_finals.items():
+            category = name_to_category.get(name, "custom")
+            if not config.has_section(category):
+                config.add_section(category)
+            config.set(category, name, str(value))
+
+        # Write any custom categories that aren't in settings_finals
+        standard_categories = {prop.category for prop in settings_manager.default_settings}
+        for category, proxy in settings.categories.items():
+            if category in standard_categories:
+                continue
+            if not config.has_section(category):
+                config.add_section(category)
+            for name, value in proxy._props.items():
+                config.set(category, name, str(value))
+
+        with open(final_path, "w") as f:
+            config.write(f)
+
+        self.log(f"Saved settings to {final_path}")
+
+    def load_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
+        final_path = os.path.join(file_path, file_name + ".ini")
+        if file_name.lower().endswith(".ini"):
+            final_path = os.path.join(file_path, file_name)
+
+        if not Path(final_path).exists():
+            raise FileNotFoundError(f"Settings file not found: {final_path}")
+
+        config = configparser.ConfigParser()
+        config.read(final_path)
+
+        standard_setting_names = {prop.name for prop in settings_manager.default_settings}
+        standard_categories = {prop.category for prop in settings_manager.default_settings}
+
+        settings_overrides = {}
+        custom_categories = {}
+
+        for section in config.sections():
+            if section in standard_categories:
+                # Treat standard sections normally, by passing values into init fields
+                for name, value in config[section].items():
+                    if name in standard_setting_names:
+                        settings_overrides[name] = value
+            else:
+                # Save custom section for later to be loaded with method
+                custom_categories[section] = dict(config[section].items())
+
+        print(settings_overrides)
+        manager = SettingsManager(settings_overrides)
+
+        for category, props in custom_categories.items():
+            manager.add_custom_category(category, props)
+
+        return manager
