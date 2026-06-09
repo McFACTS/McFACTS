@@ -2100,7 +2100,9 @@ def main():
                         opts.fraction_bin_retro,
                         opts.smbh_mass,
                         agn_redshift,
-                        opts.disk_bh_pro_orb_ecc_crit
+                        opts.disk_bh_pro_orb_ecc_crit,
+                        opts.flag_phenom_turb,
+                        opts.phenom_turb_std_dev
                     )
 
                     # Add new BH binaries to filing cabinet and delete prograde singleton black holes
@@ -3070,7 +3072,9 @@ def main():
         opts.norm_diffuse_out_timescale,
         opts.bh_scat_timescale,
         opts.scaled_ecc,
-        opts.new_ecc_std_dev
+        opts.new_ecc_std_dev,
+        opts.norm_stars,
+        opts.mass_av_star
         )
     print("shape post relaxation",np.shape(quiescence_pop))
     # Add all BH quiescent pop  to quiescent population level object

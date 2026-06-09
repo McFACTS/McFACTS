@@ -326,7 +326,7 @@ def divide_types_encounters(id_nums, encounter_categories, filing_cabinet):
     return (tuple(results))
 
 
-def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, id_start_val, fraction_bin_retro, smbh_mass, agn_redshift, disk_bh_pro_orb_ecc_crit):
+def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, id_start_val, fraction_bin_retro, smbh_mass, agn_redshift, disk_bh_pro_orb_ecc_crit,flag_phenom_turb,phenom_turb_std_dev):
     """Create new BH binaries with appropriate parameters.
 
     We take the semi-maj axis, masses, spins, spin angles and generations
@@ -390,6 +390,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
     # Set up binary inclination (in units radians). Will want this
     # to be pi radians if retrograde.
     bin_orb_inc = np.zeros(bin_num)
+    
     # Set up binary orbital eccentricity of com around SMBH.
     # Assume initially v.small (e~0.01 = disk_bh_pro_orb_ecc_crit)
     bin_orb_ecc = np.full(bin_num, disk_bh_pro_orb_ecc_crit)
@@ -414,6 +415,10 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
 
         # Binary c.o.m.= location_1 + separation*M_2/(M_1+M_2)
         bin_orb_a[i] = orb_a_1[i] + ((bin_sep[i] * mass_2[i]) / (mass_1[i] + mass_2[i]))
+
+        #If turbulence on. Assume vertical jitter of order phenom_turb_std_dev*(R_hill/a) = phenom_turb_std_dev*(q/3)^1/3
+        if flag_phenom_turb == 1:
+            bin_orb_inc[i] = phenom_turb_std_dev*(mass_1[i]+mass_2[i]/3*smbh_mass)**(1/3)
 
         gen_1[i] = blackholes_pro.at_id_num(id_num_1, "gen")
         gen_2[i] = blackholes_pro.at_id_num(id_num_2, "gen")

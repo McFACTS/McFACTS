@@ -215,6 +215,8 @@ INPUT_TYPES = {
     "bh_scat_timescale"             : float,
     "scaled_ecc"                    : float,
     "new_ecc_std_dev"               : float,
+    "norm_stars"                    : float,
+    "mass_av_star"                  : float,
     "flag_hill_sphere_mass"         : int,
     "flag_gaussian_imf"             : int,
     "quiescence_time"               : float,

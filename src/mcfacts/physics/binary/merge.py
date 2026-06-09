@@ -11,7 +11,7 @@ from mcfacts.physics import analytical_velo, lum
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
 
-def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_ang_mom):
+def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bin_ang_mom, bin_orbs_inc):
     """Calculates the effective spin :math:`\\chi_{\rm eff}` associated with a merger.
 
     The measured effective spin of a merger is calculated as
@@ -36,6 +36,8 @@ def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angl
         Magnitude of the binary's mutual angular momentum. If 1, the binary
         is prograde (aligned with disk angular momentum). If -1, the binary
         is retrograde (anti-aligned with disk angular momentum).
+    bin_orbs_inc : numpy.ndarray
+        Angle [radian] of binary wrt midplane of disk due to turbulence     
 
     Returns
     -------
@@ -46,6 +48,10 @@ def chi_effective(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angl
     total_masses = masses_1 + masses_2
     spins_1 = np.abs(spins_1)
     spins_2 = np.abs(spins_2)
+
+    # Define spin angle to include binary inclination wrt disk (units of radians)
+    spin_angles_1 = spin_angles_1 + bin_orbs_inc
+    spin_angles_2 = spin_angles_2 + bin_orbs_inc
 
     spin_angles_1[bin_ang_mom < 0] = np.pi - spin_angles_1[bin_ang_mom < 0]
     spin_angles_2[bin_ang_mom < 0] = np.pi - spin_angles_2[bin_ang_mom < 0]
@@ -354,7 +360,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
-        blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_ang_mom")
+        blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_ang_mom"),
+        blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_inc")
     )
 
     bh_chi_p_merged = merge.chi_p(
