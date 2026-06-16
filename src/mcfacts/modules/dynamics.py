@@ -3464,7 +3464,6 @@ class BinaryBlackHoleSpheroidDynamics(TimelineActor):
             sm.r_g_in_meters,
             random_generator
         )
-
         blackholes_binary.consistency_check()
 
         if self.reality_merge_checks:
