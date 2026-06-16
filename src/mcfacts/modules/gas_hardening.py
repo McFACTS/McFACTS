@@ -146,7 +146,7 @@ def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound
 
     # Size of sub steps (in years) to take within the simulation timestep
     # Need to take substeps since analytical function can run away under large timesteps
-    sub_step_size = 100 * u.yr
+    sub_step_size = 10 * u.yr
     sub_steps = (timestep_length * u.yr) / sub_step_size
 
     # Merging flag might be stale, so lets run a contact check just incase
@@ -163,6 +163,9 @@ def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound
     for n in range(int(sub_steps.value)):
         # Turn our merging flag into a mask
         not_merging = flag_merging >= 0
+
+        if np.all(not_merging):
+            break
 
         # Find the semi-major axis of each binary component to the center of mass based on mass ratio
         sep_1 = si_unit_bin_sep[not_merging] / ((1 / q[not_merging]) + 1)
@@ -199,7 +202,7 @@ def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound
         merged_bin_sep, flag_merging = checks.bin_contact_check(
             mass_1,
             mass_2,
-            si_unit_bin_sep.value,
+            unit_conversion.r_g_from_units(smbh_mass, si_unit_bin_sep).value,
             flag_merging,
             smbh_mass,
         )
@@ -326,7 +329,6 @@ class BinaryBlackHoleGasHardening(TimelineActor):
                 timestep_length,
                 sm.r_g_in_meters
             )
-
 
         if not self.reality_merge_checks:
             return
