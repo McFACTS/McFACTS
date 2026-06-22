@@ -29,7 +29,7 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
     initial_settings = SettingsManager()
 
     # Create a specific flag for passing in a baked settings or ini file
-    sub_parser.add_argument("-s", "--settings", "--fname-ini", "--settings_file",
+    sub_parser.add_argument("-s", "--settings", "--fname-ini", "--settings-file",
                             dest="settings_file",
                             help="Filename of settings file",
                             default=None, type=str)
