@@ -22,19 +22,19 @@ class SnapshotHandler(ABC):
         self.parent_log_func: LogFunction = None
 
     @abstractmethod
-    def save_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
+    def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
         return NotImplemented
 
     @abstractmethod
-    def load_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> Any:
+    def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> Any:
         return NotImplemented
 
     @abstractmethod
-    def save_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike, settings: SettingsManager = None):
+    def save_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, settings: SettingsManager = None):
         return NotImplemented
 
     @abstractmethod
-    def load_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
+    def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
         return NotImplemented
 
     def set_log_func(self, log_func: LogFunction) -> None:
@@ -65,16 +65,16 @@ class TxtSnapshotHandler(SnapshotHandler):
 
         return typ.__name__ if typ.__module__ == 'builtins' else f"{typ.__module__}.{typ.__name__}"
 
-    def save_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
+    def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
         agn_objects: dict[str, AGNObjectArray] = filing_cabinet.agn_objects
         everything_else: dict[str, Any] = filing_cabinet.everything_else
 
-        directory = Path(file_path)
+        directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
         # Handle array objects that exist in the filing cabinet
         for array_name, object_array in agn_objects.items():
-            final_path = os.path.join(file_path, file_name + f"_{array_name}.txt")
+            final_path = os.path.join(directory, file_name + f"_{array_name}.txt")
             super_dict = object_array.get_super_dict()
 
             keys = super_dict.keys()
@@ -104,7 +104,7 @@ class TxtSnapshotHandler(SnapshotHandler):
         if len(everything_else) == 0:
             return
 
-        everything_else_path = os.path.join(file_path, file_name + "_everything_else.txt")
+        everything_else_path = os.path.join(directory, file_name + "_everything_else.txt")
 
         temp_keys = list(everything_else.keys())
         temp_values = list(everything_else.values())
@@ -119,11 +119,11 @@ class TxtSnapshotHandler(SnapshotHandler):
         np.savetxt(everything_else_path, temp_array, fmt='%-25s', header=everything_else_header, comments='')
 
 
-    def load_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> dict:
-        directory = Path(file_path)
+    def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> dict:
+        directory = Path(directory)
 
         if not directory.exists():
-            raise FileNotFoundError(f"Directory not found: {file_path}")
+            raise FileNotFoundError(f"Directory not found: {directory}")
 
         agn_objects = dict()
         everything_else = dict() # TODO: Handle everything else dictionary
@@ -169,11 +169,11 @@ class TxtSnapshotHandler(SnapshotHandler):
         return agn_objects
 
 
-    def save_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike, settings: SettingsManager = None):
-        directory = Path(file_path)
+    def save_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, settings: SettingsManager = None):
+        directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
-        everything_else_path = os.path.join(file_path, file_name + ".txt")
+        everything_else_path = os.path.join(directory, file_name + ".txt")
 
         temp_keys = list(settings.settings_finals.keys())
         temp_values = list(settings.settings_finals.values())
@@ -199,11 +199,11 @@ class TxtSnapshotHandler(SnapshotHandler):
         np.savetxt(everything_else_path, temp_array, fmt=[f"%-{space - 1}s" for space in spacing_array], header=settings_header, comments='')
 
 
-    def load_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
-        final_path = os.path.join(file_path, file_name + ".txt")
+    def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
+        final_path = os.path.join(directory, file_name + ".txt")
 
         if file_name.lower().endswith(".txt"):
-            final_path = os.path.join(file_path, file_name)
+            final_path = os.path.join(directory, file_name)
 
         data = np.genfromtxt(final_path, skip_header=1, dtype=str)
 
@@ -232,20 +232,20 @@ class IniSnapshotHandler(SnapshotHandler):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Ini Snapshot Handler" if name is None else name, settings)
 
-    def save_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
+    def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
         raise NotImplementedError("IniSnapshotHandler does not support saving FilingCabinets")
 
-    def load_cabinet(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> Any:
+    def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> Any:
         raise NotImplementedError("IniSnapshotHandler does not support loading FilingCabinets")
 
-    def save_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike,
+    def save_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike,
                       settings: SettingsManager = None):
-        directory = Path(file_path)
+        directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
-        final_path = os.path.join(file_path, file_name + ".ini")
+        final_path = os.path.join(directory, file_name + ".ini")
         if file_name.lower().endswith(".ini"):
-            final_path = os.path.join(file_path, file_name)
+            final_path = os.path.join(directory, file_name)
 
         name_to_category = {prop.name: prop.category for prop in settings_manager.DEFAULT_SETTINGS}
 
@@ -273,10 +273,10 @@ class IniSnapshotHandler(SnapshotHandler):
 
         self.log(f"Saved settings to {final_path}")
 
-    def load_settings(self, file_path: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
-        final_path = os.path.join(file_path, file_name + ".ini")
+    def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
+        final_path = os.path.join(directory, file_name + ".ini")
         if file_name.lower().endswith(".ini"):
-            final_path = os.path.join(file_path, file_name)
+            final_path = os.path.join(directory, file_name)
 
         if not Path(final_path).exists():
             raise FileNotFoundError(f"Settings file not found: {final_path}")
