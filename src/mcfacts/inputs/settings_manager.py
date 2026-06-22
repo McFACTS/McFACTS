@@ -44,6 +44,11 @@ class SettingsProperty:
         return self._value
 
 
+    @value.setter
+    def value(self, value: T):
+        self._value = value
+
+
     @property
     def prop_type(self) -> Type[T]:
         return self._prop_type
