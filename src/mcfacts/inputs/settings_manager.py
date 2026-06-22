@@ -360,6 +360,17 @@ class SettingsManager:
             self.settings_finals[prop.name] = final_value
             category_props.setdefault(prop.category, {})[prop.name] = final_value
 
+        for key in settings_overrides.keys():
+            if key in self.settings_finals:
+                continue
+
+            warnings.warn(
+                f"Inputted settings dictionary contains {key}, which does not exist in the default settings."
+                f"Custom settings must be added through the add_custom_settings method.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         self._categories = {cat: CategoryProxy(props) for cat, props in category_props.items()}
 
         # TODO: Update for changing mass SMBH
