@@ -247,7 +247,7 @@ class IniSnapshotHandler(SnapshotHandler):
         if file_name.lower().endswith(".ini"):
             final_path = os.path.join(file_path, file_name)
 
-        name_to_category = {prop.name: prop.category for prop in settings_manager.default_settings}
+        name_to_category = {prop.name: prop.category for prop in settings_manager.DEFAULT_SETTINGS}
 
         config = configparser.ConfigParser()
 
@@ -259,7 +259,7 @@ class IniSnapshotHandler(SnapshotHandler):
             config.set(category, name, str(value))
 
         # Write any custom categories that aren't in settings_finals
-        standard_categories = {prop.category for prop in settings_manager.default_settings}
+        standard_categories = {prop.category for prop in settings_manager.DEFAULT_SETTINGS}
         for category, proxy in settings.categories.items():
             if category in standard_categories:
                 continue
@@ -284,8 +284,8 @@ class IniSnapshotHandler(SnapshotHandler):
         config = configparser.ConfigParser()
         config.read(final_path)
 
-        standard_setting_names = {prop.name for prop in settings_manager.default_settings}
-        standard_categories = {prop.category for prop in settings_manager.default_settings}
+        standard_setting_names = {prop.name for prop in settings_manager.DEFAULT_SETTINGS}
+        standard_categories = {prop.category for prop in settings_manager.DEFAULT_SETTINGS}
 
         settings_overrides = {}
         custom_categories = {}

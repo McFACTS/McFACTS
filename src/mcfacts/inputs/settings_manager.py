@@ -94,7 +94,7 @@ class OptionalSettingsProperty(SettingsProperty):
         super().__init__(name, category, value, prop_type)
 
 
-default_settings: list[SettingsProperty | StaticSettingsProperty] = [
+DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         # IO Parameters
         SettingsProperty("verbose", "io", False, bool),
         SettingsProperty("show_timeline_progress", "io", False, bool),
@@ -352,7 +352,7 @@ class SettingsManager:
         self.settings_finals: dict[str, Any] = {}
         category_props: dict[str, dict[str, Any]] = {}
 
-        for prop in default_settings:
+        for prop in DEFAULT_SETTINGS:
             is_static = isinstance(prop, StaticSettingsProperty)
             override = settings_overrides.get(prop.name, prop.value)
             final_value = prop.value if is_static else self._cast_override(prop, override)

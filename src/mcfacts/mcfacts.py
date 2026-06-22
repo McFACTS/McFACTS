@@ -56,7 +56,7 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
     else:
         loaded_settings = initial_settings
 
-    static_settings = [prop.name for prop in settings_manager.default_settings if isinstance(prop, StaticSettingsProperty)]
+    static_settings = [prop.name for prop in settings_manager.DEFAULT_SETTINGS if isinstance(prop, StaticSettingsProperty)]
 
     # Parse through the loaded settings and create the corresponding arguments with the loaded settings as defaults
     for key, value in loaded_settings.settings_finals.items():
