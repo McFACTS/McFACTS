@@ -243,9 +243,10 @@ class IniSnapshotHandler(SnapshotHandler):
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
-        final_path = os.path.join(directory, file_name + ".ini")
         if file_name.lower().endswith(".ini"):
             final_path = os.path.join(directory, file_name)
+        else:
+            final_path = os.path.join(directory, file_name + ".ini")
 
         name_to_category = {prop.name: prop.category for prop in settings_manager.DEFAULT_SETTINGS}
 
@@ -274,9 +275,10 @@ class IniSnapshotHandler(SnapshotHandler):
         self.log(f"Saved settings to {final_path}")
 
     def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
-        final_path = os.path.join(directory, file_name + ".ini")
         if file_name.lower().endswith(".ini"):
             final_path = os.path.join(directory, file_name)
+        else:
+            final_path = os.path.join(directory, file_name + ".ini")
 
         if not Path(final_path).exists():
             raise FileNotFoundError(f"Settings file not found: {final_path}")
