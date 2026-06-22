@@ -226,6 +226,8 @@ class TxtSnapshotHandler(SnapshotHandler):
                     settings[str(name)] = True
                 elif val in ('n', 'no', 'f', 'false', 'off', '0'):
                     settings[str(name)] = False
+            elif type == "NoneType":
+                settings[str(name)] = None
             else:
                 raise TypeError(f"Unknown type {type}")
 
