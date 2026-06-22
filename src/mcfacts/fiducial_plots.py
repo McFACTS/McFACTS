@@ -3,9 +3,6 @@ fiducial_plots.py contains methods for creating default diagnostic and scientifi
 """
 
 #### IMPORTS
-import sys
-from uuid import UUID
-
 import matplotlib.ticker as mticker
 import numpy as np
 import os
@@ -1045,35 +1042,6 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
                     color='tab:orange',
                     zorder=0)
 
-    # linked = {}
-    #
-    # for uid, freq, strain in zip(lvk["unique_id"], lvk["gw_freq"], lvk["gw_char_strain"]):
-    #
-    #     linker = linked.get(str(uid), [])
-    #
-    #     linker.append((freq, strain))
-    #     linked[str(uid)] = linker
-    #
-    # count = 0
-    #
-    # for uid, links in linked.items():
-    #     count += 1
-    #
-    #     if count % 10 != 0:
-    #         continue
-    #
-    #     rfreq, rstrain = zip(*links)
-    #     freq = list(rfreq)
-    #     strain = list(rstrain)
-    #
-    #     for i in range(len(freq) - 1):
-    #         lisa_axs.annotate(
-    #             '',
-    #             xy=(freq[i+1], strain[i+1]),
-    #             xytext=(freq[i], strain[i]),
-    #             arrowprops=dict(arrowstyle="<-", color='black', alpha=0.7, lw=(i / (len(freq) - 1)) + 0.2)  # Customize arrow properties
-    #         )
-
     lisa_axs.scatter(emri["gw_freq"], emri["gw_char_strain"],
                s=0.4 * styles.markersize_gen1,
                alpha=styles.markeralpha_gen1
@@ -1184,67 +1152,11 @@ def strain_vs_freq(settings, figsize, save_dir, merger_masks, lvk, emri):
     plt.close()
 
 
-def time_vs_freq(settings, figsize, save_dir, lvk):
-    unique_id = lvk["unique_id"]
-
-    unique_unique = []
-
-    inc = []
-    dec = []
-
-    for uid in unique_id:
-        if uid in unique_unique:
-            continue
-        unique_unique.append(uid)
-
-        #time = lvk["time"][lvk["unique_id"] == uid]
-        freq_raw = lvk["gw_freq"][lvk["unique_id"] == uid]
-        sep = lvk["bin_sep"][lvk["unique_id"] == uid]
-
-        trim_freq = []
-
-        for freq, sep in zip(freq_raw, sep):
-            if sep > settings.stalling_separation:
-                continue
-            if np.any(np.isclose(freq, trim_freq, atol=1e-9)):
-                continue
-            trim_freq.append(freq)
-
-        last_freq = sys.float_info.min
-
-        increases = 0
-        decreases = 0
-
-        for f in trim_freq:
-            if f > last_freq:
-                increases += 1
-            else:
-                decreases += 1
-
-            last_freq = f
-
-        inc.append(increases)
-        dec.append(decreases)
-
-    plt.hist(inc, bins=range(1, np.max(inc)), color='b', label='Hardening Encounters')
-    plt.hist(dec, bins=range(1, np.max(dec)), color='r', label='Softening Encounters')
-
-    plt.xlabel('# of Dynamical Encounters')
-    plt.ylabel('# of Binaries')
-    plt.legend()
-
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-
-    plt.savefig(os.path.join(save_dir, 'time_vs_freq.png'), format='png')
-    plt.close()
-
-
 def main(settings: SettingsManager):
     """
     Main function called to produce diagnostic and scientific plots when this module is called as a script.
     """
-    plt.style.use("mcfacts.vis.mcfacts_figures")
+    plt.style.use("mcfacts.vis.mcfacts_figures_dark")
 
     figsize = "apj_col"
 
@@ -1287,8 +1199,6 @@ def main(settings: SettingsManager):
     kick_velocity_vs_radius(settings, figsize, plots_dir, merger_masks, orb_a, v_kick)
     kick_velocity_vs_chi_eff(settings, figsize, plots_dir, merger_masks, chi_eff, v_kick)
     kick_velocity_vs_mass(settings, figsize, plots_dir, merger_masks, mass_final, v_kick)
-
-    time_vs_freq(settings, figsize, plots_dir, lvk)
 
 
 if __name__ == "__main__":
