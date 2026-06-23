@@ -123,7 +123,7 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("disk_bh_torque_condition", "disk", 0.1, float),
         SettingsProperty("disk_bh_eddington_ratio", "disk", 1.0, float),
         SettingsProperty("disk_bh_orb_ecc_max_init", "disk", 0.9, float),
-        SettingsProperty("disk_radius_capture_outer", "disk", 2.e3, float),
+        SettingsProperty("disk_radius_capture_outer", "disk", 1.e3, float),
         SettingsProperty("disk_bh_pro_orb_ecc_crit", "disk", 0.01, float),
         SettingsProperty("inner_disk_outer_radius", "disk", 50.0, float),
         SettingsProperty("disk_radius_max_pc", "disk", 0., float),
@@ -131,12 +131,12 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("torque_prescription", "disk", "paardekooper", str),
         SettingsProperty("flag_phenom_turb", "disk", False, bool),
         SettingsProperty("phenom_turb_centroid", "disk", 0., float),
-        SettingsProperty("phenom_turb_std_dev", "disk", 1.0, float),
+        SettingsProperty("phenom_turb_std_dev", "disk", 0.1, float),
 
         # Black Hole Parameters
         SettingsProperty("mass_pile_up", "bh", 35.0, float),
         SettingsProperty("initial_binary_orbital_ecc", "bh", 0.01, float),
-        SettingsProperty("fraction_bin_retro", "bh", 0, int),
+        SettingsProperty("fraction_bin_retro", "bh", 0.0, float),
         SettingsProperty("flag_use_surrogate", "bh", False, bool),
         SettingsProperty("flag_use_spin_check", "bh", False, bool),
         SettingsProperty("mean_harden_energy_delta", "bh", 0.9, float),
@@ -182,9 +182,9 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("nsc_spheroid_normalization", "nsc", 1.0, float),
         SettingsProperty("nsc_star_spin_dist_mu", "nsc", 100.0, float),
         SettingsProperty("nsc_star_spin_dist_sigma", "nsc", 20.0, float),
-        SettingsProperty("nsc_star_metallicity_x_init", "nsc", 0.7274, float),
-        SettingsProperty("nsc_star_metallicity_y_init", "nsc", 0.2638, float),
-        SettingsProperty("nsc_star_metallicity_z_init", "nsc", 0.0088, float),
+        SettingsProperty("nsc_star_metallicity_x_init", "nsc", 0.7064, float),
+        SettingsProperty("nsc_star_metallicity_y_init", "nsc", 0.2735, float),
+        SettingsProperty("nsc_star_metallicity_z_init", "nsc", 0.02, float),
         SettingsProperty("nsc_imf_bh_method", "nsc", "default", str),
 
         # Filing cabinet array names
