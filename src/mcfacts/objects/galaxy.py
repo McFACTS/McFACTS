@@ -207,7 +207,7 @@ class Galaxy:
                 if actor.settings is None:
                     actor.settings = self.settings
 
-                self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.settings_overrides == self.settings.settings_overrides}")
+                self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.settings_finals == self.settings.settings_finals}")
 
                 actor.set_log_func(self.nocheck_log)
                 actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)

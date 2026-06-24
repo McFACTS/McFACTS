@@ -162,6 +162,7 @@ class InnerDiskFilter(TimelineActor):
                 blackholes_pro.remove_all(bh_id_num_pro_inner_disk)
 
         if sm.bh_inner_disk_array_name in filing_cabinet:
+            # TODO: Move to AGNDisk init with disk capture rate and disk bh num -- capture rate function from Saavik
             lower_disk_function_bound = filing_cabinet.get_value("lower_disk_function_bound",
                                                                  checks.find_function_lower_bounds(agn_disk.disk_density))
 
