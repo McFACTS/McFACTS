@@ -146,7 +146,7 @@ def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound
 
     # Size of sub steps (in years) to take within the simulation timestep
     # Need to take substeps since analytical function can run away under large timesteps
-    sub_step_size = 10 * u.yr
+    sub_step_size = 100 * u.yr
     sub_steps = (timestep_length * u.yr) / sub_step_size
 
     # Merging flag might be stale, so lets run a contact check just incase
