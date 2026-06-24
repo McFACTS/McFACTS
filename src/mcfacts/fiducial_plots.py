@@ -1156,7 +1156,7 @@ def main(settings: SettingsManager):
     """
     Main function called to produce diagnostic and scientific plots when this module is called as a script.
     """
-    plt.style.use("mcfacts.vis.mcfacts_figures_dark")
+    plt.style.use("mcfacts.vis.mcfacts_figures")
 
     figsize = "apj_col"
 
