@@ -25,7 +25,7 @@ from mcfacts.objects.actors.reality_checks import SingleBlackHoleRealityCheck, B
 from mcfacts.objects.agn_object_array import *
 from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopulator
-from mcfacts.objects.snapshot import TxtSnapshotHandler
+from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 
 
@@ -39,9 +39,11 @@ def main(settings: SettingsManager):
     if settings.overwrite_files and os.path.isdir(settings.output_dir):
         shutil.rmtree(settings.output_dir)
 
-    # Create the IO handler and save the current settings
+    # Create the IO handlers and save the current settings
     snapshot_handler = TxtSnapshotHandler(settings = settings)
-    snapshot_handler.save_settings("./runs", "settings", settings)
+
+    ini_handler = IniSnapshotHandler(settings=settings)
+    ini_handler.save_settings("./runs", "settings", settings)
 
     # Load disk model and setup empty filing cabinet for result populations
     agn_disk = AGNDisk(settings)
