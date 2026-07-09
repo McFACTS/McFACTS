@@ -49,7 +49,7 @@ stars_immortal_cols = [
     "mass_initial", "orb_a_initial"
 ]
 
-stars_explode_cols = [
+stars_disrupted_cols = [
     "galaxy", "time_sn", "orb_a_star", "mass_star", "orb_ecc_star",
     "star_log_radius", "gen_star", "id_num_star", "orb_inc_star",
     "orb_a_bh", "mass_bh", "orb_ecc_bh", "gen_bh", "id_num_bh", "orb_inc_bh",
@@ -58,7 +58,7 @@ tde_cols = [
     "galaxy", "time_passed", "orb_a", "mass", "orb_ecc", "log_radius",
     "gen", "id_num", "log_teff", "log_luminosity", "star_X", "star_Y", "star_Z",
 ]
-stars_merge_cols = [
+stars_merged_cols = [
     "galaxy", "time_merged","orb_a_final", "mass_final", "orb_ecc", 
     "log_radius_final", "gen_final", "id_num", "mass_1", "mass_2",
     "gen_1", "gen_2"

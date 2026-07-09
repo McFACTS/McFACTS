@@ -4,6 +4,7 @@ Module for calculating the gw strain and freq of a binary.
 import numpy as np
 from astropy import units as u, constants as const
 from astropy.units import cds
+from mcfast import gw_strain_helper
 
 
 def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift, flag_include_old_gw_freq=1):
@@ -121,6 +122,67 @@ def gw_strain_freq(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, s
 
     return (char_strain.value, nu_gw.value)
 
+def gw_strain_freq_optimized(mass_1, mass_2, obj_sep, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift, flag_include_old_gw_freq=1):
+    """Calculates GW strain [unitless] and frequency [Hz]
+
+    This function takes in two masses, their separation, the previous frequency, and the redshift and
+    calculates the new GW strain (unitless) and frequency (Hz).
+
+    Parameters
+    ----------
+    mass_1 : numpy.ndarray
+        Mass [M_sun] of object 1 with :obj:`float` type
+    mass_2 : numpy.ndarray
+        Mass [M_sun] of object 2 with :obj:`float` type
+    obj_sep : numpy.ndarray
+        Separation between both objects [r_{g,SMBH}] with :obj:`float` type
+    timestep_duration_yr : float, or -1 if not given
+        Current timestep [yr]
+    old_gw_freq : numpy.ndarray, or -1 if not given
+        Previous GW frequency [Hz] with :obj:`float` type
+    smbh_mass : float
+        Mass [M_sun] of the SMBH
+    agn_redshift : float
+        Redshift [unitless] of the SMBH
+    flag_include_old_gw_freq : int
+        Flag indicating if old_gw_freq should be included in calculations
+        if not, we use the hardcoded value (see note below)
+        0 if no, 1 if yes
+
+    Returns
+    -------
+    char_strain : numpy.ndarray
+        Characteristic strain [unitless] with :obj:`float` type
+    nu_gw : numpy.ndarray
+        GW frequency [Hz] with :obj:`float` type
+
+    Notes
+    -----
+    Note from Saavik about hardcoding strain_factor to 4e3 if nu_gw > 1e-6:
+    basically we are implicitly assuming if the frequency is low enough the source is monochromatic
+    in LISA over the course of 1yr, so that's where those values come from... and we do need to make
+    a decision about that... and that's an ok decision for now. But if someone were to be considering
+    a different observatory they might not like that decision?
+
+    """
+
+    if old_gw_freq == -1:
+        old_gw_freq = np.full(len(mass_1), -1.0);
+
+    # print(type(old_gw_freq[0:10]))
+    (char_strain, nu_gw) = gw_strain_helper(
+        mass_1, 
+        mass_2,
+        obj_sep, 
+        timestep_duration_yr, 
+        old_gw_freq, 
+        smbh_mass, 
+        agn_redshift,
+        flag_include_old_gw_freq == 1
+    )
+
+    return (char_strain, nu_gw)
+
 
 def evolve_gw(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_redshift):
     """Wrapper function to calculate GW strain [unitless] and frequency [Hz] for BBH with no previous GW frequency
@@ -140,7 +202,16 @@ def evolve_gw(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_redshift):
         BBH with GW strain [unitless] and frequency [Hz] updated
     """
 
-    char_strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
+    # char_strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
+    #                                     mass_2=bin_mass_2,
+    #                                     obj_sep=bin_sep,
+    #                                     timestep_duration_yr=-1,
+    #                                     old_gw_freq=-1,
+    #                                     smbh_mass=smbh_mass,
+    #                                     agn_redshift=agn_redshift,
+    #                                     flag_include_old_gw_freq=0)
+
+    char_strain, nu_gw = gw_strain_freq_optimized(mass_1=bin_mass_1,
                                         mass_2=bin_mass_2,
                                         obj_sep=bin_sep,
                                         timestep_duration_yr=-1,
@@ -148,6 +219,9 @@ def evolve_gw(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_redshift):
                                         smbh_mass=smbh_mass,
                                         agn_redshift=agn_redshift,
                                         flag_include_old_gw_freq=0)
+
+    # assert(np.allclose(char_strain, char_strain_opt))
+    # assert(np.allclose(nu_gw, nu_gw_opt))
 
     return (nu_gw, char_strain)
 
@@ -188,7 +262,16 @@ def bbh_gw_params(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_
     # while (num_tracked < len(old_bbh_freq)):
     #     old_bbh_freq = np.delete(old_bbh_freq, 0)
 
-    char_strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
+    # char_strain, nu_gw = gw_strain_freq(mass_1=bin_mass_1,
+    #                                     mass_2=bin_mass_2,
+    #                                     obj_sep=bin_sep,
+    #                                     timestep_duration_yr=timestep_duration_yr,
+    #                                     old_gw_freq=old_bbh_freq,
+    #                                     smbh_mass=smbh_mass,
+    #                                     agn_redshift=agn_redshift,
+    #                                     flag_include_old_gw_freq=1)
+
+    char_strain, nu_gw = gw_strain_freq_optimized(mass_1=bin_mass_1,
                                         mass_2=bin_mass_2,
                                         obj_sep=bin_sep,
                                         timestep_duration_yr=timestep_duration_yr,
@@ -196,5 +279,7 @@ def bbh_gw_params(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_
                                         smbh_mass=smbh_mass,
                                         agn_redshift=agn_redshift,
                                         flag_include_old_gw_freq=1)
+    # assert(np.allclose(char_strain, char_strain_opt))
+    # assert(np.allclose(nu_gw, nu_gw_opt))
 
     return (char_strain, nu_gw)

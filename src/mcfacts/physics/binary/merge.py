@@ -7,12 +7,10 @@ from scipy.stats import truncnorm
 from astropy import units as u
 from astropy import constants as const
 from mcfacts.mcfacts_random_state import rng
-#from mcfacts.physics.binary import spin_check
-from mcfacts.physics import analytical_velo, lum
-from mcfacts.external.sxs import evolve_binary
-from mcfacts.external.sxs import fit_modeler
-from mcfacts.physics.point_masses import si_from_r_g
+from mcfacts.physics import analytical_velocity, lum
+from mcfacts.physics.point_masses import si_from_r_g, si_from_r_g_optimized
 #from mcfacts.inputs import data
+from mcfast import merged_orb_ecc_helper
 
 from mcfacts.physics.point_masses import time_of_orbital_shrinkage, si_from_r_g
 
@@ -201,7 +199,9 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius):
     time_gw_normalization = time_of_orbital_shrinkage(
         smbh_mass * u.solMass,
         bin_mass_ref * u.solMass,
-        si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius),
+        # note: works everywhere but here
+        # si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius),
+        si_from_r_g_optimized(smbh_mass, inner_disk_outer_radius),
         0 * u.m,
     )
     return time_gw_normalization.si.value
@@ -452,16 +452,37 @@ def merged_orb_ecc_and_inc(bin_orbs_a, bh_kick_comp_merged, smbh_mass):
         Orbital inclination of merged binary with :obj:`float` type
     """
     smbh_mass_units = smbh_mass * u.solMass
-    orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+    # orbs_a_units = si_from_r_g(smbh_mass * u.solMass, bin_orbs_a).to("meter")
+    orbs_a_units = si_from_r_g_optimized(smbh_mass, bin_orbs_a)
 
     v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
     v_kickx = bh_kick_comp_merged[:,0]
     v_kickz = bh_kick_comp_merged[:,2]
 
-    merged_ecc = v_kickx/v_kep
-    merged_inc = v_kickz/v_kep
+    merged_ecc = v_kicks/v_kep
 
-    return (merged_ecc, merged_inc)
+    return (merged_ecc)
+
+def merged_orb_ecc_optimized(bin_orbs_a, v_kicks, smbh_mass):
+    """Calculates orbital eccentricity of a merged binary.
+
+    Parameters
+    ----------
+    bin_orbs_a : numpy.ndarray
+        Location of binary [r_{g,SMBH}] wrt to the SMBH with :obj:`float` type
+    v_kicks : numpy.ndarray
+        Kick velocity [km/s] with :obj:`float` type
+    smbh_mass : float
+        Mass [Msun] of the SMBH
+
+    Returns
+    -------
+    merged_ecc : numpy.ndarray
+        Orbital eccentricity of merged binary with :obj:`float` type
+    """
+    merged_ecc = merged_orb_ecc_helper(bin_orbs_a, v_kicks, smbh_mass)
+
+    return (merged_ecc)
 
 def merge_blackholes_precession(
     mass_1,
@@ -550,7 +571,8 @@ def merge_blackholes_precession(
     # Draw random deltaphi
     deltaphi = rng.uniform(low=0.,high=2*np.pi,size=mass_ratio.size)
     # Get binary separation
-    bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g)
+    # bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g)
+    bin_sep_si = si_from_r_g_optimized(smbh_mass, bin_sep_r_g)
     orbital_period_si = np.sqrt(
         (4 * np.pi**2 * bin_sep_si**3) / \
         (const.G * (mass_1 * u.solMass + mass_2 * u.solMass))
@@ -706,7 +728,7 @@ def merge_blackholes_precession(
         mass_1, mass_2, chi_1, chi_2 
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
-                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, time_passed, galaxy):
+                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, disk_sound_speed, time_passed, galaxy):
     """Calculates parameters for merged BHs and adds them to :code:`blackholes_pro` and :code:`blackholes_merged`
 
     This function calculates the new parameters for merged BHs and adds them to the
@@ -785,13 +807,14 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             )
         else:
             bh_spin_merged = bh_spin_merged
-        bh_v_kick = analytical_velo.analytical_kick_velocity(
+
+        bh_v_kick = analytical_velocity.analytical_kick_velocity_optimized(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
         )
         
         bh_mass_1_20Hz = np.zeros(bh_binary_id_num_merger.size)
@@ -801,6 +824,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
 
     elif flag_use_surrogate == 1:
+        from mcfacts.external.sxs import evolve_binary
+        from mcfacts.external.sxs import fit_modeler
         #bh_v_kick = 200 #evolve_binary.velocity()
         surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
         bh_mass_merged, bh_kick_comp_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
@@ -837,7 +862,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
     else:
         raise ValueError(f"Invalid option: flag_use_surrogate = {flag_use_surrogate}")
 
-    bh_lum_shock = lum.shock_luminosity(
+    bh_lum_shock = lum.shock_luminosity_opt(
         smbh_mass,
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
@@ -845,19 +870,24 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         disk_density,
         bh_v_kick)
 
-    bh_lum_jet = lum.jet_luminosity(
+    # assert(np.allclose(bh_lum_shock, bh_lum_shock_opt))
+    bh_lum_jet = lum.jet_luminosity_opt(
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
         disk_density,
-        disk_aspect_ratio,
-        smbh_mass,
         bh_spin_merged,
-        bh_v_kick)
-
+        bh_v_kick,
+        disk_sound_speed)
+    # assert(np.allclose(bh_lum_jet, bh_lum_jet_opt))
     # ====== Varun here is the function you're changing for the components. Replace the bh_v_kick --> bh_kick_comp_merged ======
-    bh_orb_ecc_merged = merged_orb_ecc_and_inc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
-                                             np.full(bh_binary_id_num_merger.size, bh_kick_comp_merged),
+    # bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
+    #                                          np.full(bh_binary_id_num_merger.size, bh_v_kick),
+    #                                          smbh_mass)
+    bh_orb_ecc_merged = merged_orb_ecc_optimized(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
+                                             np.full(bh_binary_id_num_merger.size, bh_v_kick),
                                              smbh_mass)
+
+    # assert(np.allclose(bh_orb_ecc_merged, bh_orb_ecc_merged_opt))
 
     # Append new merged BH to arrays of single BH locations, masses, spins, spin angles & gens
     blackholes_merged.add_blackholes(new_id_num=bh_binary_id_num_merger,

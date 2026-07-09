@@ -153,7 +153,7 @@ Large data files slow down these services and create bulk which is hard to reduc
 .. _`README`: https://github.com/McFACTS/McFACTS/blob/main/README.md
 .. _`IOdocumentation.txt`: https://github.com/McFACTS/McFACTS/blob/main/IOdocumentation.txt
 .. _`Style Guide`: https://github.com/McFACTS/McFACTS/blob/main/docs/source/style.rst
-.. _`Commit Guide`: https://github.com/McFACTS/McFACTS/blob/main/docs/source/gitcommitmsg.rst
+.. _`Commit Guide`: https://github.com/McFACTS/McFACTS/blob/main/docs/source/commitmsg.rst
 .. _`Pull Request Template`: https://github.com/McFACTS/McFACTS/blob/main/.github/PULL_REQUEST_TEMPLATE.md
 .. _`Issue Tracker`: https://github.com/McFACTS/McFACTS/issues
 .. _`semantic commit messages`: https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716

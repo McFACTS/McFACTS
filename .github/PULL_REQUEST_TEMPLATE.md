@@ -2,6 +2,12 @@
 Thank you for contributing a pull request! Here are a few tips to help you. Please be detailed where necessary.
 -->
 
+<!-- Optional Testing-->
+<!-- GitHub will run our test suite when you submit this PR. You're welcome to
+run the tests manually beforehand if you want.-->
+<!-- To do so, type `pytest` in the `mcfacts/` directory.-->
+<!-- You may need to install pytest with `conda install pytest`-->
+
 <!--/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\-->
 <!-- These sections are required. -->
 <!--\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/-->
@@ -12,27 +18,25 @@ Thank you for contributing a pull request! Here are a few tips to help you. Plea
 A description of what this pull request does, why it's required, or what problem it solves.
 -->
 
+### Validation Steps
+Run the following commands or perform the following actions to test this PR:
+<!--Include steps that our reviewers should follow to validate the change. -->
+`make plots`
 
-### Tests
-<!--Include QA test steps (if applicable and if not already added to the GH issue) that our reviewers should follow
-to validate the change.
--->
 
-
-### Checklist:
+### Checklist
 <!--
-Change [ ] to [X] as you verify each step.
+Change [] to [X] as you verify each step.
 -->
-- [ ] I have checked that no open Pull Requests exist for the same change
-- [ ] Tests for the changes have been added (for bug fixes / core features)
-- [ ] Docs have been added / updated (for bug fixes / features)
-- [ ] Commit messages follow the Conventional Commits guidelines
-- [ ] I have added the appropriate label to this Pull Request
+- [] I have checked that no open Pull Requests exist for the same change
+- [] Commit messages follow the Conventional Commits guidelines
+- [] Tests for new core functionalities have been added
+- [] Added / updated documentation
+- [] I have added the appropriate label to this Pull Request
 
-
-<!--/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\-->
-<!-- These sections can be removed if not needed/relevant.-->
-<!--\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/-->
+<!--/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\-->
+<!-- The sections below can be removed if not needed/relevant.-->
+<!--\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/-->
 
 
 ### Issue Link
