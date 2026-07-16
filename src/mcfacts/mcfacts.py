@@ -114,9 +114,7 @@ def main():
     rp_parser = sub_parsers.add_parser('rp')
     seed_settings_args(rp_parser)
 
-    print("tic")
     inputs = parser.parse_args()
-    print("toc")
     # If the version flag was passed, print the version and quit
     if inputs.print_version:
         print(f"McFACTS Version: {__version__}")
