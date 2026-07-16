@@ -16,6 +16,7 @@ from mcfacts.utilities.unit_conversion import str2bool
 
 #### SETUP
 COMMANDS = ["run", "rp", "plot"]
+CMD_MSG = "<" + " ".join(COMMANDS) + ">"
 
 #### METHODS
 def seed_settings_args(sub_parser: argparse.ArgumentParser):
@@ -110,7 +111,7 @@ def main():
         print(f"McFACTS Version: {__version__}")
         return
 
-    sub_parsers = parser.add_subparsers(dest='subcommand',metavar=str(COMMANDS))
+    sub_parsers = parser.add_subparsers(dest='subcommand',metavar=str(CMD_MSG))
 
     run_parser = sub_parsers.add_parser('run')
     seed_settings_args(run_parser)
