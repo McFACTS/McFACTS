@@ -7,6 +7,7 @@ import argparse
 import cProfile
 from pathlib import Path
 
+from mcfacts import __version__
 from mcfacts import fiducial_plots, simulation
 from mcfacts.inputs import settings_manager
 from mcfacts.inputs.settings_manager import SettingsManager, StaticSettingsProperty
@@ -99,6 +100,8 @@ def main():
     """
     # Create instance of argument parser
     parser = argparse.ArgumentParser(allow_abbrev=False)
+    # GNU Coding Standards version syntax 
+    parser.add_argument("--version", "-V", dest="print_version", action='store_true')
 
     sub_parsers = parser.add_subparsers(dest='subcommand')
 
@@ -111,7 +114,13 @@ def main():
     rp_parser = sub_parsers.add_parser('rp')
     seed_settings_args(rp_parser)
 
+    print("tic")
     inputs = parser.parse_args()
+    print("toc")
+    # If the version flag was passed, print the version and quit
+    if inputs.print_version:
+        print(f"McFACTS Version: {__version__}")
+        return
 
     if inputs.subcommand is None:
         parser.print_help()
