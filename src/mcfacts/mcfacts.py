@@ -14,6 +14,8 @@ from mcfacts.inputs.settings_manager import SettingsManager, StaticSettingsPrope
 from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
 from mcfacts.utilities.unit_conversion import str2bool
 
+#### SETUP
+COMMANDS = ["run", "rp", "plot"]
 
 #### METHODS
 def seed_settings_args(sub_parser: argparse.ArgumentParser):
@@ -102,8 +104,13 @@ def main():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     # GNU Coding Standards version syntax 
     parser.add_argument("--version", "-V", dest="print_version", action='store_true')
+    version_parse, _ = parser.parse_known_args()
+    # If the version flag was passed, print the version and quit
+    if version_parse.print_version:
+        print(f"McFACTS Version: {__version__}")
+        return
 
-    sub_parsers = parser.add_subparsers(dest='subcommand')
+    sub_parsers = parser.add_subparsers(dest='subcommand',metavar=str(COMMANDS))
 
     run_parser = sub_parsers.add_parser('run')
     seed_settings_args(run_parser)
@@ -115,10 +122,6 @@ def main():
     seed_settings_args(rp_parser)
 
     inputs = parser.parse_args()
-    # If the version flag was passed, print the version and quit
-    if inputs.print_version:
-        print(f"McFACTS Version: {__version__}")
-        return
 
     if inputs.subcommand is None:
         parser.print_help()
