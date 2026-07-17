@@ -4,7 +4,7 @@
 from functools import cached_property as cached_property
 
 ######## cached_property ########
-class read_only_cached_property(cached_property):
+class readonly_cached_property(cached_property):
     """Custom readonly cached property"""
     def __init__(self, func):
         super().__init__(func)
