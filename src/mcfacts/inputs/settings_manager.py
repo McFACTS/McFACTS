@@ -368,9 +368,9 @@ class SettingsManager:
             category_props.setdefault(prop.category, {})[prop.name] = final_value
 
         for key in settings_overrides.keys():
-            if key in self.settings_finals:
-                continue
             if key in IGNORE_ARGS:
+                continue
+            if key in self.settings_finals:
                 continue
 
             warnings.warn(
