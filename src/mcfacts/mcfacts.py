@@ -95,7 +95,7 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
 def run_simulation(settings, profiling=False, filename=None):
     """Avoid code duplication"""
     # Hotwire settings for scaling run
-    if flag_use_scaling:
+    if settings.flag_use_scaling:
         # This is done outside of simulation.py so that the live settings
         #   are recorded in the log.
         setup_scaling(settings)

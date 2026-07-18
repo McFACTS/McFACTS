@@ -8,6 +8,8 @@ from functools import cached_property
 import numpy as np
 from scipy.interpolate import CubicSpline as ScipyCubicSpline
 from scipy.interpolate import NearestNDInterpolator
+#### Local ####
+from mcfacts.objects.cache import readonly_cached_property
 
 ######## Objects ########
 #### Boundary Object ####

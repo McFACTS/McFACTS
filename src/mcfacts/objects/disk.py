@@ -78,7 +78,7 @@ class AGNDiskInterp(AGNDisk):
     """Generic AGN Disk Interpolation"""
     def __init__(
         self,
-        surf_density_data,
+        surface_density_data,
         aspect_ratio_data,
         opacity_data,
         sound_speed_data,
@@ -91,9 +91,9 @@ class AGNDiskInterp(AGNDisk):
         """
         ## Generate the CubicSplines
         # Create surface density interpolator object
-        self._surf_dens_loglog = CubicSpline(
-            np.log(surf_density_data[0],
-            np.log(surf_density_data[1],
+        self._surface_density_loglog = CubicSpline(
+            np.log(surface_density_data[0]),
+            np.log(surface_density_data[1]),
         )
         # Create aspect ratio interpolator object
         self._aspect_ratio_loglog = CubicSpline(
@@ -131,9 +131,9 @@ class AGNDiskInterp(AGNDisk):
             np.log(temperature_data[1]),
         )
         # Create surface density log derivative interpolator object
-        self._dlog10_surf_dens_log10R = dCubicSpline(
-            np.log10(surf_dens_data[0]),
-            np.log10(surf_dens_data[1]),
+        self._dlog10_surface_density_log10R = dCubicSpline(
+            np.log10(surface_density_data[0]),
+            np.log10(surface_density_data[1]),
         )
         # Create temperature log derivative interpolator object
         self._dlog10_temp_dlog10R = dCubicSpline(
@@ -145,18 +145,18 @@ class AGNDiskInterp(AGNDisk):
         # Create pressure log derivative interpolator object
         self._dlog10_midplane_pressure_dlog10R = dCubicSpline(
             np.log10(density_data[0]),
-            np.lgo10(midplane_pressure)
+            np.log10(midplane_pressure)
         )
 
         ## Boundary Shenanigans ##
 
     ### Methods ###
     def surface_density(self, orb_a):
-        return np.exp(self._surf_dens_loglog(np.log(orb_a)))
+        return np.exp(self._surface_density_loglog(np.log(orb_a)))
     def disk_surface_density(self, orb_a):
         return self.surface_density(orb_a)
     def disk_surface_density_log(self, orb_a):
-        return self._surf_dens_loglog(orb_a)
+        return self._surface_density_loglog(orb_a)
 
     def aspect_ratio(self, orb_a):
         return np.exp(self._aspect_ratio_loglog(np.log(orb_a)))
@@ -194,7 +194,7 @@ class AGNDiskInterp(AGNDisk):
         return self.temperature(orb_a)
 
     def dlog10_surface_density_dlog10R(self, orb_a):
-        return self._dlog10_surf_dens_log10R(orb_a)
+        return self._dlog10_surface_density_log10R(orb_a)
     def disk_dlog10surfdens_dlog10R_func(self, orb_a):
         return self.dlog10_surface_density_dlog10R(orb_a)
 
