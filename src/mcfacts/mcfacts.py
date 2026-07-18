@@ -8,7 +8,7 @@ import cProfile
 from pathlib import Path
 
 from mcfacts import fiducial_plots, simulation
-from mcfacts.inputs import settings_manager
+from mcfacts.inputs import settings_manager, setup_scaling
 from mcfacts.inputs.settings_manager import SettingsManager, StaticSettingsProperty
 from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
 from mcfacts.utilities.unit_conversion import str2bool
@@ -92,6 +92,19 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
                                     default=value, type=type(value), metavar=key, dest=key)
 
 
+def run_simulation(settings, profiling=False, filename=None):
+    """Avoid code duplication"""
+    # Hotwire settings for scaling run
+    if flag_use_scaling:
+        # This is done outside of simulation.py so that the live settings
+        #   are recorded in the log.
+        setup_scaling(settings)
+    # Run with or without profiling
+    if profiling:
+        cProfile.runctx('simulation.main(settings)', globals(), locals(), filename=filename)
+    else:
+        simulation.main(settings)
+
 def main():
     """
     Main method that interprets user input and runs the simulation based on the provided
@@ -121,22 +134,14 @@ def main():
     settings = SettingsManager(vars(inputs))
 
     if inputs.subcommand == "run":
-        if inputs.enable_profiling:
-            cProfile.runctx('simulation.main(settings)', globals(), locals(), filename=inputs.profiling_file)
-        else:
-            simulation.main(settings)
-        return
+        run_simulation(settings,inputs.enable_profiling,inputs.profiling_file)
 
     if inputs.subcommand == "plot":
         fiducial_plots.main(settings)
         return
 
     if inputs.subcommand == "rp":
-        if inputs.enable_profiling:
-            cProfile.runctx('simulation.main(settings)', globals(), locals(), filename=inputs.profiling_file)
-        else:
-            simulation.main(settings)
-
+        run_simulation(settings,inputs.enable_profiling,inputs.profiling_file)
         fiducial_plots.main(settings)
         return
 

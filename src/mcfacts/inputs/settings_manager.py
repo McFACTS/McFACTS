@@ -187,6 +187,17 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("nsc_star_metallicity_z_init", "nsc", 0.02, float),
         SettingsProperty("nsc_imf_bh_method", "nsc", "default", str),
 
+        # Scaling settings
+        SettingsProperty("disk_truncation", "scale", "none", str),
+        SettingsProperty("flag_use_scaling", "scale", False, bool),
+        SettingsProperty("stellar_mass", "scale", 0., float),
+        SettingsProperty("scale_stellar_mass", "scale", "schramm-silverman", str),
+        SettingsProperty("scale_nsc_mass", "scale", "neumayer-early", str),
+        SettingsProperty("scale_inner_disk", "scale", "decay-time", str),
+        SettingsProperty("scale_trap", "scale", "sqrt-smbh", str),
+        SettingsProperty("scale_capture", "scale", "sqrt-smbh", str),
+        SettingsProperty("scale_capture", "scale", "hubble", str),
+
         # Filing cabinet array names
         StaticSettingsProperty("bh_array_name", "arrays", "blackholes_unsort", str),
         StaticSettingsProperty("bh_inner_disk_array_name", "arrays", "blackholes_inner_disk", str),

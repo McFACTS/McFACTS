@@ -314,6 +314,17 @@ class CubicSpline(Interpolator):
             self.x_train_unstacked[0],
             self.y_train,
         )
+
+class dCubicSpline(Interpolator):
+    """CubicSpline interpolator"""
+    def __init__(self, x_train, y_train):
+        super().__init__(1, x_train, y_train)
+    @cached_property
+    def interp(self):
+        return ScipyCubicSpline(
+            self.x_train_unstacked[0],
+            self.y_train,
+        ).derivative()
         
 #### NearestNeighbor ####
 class NearestNeighbor(Interpolator):
