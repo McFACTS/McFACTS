@@ -207,3 +207,29 @@ class AGNDiskInterp(AGNDisk):
         return self._dlog10_midplane_pressure_dlog10R(orb_a)
     def disk_dlog10pressure_dlog10R_func(self, orb_a):
         return self.dlog10_midplane_pressure_dlog10R(orb_a)
+
+    @classmethod
+    def from_importlib(cls, disk_model_name, disk_radius_outer):
+        """Load a disk from data stored in the mcfacts repository"""
+        from mcfacts.inputs.ReadInputs import load_disk_arrays
+        # Load the disk arrays
+        trunc_surf_density_data, trunc_aspect_ratio_data, \
+                trunc_opacity_data, trunc_sound_speed_data, \
+                trunc_density_data, trunc_omega_data, \
+                trunc_pressure_data, trunc_temperature_data = \
+            load_disk_arrays(disk_model_name, disk_radius_outer)
+        # Construct disk
+        disk = AGNDiskInterp(
+            trunc_surf_density_data,
+            trunc_aspect_ratio_data,
+            trunc_opacity_data,
+            trunc_sound_speed_data,
+            trunc_density_data,
+            trunc_omega_data,
+            trunc_pressure_data,
+            trunc_temperature_data,
+        )
+        # Return disk
+        return disk
+        
+

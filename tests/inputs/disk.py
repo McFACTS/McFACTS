@@ -10,6 +10,7 @@ import collections
 
 #### Third Party ####
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 #### Local ####
 from mcfacts.inputs import data as mcfacts_input_data
@@ -57,23 +58,13 @@ def test_construct_disk_object(verbose=True):
     for disk_model_name in DISK_MODEL_NAMES:
         if verbose:
             print(disk_model_name)
+        disko = AGNDiskInterp.from_importlib(disk_model_name, disk_radius_outer)
         # Load the disk arrays
         trunc_surf_density_data, trunc_aspect_ratio_data, \
                 trunc_opacity_data, trunc_sound_speed_data, \
                 trunc_density_data, trunc_omega_data, \
                 trunc_pressure_data, trunc_temperature_data = \
             load_disk_arrays(disk_model_name, disk_radius_outer)
-        # Construct disk
-        disko = AGNDiskInterp(
-            trunc_surf_density_data,
-            trunc_aspect_ratio_data,
-            trunc_opacity_data,
-            trunc_sound_speed_data,
-            trunc_density_data,
-            trunc_omega_data,
-            trunc_pressure_data,
-            trunc_temperature_data,
-        )
         # Evaluate estimates for each quantity
         surface_density_estimate = disko.surface_density(trunc_surf_density_data[0])
         assert np.allclose(surface_density_estimate, trunc_surf_density_data[1]), \
@@ -99,8 +90,57 @@ def test_construct_disk_object(verbose=True):
         temperature_estimate = disko.temperature(trunc_temperature_data[0])
         assert np.allclose(temperature_estimate, trunc_temperature_data[1]), \
             "NumPy allclose failed for %s temperature interpolation"%(disk_model_name)
-        # TODO test log10 derivatives
+        # Identify midplane pressure
+        midplane_pressure = (trunc_sound_speed_data[1] ** 2) / trunc_density_data[1]
+        dPdR_estimator = CubicSpline(
+            np.log10(trunc_density_data[0]),
+            np.log10(midplane_pressure),
+        ).derivative()
+        dPdR_estimate_scipy = dPdR_estimator(
+            np.log10(trunc_density_data[0])
+        )
+        dPdR_estimate_disk = disko.dlog10_midplane_pressure_dlog10R(
+            np.log10(trunc_density_data[0])
+        )
+        assert np.allclose(
+            dPdR_estimate_scipy,
+            dPdR_estimate_disk,
+        )
+        # Create surface density log derivative interpolator object
+        dlog10_surface_density_log10R_estimator = CubicSpline(
+            np.log10(trunc_surf_density_data[0]),
+            np.log10(trunc_surf_density_data[1]),
+        ).derivative()
+        dlog10_surface_density_log10R_estimate_scipy = \
+            dlog10_surface_density_log10R_estimator(
+                np.log10(trunc_surf_density_data[0])
+            )
+        dlog10_surface_density_log10R_estimate_disk = \
+            disko.dlog10_surface_density_dlog10R(
+                np.log10(trunc_surf_density_data[0])
+            )
+        assert np.allclose(
+            dlog10_surface_density_log10R_estimate_scipy,
+            dlog10_surface_density_log10R_estimate_disk,
+        )
 
+        # Create temperature log derivative interpolator object
+        dlog10_temp_dlog10R_estimator = CubicSpline(
+            np.log10(trunc_temperature_data[0]),
+            np.log10(trunc_temperature_data[1]),
+        ).derivative()
+        dlog10_temp_dlog10R_estimate_scipy = \
+            dlog10_temp_dlog10R_estimator(
+                np.log10(trunc_temperature_data[0])
+            )
+        dlog10_temp_dlog10R_estimate_disk = \
+            disko.dlog10_temperature_dlog10R(
+                np.log10(trunc_temperature_data[0])
+            )
+        assert np.allclose(
+            dlog10_temp_dlog10R_estimate_scipy,
+            dlog10_temp_dlog10R_estimate_disk,
+        )
         # Test aliases
         surface_density_estimate = disko.disk_surface_density(trunc_surf_density_data[0])
         assert np.allclose(surface_density_estimate, trunc_surf_density_data[1]), \
