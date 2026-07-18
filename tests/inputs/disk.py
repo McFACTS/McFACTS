@@ -55,7 +55,8 @@ def test_construct_disk_object(verbose=True):
     disk_radius_outer = input_variables["disk_radius_outer"]
     # Loop disk models
     for disk_model_name in DISK_MODEL_NAMES:
-        print(disk_model_name)
+        if verbose:
+            print(disk_model_name)
         # Load the disk arrays
         trunc_surf_density_data, trunc_aspect_ratio_data, \
                 trunc_opacity_data, trunc_sound_speed_data, \
@@ -73,17 +74,6 @@ def test_construct_disk_object(verbose=True):
             trunc_pressure_data,
             trunc_temperature_data,
         )
-        disk_surf_dens_func, disk_aspect_ratio_func, \
-                disk_opacity_func, sound_speed_func, \
-                disk_density_func, disk_pressure_grad_func, \
-                disk_omega_func, disk_surf_dens_func_log, \
-                temp_func, \
-                surf_dens_log10_derivative_func, \
-                temp_log10_derivative_func, \
-                pressure_log10_derivative_func, \
-                disk_model_properties = \
-            construct_disk_direct(disk_model_name, disk_radius_outer)
-
         # Evaluate estimates for each quantity
         surface_density_estimate = disko.surface_density(trunc_surf_density_data[0])
         assert np.allclose(surface_density_estimate, trunc_surf_density_data[1]), \
