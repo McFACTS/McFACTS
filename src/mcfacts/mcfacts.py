@@ -7,12 +7,16 @@ import argparse
 import cProfile
 from pathlib import Path
 
+from mcfacts import __version__
 from mcfacts import fiducial_plots, simulation
 from mcfacts.inputs import settings_manager, setup_scaling
 from mcfacts.inputs.settings_manager import SettingsManager, StaticSettingsProperty
 from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
 from mcfacts.utilities.unit_conversion import str2bool
 
+#### SETUP
+COMMANDS = ["run", "rp", "plot"]
+CMD_MSG = "<" + " ".join(COMMANDS) + ">"
 
 #### METHODS
 def seed_settings_args(sub_parser: argparse.ArgumentParser):
@@ -112,8 +116,15 @@ def main():
     """
     # Create instance of argument parser
     parser = argparse.ArgumentParser(allow_abbrev=False)
+    # GNU Coding Standards version syntax 
+    parser.add_argument("--version", "-V", dest="print_version", action='store_true')
+    version_parse, _ = parser.parse_known_args()
+    # If the version flag was passed, print the version and quit
+    if version_parse.print_version:
+        print(f"McFACTS Version: {__version__}")
+        return
 
-    sub_parsers = parser.add_subparsers(dest='subcommand')
+    sub_parsers = parser.add_subparsers(dest='subcommand',metavar=str(CMD_MSG))
 
     run_parser = sub_parsers.add_parser('run')
     seed_settings_args(run_parser)

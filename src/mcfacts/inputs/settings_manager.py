@@ -6,6 +6,13 @@ from typing import Any, TypeVar, Type
 from mcfacts.inputs import ReadInputs
 from mcfacts.utilities import unit_conversion
 
+#### Setup
+IGNORE_ARGS = [
+    "print_version",
+    "subcommand",
+    "enable_profiling",
+    "profiling_file",
+]
 
 class SettingsProperty:
     T = TypeVar("T")
@@ -372,6 +379,8 @@ class SettingsManager:
             category_props.setdefault(prop.category, {})[prop.name] = final_value
 
         for key in settings_overrides.keys():
+            if key in IGNORE_ARGS:
+                continue
             if key in self.settings_finals:
                 continue
 
