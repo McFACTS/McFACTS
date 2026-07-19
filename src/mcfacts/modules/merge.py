@@ -10,7 +10,8 @@ from astropy import constants as const
 from astropy import units as u
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.inputs.settings_manager import SettingsManager
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray, AGNBlackHoleArray, AGNMergedBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, checks, peters

@@ -7,7 +7,8 @@ import numpy as np
 from numpy.random import Generator
 from tqdm.auto import tqdm
 
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.log import LogFunction
 from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
 from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet

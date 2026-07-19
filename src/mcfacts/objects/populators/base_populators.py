@@ -1,8 +1,9 @@
 import numpy as np
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.modules import stellar_interpolation
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.galaxy import GalaxyPopulator
 from mcfacts.utilities.random_state import uuid_provider
 from mcfacts.objects.agn_object_array import AGNObjectArray, AGNBlackHoleArray, AGNStarArray

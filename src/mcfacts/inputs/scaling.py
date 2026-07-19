@@ -2,7 +2,8 @@
 
 ######## Imports ########
 #### Third Party ####
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
+from mcfacts.objects.disk import AGNDisk
 
 ######## Functions ########
 def disk_truncation(settings: SettingsManager): 

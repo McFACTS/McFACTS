@@ -455,36 +455,3 @@ class SettingsManager:
     @property
     def categories(self):
         return self._categories
-
-
-class AGNDisk:
-    """
-    Container class for the construct_disk_interp method, allowing for pass-by-reference access to disk functions.
-    """
-
-    def __init__(self, settings: SettingsManager):
-        # TODO: More advanced handling?
-
-        (
-            self.disk_surface_density,
-            self.disk_aspect_ratio,
-            self.disk_opacity,
-            self.disk_sound_speed,
-            self.disk_density,
-            self.disk_pressure_grad,
-            self.disk_omega,
-            self.disk_surface_density_log,
-            self.temp_func,
-            self.disk_dlog10surfdens_dlog10R_func,
-            self.disk_dlog10temp_dlog10R_func,
-            self.disk_dlog10pressure_dlog10R_func
-        ) = ReadInputs.construct_disk_interp(
-            settings.smbh_mass,
-            settings.disk_radius_outer,
-            settings.disk_model_name,
-            settings.disk_alpha_viscosity,
-            settings.disk_bh_eddington_ratio,
-            disk_radius_max_pc=settings.disk_radius_max_pc,
-            flag_use_pagn=settings.flag_use_pagn,
-            verbose= 1 if settings.verbose else 0
-        )

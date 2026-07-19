@@ -4,8 +4,9 @@ Module for handling the formation of binaries.
 import numpy as np
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities.peters import gw_strain_freq, gw_strain_freq_optimized
 from mcfacts.utilities.random_state import uuid_provider
