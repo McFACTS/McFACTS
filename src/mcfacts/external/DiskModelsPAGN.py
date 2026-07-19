@@ -51,6 +51,88 @@ class AGNGasDiskModel(object):
         else:
             np.savetxt(filename, np.vstack((R/ct.pc, Omega, T, rho, h, cs, tauV, Q)).T)
 
+    def return_disk_surf_data(self, flag_truncate_disk=0):
+        """Generate disk surface model functions
+
+        Interpolate and return disk surface model functions as a function of the disk radius.
+          1) surface density (Sigma = 2 rho H) in  kg/m^2 given distance from SMBH in r_g = r_s/2
+          2) aspect ratio (h/r)
+          3) opacity (kappa = 2 * tau / Sigma) in m^2/kg
+
+        Default pagn internal units are SI.
+
+        Parameters
+        ----------
+        flag_truncate_disk : int, optional
+            If 1, truncate these functions at the radius where star formation starts
+            in the gas disk. If 0, do not truncate. By default 0.
+
+        Returns
+        -------
+        surf_dens_func : lambda
+            Surface density (radius)
+        aspect_func : lambda
+            Aspect ratio (radius)
+        opacity_func : lambda
+            Opacity (radius)
+        bonus_structures : dict
+            Other disk model things we may want, which are only available
+            for pAGN models
+
+        """
+
+        # convert to R_g (=R/( M G/c^2) explicitly, using internal structures
+        R = self.disk_model.R / (self.disk_model.Rs / 2)
+        R_agn = self.disk_model.R_AGN / (self.disk_model.Rs / 2)
+        Sigma = 2 * self.disk_model.h * self.disk_model.rho  # SI density
+        kappa = 2 * self.disk_model.tauV / Sigma  # Opacity = 2*tau/Sigma
+        cs = self.disk_model.h * self.disk_model.Omega
+        temp_midplane = self.disk_model.T # Disk midplane temp (K)
+
+        if flag_truncate_disk:  # truncate to gas part of disk (no SFR)
+            R = R[:self.disk_model.isf]
+            Sigma = Sigma[:self.disk_model.isf]
+            kappa = kappa[:self.disk_model.isf]
+            cs = cs[:self.disk_model.isf]
+        # Temp interpolator function
+        surface_density_data = [R, Sigma]
+        aspect_ratio_data = [R, self.disk_model.h/self.disk_model.R]
+        opacity_data = [R, kappa]
+        sound_speed_data = [R, cs]
+        density_data = [R, self.disk_model.rho]
+        omega_data = [R, self.disk_model.Omega]
+        temperature_data = [R, temp_midplane]
+        # Generate disk pressure gradient (dP/dR) interpolator function
+        pgas = self.disk_model.rho * self.disk_model.T * ct.Kb / ct.massU
+        prad = self.disk_model.tauV * ct.sigmaSB * self.disk_model.Teff4 / (2 * ct.c)
+        ptot = pgas + prad
+        pressure_data = [R, np.gradient(ptot)/np.gradient(self.disk_model.R)]
+
+        ## NEEDED ## 
+        interp_data = [
+            surface_density_data,
+            aspect_ratio_data,
+            opacity_data,
+            sound_speed_data,
+            density_data,
+            omega_data,
+            pressure_data, # TODO
+            temperature_data,
+        ]
+        ##
+
+        bonus_structures = {}
+        bonus_structures['R_agn'] = R_agn
+        bonus_structures['R'] = R
+        bonus_structures['Sigma'] = Sigma
+        bonus_structures['h_over_R'] = aspect_ratio_data[0]
+        bonus_structures['kappa'] = kappa
+        bonus_structures["rho"] = self.disk_model.rho
+        bonus_structures["T"] = self.disk_model.T
+        bonus_structures["tauV"] = self.disk_model.tauV
+
+        return interp_data, bonus_structures
+
     def return_disk_surf_model(self, flag_truncate_disk=0):
         """Generate disk surface model functions
 
