@@ -199,13 +199,13 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("disk_truncation", "scale", "opacity-equals-inner-disk", str),
         #SettingsProperty("flag_use_scaling", "scale", False, bool),
         SettingsProperty("flag_use_scaling", "scale", True, bool),
-        SettingsProperty("stellar_mass", "scale", 0., float),
-        SettingsProperty("scale_stellar_mass", "scale", "schramm-silverman", str),
+        SettingsProperty("stellar_mass", "scale", 1e10, float),
+        SettingsProperty("scale_smbh_mass", "scale", "schramm-silverman", str),
         SettingsProperty("scale_nsc_mass", "scale", "neumayer-early", str),
         SettingsProperty("scale_inner_disk", "scale", "decay-time", str),
         SettingsProperty("scale_trap", "scale", "sqrt-smbh", str),
-        SettingsProperty("scale_capture", "scale", "sqrt-smbh", str),
-        SettingsProperty("scale_capture", "scale", "hubble", str),
+        SettingsProperty("scale_capture_radius", "scale", "sqrt-smbh", str),
+        SettingsProperty("scale_capture_time", "scale", "hubble", str),
 
         # Filing cabinet array names
         StaticSettingsProperty("bh_array_name", "arrays", "blackholes_unsort", str),
