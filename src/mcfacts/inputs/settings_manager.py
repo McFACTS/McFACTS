@@ -195,8 +195,10 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("nsc_imf_bh_method", "nsc", "default", str),
 
         # Scaling settings
-        SettingsProperty("disk_truncation", "scale", "none", str),
-        SettingsProperty("flag_use_scaling", "scale", False, bool),
+        #SettingsProperty("disk_truncation", "scale", "none", str),
+        SettingsProperty("disk_truncation", "scale", "opacity-equals-inner-disk", str),
+        #SettingsProperty("flag_use_scaling", "scale", False, bool),
+        SettingsProperty("flag_use_scaling", "scale", True, bool),
         SettingsProperty("stellar_mass", "scale", 0., float),
         SettingsProperty("scale_stellar_mass", "scale", "schramm-silverman", str),
         SettingsProperty("scale_nsc_mass", "scale", "neumayer-early", str),
