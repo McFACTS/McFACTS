@@ -56,9 +56,12 @@ def disk_truncation(
         # Find the drop index
         tau_drop_index = np.argmax(tau_drop_mask)
         # Find the drop radius
-        tau_drop_radius = pagn_R[tau_drop_index]
+        tau_drop_radius = float(pagn_R[tau_drop_index])
         # Update settings
-        settings.disk_radius_outer = tau_drop_radius
+        settings.set_preprocessing(
+            "disk_radius_outer",
+            tau_drop_radius,
+        )
     else:
         raise ValueError(
             f"disk_truncation set to {settings.disk_truncation}; "
@@ -104,10 +107,16 @@ def scale_galaxy_mass(settings: SettingsManager):
         # Check if stellar mass was provided
         if settings.stellar_mass == 0.:
             # Stellar mass was not provided generate it.
-            settings.stellar_mass = (settings.smbh_mass / 7.066429e-05) ** (1/1.12)
+            settings.set_preprocessing(
+                "stellar_mass",
+                (settings.smbh_mass / 7.066429e-05) ** (1/1.12),
+            )
         else:
             # Stellar mass was provided. Overwrite smbh mass scaling
-            settings.smbh_mass = 7.066429e-05 * settings.stellar_mass**1.12
+            settings.set_preprocessing(
+                "smbh_mass",
+                7.066429e-05 * settings.stellar_mass**1.12,
+            )
     else:
         raise ValueError(
             settings.scale_smbh_mass + " "
@@ -127,7 +136,10 @@ def scale_galaxy_mass(settings: SettingsManager):
             "Set scale_nsc_mass to 'none' to keep NSC mass."
         )
     elif settings.scale_nsc_mass.lower() == "neumayer-early":
-        settings.nsc_mass = 3235936.569296281 * (settings.stellar_mass * 1e-9)**0.48
+        settings.set_preprocessing(
+            "nsc_mass",
+            3235936.569296281 * (settings.stellar_mass * 1e-9)**0.48,
+        )
     elif settings.scale_nsc_mass.lower() == "neumayer-late":
         if settings.stellar_mass < 1e9:
             warnings.warn(
@@ -135,7 +147,10 @@ def scale_galaxy_mass(settings: SettingsManager):
                 f"stellar mass below 10^9. "
                 f"(current value: {settings.stellar_mass:.3e})."
             )
-        settings.nsc_mass = 1348962.8825916534 * (settings.stellar_mass * 1e-9)**0.92
+        settings.set_preprocessing(
+            "nsc_mass",
+            1348962.8825916534 * (settings.stellar_mass * 1e-9)**0.92,
+        )
     else:
         raise ValueError(
             settings.scale_nsc_mass + " "
@@ -181,9 +196,12 @@ def scale_inner_disk(settings: SettingsManager):
         new_inner_disk_outer_radius_r_g = unit_conversion.r_g_from_units(
             settings.smbh_mass * u.solMass,
             new_inner_disk_outer_radius,
-        )
+        ).value
         # re-assign
-        settings.inner_disk_outer_radius = new_inner_disk_outer_radius_r_g
+        settings.set_preprocessing(
+            "inner_disk_outer_radius",
+            float(new_inner_disk_outer_radius_r_g),
+        )
     else:
         raise ValueError(
             f"{settings.scale_inner_disk} is not a valid choice for "
@@ -209,8 +227,12 @@ def scale_trap(settings: SettingsManager):
 
     if settings.scale_trap == "sqrt-smbh":
         # Estimate new trap radius
-        settings.disk_radius_trap = settings.disk_radius_trap * np.sqrt(
-            SMBH_MASS_FIDUCIAL / settings.smbh_mass
+        settings.set_preprocessing(
+            "disk_radius_trap",
+            float(
+                settings.disk_radius_trap * \
+                np.sqrt(SMBH_MASS_FIDUCIAL / settings.smbh_mass)
+            ),
         )
     else:
         raise ValueError(
@@ -319,10 +341,13 @@ def scale_capture(
         pass
     elif settings.scale_capture_radius == "sqrt-smbh":
         # Estimate a new capture radius
-        settings.disk_radius_capture_outer = \
-            settings.disk_radius_capture_outer * np.sqrt(
-                SMBH_MASS_FIDUCIAL / settings.smbh_mass
-            )
+        settings.set_preprocessing(
+            "disk_radius_capture_outer",
+            float(
+                settings.disk_radius_capture_outer * \
+                np.sqrt(SMBH_MASS_FIDUCIAL / settings.smbh_mass)
+            ),
+        )
     else:
         raise ValueError(
             f"Invalid value for scale_capture_radius: "
@@ -346,7 +371,10 @@ def scale_capture(
     if settings.scale_capture_time == "none":
         pass
     elif settings.scale_capture_time == "hubble":
-        settings.capture_time_yr = 1.38e10
+        settings.set_preprocessing(
+            "capture_time_yr",
+            1.38e10,
+        )
     elif settings.scale_capture_time == "WZL+2024":
         pass
         # Estimate the agn lifetime
@@ -366,7 +394,7 @@ def scale_capture(
         if hasattr(t_capture, 'unit'):
             t_capture = t_capture.to(u.yr).value
         # Update settings
-        settings.capture_time_yr = t_capture
+        settings.set_preprocessing("capture_time_yr", float(t_capture))
     else:
         raise ValueError(
             f"Invalid value for scale_capture_time: "

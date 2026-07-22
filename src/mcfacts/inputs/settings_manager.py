@@ -434,7 +434,7 @@ class SettingsManager:
         except KeyError:
             raise AttributeError(f"SettingsManager has no key {item!r}")
 
-    def __setattr__(self, key: str, value: Any):
+    def set_preprocessing(self, key: str, value: Any):
         """
         Sets the "final" value of a particular setting after the time
             of creation.
@@ -470,9 +470,8 @@ class SettingsManager:
                 "even in preprocessing!"
             )
         # Check value
-        value = self._cast_override(found, value):
+        final_value = self._cast_override(found, value)
         self.settings_finals[prop.name] = final_value
-        category_props.setdefault(prop.category, {})[prop.name] = final_value
 
     def add_custom_category(self, category: str, props: dict[str, Any]) -> None:
         """
