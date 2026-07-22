@@ -434,6 +434,45 @@ class SettingsManager:
         except KeyError:
             raise AttributeError(f"SettingsManager has no key {item!r}")
 
+    def __setattr__(self, key: str, value: Any):
+        """
+        Sets the "final" value of a particular setting after the time
+            of creation.
+
+        Parameters
+        ----------
+        key : str
+            The "true name" of a setting, as stored in the dictionary
+        value : Any
+            A value for that setting
+        """
+        # Check if key is a setting
+        if key not in self.settings_finals:
+            raise ValueError(
+                f"No such setting: {key}; "
+                f"settings: {list(self.settings_finals.key())}"
+            )
+        # Identify the property
+        found = None
+        for prop in DEFAULT_SETTINGS:
+            if prop.name == key:
+                found = prop
+                break
+        # Check if the property was found
+        if found is None:
+            raise ValueError(
+                f"Failed to find setting {key} in DEFAULT_SETTINGS."
+            )
+        # Check static settings
+        if isinstance(prop, StaticSettingsProperty):
+            raise TypeError(
+                f"Modifying a StaticSetting is not allowed, "
+                "even in preprocessing!"
+            )
+        # Check value
+        value = self._cast_override(found, value):
+        self.settings_finals[prop.name] = final_value
+        category_props.setdefault(prop.category, {})[prop.name] = final_value
 
     def add_custom_category(self, category: str, props: dict[str, Any]) -> None:
         """

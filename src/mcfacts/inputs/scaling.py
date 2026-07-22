@@ -68,7 +68,7 @@ def disk_truncation(
     # Update the user
     if settings.verbose:
         print(
-            f"settings.disk_radius_outer (before): "
+            f"settings.disk_radius_outer (after): "
             f"{settings.disk_radius_outer} (r_g)."
         )
 
@@ -192,7 +192,7 @@ def scale_inner_disk(settings: SettingsManager):
         )
 
     if settings.verbose:
-        print(f"settings.inner_disk_outer_radius (before): {settings.inner_disk_outer_radius}")
+        print(f"settings.inner_disk_outer_radius (after): {settings.inner_disk_outer_radius}")
 
 def scale_trap(settings: SettingsManager):
     """Scale the trap radius
@@ -377,7 +377,7 @@ def scale_capture(
     if settings.verbose:
         print("Scaling capture time!")
         print(f"settings.scale_capture_time: {settings.scale_capture_time}")
-        print(f"settings.capture_time_yr (before): {settings.capture_time_yr}")
+        print(f"settings.capture_time_yr (after): {settings.capture_time_yr}")
         
 
 def setup_scaling(
