@@ -412,6 +412,13 @@ def setup_scaling(
         settings: SettingsManager,
     ):
     """Scale the AGN Disk according to settings"""
+    # Check that scaling is even on
+    if not settings.flag_use_scaling:
+        # The only thing still allowed to happen if scaling is off is
+        #  truncating the disk
+        disk_truncation(settings)
+        return
+
     # Scale masses
     scale_galaxy_mass(settings)
     # truncate disk

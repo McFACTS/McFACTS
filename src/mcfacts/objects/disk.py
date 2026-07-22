@@ -6,6 +6,7 @@ import os
 import sys
 #### Third Party ####
 import numpy as np
+from astropy import units as u
 from astropy import constants as ct
 import pagn.constants as pagn_ct
 #### Local ####
@@ -13,6 +14,8 @@ from mcfacts.objects.cache import readonly_cached_property
 from mcfacts.objects.interp import CubicSpline, dCubicSpline
 from mcfacts.inputs import data as mcfacts_input_data
 from mcfacts.inputs.settings_manager import SettingsManager
+from mcfacts.utilities.unit_conversion import si_from_r_g_optimized
+from mcfacts.utilities.unit_conversion import r_g_from_units
 import mcfacts.external.DiskModelsPAGN as pagn_dm
 
 ######## Without settings, it's easier to test ########
@@ -281,12 +284,15 @@ class AGNDisk(AGNDiskInterp):
     def smbh_mass(self):
         return self.settings.smbh_mass
 
+    @staticmethod
+    def pc_dist(smbh_mass, num_r_g):
+        return si_from_r_g_optimized(smbh_mass, num_r_g).to(u.pc).value.item()
+
     @readonly_cached_property
     def disk_radius_outer(self):
-        # Scale factor for parsec distance in r_g
-        pc_dist = 2.e5*((self.smbh_mass/1.e8)**(-1.0))
-        # Calculate outer disk radius in pc
-        disk_radius_outer_pc = self.settings.disk_radius_outer / pc_dist
+        disk_radius_outer_pc = self.pc_dist(
+            self.smbh_mass, self.settings.disk_radius_outer)
+
         # Check disk_radius_max_pc argument
         if self.settings.disk_radius_max_pc == 0.:
             # Case 1: disk_radius_max_pc is disabled
@@ -294,7 +300,10 @@ class AGNDisk(AGNDiskInterp):
         elif self.settings.disk_radius_max_pc < 0.:
             # Case 2: disk_radius_max_pc is negative
             # Always assign disk_radius_outer to given distance in parsecs
-            return -1. * self.settings.disk_radius_max_pc * pc_dist
+            return r_g_from_units(
+                self.smbh_mass,
+                -1. * self.settings.disk_radius_max_pc * u.pc,
+            )
         else:
             # Case 3: disk_radius_max_pc is positive
             # Cap disk_radius_outer at given value
