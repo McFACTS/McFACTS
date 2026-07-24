@@ -357,6 +357,7 @@ clean:
 	rm -rf ${wd}/r_chi_p.png
 	rm -rf ${wd}/dist
 	rm -rf ${wd}/test-build
+	rm -rf ${wd}/*_scaling.png
 
 clean_win:
 	for /d %%i in (.\run*) do rd /s /q "%%i"
