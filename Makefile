@@ -19,6 +19,7 @@ HERE=./
 MCFACTS_SIM_EXE = ${HERE}/scripts/mcfacts_sim.py
 POPULATION_PLOTS_EXE = ${HERE}/scripts/population_plots.py
 VERA_PLOTS_EXE = ${HERE}/scripts/vera_plots.py
+PLOT_SCALING_SETUP = ${HERE}/scripts/plot_scaling_setup.py
 MSTAR_RUNS_EXE = ${HERE}/scripts/vera_mstar_bins.py
 MSTAR_PLOT_EXE = ${HERE}/src/mcfacts/outputs/plot_mcfacts_handler_quantities.py
 STARS_PLOTS = ${HERE}/scripts/stars_plots.py
@@ -215,6 +216,10 @@ em_plots:
 	--plots-directory ${wd}
 
 #### Vera's mstar_runs ####
+
+plot_scaling_setup:
+	python3 ${PLOT_SCALING_SETUP} --disk-radius-max-pc -0.25 --label fixed
+	python3 ${PLOT_SCALING_SETUP} -tp --label scaled
 
 # Define the setup for mstar_runs for the scaled inifile
 setup_mstar_runs_scale:
