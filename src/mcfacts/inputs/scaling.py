@@ -137,7 +137,7 @@ def scale_galaxy_mass(settings: SettingsManager):
         )
     elif settings.scale_nsc_mass.lower() == "neumayer-early":
         # Neumayer-early relation
-        value = 3235936.569296281 * (settings.stellar_mass * 1e-9)**0.48,
+        value = 3235936.569296281 * (settings.stellar_mass * 1e-9)**0.48
         # Scroll of protection against silly numbers
         if value > 1e8: value = 1e8
         # Update settings
@@ -150,7 +150,7 @@ def scale_galaxy_mass(settings: SettingsManager):
                 f"(current value: {settings.stellar_mass:.3e})."
             )
         # Neumayer-late relation
-        value = 1348962.8825916534 * (settings.stellar_mass * 1e-9)**0.92,
+        value = 1348962.8825916534 * (settings.stellar_mass * 1e-9)**0.92
         # Scroll of protection against silly numbers
         if value > 1e8: value = 1e8
         # Update settings
