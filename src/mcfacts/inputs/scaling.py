@@ -136,10 +136,12 @@ def scale_galaxy_mass(settings: SettingsManager):
             "Set scale_nsc_mass to 'none' to keep NSC mass."
         )
     elif settings.scale_nsc_mass.lower() == "neumayer-early":
-        settings.set_preprocessing(
-            "nsc_mass",
-            3235936.569296281 * (settings.stellar_mass * 1e-9)**0.48,
-        )
+        # Neumayer-early relation
+        value = 3235936.569296281 * (settings.stellar_mass * 1e-9)**0.48,
+        # Scroll of protection against silly numbers
+        if value > 1e8: value = 1e8
+        # Update settings
+        settings.set_preprocessing("nsc_mass", value)
     elif settings.scale_nsc_mass.lower() == "neumayer-late":
         if settings.stellar_mass < 1e9:
             warnings.warn(
@@ -147,10 +149,12 @@ def scale_galaxy_mass(settings: SettingsManager):
                 f"stellar mass below 10^9. "
                 f"(current value: {settings.stellar_mass:.3e})."
             )
-        settings.set_preprocessing(
-            "nsc_mass",
-            1348962.8825916534 * (settings.stellar_mass * 1e-9)**0.92,
-        )
+        # Neumayer-late relation
+        value = 1348962.8825916534 * (settings.stellar_mass * 1e-9)**0.92,
+        # Scroll of protection against silly numbers
+        if value > 1e8: value = 1e8
+        # Update settings
+        settings.set_preprocessing("nsc_mass", value)
     else:
         raise ValueError(
             settings.scale_nsc_mass + " "
