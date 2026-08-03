@@ -81,17 +81,17 @@ bibliography: paper.bib
 
 Active Galactic Nuclei (AGN) are gas-rich and dynamically active structures at
 the center of some galaxies. At the core of an AGN exists a Supermassive Black
-Hole (SMBH), creating an immense gravitational well that is host to a diverse
-populations of black holes and stars. A portion of the gravitational waves
-detected by the LIGO-Virgo-KAGRA (LVK) collaboration are expected to originate
-from the merger of binary black holes (BBHs) which formed and evolved while
-embedded in the accretion disk of an AGN. This "AGN channel" is also expected to 
-host populations that will be detectable by the Laser Interferometer Space
-Antenna (LISA). Several features of this population, which appear in current
-observables, strongly depend on the properties of the accretion disk, and 
-nuclear star cluster (NSC). With these properties being difficult, or otherwise
-impossible to measure, we can turn towards population synthesis to help place
-constraints on the features originating from the AGN channel.
+Hole (SMBH), creating an immense gravitational well hosting a diverse populations 
+of black holes and stars. A portion of the gravitational waves events detected 
+by the LIGO-Virgo-KAGRA (LVK) collaboration are expected to originate
+from the merging of binary black holes (BBHs) embedded in the accretion disk of 
+AGN. This "AGN channel" is also expected to host binaries that will be 
+detectable by the Laser Interferometer Space Antenna (LISA). Several features of 
+this population, which appear in current observables, strongly depend on the 
+properties of the accretion disk, and nuclear star cluster (NSC). Some of these 
+properties can be difficult to directly measure; however, through population 
+synthesis we can place constraints on some of these features, expanding out 
+understanding of the AGN channel.
 
 `McFACTS` (Monte carlo For AGN Channel Testing and Simulation) is the leading
 public and open-source population synthesis code that models the AGN channel for 
