@@ -17,6 +17,10 @@ from mcfacts.utilities import peters, checks, unit_conversion
 from mcfast import baruteau_helper
 
 def bin_harden_baruteau_optimized( bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging, bin_time_merged, smbh_mass, timestep_duration_yr, time_gw_normalization, time_passed, r_g_in_meters):
+    """
+    Wrapper for the compiled `baruteau_helper` routine in `mcfast`, which hardens binaries using the
+    Baruteau prescription.
+    """
     return baruteau_helper(
         bin_mass_1,
         bin_mass_2,
@@ -32,6 +36,10 @@ def bin_harden_baruteau_optimized( bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin
 
 
 def baruteau_drag(mass_1, mass_2, bin_sep, smbh_mass, timestep_duration_yr):
+    """
+    Hardens binaries using the Baruteau prescription, where the binary separation is halved every one
+    thousand orbits. The number of orbits is calculated from the Keplerian orbital period and timestep length.
+    """
     binary_mass = mass_1 + mass_2
     bin_period = 0.32 * np.power(bin_sep, 1.5) * np.power(smbh_mass / 1.e8, 1.5) * np.power(
         binary_mass / 10.0, -0.5)
@@ -44,6 +52,10 @@ def baruteau_drag(mass_1, mass_2, bin_sep, smbh_mass, timestep_duration_yr):
 
 
 def stahler_drag(mass_1, mass_2, bin_sep, orb_a, disk_sound_speed, disk_density, timestep_duration_yr, smbh_mass, r_g_in_meters):
+    """
+    Hardens binaries using the Stahler prescription. The separation is shrunk by a fraction of the coalescence time
+    during a timestep.
+    """
     q = np.minimum(mass_1 / mass_2, mass_2 / mass_1)
 
     total_mass = ((mass_1 + mass_2) * const.M_sun).si
@@ -71,6 +83,11 @@ def stahler_drag(mass_1, mass_2, bin_sep, orb_a, disk_sound_speed, disk_density,
 
 
 def primary_drag_force_components_base(mach_number):
+    """
+    Following the Kim & Kim fits, this function returns the primary radial and azimuthal drag force coefficients acting
+    on a component of the binary due to the wake of its companion. Both coefficients are given by piecewise functions
+    of the Mach number.
+    """
     radial_component = 0.3 * (mach_number ** 2)
     azimuthal_component = np.log(10 / ((0.11 * mach_number) + 1.65))
 
@@ -95,6 +112,11 @@ def primary_drag_force_components_base(mach_number):
 
 
 def secondary_drag_force_components_base(mach_number):
+    """
+    Following the Kim & Kim fits, this function returns the secondary radial and azimuthal drag force coefficients
+    acting on a component of the binary due to the wake of its companion. Both coefficients are given by piecewise
+    functions of the Mach number.
+    """
     radial_component = 0.56 - (0.027 * (mach_number + ((mach_number - 6) ** -1)))
     azimuthal_component = -0.13 + 0.07 * np.arctan((5 * mach_number) - 15)
 
@@ -112,6 +134,10 @@ def secondary_drag_force_components_base(mach_number):
 
 
 def drag_forces(mass, velocity, density, sound_speed, func_drag_force_components):
+    """
+    Finds the radial and azimuthal dynamical friction forces on an object moving through the disk.
+    The Mach number is calculated and passed to `func_drag_force_components` to find the semi-analytical components.
+    """
     mach_number = velocity / sound_speed
 
     drag_force_components = func_drag_force_components(mach_number.value)
@@ -121,6 +147,12 @@ def drag_forces(mass, velocity, density, sound_speed, func_drag_force_components
 
 
 def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound_speed, disk_density, timestep_length, smbh_mass):
+    """
+    Hardens binaries by directly integrating the dynamical friction acting on both components, using the
+    Kim, Kim & Sánchez-Salcedo semi-analytical model for a pair of perturbers. Each component is dragged by
+    both its own wake and the wake of its companion, and the resulting change in orbital velocity is turned
+    back into a new separation. The timestep is broken up into sub steps to prevent runaway evolution.
+    """
     # Return early if there are no binaries
     if len(mass_1) == 0:
         return bin_sep
@@ -211,6 +243,11 @@ def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound
 
 
 def gas_hardening_no_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mass, gas_hardening_prescription, orb_a, disk_sound_speed, disk_density, timestep_duration_yr, r_g_in_meters):
+    """
+    Hardens binaries with the requested gas hardening prescription and no stalling separation, so binaries
+    keep shrinking until they merge. Binaries that are already flagged as merging keep their current
+    separation.
+    """
     flag_not_merging = np.array([(flag_merging[i] >= 0) for i in range(len(mass_1))], dtype=bool)
 
     if gas_hardening_prescription == "baruteau":
@@ -230,6 +267,11 @@ def gas_hardening_no_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mass, 
 
 
 def gas_hardening_variable_stalling(mass_1, mass_2, bin_sep, bin_orb_a, disk_sound_speed, flag_merging, smbh_mass, gas_hardening_prescription, disk_density, timestep_duration_yr, r_g_in_meters):
+    """
+    Hardens binaries with the requested gas hardening prescription, stalling each binary at the separation
+    where its orbital velocity drops below the local sound speed of the disk. Binaries that are already
+    stalled or flagged as merging keep their current separation.
+    """
     rg_scale = (const.G * smbh_mass * const.M_sun / const.c ** 2).value
     bin_orb_velocity = np.sqrt((const.G.value * ((mass_1 + mass_2) * const.M_sun).si.value) / (bin_sep * rg_scale))
     sound_speed = disk_sound_speed(bin_orb_a)
@@ -254,6 +296,11 @@ def gas_hardening_variable_stalling(mass_1, mass_2, bin_sep, bin_orb_a, disk_sou
 
 
 def gas_hardening_fixed_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mass, stalling_separation, gas_hardening_prescription, orb_a, disk_sound_speed, disk_density,  timestep_duration_yr, r_g_in_meters):
+    """
+    Hardens binaries with the requested gas hardening prescription, stalling every binary at the same
+    `stalling_separation`. Binaries that are already stalled or flagged as merging keep their current
+    separation.
+    """
     flag_not_merging = np.array([(flag_merging[i] >= 0 and bin_sep[i] > stalling_separation) for i in range(len(mass_1))], dtype=bool)
 
     if gas_hardening_prescription == "baruteau":
@@ -273,12 +320,30 @@ def gas_hardening_fixed_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mas
 
 
 class BinaryBlackHoleGasHardening(TimelineActor):
+    """
+    This simulation actor shrinks the separation of binary black holes as they lose energy to the gas of the
+    disk. The prescription used is set by `settings.gas_hardening_prescription`. `settings.stalling_separation`
+    allows for an artificial stalling separation / condition to be set.
+    """
     def __init__(self, name: str = None, settings: SettingsManager = None, reality_merge_checks: bool = False):
+        """
+        Initializes the `BinaryBlackHoleGasHardening` simulation actor.
+
+        Args:
+            name (str): Optional. The name of the actor. Defaults to "Binary Black Hole Gas Hardening".
+            settings (SettingsManager): A settings manager instance. Defaults to base instance of `SettingsManager`.
+            reality_merge_checks (bool): Optional. Whether to check binaries for reality and flag mergers
+                after hardening. Defaults to `False`.
+        """
         super().__init__("Binary Black Hole Gas Hardening" if name is None else name, settings)
 
         self.reality_merge_checks = reality_merge_checks
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
+        """
+        Updates the separation of binary black holes in the disk, using the stalling behavior set by
+        `settings.stalling_separation`.
+        """
         sm = self.settings
 
         if sm.bbh_array_name not in filing_cabinet:
