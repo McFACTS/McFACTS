@@ -75,6 +75,8 @@ def stahler_drag(mass_1, mass_2, bin_sep, orb_a, disk_sound_speed, disk_density,
 
     contact_condition = (unit_conversion.r_schwarzschild_of_m(mass_1) +
                          unit_conversion.r_schwarzschild_of_m(mass_2))
+
+    # Grab raw value after units declaration for use in array mask
     contact_condition = unit_conversion.r_g_from_units(smbh_mass, contact_condition).value
 
     new_bin_sep[new_bin_sep < contact_condition] = contact_condition[new_bin_sep < contact_condition]
@@ -84,13 +86,16 @@ def stahler_drag(mass_1, mass_2, bin_sep, orb_a, disk_sound_speed, disk_density,
 
 def primary_drag_force_components_base(mach_number):
     """
-    Following the Kim & Kim fits, this function returns the primary radial and azimuthal drag force coefficients acting
+    Following the Kim, Kim & Sánchez-Salcedo fits, this function returns the primary radial and azimuthal drag force coefficients acting
     on a component of the binary due to the wake of its companion. Both coefficients are given by piecewise functions
     of the Mach number.
     """
+
+    # Define base components used throughout the piecewise function
     radial_component = 0.3 * (mach_number ** 2)
     azimuthal_component = np.log(10 / ((0.11 * mach_number) + 1.65))
 
+    # Hard code Kim, Kim & Sánchez-Salcedo piecewise function for primary drag components.
     if mach_number < 6.2:
         radial_component = 4 + (mach_number ** 2) * (np.e ** -(mach_number - 7)) * np.sin(((mach_number - 4.4) / 4)) / 5
 
@@ -105,6 +110,7 @@ def primary_drag_force_components_base(mach_number):
         azimuthal_component = 0.7706 * np.log(
             (1 + mach_number) / (1.0004 - 0.9185 * mach_number)) - 1.4703 * mach_number
 
+    # Fix added to prevent unrealistic overshooting of the azimuthal force component below a specific Mach value.
     if mach_number <= 0.0523352:
         azimuthal_component = 0.0
 
@@ -113,13 +119,15 @@ def primary_drag_force_components_base(mach_number):
 
 def secondary_drag_force_components_base(mach_number):
     """
-    Following the Kim & Kim fits, this function returns the secondary radial and azimuthal drag force coefficients
+    Following the Kim, Kim & Sánchez-Salcedo fits, this function returns the secondary radial and azimuthal drag force coefficients
     acting on a component of the binary due to the wake of its companion. Both coefficients are given by piecewise
     functions of the Mach number.
     """
+    # Base component values for secondary drag component.
     radial_component = 0.56 - (0.027 * (mach_number + ((mach_number - 6) ** -1)))
     azimuthal_component = -0.13 + 0.07 * np.arctan((5 * mach_number) - 15)
 
+    # Hard code Kim, Kim & Sánchez-Salcedo piecewise function for secondary drag components.
     if 2.97 <= mach_number < 6.2:
         radial_component = 0.76 - (0.08 * (mach_number + ((mach_number - 2.76) ** -1)))
 
@@ -140,9 +148,11 @@ def drag_forces(mass, velocity, density, sound_speed, func_drag_force_components
     """
     mach_number = velocity / sound_speed
 
+    # Find drag force components based on the specified function passed into the method.
     drag_force_components = func_drag_force_components(mach_number.value)
     force_component = (4 * np.pi * density) * (((const.G * mass) / velocity) ** 2)
 
+    # Return the negative of the force component, representing the drag force in the correct direction.
     return (-force_component * drag_force_components[0]), (-force_component * drag_force_components[1])
 
 
@@ -260,6 +270,8 @@ def gas_hardening_no_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mass, 
         assert False, "Incorrect gas hardening prescription specified... Available values: (baruteau, stahler, analytical)"
 
     new_bin_sep = np.zeros(len(mass_1))
+
+    # Leave binaries that have been flagged for merger alone.
     new_bin_sep[~flag_not_merging] = bin_sep[~flag_not_merging]
     new_bin_sep[flag_not_merging] = calc_bin_sep
 
@@ -276,9 +288,11 @@ def gas_hardening_variable_stalling(mass_1, mass_2, bin_sep, bin_orb_a, disk_sou
     bin_orb_velocity = np.sqrt((const.G.value * ((mass_1 + mass_2) * const.M_sun).si.value) / (bin_sep * rg_scale))
     sound_speed = disk_sound_speed(bin_orb_a)
 
+    # Turn on stalling of the binary's orbital velocity is higher than the local disc sound speed.
     effective_stalling_separation = np.array([(sep if vel >= s_speed else 0) for vel, sep, s_speed in zip(bin_orb_velocity, bin_sep, sound_speed)])
     flag_not_merging = np.array([(flag_merging[i] >= 0 and bin_sep[i] > effective_stalling_separation[i]) for i in range(len(mass_1))], dtype=bool)
 
+    # Allow for Baruteau or Stahler analytical evolution. This variable stall condition is not supported by Kim+.
     if gas_hardening_prescription == "baruteau":
         calc_bin_sep = baruteau_drag(mass_1[flag_not_merging], mass_2[flag_not_merging], bin_sep[flag_not_merging], smbh_mass, timestep_duration_yr)
     elif gas_hardening_prescription == "stahler":
@@ -286,6 +300,7 @@ def gas_hardening_variable_stalling(mass_1, mass_2, bin_sep, bin_orb_a, disk_sou
     else:
         assert False, "Incorrect gas hardening prescription specified... Available values: (baruteau, stahler)"
 
+    # Filter any calculated binary separations that fall below the effective stalling condition.
     calc_bin_sep = np.maximum(calc_bin_sep, effective_stalling_separation[flag_not_merging])
 
     new_bin_sep = np.zeros(len(mass_1))
@@ -310,6 +325,7 @@ def gas_hardening_fixed_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mas
     else:
         assert False, "Incorrect gas hardening prescription specified... Available values: (baruteau, stahler)"
 
+    # Set a hard boundary for all separations that fall below the set stalling value.
     calc_bin_sep[calc_bin_sep < stalling_separation] = stalling_separation
 
     new_bin_sep = np.zeros(len(mass_1))
@@ -351,7 +367,9 @@ class BinaryBlackHoleGasHardening(TimelineActor):
 
         blackholes_binary = filing_cabinet.get_array(sm.bbh_array_name, AGNBlackHoleArray)
 
+        # Run different handlers for the gas hardening depending on stalling flag defined.
         if sm.stalling_separation > 0:
+            # Allow hardening through Baruteau or Stahler up until a fixed separation.
             blackholes_binary.bin_sep = gas_hardening_fixed_stalling(
                 blackholes_binary.mass,
                 blackholes_binary.mass_2,
@@ -367,6 +385,7 @@ class BinaryBlackHoleGasHardening(TimelineActor):
                 sm.r_g_in_meters
             )
         elif sm.stalling_separation == 0:
+            # Allow hardening through Baruteau, Stahler, or Kim+. Allows hardening up until merger.
             blackholes_binary.bin_sep = gas_hardening_no_stalling(
                 blackholes_binary.mass,
                 blackholes_binary.mass_2,
@@ -381,6 +400,7 @@ class BinaryBlackHoleGasHardening(TimelineActor):
                 sm.r_g_in_meters
             )
         elif sm.stalling_separation == -1:
+            # Gas hardening through Baruteau or Stahler where the binary stalls at mach number >= 1.
             blackholes_binary.bin_sep = gas_hardening_variable_stalling(
                 blackholes_binary.mass,
                 blackholes_binary.mass_2,
