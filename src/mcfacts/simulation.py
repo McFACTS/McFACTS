@@ -43,7 +43,7 @@ def main(settings: SettingsManager):
     snapshot_handler = TxtSnapshotHandler(settings = settings)
 
     ini_handler = IniSnapshotHandler(settings=settings)
-    ini_handler.save_settings("./runs", "settings", settings)
+    ini_handler.save_settings(settings.output_dir, "settings", settings)
 
     # Load disk model and setup empty filing cabinet for result populations
     agn_disk = AGNDisk(settings)
@@ -60,7 +60,7 @@ def main(settings: SettingsManager):
         galaxy_seed = settings.seed - galaxy_id
 
         # Create instance of galaxy
-        galaxy = Galaxy(seed=galaxy_seed, runs_folder="./runs", galaxy_id=str(galaxy_id), settings=settings)
+        galaxy = Galaxy(seed=galaxy_seed, runs_folder=settings.output_dir, galaxy_id=str(galaxy_id), settings=settings)
 
         # Create instance of populators
         single_bh_populator = SingleBlackHolePopulator()
@@ -187,7 +187,7 @@ def main(settings: SettingsManager):
     pbar.close()
 
     # Save the entire population cabinet
-    snapshot_handler.save_cabinet("./runs", "population", population_cabinet)
+    snapshot_handler.save_cabinet(settings.output_dir, "population", population_cabinet)
 
 
 if __name__ == "__main__":
