@@ -86,6 +86,7 @@ def main(settings: SettingsManager):
         active_phase_timeline.add_timeline_actor(SingleBlackHoleRealityCheck())
 
         # Get names of different singleton arrays we run through the same module
+        # Single retrograde evolution is currently handled separately and not passed as a target array.git
         prograde_array = galaxy.settings.bh_prograde_array_name
         innerdisk_array = galaxy.settings.bh_inner_disk_array_name
         inner_gw_only_array = galaxy.settings.bh_inner_gw_array_name
