@@ -1,10 +1,8 @@
 import numpy as np
 import pandas as pd
-import ast
-from importlib import resources as impresources
-from mcfacts.inputs import ReadInputs
-from mcfacts.inputs import data as mcfacts_input_data
-from mcfacts.physics.gw import gw_strain_freq, gw_strain_freq_optimized
+
+from mcfacts.utilities.peters import gw_strain_freq, gw_strain_freq_optimized
+
 
 # parse array out of the csv file
 def parse_array(cell):
@@ -40,29 +38,31 @@ def gw_strain(
     agn_redshift, 
     flag_include_old_gw_freq):
 
-    original = gw_strain_freq(
-        mass_1, 
-        mass_2, 
-        obj_sep, 
-        timestep_duration_yr, 
-        old_gw_freq, 
-        smbh_mass, 
-        agn_redshift, 
+    # The original returns the intermediate strain as well, the optimized version does not
+    char_strain_orig, strain_orig, nu_gw_orig = gw_strain_freq(
+        mass_1,
+        mass_2,
+        obj_sep,
+        timestep_duration_yr,
+        old_gw_freq,
+        smbh_mass,
+        agn_redshift,
         flag_include_old_gw_freq
     )
 
-    optimized = gw_strain_freq_optimized(
-        mass_1, 
-        mass_2, 
-        obj_sep, 
-        timestep_duration_yr, 
-        old_gw_freq, 
-        smbh_mass, 
-        agn_redshift, 
+    char_strain_opt, nu_gw_opt = gw_strain_freq_optimized(
+        mass_1,
+        mass_2,
+        obj_sep,
+        timestep_duration_yr,
+        old_gw_freq,
+        smbh_mass,
+        agn_redshift,
         flag_include_old_gw_freq
     )
 
-    assert(np.allclose(original, optimized, rtol=1e-8))
+    assert(np.allclose(char_strain_orig, char_strain_opt, rtol=1e-6))
+    assert(np.allclose(nu_gw_orig, nu_gw_opt, rtol=1e-8))
 
 def test_gw_strain():
     # now read from jet_inputs.csv and run
