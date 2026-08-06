@@ -25,7 +25,7 @@ from mcfacts.objects.actors.reality_checks import SingleBlackHoleRealityCheck, B
 from mcfacts.objects.agn_object_array import *
 from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopulator
-from mcfacts.objects.snapshot import TxtSnapshotHandler
+from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 
 
@@ -39,9 +39,11 @@ def main(settings: SettingsManager):
     if settings.overwrite_files and os.path.isdir(settings.output_dir):
         shutil.rmtree(settings.output_dir)
 
-    # Create the IO handler and save the current settings
+    # Create the IO handlers and save the current settings
     snapshot_handler = TxtSnapshotHandler(settings = settings)
-    snapshot_handler.save_settings("./runs", "settings", settings)
+
+    ini_handler = IniSnapshotHandler(settings=settings)
+    ini_handler.save_settings(settings.output_dir, "settings", settings)
 
     # Load disk model and setup empty filing cabinet for result populations
     agn_disk = AGNDisk(settings)
@@ -58,7 +60,7 @@ def main(settings: SettingsManager):
         galaxy_seed = settings.seed - galaxy_id
 
         # Create instance of galaxy
-        galaxy = Galaxy(seed=galaxy_seed, runs_folder="./runs", galaxy_id=str(galaxy_id), settings=settings)
+        galaxy = Galaxy(seed=galaxy_seed, runs_folder=settings.output_dir, galaxy_id=str(galaxy_id), settings=settings)
 
         # Create instance of populators
         single_bh_populator = SingleBlackHolePopulator()
@@ -84,6 +86,7 @@ def main(settings: SettingsManager):
         active_phase_timeline.add_timeline_actor(SingleBlackHoleRealityCheck())
 
         # Get names of different singleton arrays we run through the same module
+        # Single retrograde evolution is currently handled separately and not passed as a target array.git
         prograde_array = galaxy.settings.bh_prograde_array_name
         innerdisk_array = galaxy.settings.bh_inner_disk_array_name
         inner_gw_only_array = galaxy.settings.bh_inner_gw_array_name
@@ -184,7 +187,7 @@ def main(settings: SettingsManager):
     pbar.close()
 
     # Save the entire population cabinet
-    snapshot_handler.save_cabinet("./runs", "population", population_cabinet)
+    snapshot_handler.save_cabinet(settings.output_dir, "population", population_cabinet)
 
 
 if __name__ == "__main__":

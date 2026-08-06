@@ -21,7 +21,7 @@ savefig.edgecolor: black
 figure.dpi: 300
 figure.constrained_layout.use: True
 
-# --- Text / lines ---
+# --- Text / lines now white ---
 text.color: white
 axes.edgecolor: white
 axes.labelcolor: white

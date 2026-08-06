@@ -1,10 +1,9 @@
 import numpy as np
 import pandas as pd
 import scipy
-import ast
-from importlib import resources as impresources
-from mcfacts.inputs import data as mcfacts_input_data
-from mcfacts.physics.disk_capture import tau_ecc_dyn, tau_ecc_dyn_optimized, tau_inc_dyn, tau_inc_dyn_optimized
+
+from mcfacts.modules.disk_capture import tau_ecc_dyn, tau_ecc_dyn_optimized, tau_inc_dyn, tau_inc_dyn_optimized
+
 
 # parse array out of the csv file
 def parse_array(cell):

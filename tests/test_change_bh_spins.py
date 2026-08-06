@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import conftest as provider
 from conftest import InputParameterSet
-import mcfacts.physics.accretion as accretion
+import mcfacts.modules.accretion as accretion
 
 #def accretion_bh_spin_angle_params():
     #return input and expected values
@@ -39,7 +39,8 @@ def test_change_bh_spin(disk_bh_spin, disk_bh_spin_angle, disk_bh_orbital_eccent
         0.02,
         1E4,
         np.array([disk_bh_orbital_eccentricity]),
-        0.01
+        0.01,
+        np.random.default_rng(provider.TEST_SEED)
         )
 
     assert np.abs(change_bh_spin - expected_spin) < 1.e4

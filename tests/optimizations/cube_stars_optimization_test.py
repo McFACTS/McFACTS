@@ -10,7 +10,7 @@ AXIS_TOLERANCE =  0.0000001
 ECCENTRICITY_TOLERANCE = 0.0001 # the eccentricities are much less reliable than the axes
 SPEED_TOLERANCE = 0.80
 
-from mcfacts.physics.dynamics import circular_singles_encounters_prograde_stars
+from mcfacts.modules.dynamics import circular_singles_encounters_prograde_stars
 
 def generate_data_stars(N: int, circ_proportion: float, singleton_proportion: float, rng: np.random.Generator):
     """Generates random mock data for the star simulation functions."""
@@ -67,14 +67,14 @@ def run_benchmark_stars(N: int, circ_proportion: float):
     # Important: Copy data as the functions modify arrays in-place
     data_for_orig = {k: v.copy() if isinstance(v, np.ndarray) else v for k, v in data.items()}
     start_time = time.perf_counter()
-    a_orig, ecc_orig, id_nums_touch_orig, id_nums_unbound_orig, id_nums_flipped_rotation_orig = circular_singles_encounters_prograde_stars(**data_for_orig, rng_here=rng1, fast_cube=False)
+    a_orig, ecc_orig, id_nums_touch_orig, id_nums_unbound_orig, id_nums_flipped_rotation_orig = circular_singles_encounters_prograde_stars(**data_for_orig, random=rng1, fast_cube=False)
     time_orig = time.perf_counter() - start_time
     print(f"Original took:   {time_orig:.4f} seconds")
 
     # --- Run Optimized Function ---
     data_for_opt = {k: v.copy() if isinstance(v, np.ndarray) else v for k, v in data.items()}
     start_time = time.perf_counter()
-    a_opt, ecc_opt, id_nums_touch_opt, id_nums_unbound_opt, id_nums_flipped_rotation_opt = circular_singles_encounters_prograde_stars(**data_for_opt, rng_here=rng2, fast_cube = True)
+    a_opt, ecc_opt, id_nums_touch_opt, id_nums_unbound_opt, id_nums_flipped_rotation_opt = circular_singles_encounters_prograde_stars(**data_for_opt, random=rng2, fast_cube = True)
     time_opt = time.perf_counter() - start_time
     print(f"Optimized took:  {time_opt:.4f} seconds")
 

@@ -5,10 +5,12 @@ mcfacts.py is main script that orchestrates the launching of simulations with pr
 #### IMPORTS
 import argparse
 import cProfile
+from pathlib import Path
 
 from mcfacts import fiducial_plots, simulation
-from mcfacts.inputs.settings_manager import SettingsManager
-from mcfacts.objects.snapshot import TxtSnapshotHandler
+from mcfacts.inputs import settings_manager
+from mcfacts.inputs.settings_manager import SettingsManager, StaticSettingsProperty
+from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
 from mcfacts.utilities.unit_conversion import str2bool
 
 
@@ -27,7 +29,7 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
     initial_settings = SettingsManager()
 
     # Create a specific flag for passing in a baked settings or ini file
-    sub_parser.add_argument("-s", "--settings", "--fname-ini",
+    sub_parser.add_argument("-s", "--settings", "--fname-ini", "--settings-file",
                             dest="settings_file",
                             help="Filename of settings file",
                             default=None, type=str)
@@ -39,15 +41,29 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
     initial_parse, unknown = sub_parser.parse_known_args()
     settings_file = initial_parse.settings_file
 
+    print(settings_file)
+
     if settings_file is not None:
-        snapshot_handler = TxtSnapshotHandler()
-        loaded_settings = snapshot_handler.load_settings("", settings_file)
+        suffix = Path(settings_file).suffix.lower()
+        if suffix == ".ini":
+            snapshot_handler = IniSnapshotHandler()
+        elif suffix == ".txt":
+            snapshot_handler = TxtSnapshotHandler()
+        else:
+            raise ValueError(f"Unsupported settings file format '{suffix}', expected .ini or .txt")
+
+        loaded_settings = snapshot_handler.load_settings(str(Path(settings_file).parent), Path(settings_file).stem)
     else:
         loaded_settings = initial_settings
 
+    static_settings = [prop.name for prop in settings_manager.DEFAULT_SETTINGS if isinstance(prop, StaticSettingsProperty)]
+
     # Parse through the loaded settings and create the corresponding arguments with the loaded settings as defaults
     for key, value in loaded_settings.settings_finals.items():
-        if key in loaded_settings.static_settings:
+        if key in static_settings:
+            continue
+
+        if key == "settings_file":
             continue
 
         options = []

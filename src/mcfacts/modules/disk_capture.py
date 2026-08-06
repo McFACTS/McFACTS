@@ -349,6 +349,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     inc_scale_factor[cos_0_mask] = stepw0_time * tau_inc_div[cos_0_mask]
 
     # Calculate new orb_ecc values
+    # TODO: Evaluate for correctness, possibly break out in-line operation.  - Vera & Jake
     disk_bh_retro_orbs_ecc_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_ecc[
                                                                            cos_pm1_mask & no_max_ecc_retro_mask] * (
                                                                                1.0 + step1_delta_ecc /

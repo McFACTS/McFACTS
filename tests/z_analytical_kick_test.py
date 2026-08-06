@@ -1,10 +1,9 @@
-"""Unit tests for analytical_velocity"""
+"""Unit tests for analytical_kick_velocity"""
 import numpy as np
 import pytest
 import pandas as pd
 
-from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.analytical_velocity import (
+from mcfacts.modules.merge import (
     analytical_kick_velocity,
     analytical_kick_velocity_optimized,
 )
@@ -36,14 +35,14 @@ def test_analytical_velocity(
     mass_1, mass_2, spin_1, spin_2, spin_angle_1, spin_angle_2
 ):
     """Test that optimized analytical_kick_velocity matches original."""
-    rng.seed(seed=SEED)
     original = analytical_kick_velocity(
-        mass_1, mass_2, spin_1, spin_2, spin_angle_1, spin_angle_2
+        mass_1, mass_2, spin_1, spin_2, spin_angle_1, spin_angle_2,
+        np.random.default_rng(SEED)
     )
 
-    rng.seed(seed=SEED)
     optimized = analytical_kick_velocity_optimized(
-        mass_1, mass_2, spin_1, spin_2, spin_angle_1, spin_angle_2
+        mass_1, mass_2, spin_1, spin_2, spin_angle_1, spin_angle_2,
+        np.random.default_rng(SEED)
     )
 
     assert np.allclose(original, optimized, rtol=1e-9)

@@ -1,6 +1,7 @@
 """
 fiducial_plots.py contains methods for creating default diagnostic and scientific plots from a computed McFACTS run.
 """
+from pathlib import Path
 
 #### IMPORTS
 import matplotlib.ticker as mticker
@@ -1161,8 +1162,8 @@ def main(settings: SettingsManager):
     figsize = "apj_col"
 
     snapshot_handler = TxtSnapshotHandler(settings)
-    file_path = "./runs"
-    plots_dir = "./runs/plots"
+    file_path = settings.output_dir
+    plots_dir = Path(file_path, "plots")
 
     population_cabinet = snapshot_handler.load_cabinet(file_path, "population")
 
