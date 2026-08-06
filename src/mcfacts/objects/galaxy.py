@@ -25,6 +25,11 @@ class GalaxyPopulator(ABC):
         return NotImplemented
 
     def set_log_func(self, log_func: LogFunction) -> None:
+        if not isinstance(log_func, LogFunction):
+            raise TypeError(
+                f"log_func is type {type(log_func)}. "
+                f"Should be subclass of {LogFunction}."
+            )
         self.parent_log_func = log_func
 
     def log(self, msg: str, new_line: bool = False) -> None:
