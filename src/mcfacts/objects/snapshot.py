@@ -50,6 +50,8 @@ class SnapshotHandler(ABC):
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
+        if new_line:
+            self.parent_log_func.new_line()
         self.parent_log_func(msg)
 
     def __str__(self) -> str:

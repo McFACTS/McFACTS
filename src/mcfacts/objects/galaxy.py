@@ -37,6 +37,8 @@ class GalaxyPopulator(ABC):
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
+        if new_line:
+            self.parent_log_func.new_line()
         self.parent_log_func(msg)
 
     def __str__(self) -> str:
@@ -157,7 +159,9 @@ class Galaxy:
             if populator.name in self.filing_cabinet and not join_populations:
                 raise Exception(f"Galaxy populator with name {populator.name} already exist.")
 
-            populator.set_log_func(self.parent_log_func.spawn())
+            populator.set_log_func(self.parent_log_func.spawn(
+                    preamble=f"{populator.name} :: ",
+                ))
             galaxy_object_array: AGNObjectArray = populator.populate(agn_disk, self.random_generator)
 
             # In strict mode, check to make sure that we actually created some objects, otherwise throw an exception.
@@ -213,7 +217,9 @@ class Galaxy:
 
                 self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.settings_finals == self.settings.settings_finals}")
 
-                actor.set_log_func(self.parent_log_func.spawn())
+                actor.set_log_func(self.parent_log_func.spawn(
+                    preamble=f"{actor.name} :: ",
+                ))
                 actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)
 
             if self.settings.save_each_timestep:
@@ -227,10 +233,12 @@ class Galaxy:
             self.save_state()
 
     # Why?
-    def nocheck_log(self, msg: str) -> None:
+    def nocheck_log(self, msg: str, new_line: bool = True) -> None:
+        if new_line:
+            self.parent_log_func.new_line()
         self.parent_log_func(msg)
 
     def log(self, msg: str, new_line: bool = True) -> None:
         if not self.settings.verbose:
             return
-        self.parent_log_func(msg)
+        self.nocheck_log(msg, new_line = new_line)

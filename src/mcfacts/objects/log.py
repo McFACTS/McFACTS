@@ -11,8 +11,9 @@
 # It makes hard type checking through isinstance more painful.
 
 #### Standard Library Imports ####
-from contextlib import redirect_stdout, redirect_stderr
+import os
 from abc import abstractmethod, ABC
+from contextlib import redirect_stdout, redirect_stderr
 
 ######## Abstract Base Class ########
 class LogFunction(ABC):
@@ -20,13 +21,16 @@ class LogFunction(ABC):
     @abstractmethod
     def __call__(self, msg: str, *args, **kwargs) -> None:
         """Log a message"""
-        return
+        raise NotImplementedError
+    @abstractmethod
+    def new_line(self):
+        raise NotImplementedError
     @abstractmethod
     def new(self, *args, **kwargs):
-        return
+        raise NotImplementedError
     @abstractmethod
     def spawn(self, *args, **kwargs):
-        return
+        raise NotImplementedError
 
 ######## Class instances ########
 #### Print Log Function ####
@@ -41,6 +45,8 @@ class PrintLogFunction(LogFunction):
 
     def __call__(self, msg, *args, **kwargs):
         print(f"{self.preamble}{msg}", *args, **kwargs)
+    def new_line(self):
+        print(os.linesep, end="")
 
     def new(self, preamble=""):
         return self.__class__(preamble=preamble)
@@ -75,16 +81,23 @@ class ContextLogFunction(LogFunction):
     @property
     def cache_stderr(self):
         return self._catch_stderr
-        
-    # Call function
-    def __call__(self, msg, *args, **kwargs):
+
+    # Secret print function
+    def _print(self, msg, *args, **kwargs):
         with open(self.filename, 'a') as File:
             if self.cache_stderr:
                 with redirect_stdout(File) and redirect_stderr(File):
-                    print(f"{self.preamble}{msg}", *args, **kwargs)
+                    print(msg, *args, **kwargs)
             else:
                 with redirect_stdout(File):
-                    print(f"{self.preamble}{msg}", *args, **kwargs)
+                    print(msg, *args, **kwargs)
+        
+    # Call function
+    def __call__(self, msg, *args, **kwargs):
+        self._print(f"{self.preamble}{msg}", *args, **kwargs)
+
+    def new_line(self):
+        self._print(os.linesep, end="")
 
     def new(self, preamble=""):
         return self.__class__(
