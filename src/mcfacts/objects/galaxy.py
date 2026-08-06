@@ -35,13 +35,7 @@ class GalaxyPopulator(ABC):
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
-
-        msg = f"{self.name} :: {msg}"
-
-        if self.parent_log_func is None:
-            print(f"{(os.linesep if new_line else '')}(ID:??) {msg}")
-        else:
-            self.parent_log_func(msg, new_line)
+        self.parent_log_func(f"(ID:??) {self.name} :: {msg}")
 
     def __str__(self) -> str:
         """
@@ -227,11 +221,11 @@ class Galaxy:
         if self.settings.save_state:
             self.save_state()
 
-    def nocheck_log(self, msg: str, new_line: bool = True) -> None:
-        print(f"{(os.linesep if new_line else '')}(ID:{self.galaxy_id}) {msg}")
+    # Why?
+    #def nocheck_log(self, msg: str, new_line: bool = True) -> None:
+    #    print(f"{(os.linesep if new_line else '')}(ID:{self.galaxy_id}) {msg}")
 
     def log(self, msg: str, new_line: bool = True) -> None:
         if not self.settings.verbose:
             return
-
-        self.nocheck_log(msg, new_line)
+        self.parent_log_func(f"(ID:{self.galaxy_id:03d}) {msg}")

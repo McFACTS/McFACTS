@@ -72,13 +72,7 @@ class TimelineActor(ABC):
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
-
-        msg = f"{self.name} :: {msg}"
-
-        if self.parent_log_func is None:
-            print(f"{(os.linesep if new_line else '')}(ID:??) {msg}")
-        else:
-            self.parent_log_func(msg, new_line)
+        self.parent_log_func(f"(ID:??) {self.name} :: {msg}")
 
     def __str__(self) -> str:
         """
