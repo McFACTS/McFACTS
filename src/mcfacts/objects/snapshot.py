@@ -12,14 +12,14 @@ import pandas as pd
 from mcfacts.inputs import settings_manager
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
-from mcfacts.objects.log import LogFunction
+from mcfacts.objects.log import LogFunction, PrintLogFunction
 
 
 class SnapshotHandler(ABC):
     def __init__(self, name: str, settings: SettingsManager = None):
         self.name = name
         self.settings = settings
-        self.parent_log_func: LogFunction = None
+        self.parent_log_func: LogFunction = PrintLogFunction
 
     @abstractmethod
     def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):

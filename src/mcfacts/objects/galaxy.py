@@ -8,7 +8,7 @@ from numpy.random import Generator
 from tqdm.auto import tqdm
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
-from mcfacts.objects.log import LogFunction
+from mcfacts.objects.log import LogFunction, PrintLogFunction
 from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
 from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet
 from mcfacts.objects.timeline import SimulationTimeline
@@ -18,7 +18,7 @@ class GalaxyPopulator(ABC):
     def __init__(self, name: str, settings: SettingsManager = SettingsManager()):
         self.name: str = name
         self.settings: SettingsManager = settings
-        self.parent_log_func: LogFunction = None
+        self.parent_log_func: LogFunction = PrintLogFunction
 
     @abstractmethod
     def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:

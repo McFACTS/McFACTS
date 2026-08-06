@@ -6,7 +6,7 @@ from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
 from mcfacts.objects.agn_object_array import FilingCabinet
-from mcfacts.objects.log import LogFunction
+from mcfacts.objects.log import LogFunction, PrintLogFunction
 
 
 class TimelineActor(ABC):
@@ -39,7 +39,7 @@ class TimelineActor(ABC):
         """
         self.name: str = name
         self.settings: SettingsManager = settings
-        self.parent_log_func: LogFunction = None
+        self.parent_log_func: LogFunction = PrintLogFunction
 
     @abstractmethod
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
