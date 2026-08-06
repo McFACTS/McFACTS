@@ -19,7 +19,9 @@ class SnapshotHandler(ABC):
     def __init__(self, name: str, settings: SettingsManager = None):
         self.name = name
         self.settings = settings
-        self.parent_log_func: LogFunction = PrintLogFunction
+        self.parent_log_func: LogFunction = PrintLogFunction(
+            preamble=f"(ID:??) {self.name} :: "
+        )
 
     @abstractmethod
     def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
@@ -48,7 +50,7 @@ class SnapshotHandler(ABC):
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
-        self.parent_log_func(f"(ID:??) {self.name} :: {msg}")
+        self.parent_log_func(msg)
 
     def __str__(self) -> str:
         return f"{self.name} ({type(self)})"

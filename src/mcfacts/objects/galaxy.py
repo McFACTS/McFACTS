@@ -18,7 +18,9 @@ class GalaxyPopulator(ABC):
     def __init__(self, name: str, settings: SettingsManager = SettingsManager()):
         self.name: str = name
         self.settings: SettingsManager = settings
-        self.parent_log_func: LogFunction = PrintLogFunction
+        self.parent_log_func: LogFunction = PrintLogFunction(
+            preamble=f"(ID:??) {self.name} :: "
+        )
 
     @abstractmethod
     def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
@@ -35,7 +37,7 @@ class GalaxyPopulator(ABC):
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
-        self.parent_log_func(f"(ID:??) {self.name} :: {msg}")
+        self.parent_log_func(msg)
 
     def __str__(self) -> str:
         """
@@ -105,7 +107,10 @@ class Galaxy:
 
         # Set the recursion limit higher so python doesn't scream at us. The timeline-actor framework does not do any recursion,
         # but when an actor performs, something can end up executing several "layers" away from the initial call.
-        sys.setrecursionlimit(10000)
+        sys.setrecursionlimit(10000) # :'(
+        self.parent_log_func = PrintLogFunction(
+            preamble=f"(ID:{self.galaxy_id}) ",
+        )
 
     def save_state(self, timestep: int = None) -> None:
         galaxy_id_str = f"gal{self.galaxy_id.zfill(2)}"
@@ -152,7 +157,7 @@ class Galaxy:
             if populator.name in self.filing_cabinet and not join_populations:
                 raise Exception(f"Galaxy populator with name {populator.name} already exist.")
 
-            populator.set_log_func(self.nocheck_log)
+            populator.set_log_func(self.parent_log_func.spawn())
             galaxy_object_array: AGNObjectArray = populator.populate(agn_disk, self.random_generator)
 
             # In strict mode, check to make sure that we actually created some objects, otherwise throw an exception.
@@ -208,7 +213,7 @@ class Galaxy:
 
                 self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.settings_finals == self.settings.settings_finals}")
 
-                actor.set_log_func(self.nocheck_log)
+                actor.set_log_func(self.parent_log_func.spawn())
                 actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)
 
             if self.settings.save_each_timestep:
@@ -222,10 +227,10 @@ class Galaxy:
             self.save_state()
 
     # Why?
-    #def nocheck_log(self, msg: str, new_line: bool = True) -> None:
-    #    print(f"{(os.linesep if new_line else '')}(ID:{self.galaxy_id}) {msg}")
+    def nocheck_log(self, msg: str) -> None:
+        self.parent_log_func(msg)
 
     def log(self, msg: str, new_line: bool = True) -> None:
         if not self.settings.verbose:
             return
-        self.parent_log_func(f"(ID:{self.galaxy_id:03d}) {msg}")
+        self.parent_log_func(msg)

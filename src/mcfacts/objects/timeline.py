@@ -39,7 +39,9 @@ class TimelineActor(ABC):
         """
         self.name: str = name
         self.settings: SettingsManager = settings
-        self.parent_log_func: LogFunction = PrintLogFunction
+        self.parent_log_func: LogFunction = PrintLogFunction(
+            preamble=f"(ID:??) {self.name} :: "
+        )
 
     @abstractmethod
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
@@ -72,7 +74,7 @@ class TimelineActor(ABC):
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
-        self.parent_log_func(f"(ID:??) {self.name} :: {msg}")
+        self.parent_log_func(msg)
 
     def __str__(self) -> str:
         """
