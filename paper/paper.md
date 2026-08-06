@@ -209,7 +209,7 @@ populations, constructing the starting `AGNObjectArray` objects passed to the
 filling cabinet. `Populators` get run by the galaxy before any
 `SimulationTimeline` objects execute `TimelineActor`s.
 
-## Crosscutting and Post Processing Utilities
+## Crosscutting Utilities
 
 Several utilities are used across the entire hierarchy of the simulation 
 framework. The `SettingsManager` acts as a central repo for built-in defaults
@@ -222,10 +222,66 @@ saving of the `SettingsManger` and support `.txt` files for the `FilingCabinet`.
 Plans exist to implement the `.h5` format for HDF5 support and `.db, .sqlite`
 with SQLite support.
 
-%% McFAST Description (@Nico!)
+## Extension: McFAST
 
-%% PostFACTS Description (@Miranda!)
+`mcfast` is a custom-built extension to the `McFACTS` codebase written in Rust,
+with Python bindings produced by `pyo3`. It provides optimized variants of
+several `McFACTS` functions, including vectorized, single-pass variants of
+computation-heavy functions (e.g. `shock_luminosity`,
+`analytical_kick_velocity`) and tailored variants of unit conversion functions
+(e.g. `si_from_r_g`, `r_g_from_units`) which bypass AstroPy's allocation- and
+string-heavy unit conversion operations.
 
+### Motivation
+
+As of the prior version v0.3.0, `McFACTS`'s most time-intensive operations fell
+into three categories:
+ 1. Long chains of `numpy` array operations on many arrays of equal length.
+ 2. Inefficient general-purpose code in Python (eigenvalue rootfinding vs
+ Cardano, `np.where` vs `np.searchsort()`, etc.).
+ 3. Small but frequently-called helpers reliant on AstroPy's general-purpose
+ unit conversion operations.
+
+`mcfast` aims to mitigate slowdowns as a result of problems 1 and 3, both of
+which benefit from a purpose-built, compiled extensions.
+
+### Design
+
+A primary goal in the development of the `mcfast` extensions is to minimize data 
+transfer across the Python-Rust Foreign Function Interface (FFI). The 
+input-output of candidate functions in `McFACTS` are numpy arrays,
+so `mcfast` makes heavy use of zero-copy reads using the `numpy` crate API
+(similar to Cython's typed array views). Output `numpy` arrays are allocated
+from inside the Rust extension, passing only pointers across the FFI boundary
+without copying data.
+
+In addition to converting array-heavy workloads into pre-compiled, single-pass
+operations, some variant functions also make use of iterator-level parallelism
+using the `rayon` crate. This functionality is under review and may be removed
+in the future in order to not interfere with per-galaxy threading in the
+restructure.
+
+With the `mcfast` helper variants, individual functions have gained speedups in
+the 10x to 200x range on local runs, contributing heavily to the overall ~6x
+improvement in total simulation runtime achieved since the release of v0.3.0.
+
+### Language Choice
+
+Rust was selected as the compiled language for the `mcfast` extension due to
+several benefits over languages like C or C++. Rust provides strong safeguards
+against memory unsafe operations, with built-in scoping capabilities to handle 
+memory ownership and lifetime. Rust compiles directly to static binaries, which 
+can easily be wrapped through Python wheels using `pyo3` bindings and 
+the `maturin` build system. Rust also provides a strong, static, and expressive
+type system, allowing for the extension to ensure the proper typing of incoming
+and outgoing values.
+
+### Python Function Parity
+
+`mcfast` variant functions are tested against the original python functions in
+`McFACTS`, ensuring that both functions produce the same result. Where an exact
+match can't be guaranteed between the results, a tolerance of at least 1e-6 is
+enforced for floating point operations.
 
 # Research impact statement
 
