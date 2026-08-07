@@ -17,19 +17,42 @@ from contextlib import redirect_stdout, redirect_stderr
 
 ######## Abstract Base Class ########
 class LogFunction(ABC):
-    """An abstract base class logger"""
+    """An abstract base class logger
+
+    A LogFunction must have the following methods defined:
+        __call__ : a call function which performs the opperation of logging
+        new_line: a function which adds a blank line to a logfile (or
+            does what a given LogFunction should do when a new_line request
+            is made)
+        new: Return a new instance of the same kind of LogFunction with
+            a fresh preamble
+        spawn: Return a new instance of the same kind of LogFunction which
+            concatenates the preamble given with the existing preamble
+    """
     @abstractmethod
     def __call__(self, msg: str, *args, **kwargs) -> None:
         """Log a message"""
         raise NotImplementedError
     @abstractmethod
     def new_line(self):
+        """Adds a blank line to a logfile 
+        (or does what a given LogFunction should do when a new_line request
+        is made)
+        """
         raise NotImplementedError
     @abstractmethod
     def new(self, *args, **kwargs):
+        """
+        Return a new instance of the same kind of LogFunction with
+            a fresh preamble
+        """
         raise NotImplementedError
     @abstractmethod
     def spawn(self, *args, **kwargs):
+        """
+        spawn: Return a new instance of the same kind of LogFunction which
+            concatenates the preamble given with the existing preamble
+        """
         raise NotImplementedError
 
 ######## Class instances ########
@@ -44,13 +67,18 @@ class PrintLogFunction(LogFunction):
         return self._preamble
 
     def __call__(self, msg, *args, **kwargs):
+        """Print some text, and accept print arguments"""
         print(f"{self.preamble}{msg}", *args, **kwargs)
+
     def new_line(self):
+        """Print a newline character"""
         print(os.linesep, end="")
 
     def new(self, preamble=""):
+        """Return a new PrintLogFunction with a fresh preamble"""
         return self.__class__(preamble=preamble)
     def spawn(self, preamble=""):
+        """Return a new PrintLogFunction with an extended preamble"""
         return self.__class__(preamble=self.preamble + preamble)
 
 #### Print Log Function ####
@@ -84,6 +112,7 @@ class ContextLogFunction(LogFunction):
 
     # Secret print function
     def _print(self, msg, *args, **kwargs):
+        """Redirect standard out and pass arguments ahead to print"""
         with open(self.filename, 'a') as File:
             if self.catch_stderr:
                 with redirect_stdout(File) and redirect_stderr(File):
@@ -94,12 +123,17 @@ class ContextLogFunction(LogFunction):
         
     # Call function
     def __call__(self, msg, *args, **kwargs):
+        """Output some text, and accept print arguments"""
         self._print(f"{self.preamble}{msg}", *args, **kwargs)
 
     def new_line(self):
+        """Output a newline character"""
         self._print(os.linesep, end="")
 
     def new(self, preamble=""):
+        """Return a new ContextLogFunction with a fresh preamble
+            pointing at the same output file
+        """
         return self.__class__(
             self.filename,
             preamble=preamble,
@@ -107,4 +141,7 @@ class ContextLogFunction(LogFunction):
             safety=False, # By necessity
         )
     def spawn(self, preamble=""):
+        """Return a new ContextLogFunction with an extended preamble
+            pointing at the same output file
+        """
         return self.new(self.preamble + preamble)
