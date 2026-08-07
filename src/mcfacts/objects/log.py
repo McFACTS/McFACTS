@@ -79,13 +79,13 @@ class ContextLogFunction(LogFunction):
         return self._preamble
 
     @property
-    def cache_stderr(self):
+    def catch_stderr(self):
         return self._catch_stderr
 
     # Secret print function
     def _print(self, msg, *args, **kwargs):
         with open(self.filename, 'a') as File:
-            if self.cache_stderr:
+            if self.catch_stderr:
                 with redirect_stdout(File) and redirect_stderr(File):
                     print(msg, *args, **kwargs)
             else:
