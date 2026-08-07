@@ -27,7 +27,7 @@ def test_print_log_function():
     # Open a temporary directory
     with tempfile.TemporaryDirectory() as wkdir:
         # logfile 
-        logfile = os.path.join(wkdir, "print.out")
+        logfile = os.path.join(wkdir, "print.log")
         # Redirect standard out to a file
         with open(logfile, 'w') as F:
           with redirect_stdout(F):
@@ -78,7 +78,7 @@ def test_context_log_function():
     # Open a temporary directory
     with tempfile.TemporaryDirectory() as wkdir:
         # logfile 
-        logfile = os.path.join(wkdir, "context.out")
+        logfile = os.path.join(wkdir, "context.log")
         # Instantiate context_log_function
         context_log = ContextLogFunction(
             logfile,
