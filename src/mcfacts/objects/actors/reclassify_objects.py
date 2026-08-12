@@ -125,11 +125,30 @@ class InitialBlackHoleReclassification(TimelineActor):
 
 
 class InnerDiskFilter(TimelineActor):
+    """
+    This TimelineActor separates prograde and retrograde black hole singles that have an orbital radius
+    less than `sm.inner_disk_outer_radius` and adds them to an "inner disk" array. This allows for these inner disk
+    objects to have a separate physical treatment. A safeguard to move objects that have radii smaller than the
+    lowest radius of the current disk function and only allow for gravitational wave evolution.
+    """
     def __init__(self, name: str = None, settings: SettingsManager = None):
+        """
+        Initializes the `InnerDiskFilter` simulation actor.
+
+        Args:
+            name (str): Optional. The name of the actor. Defaults to "Inner Disk Filter".
+            settings (SettingsManager): A settings manager instance. Defaults to base instance of `SettingsManager`.
+        """
         super().__init__("Inner Disk Filter" if name is None else name, settings)
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
+        """
+        Moves prograde and retrograde black holes with an orbital radius smaller than
+        `settings.inner_disk_outer_radius` into the inner disk array. Inner disk black holes that have fallen
+        below the lowest radius the disk functions are defined for are moved again into the gravitational
+        wave only array, where they no longer interact with the disk.
+        """
         sm = self.settings
 
         # TODO: For some reason, I was only sorting out retrograde inner disk orbiters? Things break if we don't sort out prograde orbiters as well.
@@ -179,11 +198,27 @@ class InnerDiskFilter(TimelineActor):
 
 
 class FlipRetroProFilter(TimelineActor):
+    """
+    This TimelineActor flips retrograde black holes onto prograde orbits once their orbital inclination is below
+    a specified angle of the orbital plane. Flipped black holes have their orbital angular momentum set
+    to 1 and are moved from the retrograde array into the prograde array.
+    """
     def __init__(self, name: str = None, settings: SettingsManager = None):
+        """
+        Initializes the `FlipRetroProFilter` simulation actor.
+
+        Args:
+            name (str): Optional. The name of the actor. Defaults to "Flip Retrograde Prograde Filter".
+            settings (SettingsManager): A settings manager instance. Defaults to base instance of `SettingsManager`.
+        """
         super().__init__("Flip Retrograde Prograde Filter" if name is None else name, settings)
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
+        """
+        Moves retrograde black holes with an orbital inclination below a specified threshold to the
+        prograde array, setting their orbital angular momentum to positive 1.
+        """
         sm = self.settings
 
         if sm.bh_retrograde_array_name not in filing_cabinet:
@@ -195,6 +230,7 @@ class FlipRetroProFilter(TimelineActor):
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
         blackholes_retro = filing_cabinet.get_array(sm.bh_retrograde_array_name, AGNBlackHoleArray)
 
+        #TODO: Hardcoded magic number to keep parity with original mcfacts_sim.py, Needs to be moved to settings.
         inc_threshhold = 5.0 * np.pi / 180.0
 
         bh_id_num_flip_to_pro = blackholes_retro.id_num[(np.abs(blackholes_retro.orb_inc) <= inc_threshhold)]
@@ -208,12 +244,30 @@ class FlipRetroProFilter(TimelineActor):
 
 
 class InitialStarReclassification(TimelineActor):
+    """
+    This simulation actor looks at the initial array of stars and converts the most massive ones
+    into black holes. This only happens when `settings.flag_initial_stars_BH_immortal` is set to `True`.
+    New black holes are added to the unsorted black hole array, allowing for further classification.
+    """
     def __init__(self, name: str = None, settings: SettingsManager = None):
+        """
+        Initializes the `InitialStarReclassification` simulation actor.
+
+        Args:
+            name (str): Optional. The name of the actor. Defaults to "Initial Star Reclassification".
+            settings (SettingsManager): A settings manager instance. Defaults to base instance of `SettingsManager`.
+        """
         super().__init__("Initial Star Reclassification" if name is None else name, settings)
 
 
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
                 agn_disk: AGNDisk, random_generator: Generator):
+        """
+        Converts stars more massive than `settings.disk_star_initial_mass_cutoff` into black holes when
+        `settings.flag_initial_stars_BH_immortal` is set to `True`. Each new black hole keeps the mass and orbital
+        properties of the progenitor star and is given a randomized spin, spin angle, orbital angular
+        momentum, and inclination.
+        """
         sm = self.settings
 
         blackholes_unsort = filing_cabinet.get_array(sm.bh_array_name, AGNBlackHoleArray, True)

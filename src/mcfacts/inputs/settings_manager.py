@@ -486,3 +486,9 @@ class AGNDisk:
             flag_use_pagn=settings.flag_use_pagn,
             verbose= 1 if settings.verbose else 0
         )
+
+        self._settings = settings
+
+    @property
+    def settings(self):
+        return self._settings

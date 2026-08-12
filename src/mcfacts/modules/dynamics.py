@@ -1114,7 +1114,7 @@ def circular_singles_encounters_prograde_stars(
                                     disk_star_pro_orbs_ecc[ecc_idx], disk_star_pro_orbs_ecc[circ_idx],
                                     disk_star_pro_radius_rg[ecc_idx], disk_star_pro_radius_rg[circ_idx],
                                     disk_star_pro_id_nums[ecc_idx], disk_star_pro_id_nums[circ_idx],
-                                    delta_energy_strong[i][j], flag_obj_types=0, fast_cube = fast_cube)
+                                    delta_energy_strong[i][j], flag_obj_types=0, random=random, fast_cube = fast_cube)
                                 if id_num_out is not None:
                                     id_nums_unbound.append(id_num_out)
                                 if id_num_flip is not None:
@@ -1421,7 +1421,7 @@ def circular_singles_encounters_prograde_star_bh(
                                     disk_bh_pro_orbs_ecc[ecc_idx], disk_star_pro_orbs_ecc[circ_idx],
                                     None, disk_star_pro_radius_rg[circ_idx],
                                     disk_bh_pro_id_nums[ecc_idx], disk_star_pro_id_nums[circ_idx],
-                                    delta_energy_strong[i][j], flag_obj_types=1)
+                                    delta_energy_strong[i][j], flag_obj_types=1, random=random)
                                 if id_num_out is not None:
                                     id_nums_unbound.append(id_num_out)
                                 if id_num_flip is not None:
@@ -3464,7 +3464,6 @@ class BinaryBlackHoleSpheroidDynamics(TimelineActor):
             sm.r_g_in_meters,
             random_generator
         )
-
         blackholes_binary.consistency_check()
 
         if self.reality_merge_checks:

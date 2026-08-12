@@ -4,7 +4,7 @@ import numpy as np
 import astropy.units as u
 import astropy.constants as const
 
-from mcfacts.physics.dynamics import circular_singles_encounters_prograde, circular_singles_encounters_prograde_sweep
+from mcfacts.modules.dynamics import circular_singles_encounters_prograde, circular_singles_encounters_prograde_sweep
     
 AXIS_TOLERANCE =  0.0000001
 ECCENTRICITY_TOLERANCE = 0.0001 # the eccentricities are much less reliable than the axes
@@ -62,7 +62,7 @@ def run_benchmark(N: int, circ_proportion: float):
     # Important: Copy data as the functions modify arrays in-place
     data_for_orig = {k: v.copy() if isinstance(v, np.ndarray) else v for k, v in data.items()}
     start_time = time.perf_counter()
-    a_orig, ecc_orig = circular_singles_encounters_prograde(**data_for_orig, rng_here=rng)
+    a_orig, ecc_orig = circular_singles_encounters_prograde(**data_for_orig, random=rng)
     time_orig = time.perf_counter() - start_time
     print(f"Original took:   {time_orig:.4f} seconds")
 
@@ -70,7 +70,7 @@ def run_benchmark(N: int, circ_proportion: float):
     # --- Run Optimized Function ---
     data_for_opt = {k: v.copy() if isinstance(v, np.ndarray) else v for k, v in data.items()}
     start_time = time.perf_counter()
-    a_opt, ecc_opt = circular_singles_encounters_prograde_sweep(**data_for_opt, rng_here=rng)
+    a_opt, ecc_opt = circular_singles_encounters_prograde_sweep(**data_for_opt, random=rng)
     time_opt = time.perf_counter() - start_time
     print(f"Optimized took:  {time_opt:.4f} seconds")
 
