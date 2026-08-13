@@ -237,7 +237,7 @@ def jet_luminosity_opt(mass_final,
     # get the local disk density and convert from [kg m**-3] to [g cm**-3]
     disk_density_cgs = disk_density(bin_orb_a) * 10**-3
 
-    # get the local sound speed of the disk (in [m s**-1])
+    # get the local sound speed of the disk (in [m s**-1]) -- conversion to cm / s happens in the helper
     sound_speed = disk_sound_speed(bin_orb_a) 
 
     L_jet = jet_luminosity_helper(mass_final, disk_density_cgs, spin_final, v_kick, sound_speed)
