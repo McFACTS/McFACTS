@@ -417,10 +417,11 @@ class AGNObject(object):
             print(id_num, type(id_num))
             raise AttributeError("Passed id_num is not a valid type.")
         # Ensures that values are returned in the order of the original id_num array
-        sort_idx = np.argsort(self.id_num)
-        sorted_ids = self.id_num[sort_idx]
-        pos_in_sorted = np.searchsorted(sorted_ids, id_num_arr)
-        id_mask = sort_idx[pos_in_sorted]
+        _, id_mask = np.where(getattr(self, "id_num") == id_num_arr[:, None])
+        # sort_idx = np.argsort(self.id_num)
+        # sorted_ids = self.id_num[sort_idx]
+        # pos_in_sorted = np.searchsorted(sorted_ids, id_num_arr)
+        # id_mask = sort_idx[pos_in_sorted]
 
         if attr is not None:
             try:
