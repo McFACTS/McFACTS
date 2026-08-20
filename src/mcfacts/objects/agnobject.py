@@ -420,7 +420,11 @@ class AGNObject(object):
         sort_idx = np.argsort(self.id_num)
         sorted_ids = self.id_num[sort_idx]
         pos_in_sorted = np.searchsorted(sorted_ids, id_num_arr)
-        id_mask = sort_idx[pos_in_sorted]
+        
+        pos_in_sorted_clipped = np.clip(pos_in_sorted, 0, len(sorted_ids) - 1)
+        valid = sorted_ids[pos_in_sorted_clipped] == id_num_arr
+        
+        id_mask = sort_idx[pos_in_sorted_clipped[valid]]
 
         if attr is not None:
             try:
