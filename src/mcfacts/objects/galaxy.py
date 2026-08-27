@@ -232,13 +232,9 @@ class Galaxy:
         if self.settings.save_state:
             self.save_state()
 
-    # Why?
-    def nocheck_log(self, msg: str, new_line: bool = True) -> None:
-        if new_line:
-            self.parent_log_func.new_line()
-        self.parent_log_func(msg)
-
     def log(self, msg: str, new_line: bool = True) -> None:
         if not self.settings.verbose:
             return
-        self.nocheck_log(msg, new_line = new_line)
+        if new_line:
+            self.parent_log_func.new_line()
+        self.parent_log_func(msg)
