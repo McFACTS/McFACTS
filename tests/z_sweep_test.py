@@ -3,8 +3,7 @@ import numpy as np
 import pytest
 import pandas as pd
 
-from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.dynamics import (
+from mcfacts.modules.dynamics import (
     circular_singles_encounters_prograde,
     circular_singles_encounters_prograde_sweep_optimized,
 )
@@ -53,7 +52,6 @@ def test_sweep_optimized_matches_original(
     masses_opt = disk_bh_pro_masses.copy()
     orbs_ecc_opt = disk_bh_pro_orbs_ecc.copy()
 
-    rng.seed(seed=SEED)
     result_a_orig, result_ecc_orig = circular_singles_encounters_prograde(
         smbh_mass,
         orbs_a_orig,
@@ -63,10 +61,9 @@ def test_sweep_optimized_matches_original(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-        rng_here=rng,
+        random=np.random.default_rng(SEED),
     )
 
-    rng.seed(seed=SEED)
     result_a_opt, result_ecc_opt = circular_singles_encounters_prograde_sweep_optimized(
         smbh_mass,
         orbs_a_opt,
@@ -76,7 +73,7 @@ def test_sweep_optimized_matches_original(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-        rng_here=rng,
+        rng_here=np.random.default_rng(SEED),
     )
 
     assert np.allclose(result_a_orig, result_a_opt, rtol=1e-9), \

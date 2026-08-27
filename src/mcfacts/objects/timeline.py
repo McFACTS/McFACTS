@@ -7,7 +7,7 @@ from numpy.random import Generator
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet
 from mcfacts.objects.disk import AGNDisk
-from mcfacts.objects.log import LogFunction
+from mcfacts.objects.log import LogFunction, PrintLogFunction
 
 
 class TimelineActor(ABC):
@@ -40,7 +40,9 @@ class TimelineActor(ABC):
         """
         self.name: str = name
         self.settings: SettingsManager = settings
-        self.parent_log_func: LogFunction = None
+        self.parent_log_func: LogFunction = PrintLogFunction(
+            prefix=f"(ID:??) {self.name} :: "
+        )
 
     @abstractmethod
     def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator) -> None:
@@ -63,18 +65,19 @@ class TimelineActor(ABC):
         return NotImplemented
 
     def set_log_func(self, log_func: LogFunction) -> None:
+        if not isinstance(log_func, LogFunction):
+            raise TypeError(
+                f"log_func is type {type(log_func)}. "
+                f"Should be subclass of {LogFunction}."
+            )
         self.parent_log_func = log_func
 
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
-
-        msg = f"{self.name} :: {msg}"
-
-        if self.parent_log_func is None:
-            print(f"{(os.linesep if new_line else '')}(ID:??) {msg}")
-        else:
-            self.parent_log_func(msg, new_line)
+        if new_line:
+            self.parent_log_func.new_line()
+        self.parent_log_func(msg)
 
     def __str__(self) -> str:
         """

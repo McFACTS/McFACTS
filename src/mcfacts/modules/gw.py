@@ -310,7 +310,7 @@ def gw_hardening(mass_1, mass_2, bin_ecc, bin_sep, bin_time_to_merge, flag_mergi
     new_bin_sep = np.zeros(array_length)
     new_bin_sep[~flag_not_merging] = bin_sep[~flag_not_merging]
     new_bin_sep[~merge_mask] = bin_sep[~merge_mask]
-    new_bin_sep[merge_mask] = sep_crit[merge_mask]
+    new_bin_sep[merge_mask] = unit_conversion.r_g_from_units(smbh_mass, sep_crit[merge_mask])
 
     new_flag_merging = np.zeros(array_length, dtype=np.int_)
     new_flag_merging[~flag_not_merging] = flag_merging[~flag_not_merging]

@@ -67,7 +67,7 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
         if key in static_settings:
             continue
 
-        if key is "settings_file":
+        if key == "settings_file":
             continue
 
         options = []

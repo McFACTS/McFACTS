@@ -12,14 +12,16 @@ import pandas as pd
 from mcfacts.inputs import settings_manager
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
-from mcfacts.objects.log import LogFunction
+from mcfacts.objects.log import LogFunction, PrintLogFunction
 
 
 class SnapshotHandler(ABC):
     def __init__(self, name: str, settings: SettingsManager = None):
         self.name = name
         self.settings = settings
-        self.parent_log_func: LogFunction = None
+        self.parent_log_func: LogFunction = PrintLogFunction(
+            prefix=f"(ID:??) {self.name} :: "
+        )
 
     @abstractmethod
     def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
@@ -38,18 +40,19 @@ class SnapshotHandler(ABC):
         return NotImplemented
 
     def set_log_func(self, log_func: LogFunction) -> None:
+        if not isinstance(log_func, LogFunction):
+            raise TypeError(
+                f"log_func is type {type(log_func)}. "
+                f"Should be subclass of {LogFunction}."
+            )
         self.parent_log_func = log_func
 
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
-
-        msg = f"{self.name} :: {msg}"
-
-        if self.parent_log_func is None:
-            print(f"{(os.linesep if new_line else '')}(ID:??) {msg}")
-        else:
-            self.parent_log_func(msg, new_line)
+        if new_line:
+            self.parent_log_func.new_line()
+        self.parent_log_func(msg)
 
     def __str__(self) -> str:
         return f"{self.name} ({type(self)})"

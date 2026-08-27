@@ -3,14 +3,10 @@ Interface with pAGN
 """
 import numpy as np
 import pagn.constants as ct
-
-from pagn import Thompson
-from pagn import Sirko
 import scipy.interpolate
-
-import mcfacts.utilities.unit_conversion
-
 from astropy import units as astropy_units
+from pagn import Sirko
+from pagn import Thompson
 
 from mcfacts.utilities import unit_conversion
 

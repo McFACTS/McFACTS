@@ -1,11 +1,11 @@
-"""Unit test for feedback.py"""
+"""Unit test for the feedback prescriptions in migration.py"""
 import numpy as np
 import pytest
 
-from mcfacts.inputs.ReadInputs import construct_disk_direct, construct_disk_pAGN
 import conftest as provider
+import mcfacts.modules.migration as feedback
 from conftest import InputParameterSet
-import mcfacts.modules.feedback as feedback
+from mcfacts.inputs.ReadInputs import construct_disk_pAGN
 
 disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, disk_dlog10surfdens_dlog10R_func, disk_dlog10temp_dlog10R_func, disk_dlog10pressure_dlog10R_func, disk_model_properties, bonus_structures = construct_disk_pAGN("sirko_goodman", 1.e8, 50000, 0.01, 1.0)
 

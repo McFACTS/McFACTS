@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
-import ast
-from importlib import resources as impresources
+
 from mcfacts.inputs import ReadInputs
-from mcfacts.inputs import data as mcfacts_input_data
-from mcfacts.physics.lum import shock_luminosity, shock_luminosity_opt
+from mcfacts.modules.merge import shock_luminosity, shock_luminosity_opt
+from mcfacts.utilities import unit_conversion
+
 
 # parse array out of the csv file
 def parse_array(cell):
@@ -53,13 +53,15 @@ def shock_lum(
     disk_density,
     v_kick
 ):
+    # The optimized version derives r_g internally, the original takes it as an argument
     original = bh_lum_shock = shock_luminosity(
         smbh_mass,
         mass_final,
         bin_orb_a,
         disk_aspect_ratio,
         disk_density,
-        v_kick)
+        v_kick,
+        unit_conversion.initialize_r_g(smbh_mass))
     optimized = bh_lum_shock = shock_luminosity_opt(
         smbh_mass,
         mass_final,
