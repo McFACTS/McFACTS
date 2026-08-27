@@ -40,7 +40,7 @@ class TimelineActor(ABC):
         self.name: str = name
         self.settings: SettingsManager = settings
         self.parent_log_func: LogFunction = PrintLogFunction(
-            preamble=f"(ID:??) {self.name} :: "
+            prefix=f"(ID:??) {self.name} :: "
         )
 
     @abstractmethod

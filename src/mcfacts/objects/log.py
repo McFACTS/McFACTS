@@ -25,9 +25,9 @@ class LogFunction(ABC):
             does what a given LogFunction should do when a new_line request
             is made)
         new: Return a new instance of the same kind of LogFunction with
-            a fresh preamble
+            a fresh prefix
         spawn: Return a new instance of the same kind of LogFunction which
-            concatenates the preamble given with the existing preamble
+            concatenates the prefix given with the existing prefix
     """
     @abstractmethod
     def __call__(self, msg: str, *args, **kwargs) -> None:
@@ -44,14 +44,14 @@ class LogFunction(ABC):
     def new(self, *args, **kwargs):
         """
         Return a new instance of the same kind of LogFunction with
-            a fresh preamble
+            a fresh prefix
         """
         raise NotImplementedError
     @abstractmethod
     def spawn(self, *args, **kwargs):
         """
         spawn: Return a new instance of the same kind of LogFunction which
-            concatenates the preamble given with the existing preamble
+            concatenates the prefix given with the existing prefix
         """
         raise NotImplementedError
 
@@ -59,34 +59,34 @@ class LogFunction(ABC):
 #### Print Log Function ####
 class PrintLogFunction(LogFunction):
     """A Log function which calls print"""
-    def __init__(self, preamble=""):
-        self._preamble = preamble
+    def __init__(self, prefix=""):
+        self._prefix = prefix
 
     @property
-    def preamble(self):
-        return self._preamble
+    def prefix(self):
+        return self._prefix
 
     def __call__(self, msg, *args, **kwargs):
         """Print some text, and accept print arguments"""
-        print(f"{self.preamble}{msg}", *args, **kwargs)
+        print(f"{self.prefix}{msg}", *args, **kwargs)
 
     def new_line(self):
         """Print a newline character"""
         print(os.linesep, end="")
 
-    def new(self, preamble=""):
-        """Return a new PrintLogFunction with a fresh preamble"""
-        return self.__class__(preamble=preamble)
-    def spawn(self, preamble=""):
-        """Return a new PrintLogFunction with an extended preamble"""
-        return self.__class__(preamble=self.preamble + preamble)
+    def new(self, prefix=""):
+        """Return a new PrintLogFunction with a fresh prefix"""
+        return self.__class__(prefix=prefix)
+    def spawn(self, prefix=""):
+        """Return a new PrintLogFunction with an extended prefix"""
+        return self.__class__(prefix=self.prefix + prefix)
 
 #### Print Log Function ####
 class ContextLogFunction(LogFunction):
     def __init__(
             self, 
             filename, 
-            preamble="",
+            prefix="",
             catch_stderr=False, 
             safety=False,
         ):
@@ -95,7 +95,7 @@ class ContextLogFunction(LogFunction):
         if safety:
             with open(self.filename, 'w-') as File:
                 pass
-        self._preamble = preamble
+        self._prefix = prefix
         self._catch_stderr = catch_stderr
 
     @property
@@ -103,8 +103,8 @@ class ContextLogFunction(LogFunction):
         return self._filename
         
     @property
-    def preamble(self):
-        return self._preamble
+    def prefix(self):
+        return self._prefix
 
     @property
     def catch_stderr(self):
@@ -124,24 +124,24 @@ class ContextLogFunction(LogFunction):
     # Call function
     def __call__(self, msg, *args, **kwargs):
         """Output some text, and accept print arguments"""
-        self._print(f"{self.preamble}{msg}", *args, **kwargs)
+        self._print(f"{self.prefix}{msg}", *args, **kwargs)
 
     def new_line(self):
         """Output a newline character"""
         self._print(os.linesep, end="")
 
-    def new(self, preamble=""):
-        """Return a new ContextLogFunction with a fresh preamble
+    def new(self, prefix=""):
+        """Return a new ContextLogFunction with a fresh prefix
             pointing at the same output file
         """
         return self.__class__(
             self.filename,
-            preamble=preamble,
+            prefix=prefix,
             catch_stderr=self.catch_stderr,
             safety=False, # By necessity
         )
-    def spawn(self, preamble=""):
-        """Return a new ContextLogFunction with an extended preamble
+    def spawn(self, prefix=""):
+        """Return a new ContextLogFunction with an extended prefix
             pointing at the same output file
         """
-        return self.new(self.preamble + preamble)
+        return self.new(self.prefix + prefix)

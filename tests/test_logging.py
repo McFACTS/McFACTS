@@ -16,14 +16,14 @@ from mcfacts.objects.log import PrintLogFunction, ContextLogFunction
 
 def test_print_log_function():
     # Define some data
-    preamble_1 = "(Alpha) :: "
-    preamble_2 = "(Bravo) :: "
+    prefix_1 = "(Alpha) :: "
+    prefix_2 = "(Bravo) :: "
     msg1 = "AAAA"
     msg2 = "BBBB"
     msg3 = "CCCC"
     msg4 = "DDDD"
     # Instantiate print_log_function
-    print_log = PrintLogFunction(preamble=preamble_1)
+    print_log = PrintLogFunction(prefix=prefix_1)
     # Open a temporary directory
     with tempfile.TemporaryDirectory() as wkdir:
         # logfile 
@@ -35,18 +35,18 @@ def test_print_log_function():
             print_log(msg1)
             # Skip a line
             print_log.new_line()
-            # Generate a new one with no preamble
+            # Generate a new one with no prefix
             print_new = print_log.new()
             # Print something
             print_new(msg2)
-            # Generate a new one with a different preamble
-            print_bravo = print_log.new(preamble=preamble_2)
+            # Generate a new one with a different prefix
+            print_bravo = print_log.new(prefix=prefix_2)
             # Print something
             print_bravo(msg3)
             # Spawn from print_log
-            print_concat_preamble = print_log.spawn(preamble=preamble_2)
+            print_concat_prefix = print_log.spawn(prefix=prefix_2)
             # Print something
-            print_concat_preamble(msg4)
+            print_concat_prefix(msg4)
 
         # Read the log and check the lines
         with open(logfile, "r") as F:
@@ -56,21 +56,21 @@ def test_print_log_function():
                 # Check lines 
                 # (I know there's probably a better way, but I don't care).
                 if i == 0:
-                    assert cleaned == preamble_1 + msg1
+                    assert cleaned == prefix_1 + msg1
                 elif i == 1:
                     assert cleaned == ""
                 elif i == 2:
                     assert cleaned == msg2
                 elif i == 3:
-                    assert cleaned == preamble_2 + msg3
+                    assert cleaned == prefix_2 + msg3
                 elif i == 4:
-                    assert cleaned == preamble_1 + preamble_2 + msg4
+                    assert cleaned == prefix_1 + prefix_2 + msg4
         # Pass!
 
 def test_context_log_function():
     # Define some data
-    preamble_1 = "(Alpha) :: "
-    preamble_2 = "(Bravo) :: "
+    prefix_1 = "(Alpha) :: "
+    prefix_2 = "(Bravo) :: "
     msg1 = "AAAA"
     msg2 = "BBBB"
     msg3 = "CCCC"
@@ -82,24 +82,24 @@ def test_context_log_function():
         # Instantiate context_log_function
         context_log = ContextLogFunction(
             logfile,
-            preamble=preamble_1,
+            prefix=prefix_1,
         )
         # Print something
         context_log(msg1)
         # Skip a line
         context_log.new_line()
-        # Generate a new one with no preamble
+        # Generate a new one with no prefix
         context_new = context_log.new()
         # Print something
         context_new(msg2)
-        # Generate a new one with a different preamble
-        context_bravo = context_log.new(preamble=preamble_2)
+        # Generate a new one with a different prefix
+        context_bravo = context_log.new(prefix=prefix_2)
         # Print something
         context_bravo(msg3)
         # Spawn from context_log
-        context_concat_preamble = context_log.spawn(preamble=preamble_2)
+        context_concat_prefix = context_log.spawn(prefix=prefix_2)
         # Print something
-        context_concat_preamble(msg4)
+        context_concat_prefix(msg4)
 
         # Read the log and check the lines
         with open(logfile, "r") as F:
@@ -109,15 +109,15 @@ def test_context_log_function():
                 # Check lines 
                 # (I know there's probably a better way, but I don't care).
                 if i == 0:
-                    assert cleaned == preamble_1 + msg1
+                    assert cleaned == prefix_1 + msg1
                 elif i == 1:
                     assert cleaned == ""
                 elif i == 2:
                     assert cleaned == msg2
                 elif i == 3:
-                    assert cleaned == preamble_2 + msg3
+                    assert cleaned == prefix_2 + msg3
                 elif i == 4:
-                    assert cleaned == preamble_1 + preamble_2 + msg4
+                    assert cleaned == prefix_1 + prefix_2 + msg4
 
 ######## Main ########
 def main():

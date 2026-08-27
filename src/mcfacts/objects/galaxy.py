@@ -19,7 +19,7 @@ class GalaxyPopulator(ABC):
         self.name: str = name
         self.settings: SettingsManager = settings
         self.parent_log_func: LogFunction = PrintLogFunction(
-            preamble=f"(ID:??) {self.name} :: "
+            prefix=f"(ID:??) {self.name} :: "
         )
 
     @abstractmethod
@@ -111,7 +111,7 @@ class Galaxy:
         # but when an actor performs, something can end up executing several "layers" away from the initial call.
         sys.setrecursionlimit(10000) # :'(
         self.parent_log_func = PrintLogFunction(
-            preamble=f"(ID:{self.galaxy_id}) ",
+            prefix=f"(ID:{self.galaxy_id}) ",
         )
 
     def save_state(self, timestep: int = None) -> None:
@@ -160,7 +160,7 @@ class Galaxy:
                 raise Exception(f"Galaxy populator with name {populator.name} already exist.")
 
             populator.set_log_func(self.parent_log_func.spawn(
-                    preamble=f"{populator.name} :: ",
+                    prefix=f"{populator.name} :: ",
                 ))
             galaxy_object_array: AGNObjectArray = populator.populate(agn_disk, self.random_generator)
 
@@ -218,7 +218,7 @@ class Galaxy:
                 self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.settings_finals == self.settings.settings_finals}")
 
                 actor.set_log_func(self.parent_log_func.spawn(
-                    preamble=f"{actor.name} :: ",
+                    prefix=f"{actor.name} :: ",
                 ))
                 actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)
 

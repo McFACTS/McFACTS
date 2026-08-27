@@ -20,7 +20,7 @@ class SnapshotHandler(ABC):
         self.name = name
         self.settings = settings
         self.parent_log_func: LogFunction = PrintLogFunction(
-            preamble=f"(ID:??) {self.name} :: "
+            prefix=f"(ID:??) {self.name} :: "
         )
 
     @abstractmethod
