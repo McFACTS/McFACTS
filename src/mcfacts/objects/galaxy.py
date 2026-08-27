@@ -8,7 +8,7 @@ from numpy.random import Generator
 from tqdm.auto import tqdm
 
 from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
-from mcfacts.objects.log import LogFunction
+from mcfacts.objects.log import LogFunction, PrintLogFunction
 from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
 from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet
 from mcfacts.objects.timeline import SimulationTimeline
@@ -18,25 +18,28 @@ class GalaxyPopulator(ABC):
     def __init__(self, name: str, settings: SettingsManager = SettingsManager()):
         self.name: str = name
         self.settings: SettingsManager = settings
-        self.parent_log_func: LogFunction = None
+        self.parent_log_func: LogFunction = PrintLogFunction(
+            prefix=f"(ID:??) {self.name} :: "
+        )
 
     @abstractmethod
     def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
         return NotImplemented
 
     def set_log_func(self, log_func: LogFunction) -> None:
+        if not isinstance(log_func, LogFunction):
+            raise TypeError(
+                f"log_func is type {type(log_func)}. "
+                f"Should be subclass of {LogFunction}."
+            )
         self.parent_log_func = log_func
 
     def log(self, msg: str, new_line: bool = False) -> None:
         if not self.settings.verbose:
             return
-
-        msg = f"{self.name} :: {msg}"
-
-        if self.parent_log_func is None:
-            print(f"{(os.linesep if new_line else '')}(ID:??) {msg}")
-        else:
-            self.parent_log_func(msg, new_line)
+        if new_line:
+            self.parent_log_func.new_line()
+        self.parent_log_func(msg)
 
     def __str__(self) -> str:
         """
@@ -106,7 +109,10 @@ class Galaxy:
 
         # Set the recursion limit higher so python doesn't scream at us. The timeline-actor framework does not do any recursion,
         # but when an actor performs, something can end up executing several "layers" away from the initial call.
-        sys.setrecursionlimit(10000)
+        sys.setrecursionlimit(10000) # :'(
+        self.parent_log_func = PrintLogFunction(
+            prefix=f"(ID:{self.galaxy_id}) ",
+        )
 
     def save_state(self, timestep: int = None) -> None:
         galaxy_id_str = f"gal{self.galaxy_id.zfill(2)}"
@@ -153,7 +159,9 @@ class Galaxy:
             if populator.name in self.filing_cabinet and not join_populations:
                 raise Exception(f"Galaxy populator with name {populator.name} already exist.")
 
-            populator.set_log_func(self.nocheck_log)
+            populator.set_log_func(self.parent_log_func.spawn(
+                    prefix=f"{populator.name} :: ",
+                ))
             galaxy_object_array: AGNObjectArray = populator.populate(agn_disk, self.random_generator)
 
             # In strict mode, check to make sure that we actually created some objects, otherwise throw an exception.
@@ -209,7 +217,9 @@ class Galaxy:
 
                 self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.settings_finals == self.settings.settings_finals}")
 
-                actor.set_log_func(self.nocheck_log)
+                actor.set_log_func(self.parent_log_func.spawn(
+                    prefix=f"{actor.name} :: ",
+                ))
                 actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)
 
             if self.settings.save_each_timestep:
@@ -222,11 +232,9 @@ class Galaxy:
         if self.settings.save_state:
             self.save_state()
 
-    def nocheck_log(self, msg: str, new_line: bool = True) -> None:
-        print(f"{(os.linesep if new_line else '')}(ID:{self.galaxy_id}) {msg}")
-
     def log(self, msg: str, new_line: bool = True) -> None:
         if not self.settings.verbose:
             return
-
-        self.nocheck_log(msg, new_line)
+        if new_line:
+            self.parent_log_func.new_line()
+        self.parent_log_func(msg)
