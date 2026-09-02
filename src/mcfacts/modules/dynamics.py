@@ -705,7 +705,7 @@ def circular_singles_encounters_prograde_sweep_optimized(
     disk_bh_pro_orb_ecc_crit,
     delta_energy_strong,
     disk_radius_outer,
-    rng_here
+    random
 ):
     # Find the e< crit_ecc. population. These are the (circularized) population that can form binaries.
     circ_prograde_population_indices = np.asarray(disk_bh_pro_orbs_ecc <= disk_bh_pro_orb_ecc_crit).nonzero()[0]
@@ -718,8 +718,8 @@ def circular_singles_encounters_prograde_sweep_optimized(
     if (circ_len == 0) or (ecc_len == 0):
         return disk_bh_pro_orbs_a, disk_bh_pro_orbs_ecc
 
-    eps_denom = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
-    chance_of_encounter = rng_here.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    eps_denom = random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
+    chance_of_encounter = random.uniform(size=(len(circ_prograde_population_indices), len(ecc_prograde_population_indices)))
 
 
     # insert helper fn here
@@ -906,7 +906,7 @@ def circular_singles_encounters_prograde_stars_optimized(
         delta_energy_strong_mu,
         delta_energy_strong_sigma,
         disk_radius_outer,
-        rng_here=rng):
+        random):
     """Adjust orb ecc due to encounters between 2 single circ pro stars.
 
     Parameters
@@ -997,7 +997,7 @@ def circular_singles_encounters_prograde_stars_optimized(
 
     # precompute per-population scalars 
     # (original: use start-of-timestep a and ecc for the geometric predicates)
-    disk_star_pro_radius_rg = r_g_from_units_optimized(
+    disk_star_pro_radius_rg = unit_conversion.r_g_from_units_optimized(
         smbh_mass, ((10 ** disk_star_pro_radius) * u.Rsun)
     ).value
 
@@ -1026,12 +1026,12 @@ def circular_singles_encounters_prograde_stars_optimized(
     epsilon = (
         disk_radius_outer
         * ((m_circ / (3.0 * (m_circ + smbh_mass))) ** (1.0 / 3.0))
-    )[:, None] * rng_here.uniform(size=(n_circ, n_ecc))
+    )[:, None] * random.uniform(size=(n_circ, n_ecc))
 
-    chance_of_enc = rng_here.uniform(size=(n_circ, n_ecc))
+    chance_of_enc = random.uniform(size=(n_circ, n_ecc))
 
     delta_energy_strong = np.exp(
-        rng_here.normal(
+        random.normal(
             loc=np.log(delta_energy_strong_mu),
             scale=np.log(1.0 + delta_energy_strong_sigma),
             size=(n_circ, n_ecc),
@@ -1532,6 +1532,7 @@ def circular_singles_encounters_prograde_star_bh_optimized(
         delta_energy_strong_mu,
         delta_energy_strong_sigma,
         disk_radius_outer,
+        random,
         ):
     """Adjust orb ecc due to encounters between single circ star and single ecc BH.
 
@@ -1634,7 +1635,7 @@ def circular_singles_encounters_prograde_star_bh_optimized(
                 np.array([]), np.array([]), np.array([]))
  
     # precompute per-population scalars (start-of-timestep snapshots)
-    disk_star_pro_radius_rg = r_g_from_units_optimized(
+    disk_star_pro_radius_rg = unit_conversion.r_g_from_units_optimized(
         smbh_mass, ((10 ** disk_star_pro_radius) * u.Rsun)
     ).value
  
@@ -1659,12 +1660,12 @@ def circular_singles_encounters_prograde_star_bh_optimized(
     epsilon_star = (
         disk_radius_outer
         * ((m_circ / (3.0 * (m_circ + smbh_mass))) ** (1.0 / 3.0))
-    )[:, None] * rng.uniform(size=(n_circ, n_ecc))
+    )[:, None] * random.uniform(size=(n_circ, n_ecc))
  
-    chance_of_enc = rng.uniform(size=(n_circ, n_ecc))
+    chance_of_enc = random.uniform(size=(n_circ, n_ecc))
  
     delta_energy_strong = np.exp(
-        rng.normal(
+        random.normal(
             loc=np.log(delta_energy_strong_mu),
             scale=np.log(1.0 + delta_energy_strong_sigma),
             size=(n_circ, n_ecc),
