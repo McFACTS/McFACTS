@@ -5,11 +5,7 @@ import pytest
 # McFACTS modules
 import conftest as provider
 from conftest import InputParameterSet
-from mcfacts.mcfacts_random_state import reset_random
-from mcfacts.physics import accretion
-
-# Set the seed using our test seed value to ensure values match expected results
-rng = reset_random(provider.TEST_SEED)
+from mcfacts.modules import accretion
 
 
 def setup_change_bh_mass_param():

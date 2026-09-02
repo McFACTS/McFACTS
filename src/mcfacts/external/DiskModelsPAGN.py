@@ -3,14 +3,13 @@ Interface with pAGN
 """
 import numpy as np
 import pagn.constants as ct
-
-from pagn import Thompson
-from pagn import Sirko
 import scipy.interpolate
-
-from mcfacts.physics import point_masses
-
 from astropy import units as astropy_units
+from pagn import Sirko
+from pagn import Thompson
+
+from mcfacts.utilities import unit_conversion
+
 
 class AGNGasDiskModel(object):
     def __init__(self, disk_type="Sirko", **kwargs):
@@ -156,7 +155,7 @@ class AGNGasDiskModel(object):
                                                                 self.disk_model.R,
                                                                 np.gradient(ptot)/np.gradient(self.disk_model.R),
                                                                 extrapolate=False)
-        disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(point_masses.si_from_r_g(
+        disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(unit_conversion.si_from_r_g(
             self.disk_model.Mbh * astropy_units.kg, x).value)
 
         # Generate disk Omega interpolator function

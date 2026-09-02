@@ -1,0 +1,314 @@
+import configparser
+import os
+import uuid
+from abc import ABC, abstractmethod
+from os import PathLike
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+from mcfacts.inputs import settings_manager
+from mcfacts.inputs.settings_manager import SettingsManager
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
+from mcfacts.objects.log import LogFunction, PrintLogFunction
+
+
+class SnapshotHandler(ABC):
+    def __init__(self, name: str, settings: SettingsManager = None):
+        self.name = name
+        self.settings = settings
+        self.parent_log_func: LogFunction = PrintLogFunction(
+            prefix=f"(ID:??) {self.name} :: "
+        )
+
+    @abstractmethod
+    def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
+        return NotImplemented
+
+    @abstractmethod
+    def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> Any:
+        return NotImplemented
+
+    @abstractmethod
+    def save_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, settings: SettingsManager = None):
+        return NotImplemented
+
+    @abstractmethod
+    def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
+        return NotImplemented
+
+    def set_log_func(self, log_func: LogFunction) -> None:
+        if not isinstance(log_func, LogFunction):
+            raise TypeError(
+                f"log_func is type {type(log_func)}. "
+                f"Should be subclass of {LogFunction}."
+            )
+        self.parent_log_func = log_func
+
+    def log(self, msg: str, new_line: bool = False) -> None:
+        if not self.settings.verbose:
+            return
+        if new_line:
+            self.parent_log_func.new_line()
+        self.parent_log_func(msg)
+
+    def __str__(self) -> str:
+        return f"{self.name} ({type(self)})"
+
+
+class TxtSnapshotHandler(SnapshotHandler):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Text Snapshot Handler" if name is None else name, settings)
+
+    @staticmethod
+    def get_fully_qualified_type(obj):
+        typ = type(obj)
+
+        return typ.__name__ if typ.__module__ == 'builtins' else f"{typ.__module__}.{typ.__name__}"
+
+    def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
+        agn_objects: dict[str, AGNObjectArray] = filing_cabinet.agn_objects
+        everything_else: dict[str, Any] = filing_cabinet.everything_else
+
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+
+        # Handle array objects that exist in the filing cabinet
+        for array_name, object_array in agn_objects.items():
+            final_path = os.path.join(directory, file_name + f"_{array_name}.txt")
+            super_dict = object_array.get_super_dict()
+
+            keys = super_dict.keys()
+            type_array = []
+            spacing_array = []
+
+            for key in keys:
+                values = super_dict[key]
+
+                type_str = f"numpy.{values.dtype}" if len(values) == 0 else f"{self.get_fully_qualified_type(values[0])}"
+                final_type_str = f"{key}::{type_str}"
+                type_array.append(final_type_str)
+
+                if len(values) == 0:
+                    spacing_array.append(len(final_type_str))
+                else:
+                    longest = max([str(x) for x in values], key=len)
+                    spacing_array.append(max(len(longest), len(final_type_str)) + 1)
+
+            header = "".join(
+                f"{str(type_array[i]) :<{spacing_array[i]}}" for i, key in enumerate(super_dict.keys())
+            )
+
+            np.savetxt(final_path, np.column_stack(tuple(super_dict.values())), fmt=[f"%-{space - 1}s" for space in spacing_array], header=header, comments='')
+
+        # Handle the 'everything else' dictionary stored in the filing cabinet
+        if len(everything_else) == 0:
+            return
+
+        everything_else_path = os.path.join(directory, file_name + "_everything_else.txt")
+
+        temp_keys = list(everything_else.keys())
+        temp_values = list(everything_else.values())
+        temp_types = list(self.get_fully_qualified_type(x) for x in everything_else.values())
+        temp_array = np.column_stack(tuple([temp_keys, temp_values, temp_types]))
+
+        everything_else_header = "".join(
+            f"{key:<{(37 if key.startswith('unique_id') else 26)}}"
+            for i, key in enumerate(["key", "value", "type"])
+        )
+
+        np.savetxt(everything_else_path, temp_array, fmt='%-25s', header=everything_else_header, comments='')
+
+
+    def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> dict:
+        directory = Path(directory)
+
+        if not directory.exists():
+            raise FileNotFoundError(f"Directory not found: {directory}")
+
+        agn_objects = dict()
+        everything_else = dict() # TODO: Handle everything else dictionary
+
+        for file in directory.iterdir():
+            if not file.is_file():
+                continue
+            if not file.name.startswith(f"{file_name}_"):
+                continue
+            if not file.name.endswith(".txt"):
+                continue
+
+            array_name = file.name[len(file_name + "_"):].rstrip(".txt")
+
+            if not array_name:
+                continue
+
+            try:
+                data = pd.read_csv(file, sep=r"\s+", dtype=str, engine='python')
+            except Exception as ex:
+                print(f"Failed to load {file}: {ex}")
+                continue
+
+            if len(data) == 0:
+                continue
+
+            column_dict = dict()
+
+            for series_name, series in data.items():
+                key, value = str(series_name).split('::')
+
+                if value == "uuid.UUID":
+                    array = np.array([uuid.UUID(v) for v in series], dtype=uuid.UUID)
+                elif value.startswith("numpy."):
+                    array = np.array(series, np.dtype(value.split('.')[1]))
+                else:
+                    array = np.array(series)
+
+                column_dict[key] = array
+
+            agn_objects[array_name] = column_dict
+
+        return agn_objects
+
+
+    def save_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, settings: SettingsManager = None):
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+
+        everything_else_path = os.path.join(directory, file_name + ".txt")
+
+        temp_keys = list(settings.settings_finals.keys())
+        temp_values = list(settings.settings_finals.values())
+        temp_types = list(self.get_fully_qualified_type(x) for x in settings.settings_finals.values())
+        temp_array = np.column_stack(tuple([temp_keys, temp_values, temp_types]))
+
+        spacing_array = []
+
+        longest = max([str(x) for x in temp_keys], key=len)
+        spacing_array.append(len(longest) + 1)
+
+        longest = max([str(x) for x in temp_values], key=len)
+        spacing_array.append(len(longest) + 1)
+
+        longest = max([str(x) for x in temp_types], key=len)
+        spacing_array.append(len(longest) + 1)
+
+        settings_header = "".join(
+            f"{key:<{spacing_array[i]}}"
+            for i, key in enumerate(["key", "value", "type"])
+        )
+
+        np.savetxt(everything_else_path, temp_array, fmt=[f"%-{space - 1}s" for space in spacing_array], header=settings_header, comments='')
+
+
+    def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
+        final_path = os.path.join(directory, file_name + ".txt")
+
+        if file_name.lower().endswith(".txt"):
+            final_path = os.path.join(directory, file_name)
+
+        data = np.genfromtxt(final_path, skip_header=1, dtype=str)
+
+        settings = {}
+
+        for row in data:
+            name = str(row[0])
+            value = str(row[1])
+            type_str = str(row[2])
+
+            if type_str == "int":
+                settings[name] = int(value)
+            elif type_str == "float":
+                settings[name] = float(value)
+            elif type_str == "str":
+                settings[name] = str(value)
+            elif type_str == "bool":
+                settings[name] = value  # Let SettingsManager._cast_override handle bool parsing
+            else:
+                raise TypeError(f"Unknown type '{type_str}' for setting '{name}'")
+
+        return SettingsManager(settings)
+
+
+class IniSnapshotHandler(SnapshotHandler):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("Ini Snapshot Handler" if name is None else name, settings)
+
+    def save_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike, filing_cabinet: FilingCabinet):
+        raise NotImplementedError("IniSnapshotHandler does not support saving FilingCabinets")
+
+    def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> Any:
+        raise NotImplementedError("IniSnapshotHandler does not support loading FilingCabinets")
+
+    def save_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike,
+                      settings: SettingsManager = None):
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+
+        if file_name.lower().endswith(".ini"):
+            final_path = os.path.join(directory, file_name)
+        else:
+            final_path = os.path.join(directory, file_name + ".ini")
+
+        name_to_category = {prop.name: prop.category for prop in settings_manager.DEFAULT_SETTINGS}
+
+        config = configparser.ConfigParser()
+
+        # Write all standard settings, grouped by category
+        for name, value in settings.settings_finals.items():
+            category = name_to_category.get(name, "custom")
+            if not config.has_section(category):
+                config.add_section(category)
+            config.set(category, name, str(value))
+
+        # Write any custom categories that aren't in settings_finals
+        standard_categories = {prop.category for prop in settings_manager.DEFAULT_SETTINGS}
+        for category, proxy in settings.categories.items():
+            if category in standard_categories:
+                continue
+            if not config.has_section(category):
+                config.add_section(category)
+            for name, value in proxy._props.items():
+                config.set(category, name, str(value))
+
+        with open(final_path, "w") as f:
+            config.write(f)
+
+        self.log(f"Saved settings to {final_path}")
+
+    def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
+        if file_name.lower().endswith(".ini"):
+            final_path = os.path.join(directory, file_name)
+        else:
+            final_path = os.path.join(directory, file_name + ".ini")
+
+        if not Path(final_path).exists():
+            raise FileNotFoundError(f"Settings file not found: {final_path}")
+
+        config = configparser.ConfigParser()
+        config.read(final_path)
+
+        standard_setting_names = {prop.name for prop in settings_manager.DEFAULT_SETTINGS}
+        standard_categories = {prop.category for prop in settings_manager.DEFAULT_SETTINGS}
+
+        settings_overrides = {}
+        custom_categories = {}
+
+        for section in config.sections():
+            if section in standard_categories:
+                # Treat standard sections normally, by passing values into init fields
+                for name, value in config[section].items():
+                    if name in standard_setting_names:
+                        settings_overrides[name] = value
+            else:
+                # Save custom section for later to be loaded with method
+                custom_categories[section] = dict(config[section].items())
+
+        print(settings_overrides)
+        manager = SettingsManager(settings_overrides)
+
+        for category, props in custom_categories.items():
+            manager.add_custom_category(category, props)
+
+        return manager

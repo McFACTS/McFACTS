@@ -1,11 +1,9 @@
+import astropy.units as u
 import numpy as np
 import pandas as pd
-import ast
-from importlib import resources as impresources
-from mcfacts.inputs import ReadInputs
-from mcfacts.inputs import data as mcfacts_input_data
-from mcfacts.physics.migration import torque_mig_timescale, torque_mig_timescale_optimized
-import astropy.units as u
+
+from mcfacts.modules.migration import torque_mig_timescale, torque_mig_timescale_optimized
+
 
 # parse array out of the csv file
 def parse_array(cell):

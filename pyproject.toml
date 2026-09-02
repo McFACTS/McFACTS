@@ -70,6 +70,8 @@ dependencies = [
     "astropy",
     "pandas",
     "pagn",
+    "tqdm",
+    "typing-extensions",
     "joblib>=1.4.2",
     "scikit_learn>=1.5.2",
     "mcfast==0.1.8",
@@ -80,3 +82,6 @@ dynamic = [ "version" ]
 
 [tool.pytest.ini_options]
 pythonpath = "src"
+
+[project.scripts]
+mcfacts = "mcfacts.mcfacts:main"
