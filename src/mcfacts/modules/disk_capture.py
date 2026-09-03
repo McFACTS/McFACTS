@@ -871,7 +871,7 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
 
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
 
-        bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
+        bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw_optimized(
             1, sm.disk_radius_capture_outer, sm.disk_inner_stable_circ_orb,
             sm.smbh_mass, sm.nsc_radius_crit, sm.nsc_density_index_inner,
             sm.nsc_density_index_outer, random_generator,

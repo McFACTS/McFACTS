@@ -1129,7 +1129,7 @@ def main():
                     opts.disk_bh_pro_orb_ecc_crit,
                     opts.delta_energy_strong_mu,
                     opts.disk_radius_outer,
-                    rng_here=rng
+                    random=rng
                 )
 
                 # Star-star encounters

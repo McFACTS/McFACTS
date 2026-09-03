@@ -191,7 +191,7 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius, r_g_in_meters):
     time_gw_normalization = peters.time_of_orbital_shrinkage(
         smbh_mass * u.solMass,
         bin_mass_ref * u.solMass,
-        unit_conversion.si_from_r_g(smbh_mass * u.solMass, inner_disk_outer_radius, r_g_defined=r_g_in_meters),
+        unit_conversion.si_from_r_g_optimized(smbh_mass * u.solMass, inner_disk_outer_radius, r_g_defined=r_g_in_meters),
         0 * u.m,
     )
     return time_gw_normalization.si.value
@@ -286,13 +286,14 @@ def gw_hardening(mass_1, mass_2, bin_ecc, bin_sep, bin_time_to_merge, flag_mergi
     # overall ecc factor = ecc_factor_1/ecc_factor_2
     ecc_factor = ecc_factor_1 / ecc_factor_2
 
-    sep_crit = (unit_conversion.r_schwarzschild_of_m(mass_1) +
-                unit_conversion.r_schwarzschild_of_m(mass_2))
+    # sep_crit = (unit_conversion.r_schwarzschild_of_m(mass_1) +
+    #             unit_conversion.r_schwarzschild_of_m(mass_2))
+    sep_crit = (unit_conversion.r_schwarzschild_of_m_optimized(mass_1+mass_2))
 
     time_to_merger_gw = (peters.time_of_orbital_shrinkage(
         mass_1[flag_not_merging] * u.Msun,
         mass_2[flag_not_merging] * u.Msun,
-        unit_conversion.si_from_r_g(smbh_mass, bin_sep[flag_not_merging], r_g_defined=r_g_in_meters),
+        unit_conversion.si_from_r_g_optimized(smbh_mass, bin_sep[flag_not_merging], r_g_defined=r_g_in_meters),
         sep_final=sep_crit[flag_not_merging]
     ) * ecc_factor).value
 
@@ -309,7 +310,7 @@ def gw_hardening(mass_1, mass_2, bin_ecc, bin_sep, bin_time_to_merge, flag_mergi
     new_bin_sep = np.zeros(array_length)
     new_bin_sep[~flag_not_merging] = bin_sep[~flag_not_merging]
     new_bin_sep[~merge_mask] = bin_sep[~merge_mask]
-    new_bin_sep[merge_mask] = unit_conversion.r_g_from_units(smbh_mass, sep_crit[merge_mask])
+    new_bin_sep[merge_mask] = unit_conversion.r_g_from_units_optimized(smbh_mass, sep_crit[merge_mask])
 
     new_flag_merging = np.zeros(array_length, dtype=np.int_)
     new_flag_merging[~flag_not_merging] = flag_merging[~flag_not_merging]
@@ -335,7 +336,7 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
         gw_tracked_ids = blackholes_binary.unique_id[gw_tracked_mask]
 
         if gw_tracked_ids.size > 0:
-            bbh_char_strain, bbh_gw_strain, bbh_gw_freq = peters.gw_strain_freq(mass_1=blackholes_binary.get_attribute("mass", gw_tracked_ids),
+            bbh_char_strain, bbh_gw_strain, bbh_gw_freq = peters.gw_strain_freq_optimized(mass_1=blackholes_binary.get_attribute("mass", gw_tracked_ids),
                                                         mass_2=blackholes_binary.get_attribute("mass_2", gw_tracked_ids),
                                                         obj_sep=blackholes_binary.get_attribute("bin_sep", gw_tracked_ids),
                                                         timestep_duration_yr=timestep_length,
@@ -360,7 +361,7 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
             filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, blackholes_gw)
 
         blackholes_binary.gw_char_strain[~gw_tracked_mask], blackholes_binary.gw_freq[~gw_tracked_mask], blackholes_binary.gw_strain[~gw_tracked_mask] = (
-            peters.gw_strain_freq(
+            peters.gw_strain_freq_optimized(
                 mass_1=blackholes_binary.mass[~gw_tracked_mask],
                 mass_2=blackholes_binary.mass_2[~gw_tracked_mask],
                 obj_sep=blackholes_binary.bin_sep[~gw_tracked_mask],
@@ -409,7 +410,7 @@ class InnerBlackHoleDynamics(TimelineActor):
         zero_strain_mask = inner_bh.gw_strain == 0
         inner_bh.gw_strain[zero_strain_mask] = 9.e-7
 
-        char_strain, strain, nu_gw = peters.gw_strain_freq(
+        char_strain, strain, nu_gw = peters.gw_strain_freq_optimized(
             mass_1=sm.smbh_mass,
            mass_2=inner_bh.mass,
            obj_sep=inner_bh.orb_a,

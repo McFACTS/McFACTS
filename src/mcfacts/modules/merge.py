@@ -1208,7 +1208,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             )
         else:
             bh_spin_merged = bh_spin_merged
-        bh_v_kick = analytical_kick_velocity(
+        bh_v_kick = analytical_kick_velocity_optimized(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
@@ -1263,16 +1263,15 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
     else:
         raise ValueError(f"Invalid option: flag_use_surrogate = {flag_use_surrogate}")
 
-    bh_lum_shock = shock_luminosity(
+    bh_lum_shock = shock_luminosity_opt(
         smbh_mass,
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
         disk_aspect_ratio,
         disk_density,
-        bh_v_kick,
-        r_g_in_meters=r_g_in_meters)
+        bh_v_kick)
 
-    bh_lum_jet = jet_luminosity(
+    bh_lum_jet = jet_luminosity_opt(
         bh_mass_merged,
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
         disk_density,
@@ -1401,7 +1400,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                     bh_spin_merged
                 )
 
-            bh_v_kick = analytical_kick_velocity(
+            bh_v_kick = analytical_kick_velocity_optimized(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
@@ -1468,17 +1467,16 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         else:
             raise ValueError(f"Invalid option: flag_use_surrogate = {sm.flag_use_surrogate}")
 
-        bh_lum_shock = shock_luminosity(
+        bh_lum_shock = shock_luminosity_opt(
             sm.smbh_mass,
             bh_mass_merged,
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
             agn_disk.disk_aspect_ratio,
             agn_disk.disk_density,
-            bh_v_kick,
-            sm.r_g_in_meters)
+            bh_v_kick)
 
 
-        bh_lum_jet = jet_luminosity(
+        bh_lum_jet = jet_luminosity_opt(
             bh_mass_merged,
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
             agn_disk.disk_density,
@@ -1486,9 +1484,9 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             bh_v_kick,
             agn_disk.disk_sound_speed)
 
-        bh_orb_ecc_merged = merged_orb_ecc(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
+        bh_orb_ecc_merged = merged_orb_ecc_optimized(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
                                            np.full(bh_binary_id_num_merger.size, bh_v_kick),
-                                           sm.smbh_mass, sm.r_g_in_meters)
+                                           sm.smbh_mass)
 
         blackholes_merged = blackholes_binary.copy()
 
@@ -1517,7 +1515,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
 
         blackholes_merged.bin_sep = 2 * (blackholes_merged.mass + blackholes_merged.mass_2) / sm.smbh_mass
 
-        char_strain, gw_strain, gw_freq = peters.gw_strain_freq(mass_1=blackholes_merged.mass,
+        char_strain, gw_strain, gw_freq = peters.gw_strain_freq_optimized(mass_1=blackholes_merged.mass,
                                                     mass_2=blackholes_merged.mass_2,
                                                     obj_sep=blackholes_merged.bin_sep,
                                                     timestep_duration_yr=-1,
@@ -1596,7 +1594,7 @@ class ProcessEMRIMergers(TimelineActor):
 
         emris.gw_freq[emris.gw_freq == -1] = 9.e-7
 
-        char_strain, strain, nu_gw = peters.gw_strain_freq(mass_1=sm.smbh_mass,
+        char_strain, strain, nu_gw = peters.gw_strain_freq_optimized(mass_1=sm.smbh_mass,
                                                            mass_2=emris.mass,
                                                            obj_sep=emris.orb_a,
                                                            timestep_duration_yr=timestep_length,

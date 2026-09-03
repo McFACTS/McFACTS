@@ -223,11 +223,12 @@ def gw_strain_freq_optimized(mass_1, mass_2, obj_sep, timestep_duration_yr, old_
 
     """
 
-    if old_gw_freq == -1:
-        old_gw_freq = np.full(len(mass_1), -1.0);
+    if type(old_gw_freq) == int:
+        if old_gw_freq == -1:
+            old_gw_freq = np.full(len(mass_1), -1.0);
 
     # print(type(old_gw_freq[0:10]))
-    (char_strain, nu_gw) = gw_strain_helper(
+    (char_strain, strain, nu_gw) = gw_strain_helper(
         mass_1,
         mass_2,
         obj_sep,
@@ -238,7 +239,7 @@ def gw_strain_freq_optimized(mass_1, mass_2, obj_sep, timestep_duration_yr, old_
         flag_include_old_gw_freq == 1
     )
 
-    return (char_strain, nu_gw)
+    return (char_strain, strain, nu_gw)
 
 
 def gw_strain_freq_no_prior(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_redshift, final_lvk=False):
