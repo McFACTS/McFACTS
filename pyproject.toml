@@ -74,7 +74,7 @@ dependencies = [
     "typing-extensions",
     "joblib>=1.4.2",
     "scikit_learn>=1.5.2",
-    "mcfast==0.1.9",
+    "mcfast==0.1.10",
 ]
 
 #TODO: Add description and other dynamically defined variables created in setup.py
