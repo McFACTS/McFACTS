@@ -139,6 +139,7 @@ Steps to setup a pull request to `main`:
 
 6. Copy everything below Changelog and add it to the top of CHANGELOG.md, including a header with a link to this PR. Commit that file to the staging branch
 7. Open the PR as ready for review!
+8. After the PR has been merged, the admins will create a new tag for the version and generate a release.
 
 
 Extending McFACTS with other languages
