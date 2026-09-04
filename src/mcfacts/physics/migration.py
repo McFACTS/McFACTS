@@ -7,7 +7,7 @@ import astropy.constants as const
 import astropy.units as u
 import scipy.interpolate
 from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.point_masses import si_from_r_g, si_from_r_g_optimized
+from mcfacts.physics.point_masses import si_from_r_g_optimized
 from mcfacts.physics.disk_capture import M_SUN_KG
 import scipy
 from mcfast import torque_mig_timescale_helper 

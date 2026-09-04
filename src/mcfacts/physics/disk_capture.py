@@ -5,7 +5,7 @@ import numpy as np
 import astropy.constants as const
 import astropy.units as u
 from mcfacts.mcfacts_random_state import rng
-from mcfacts.physics.point_masses import si_from_r_g, si_from_r_g_optimized
+from mcfacts.physics.point_masses import si_from_r_g_optimized
 from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 M_SUN_KG = u.Msun.to(u.kg)

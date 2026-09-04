@@ -810,7 +810,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")
         )
         
         bh_mass_1_20Hz = np.zeros(bh_binary_id_num_merger.size)
