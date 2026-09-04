@@ -208,13 +208,13 @@ class AGNObjectArray(ABC):
             - Updates all attributes in the superclass attribute list to reflect the retained entries.
             - If no entries match the given unique IDs, no changes are made, and the method returns `False`.
         """
-        remove_mask = np.isin(self.unique_id, unique_id)
+        keep_mask = np.isin(self.unique_id, unique_id)
 
-        if len(remove_mask) == 0:
+        if len(keep_mask) == 0:
             return False
 
         for attribute_name, attribute_value in self.get_super_dict().items():
-            setattr(self, attribute_name, attribute_value[remove_mask])
+            setattr(self, attribute_name, attribute_value[keep_mask])
 
         self.consistency_check()
 
