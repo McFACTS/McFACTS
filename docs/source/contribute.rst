@@ -96,12 +96,14 @@ Pull Requests to `main`
 Generating a pull request to `main` should be done when it is time to make a new stable branch of McFACTS.
 
 Reasons to create a pull request to main:
+
 #. To create a version of McFACTS with a tag and a release in order to cite the code.
 #. To preserve a feature as stable.
 #. To support downstream users of McFACTS.
 #. For housekeeping, when a stable version hasn't been preserved for a while.
 
 Steps to setup a pull request to `main`:
+
 #. Create a staging branch with the updated version number; E.g. `staging-0.4.1`.
 #. Update the `VERSION` in the Makefile, run `make version`, and commit the updated files to the staging branch.
 #. On Github, navigate to `<https://github.com/McFACTS/McFACTS/pulls>`_ and search: `is:pr is:merged base:main <https://github.com/McFACTS/McFACTS/pulls?q=is%3Apr+is%3Amerged+base%3Amain>_` to find the most recent previous PR to `main`. Look at the changelog to identify the two most recent PRs mentioned in that changelog.
