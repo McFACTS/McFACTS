@@ -110,7 +110,7 @@ Steps to setup a pull request to `main`:
 #. Next, navigate to `<https://github.com/McFACTS/McFACTS/pulls>`_ and search: `is:pr is:merged base:main-dev <https://github.com/McFACTS/McFACTS/pulls?q=is%3Apr+is%3Amerged+base%3Amain-dev>_`. This will want a list all of the PRs which have been merged into main-dev. You want to find any PRs which are more new than either of the two most recent PRs mentioned in the changelog. You can create a link to each PR by right clicking from the search screen and selecting 'copy link'.
 #. Create the draft pull request and follow the format:
 
-.. code::block
+.. code::block::
 
    ### McFACTS Version `X.Y.Z`
 
