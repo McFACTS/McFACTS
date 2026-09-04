@@ -1,4 +1,5 @@
 import uuid
+from collections import Counter
 from abc import ABC, abstractmethod
 import copy
 from typing import Any, TypeVar, Type
@@ -785,32 +786,25 @@ class FilingCabinet:
 
 
     def consistency_check(self):
-        arrs_to_check = []
+        seen: dict[uuid.UUID, str] = {}
+
         for key, arr in self.agn_objects.items():
-            if key not in self.ignore_check:
-                arrs_to_check.append((key, arr.unique_id))
+            if key in self.ignore_check:
+                continue
 
-        arrs_len = len(arrs_to_check)
+            ids = set(arr.unique_id)
 
-        sets_to_check = [(key, set(arr)) for (key, arr) in arrs_to_check]
+            if len(ids) != len(arr.unique_id):
+                counts = Counter(arr.unique_id)
+                dupes = [uid for uid, n in counts.items() if n > 1]
+                raise RuntimeError(
+                    f"A duplicate entry has been found in the filing cabinet. {dupes} appears more than once in: {key}")
 
-        # check that the length of each array -> set doesn't change, 
-        # i.e. there weren't duplicates within individual arrays
-        for i, (key, s) in enumerate(sets_to_check):
-            if len(arrs_to_check[i][1]) != len(s):
-                raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. Found in: {key}. Len of the array is {len(arrs_to_check[i][1])}, len of the set is {len(s)}")
-            
-        # take pairwise intersections of each one
-        start = 1
-        for i in range(arrs_len-1):
-            for j in range(start, arrs_len):
-                key_i, set_i = sets_to_check[i]
-                key_j, set_j = sets_to_check[j]
-                intersection = set_i.intersection(set_j)
-                if intersection:
-                    raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. {intersection} Found in: {key_i, key_j}")
-
-            start+=1
+            for uid in ids:
+                if uid in seen:
+                    raise RuntimeError(
+                        f"A duplicate entry has been found in the filing cabinet. {uid} Found in: {[seen[uid], key]}")
+                seen[uid] = key
 
     def update_time(self, new_time: float):
         for key, value in self.agn_objects.items():
