@@ -131,23 +131,15 @@ def main():
     # With the parsed arguments, create a final settings manager including the file defaults and any CLI overrides.
     settings = SettingsManager(vars(inputs))
 
-    if inputs.subcommand == "run":
+    if inputs.subcommand == "run" or inputs.subcommand == "rp":
         if inputs.enable_profiling:
-            cProfile.runctx('simulation.main(settings)', globals(), locals(), filename=inputs.profiling_file)
-        else:
-            simulation.main(settings)
-        return
-
-    if inputs.subcommand == "plot":
-        fiducial_plots.main(settings)
-        return
-
-    if inputs.subcommand == "rp":
-        if inputs.enable_profiling:
-            cProfile.runctx('simulation.main(settings)', globals(), locals(), filename=inputs.profiling_file)
+            prof = cProfile.Profile()
+            prof.runcall(simulation.main, settings)
+            prof.dump_stats(inputs.profiling_file)
         else:
             simulation.main(settings)
 
+    if inputs.subcommand == "plot" or inputs.subcommand == "rp":
         fiducial_plots.main(settings)
         return
 
