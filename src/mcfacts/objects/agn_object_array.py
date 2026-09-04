@@ -786,16 +786,27 @@ class FilingCabinet:
 
 
     def consistency_check(self):
+        arrs = [(k, a.unique_id) for k, a in self.agn_objects.items() if k not in self.ignore_check]
+
+        total = 0
+        merged = set()
+
+        for _, arr in arrs:
+            total += len(arr)
+            merged.update(arr)
+
+        if len(merged) == total:
+            # early return, no duplicates
+            return
+
+        # a duplicate, let's look for it
         seen: dict[uuid.UUID, str] = {}
 
-        for key, arr in self.agn_objects.items():
-            if key in self.ignore_check:
-                continue
+        for key, arr in arrs:
+            ids = set(arr)
 
-            ids = set(arr.unique_id)
-
-            if len(ids) != len(arr.unique_id):
-                counts = Counter(arr.unique_id)
+            if len(ids) != len(arr):
+                counts = Counter(arr)
                 dupes = [uid for uid, n in counts.items() if n > 1]
                 raise RuntimeError(
                     f"A duplicate entry has been found in the filing cabinet. {dupes} appears more than once in: {key}")
@@ -803,8 +814,9 @@ class FilingCabinet:
             for uid in ids:
                 if uid in seen:
                     raise RuntimeError(
-                        f"A duplicate entry has been found in the filing cabinet. {uid} Found in: {[seen[uid], key]}")
+                        f"A duplicate entry has been found in the filing cabinet. {uid} Found in: {self.list_occurrence(uid)}")
                 seen[uid] = key
+
 
     def update_time(self, new_time: float):
         for key, value in self.agn_objects.items():
