@@ -141,8 +141,6 @@ def main():
 
     if inputs.subcommand == "plot" or inputs.subcommand == "rp":
         fiducial_plots.main(settings)
-        return
-
 
 if __name__ == "__main__":
     main()
