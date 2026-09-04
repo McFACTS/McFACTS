@@ -1355,7 +1355,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
 
             # Timescale on which migration happens based on overall torque
-            torque_mig_timescales_bh = torque_mig_timescale(
+            torque_mig_timescales_bh = torque_mig_timescale_optimized(
                 sm.smbh_mass,
                 blackholes_array.orb_a,
                 blackholes_array.mass,
@@ -1393,7 +1393,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                                         3 * sm.disk_inner_stable_circ_orb)
 
         delta_distance = np.abs(new_orb_a_bh - blackholes_array.orb_a)
-        delta_distance_meters = unit_conversion.si_from_r_g(sm.smbh_mass, delta_distance, r_g_defined=sm.r_g_in_meters)
+        delta_distance_meters = unit_conversion.si_from_r_g_optimized(sm.smbh_mass, delta_distance, r_g_defined=sm.r_g_in_meters)
         blackholes_array.migration_velocity = (delta_distance_meters / (timestep_length * u.yr).to(u.s)).value
 
         blackholes_array.orb_a = new_orb_a_bh
@@ -1540,7 +1540,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                         disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-0.97)
                         disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
 
-                torque_mig_timescales_bh = torque_mig_timescale(
+                torque_mig_timescales_bh = torque_mig_timescale_optimized(
                     sm.smbh_mass,
                     blackholes_binary.bin_orb_a,
                     blackholes_binary.mass + blackholes_binary.mass_2,

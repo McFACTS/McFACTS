@@ -39,6 +39,7 @@ def gw_strain(
     flag_include_old_gw_freq):
 
     # The original returns the intermediate strain as well, the optimized version does not
+    # Now we do! -Nico
     char_strain_orig, strain_orig, nu_gw_orig = gw_strain_freq(
         mass_1,
         mass_2,
@@ -50,7 +51,7 @@ def gw_strain(
         flag_include_old_gw_freq
     )
 
-    char_strain_opt, nu_gw_opt = gw_strain_freq_optimized(
+    char_strain_opt, strain_opt, nu_gw_opt = gw_strain_freq_optimized(
         mass_1,
         mass_2,
         obj_sep,
@@ -62,6 +63,7 @@ def gw_strain(
     )
 
     assert(np.allclose(char_strain_orig, char_strain_opt, rtol=1e-6))
+    assert(np.allclose(strain_orig, strain_opt, rtol=1e-6))
     assert(np.allclose(nu_gw_orig, nu_gw_opt, rtol=1e-8))
 
 def test_gw_strain():
