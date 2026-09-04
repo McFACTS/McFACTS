@@ -773,11 +773,11 @@ class FilingCabinet:
     def list_occurrence(self, unique_id: uuid.UUID) -> list[str]:
         occurrence: list[str] = list()
 
-        for key, value in self.agn_objects.items():
+        for key, arr in self.agn_objects.items():
             if key in self.ignore_check:
                 continue
 
-            for entry in value.unique_id:
+            for entry in arr.unique_id:
                 if unique_id == entry:
                     occurrence.append(key)
 
@@ -785,16 +785,32 @@ class FilingCabinet:
 
 
     def consistency_check(self):
-        for key, value in self.agn_objects.items():
-            if key in self.ignore_check:
-                continue
+        arrs_to_check = []
+        for key, arr in self.agn_objects.items():
+            if key not in self.ignore_check:
+                arrs_to_check.append((key, arr.unique_id))
 
-            for entry in value.unique_id:
-                occurrence = self.list_occurrence(entry)
+        arrs_len = len(arrs_to_check)
 
-                if len(occurrence) > 1:
-                    raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. {entry} Found in: {occurrence}")
+        sets_to_check = [(key, set(arr)) for (key, arr) in arrs_to_check]
 
+        # check that the length of each array -> set doesn't change, 
+        # i.e. there weren't duplicates within individual arrays
+        for i, (key, s) in enumerate(sets_to_check):
+            if len(arrs_to_check[i][1]) != len(s):
+                raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. Found in: {key}. Len of the array is {len(arrs_to_check[i][1])}, len of the set is {len(s)}")
+            
+        # take pairwise intersections of each one
+        start = 1
+        for i in range(arrs_len-1):
+            for j in range(start, arrs_len):
+                key_i, set_i = sets_to_check[i]
+                key_j, set_j = sets_to_check[j]
+                intersection = set_i.intersection(set_j)
+                if intersection:
+                    raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. {intersection} Found in: {key_i, key_j}")
+
+            start+=1
 
     def update_time(self, new_time: float):
         for key, value in self.agn_objects.items():
