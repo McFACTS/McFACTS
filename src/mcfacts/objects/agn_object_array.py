@@ -1,6 +1,6 @@
 import uuid
 from abc import ABC, abstractmethod
-from copy import deepcopy
+import copy
 from typing import Any, TypeVar, Type
 
 import numpy as np
@@ -221,7 +221,13 @@ class AGNObjectArray(ABC):
         return True
 
     def copy(self):
-        return deepcopy(self)
+        new = copy.copy(self)
+
+        for attribute_name, attribute_value in self.get_super_dict().items():
+            if isinstance(attribute_value, np.ndarray):
+                setattr(new, attribute_name, attribute_value.copy())
+
+        return new
 
     @abstractmethod
     def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
