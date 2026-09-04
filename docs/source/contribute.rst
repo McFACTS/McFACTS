@@ -84,11 +84,59 @@ Generating Pull Requests
 
 Pull requests should comply with these requirements:
 
-#. Direct pull requests at the ``mcfacts/main-dev`` branch.
+#. Direct all new pull requests at the ``mcfacts/main-dev`` branch.
 #. Include all information outlined in the `Pull Request Template`_ (automatically populates the description field when
    initiating a pull request).
 #. Categorize your pull request using one (or more!) option from this
    `list <https://github.com/McFACTS/McFACTS/labels>`_ of labels.
+
+Pull Requests to `main`
+***********************
+
+Generating a pull request to `main` should be done when it is time to make a new stable branch of McFACTS.
+
+Reasons to create a pull request to main:
+# To create a version of McFACTS with a tag and a release in order to cite the code.
+# To preserve a feature as stable.
+# To support downstream users of McFACTS.
+# For housekeeping, when a stable version hasn't been preserved for a while.
+
+Steps to setup a pull request to `main`:
+# Create a staging branch with the updated version number; E.g. `staging-0.4.1`.
+# Update the `VERSION` in the Makefile, run `make version`, and commit the updated files to the staging branch.
+# On Github, navigate to `<https://github.com/McFACTS/McFACTS/pulls>`_ and search: `is:pr is:merged base:main <https://github.com/McFACTS/McFACTS/pulls?q=is%3Apr+is%3Amerged+base%3Amain>_` to find the most recent previous PR to `main`. Look at the changelog to identify the two most recent PRs mentioned in that changelog.
+# Next, navigate to `<https://github.com/McFACTS/McFACTS/pulls>`_ and search: `is:pr is:merged base:main-dev <https://github.com/McFACTS/McFACTS/pulls?q=is%3Apr+is%3Amerged+base%3Amain-dev>_`. This will want a list all of the PRs which have been merged into main-dev. You want to find any PRs which are more new than either of the two most recent PRs mentioned in the changelog. You can create a link to each PR by right clicking from the search screen and selecting 'copy link'.
+# Create the draft pull request and follow the format:
+
+.. code::block
+
+   ### McFACTS Version `X.Y.Z`
+
+    ### Summary
+    **Added**
+    - Things added in the set of PRs
+
+    **Changed**
+    - Things changed in the set of PRs
+
+    **Fixed**
+    - Things fixed in the set of PRs
+
+    ### Changelog
+    ### Individual PRs (summaries) in the order they were merged into main-dev
+
+    [PR NUMBER: PR Title](https://github.com/McFACTS/McFACTS/pull/[PR NUMBER])
+    - Brief description of PR; can be copied from the actual PR
+
+    [PR NUMBER: PR Title](https://github.com/McFACTS/McFACTS/pull/[PR NUMBER])
+    - Brief description of PR; can be copied from the actual PR
+
+    [THIS PR NUMBER: THIS PR Title](https://github.com/McFACTS/McFACTS/pull/[THIS PR NUMBER])
+    - Updated Version to X.Y.Z
+    - Description of everything going to main which is not in another PR.
+
+# Copy everything below Changelog and add it to the top of CHANGELOG.md, including a header with a link to this PR. Commit that file to the staging branch
+
 
 Extending McFACTS with other languages
 **************************************
