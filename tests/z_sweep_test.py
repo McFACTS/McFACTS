@@ -73,7 +73,7 @@ def test_sweep_optimized_matches_original(
         disk_bh_pro_orb_ecc_crit,
         delta_energy_strong,
         disk_radius_outer,
-        rng_here=np.random.default_rng(SEED),
+        random=np.random.default_rng(SEED),
     )
 
     assert np.allclose(result_a_orig, result_a_opt, rtol=1e-9), \

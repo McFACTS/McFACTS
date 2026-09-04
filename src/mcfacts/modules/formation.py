@@ -497,7 +497,7 @@ class BinaryBlackHoleFormation(TimelineActor):
         if sm.fraction_bin_retro > 0:
             bin_orb_ang_mom = [random_generator.choice(a=[1, -1], p=[1 - sm.fraction_bin_retro, sm.fraction_bin_retro]) for _ in range(primary_ids.size)]
 
-        gw_char_strain, gw_strain, gw_freq = gw_strain_freq(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
+        gw_char_strain, gw_strain, gw_freq = gw_strain_freq_optimized(mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                             old_gw_freq=-1, smbh_mass=sm.smbh_mass, agn_redshift=sm.agn_redshift,
                                             flag_include_old_gw_freq=0)
 

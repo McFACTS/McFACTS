@@ -44,6 +44,7 @@ FORBIDDEN_ARGS = [
     "disk_radius_inner",
 ]
 
+
 def arg():
     import argparse
     # parse command line arguments
@@ -1128,12 +1129,12 @@ def main():
                     opts.disk_bh_pro_orb_ecc_crit,
                     opts.delta_energy_strong_mu,
                     opts.disk_radius_outer,
-                    rng_here=rng
+                    random=rng
                 )
 
                 # Star-star encounters
                 rstar_rhill_exponent = 2.0
-                stars_pro.orb_a, stars_pro.orb_ecc, star_touch_id_nums, stars_unbound_id_nums, stars_flipped_id_nums = dynamics.circular_singles_encounters_prograde_stars(
+                stars_pro.orb_a, stars_pro.orb_ecc, star_touch_id_nums, stars_unbound_id_nums, stars_flipped_id_nums = dynamics.circular_singles_encounters_prograde_stars_optimized(
                     opts.smbh_mass,
                     stars_pro.orb_a,
                     stars_pro.mass,
@@ -1146,7 +1147,6 @@ def main():
                     opts.delta_energy_strong_mu,
                     opts.delta_energy_strong_sigma,
                     opts.disk_radius_outer,
-                    fast_cube=opts.flag_dynamics_sweep,
                     random = rng
                 )
 
@@ -1258,8 +1258,9 @@ def main():
 
                     filing_cabinet.remove_id_num(star_touch_id_nums.flatten())
                     stars_pro.remove_id_num(star_touch_id_nums.flatten())
+
                 # Star-BH encounters (circular stars and eccentric BH)
-                stars_pro.orb_a, stars_pro.orb_ecc, blackholes_pro.orb_a, blackholes_pro.orb_ecc, bh_star_touch_id_nums, bh_star_unbound_id_nums, bh_star_flipped_rotation_id_nums = dynamics.circular_singles_encounters_prograde_star_bh(
+                stars_pro.orb_a, stars_pro.orb_ecc, blackholes_pro.orb_a, blackholes_pro.orb_ecc, bh_star_touch_id_nums, bh_star_unbound_id_nums, bh_star_flipped_rotation_id_nums = dynamics.circular_singles_encounters_prograde_star_bh_optimized(
                     opts.smbh_mass,
                     stars_pro.orb_a,
                     stars_pro.mass,

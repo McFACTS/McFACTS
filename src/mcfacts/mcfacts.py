@@ -105,7 +105,9 @@ def run_simulation(settings, profiling=False, filename=None):
         setup_scaling(settings)
     # Run with or without profiling
     if profiling:
-        cProfile.runctx('simulation.main(settings)', globals(), locals(), filename=filename)
+        prof = cProfile.Profile()
+        prof.runcall(simulation.main, settings)
+        prof.dump_stats(filename)
     else:
         simulation.main(settings)
 
@@ -154,8 +156,6 @@ def main():
     if inputs.subcommand == "rp":
         run_simulation(settings,inputs.enable_profiling,inputs.profiling_file)
         fiducial_plots.main(settings)
-        return
-
 
 if __name__ == "__main__":
     main()
