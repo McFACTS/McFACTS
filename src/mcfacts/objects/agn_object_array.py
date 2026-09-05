@@ -1,6 +1,7 @@
 import uuid
+from collections import Counter
 from abc import ABC, abstractmethod
-from copy import deepcopy
+import copy
 from typing import Any, TypeVar, Type
 
 import numpy as np
@@ -208,20 +209,26 @@ class AGNObjectArray(ABC):
             - Updates all attributes in the superclass attribute list to reflect the retained entries.
             - If no entries match the given unique IDs, no changes are made, and the method returns `False`.
         """
-        remove_mask = np.isin(self.unique_id, unique_id)
+        keep_mask = np.isin(self.unique_id, unique_id)
 
-        if len(remove_mask) == 0:
+        if len(keep_mask) == 0:
             return False
 
         for attribute_name, attribute_value in self.get_super_dict().items():
-            setattr(self, attribute_name, attribute_value[remove_mask])
+            setattr(self, attribute_name, attribute_value[keep_mask])
 
         self.consistency_check()
 
         return True
 
     def copy(self):
-        return deepcopy(self)
+        new = copy.copy(self)
+
+        for attribute_name, attribute_value in self.get_super_dict().items():
+            if isinstance(attribute_value, np.ndarray):
+                setattr(new, attribute_name, attribute_value.copy())
+
+        return new
 
     @abstractmethod
     def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
@@ -767,11 +774,11 @@ class FilingCabinet:
     def list_occurrence(self, unique_id: uuid.UUID) -> list[str]:
         occurrence: list[str] = list()
 
-        for key, value in self.agn_objects.items():
+        for key, arr in self.agn_objects.items():
             if key in self.ignore_check:
                 continue
 
-            for entry in value.unique_id:
+            for entry in arr.unique_id:
                 if unique_id == entry:
                     occurrence.append(key)
 
@@ -779,15 +786,36 @@ class FilingCabinet:
 
 
     def consistency_check(self):
-        for key, value in self.agn_objects.items():
-            if key in self.ignore_check:
-                continue
+        arrs = [(k, a.unique_id) for k, a in self.agn_objects.items() if k not in self.ignore_check]
 
-            for entry in value.unique_id:
-                occurrence = self.list_occurrence(entry)
+        total = 0
+        merged = set()
 
-                if len(occurrence) > 1:
-                    raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. {entry} Found in: {occurrence}")
+        for _, arr in arrs:
+            total += len(arr)
+            merged.update(arr)
+
+        if len(merged) == total:
+            # early return, no duplicates
+            return
+
+        # a duplicate, let's look for it
+        seen: dict[uuid.UUID, str] = {}
+
+        for key, arr in arrs:
+            ids = set(arr)
+
+            if len(ids) != len(arr):
+                counts = Counter(arr)
+                dupes = [uid for uid, n in counts.items() if n > 1]
+                raise RuntimeError(
+                    f"A duplicate entry has been found in the filing cabinet. {dupes} appears more than once in: {key}")
+
+            for uid in ids:
+                if uid in seen:
+                    raise RuntimeError(
+                        f"A duplicate entry has been found in the filing cabinet. {uid} Found in: {self.list_occurrence(uid)}")
+                seen[uid] = key
 
 
     def update_time(self, new_time: float):
