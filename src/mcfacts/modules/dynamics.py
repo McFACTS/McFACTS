@@ -14,9 +14,10 @@ import scipy
 import scipy.optimize
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.modules import stellar_interpolation, accretion
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNStarArray, AGNBinaryBlackHoleArray
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, checks
 from mcfacts.utilities.constants import M_SUN_KG

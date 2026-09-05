@@ -194,6 +194,17 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("nsc_star_metallicity_z_init", "nsc", 0.02, float),
         SettingsProperty("nsc_imf_bh_method", "nsc", "default", str),
 
+        # Scaling settings
+        SettingsProperty("disk_truncation", "scale", "none", str),
+        SettingsProperty("flag_use_scaling", "scale", False, bool),
+        SettingsProperty("stellar_mass", "scale", 1e10, float),
+        SettingsProperty("scale_smbh_mass", "scale", "schramm-silverman", str),
+        SettingsProperty("scale_nsc_mass", "scale", "neumayer-early", str),
+        SettingsProperty("scale_inner_disk", "scale", "decay-time", str),
+        SettingsProperty("scale_trap", "scale", "sqrt-smbh", str),
+        SettingsProperty("scale_capture_radius", "scale", "sqrt-smbh", str),
+        SettingsProperty("scale_capture_time", "scale", "hubble", str),
+
         # Filing cabinet array names
         StaticSettingsProperty("bh_array_name", "arrays", "blackholes_unsort", str),
         StaticSettingsProperty("bh_inner_disk_array_name", "arrays", "blackholes_inner_disk", str),
@@ -423,6 +434,44 @@ class SettingsManager:
         except KeyError:
             raise AttributeError(f"SettingsManager has no key {item!r}")
 
+    def set_preprocessing(self, key: str, value: Any):
+        """
+        Sets the "final" value of a particular setting after the time
+            of creation.
+
+        Parameters
+        ----------
+        key : str
+            The "true name" of a setting, as stored in the dictionary
+        value : Any
+            A value for that setting
+        """
+        # Check if key is a setting
+        if key not in self.settings_finals:
+            raise ValueError(
+                f"No such setting: {key}; "
+                f"settings: {list(self.settings_finals.key())}"
+            )
+        # Identify the property
+        found = None
+        for prop in DEFAULT_SETTINGS:
+            if prop.name == key:
+                found = prop
+                break
+        # Check if the property was found
+        if found is None:
+            raise ValueError(
+                f"Failed to find setting {key} in DEFAULT_SETTINGS."
+            )
+        # Check static settings
+        if isinstance(prop, StaticSettingsProperty):
+            raise TypeError(
+                f"Modifying a StaticSetting is not allowed, "
+                "even in preprocessing!"
+            )
+        # Check value
+        final_value = self._cast_override(found, value)
+        self.settings_finals[prop.name] = final_value
 
     def add_custom_category(self, category: str, props: dict[str, Any]) -> None:
         """
@@ -453,42 +502,3 @@ class SettingsManager:
     @property
     def categories(self):
         return self._categories
-
-
-class AGNDisk:
-    """
-    Container class for the construct_disk_interp method, allowing for pass-by-reference access to disk functions.
-    """
-
-    def __init__(self, settings: SettingsManager):
-        # TODO: More advanced handling?
-
-        (
-            self.disk_surface_density,
-            self.disk_aspect_ratio,
-            self.disk_opacity,
-            self.disk_sound_speed,
-            self.disk_density,
-            self.disk_pressure_grad,
-            self.disk_omega,
-            self.disk_surface_density_log,
-            self.temp_func,
-            self.disk_dlog10surfdens_dlog10R_func,
-            self.disk_dlog10temp_dlog10R_func,
-            self.disk_dlog10pressure_dlog10R_func
-        ) = ReadInputs.construct_disk_interp(
-            settings.smbh_mass,
-            settings.disk_radius_outer,
-            settings.disk_model_name,
-            settings.disk_alpha_viscosity,
-            settings.disk_bh_eddington_ratio,
-            disk_radius_max_pc=settings.disk_radius_max_pc,
-            flag_use_pagn=settings.flag_use_pagn,
-            verbose= 1 if settings.verbose else 0
-        )
-
-        self._settings = settings
-
-    @property
-    def settings(self):
-        return self._settings

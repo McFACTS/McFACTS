@@ -1,8 +1,9 @@
 import numpy as np
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import AGNBlackHoleArray, FilingCabinet, AGNStarArray
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.setup import setupdiskblackholes
 from mcfacts.utilities import checks
