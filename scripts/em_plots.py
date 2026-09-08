@@ -51,6 +51,12 @@ def linefunc(x, m):
     """
     return m * (x - 1)
 
+def mc_of_m1_m2(m1,m2):
+    """Calculate chirp mass of components in a binary.
+    """
+    return ((m1*m2)**0.6) * ((m1+m2)**-0.2)
+
+
 def make_gen_masks(table, col1, col2):
     """Create masks for retrieving different sets of a merged or binary population based on generation.
     """
@@ -294,6 +300,74 @@ def main():
     plt.xscale('log')
     plt.grid(True, color='gray', ls='dashed')
     plt.savefig(opts.plots_directory + "/jet_lum_histogram.png", format='png')
+    plt.close()
+
+    # ===============================
+    ### chirp mass vs. a_bin ###
+    # ===============================
+
+    all_orb_a_m = mergers[:,1]
+
+    gen1_orb_a_m = all_orb_a_m[merger_g1_mask]
+    gen2_orb_a_m = all_orb_a_m[merger_g2_mask]
+    genX_orb_a_m = all_orb_a_m[merger_gX_mask]
+    all_cm = mc_of_m1_m2(mergers[:, 6], mergers[:, 7])
+    gen1_cm = all_cm[merger_g1_mask]
+    gen2_cm = all_cm[merger_g2_mask]
+    genX_cm = all_cm[merger_gX_mask]
+
+    fig = plt.figure(figsize=plotting.set_size(figsize))
+
+    ax3 = fig.add_subplot(111)
+    # plot 1g-1g mergers
+    ax3.scatter(gen1_orb_a_m, gen1_cm,
+                s=styles.markersize_gen1,
+                marker=styles.marker_gen1,
+                edgecolor=styles.color_gen1,
+                facecolors="none",
+                alpha=styles.markeralpha_gen1,
+                label='1g-1g'
+                )
+    
+    # plot the 2g+ mergers
+    ax3.scatter(gen2_orb_a_m, gen2_cm,
+                s=styles.markersize_gen2,
+                marker=styles.marker_gen2,
+                edgecolor=styles.color_gen2,
+                facecolors="none",
+                alpha=styles.markeralpha_gen2,
+                label='2g-1g or 2g-2g'
+                )
+    
+    # plot the 3g+ mergers
+    ax3.scatter(genX_orb_a_m, genX_cm,
+                s=styles.markersize_genX,
+                marker=styles.marker_genX,
+                edgecolor=styles.color_genX,
+                facecolors="none",
+                alpha=styles.markeralpha_genX,
+                label=r'$\geq$3g-Ng'
+                )
+    trap_radius = 700
+    #if "sg" in opts.plots_directory:
+     #   trap_radius = 700
+    #elif "tqm" in opts.plots_directory:
+     #   trap_radius = 500
+
+    ax3.axvline(trap_radius, color='k', linestyle='--', zorder=0,
+                label=f'Trap Radius = {trap_radius} ' + r'$R_g$')
+    
+    if figsize == 'apj_col':
+        ax3.legend(fontsize=6)
+    elif figsize == 'apj_page':
+        ax3.legend()
+
+    plt.ylabel(r'Chirp Mass [$M_\odot$]')
+    plt.xlabel(r'Radius [$R_g$]')
+    plt.xscale('log')
+    #plt.yscale('log')
+    plt.grid(True, color='gray', ls='dashed')
+    plt.savefig(opts.plots_directory + '/chirp_mass_vs_radius.png', format='png')
     plt.close()
 
     # ===============================
@@ -671,16 +745,6 @@ def main():
     
     m_1_new = np.where(mask, mass_1, mass_2)
     m_2_new = np.where(mask, mass_2, mass_1)
-
-    all_m_1_new = m_1_new
-    gen1_m_1_new = all_m_1_new[merger_g1_mask]
-    gen2_m_1_new = all_m_1_new[merger_g2_mask]
-    genX_m_1_new = all_m_1_new[merger_gX_mask]
-
-    all_m_2_new = m_2_new
-    gen1_m__new = all_m_2_new[merger_g1_mask]
-    gen2_m_2_new = all_m_2_new[merger_g2_mask]
-    genX_m_2_new = all_m_2_new[merger_gX_mask]
 
     q = m_1_new/m_2_new
 

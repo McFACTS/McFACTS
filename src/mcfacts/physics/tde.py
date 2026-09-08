@@ -4,7 +4,7 @@ Module for TDE specific calculations.
 
 import numpy as np
 import astropy.units as u
-from mcfacts.physics.point_masses import si_from_r_g
+from mcfacts.physics.point_masses import si_from_r_g, si_from_r_g_optimized
 
 def check_tde_or_flip(star_retro_id_num, star_retro_mass, star_retro_log_radius, star_retro_orb_ecc, star_retro_orb_a, smbh_mass, r_g_in_meters):
     """Retrograde stars that flip to prograde are TDEs if they are inside the disk's tidal disruption radius and have sufficiently high eccentricity.
@@ -37,7 +37,8 @@ def check_tde_or_flip(star_retro_id_num, star_retro_mass, star_retro_log_radius,
     # Convert everything to units
     star_mass = star_retro_mass * u.Msun
     star_radius = (10 ** star_retro_log_radius) * u.Rsun
-    star_orb_a = (si_from_r_g(smbh_mass, star_retro_orb_a, r_g_defined=r_g_in_meters)).to("meter")
+    # star_orb_a = (si_from_r_g(smbh_mass, star_retro_orb_a, r_g_defined=r_g_in_meters)).to("meter")
+    star_orb_a = si_from_r_g_optimized(smbh_mass, star_retro_orb_a)
     smbh_mass_units = smbh_mass * u.Msun
 
     # Tidal disruption radius of the disk is R_star * (M_smbh / M_star)^1/3

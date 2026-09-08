@@ -66,13 +66,13 @@ requires-python = ">= 3.10, < 3.14"
 dependencies = [
     "numpy>=2.0,<2.4.0",
     "matplotlib>=3.5.2",
-    "scipy>=1.11.2",
+    "scipy>=1.11.2,<1.18.0",
     "astropy",
     "pandas",
     "pagn",
     "joblib>=1.4.2",
     "scikit_learn>=1.5.2",
-    "mcfast==0.1.4",
+    "mcfast==0.1.8",
 ]
 
 #TODO: Add description and other dynamically defined variables created in setup.py
