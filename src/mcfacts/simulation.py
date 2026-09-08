@@ -7,7 +7,7 @@ import shutil
 
 from tqdm.auto import tqdm
 
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion, ProgradeBlackHoleBondi
 from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
 from mcfacts.modules.disk_capture import EvolveRetrogradeBlackHoles, RecaptureBinaryBlackHoles, \
@@ -23,6 +23,7 @@ from mcfacts.objects.actors import InitialBlackHoleReclassification, InnerDiskFi
     InitialStarReclassification
 from mcfacts.objects.actors.reality_checks import SingleBlackHoleRealityCheck, BinaryBlackHoleRealityCheck
 from mcfacts.objects.agn_object_array import *
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopulator
 from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler

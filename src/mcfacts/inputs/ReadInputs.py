@@ -150,14 +150,14 @@ from io import StringIO
 from importlib import resources as impresources
 # Third party
 import numpy as np
+from astropy import constants as ct
+from astropy import units as u
 import scipy.interpolate
 # pAGN imports 
 import pagn.constants as pagn_ct
 # Local imports 
 import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
-from astropy import constants as ct
-from astropy import units as u
 
 #: Dictionary of types for input parameters
 INPUT_TYPES = {
