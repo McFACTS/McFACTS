@@ -1,11 +1,11 @@
 import numpy as np
 import scipy
 
-import mcfacts.physics.disk_capture
-#from mcfacts.physics.disk_capture import crude_retro_evol
-#from mcfacts.physics.migration.type1 import retro_mig
-#from mcfacts.physics.eccentricity import retro_ecc
-#from mcfacts.physics.disk_capture import capture_inc_damp
+import mcfacts.modules.disk_capture
+#from mcfacts.modules.disk_capture import crude_retro_evol
+#from mcfacts.modules.migration.type1 import retro_mig
+#from mcfacts.modules.eccentricity import retro_ecc
+#from mcfacts.modules.disk_capture import capture_inc_damp
 
 if __name__ == "__main__":
     # Just want to test out my new crappy retro evolution module full of hardcoded awfulness

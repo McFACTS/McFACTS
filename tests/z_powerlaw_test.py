@@ -3,7 +3,6 @@ import numpy as np
 import pytest
 import pandas as pd
 
-from mcfacts.mcfacts_random_state import reset_random
 from mcfacts.setup.setupdiskblackholes import (
     setup_disk_blackholes_location_NSC_powerlaw,
     setup_disk_blackholes_location_NSC_powerlaw_optimized,
@@ -34,8 +33,6 @@ def test_powerlaw(
     nsc_density_index_outer,
 ):
     """Test that optimized powerlaw matches original."""
-    rng = reset_random(TEST_SEED)
-
     original = setup_disk_blackholes_location_NSC_powerlaw(
         int(disk_bh_num),
         disk_radius_outer,
@@ -44,10 +41,9 @@ def test_powerlaw(
         nsc_radius_crit,
         nsc_density_index_inner,
         nsc_density_index_outer,
+        np.random.default_rng(TEST_SEED),
         volume_scaling=True,
     )
-
-    rng = reset_random(TEST_SEED)
 
     optimized = setup_disk_blackholes_location_NSC_powerlaw_optimized(
         int(disk_bh_num),
@@ -57,6 +53,7 @@ def test_powerlaw(
         nsc_radius_crit,
         nsc_density_index_inner,
         nsc_density_index_outer,
+        np.random.default_rng(TEST_SEED),
         volume_scaling=True,
     )
 

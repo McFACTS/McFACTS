@@ -1,0 +1,42 @@
+#text.usetex: True
+#font.family: cmr10
+
+# Commented out so auto-scaling works
+# Uncomment if you want fonts scaled for ApJ
+# ApJ: small = 9pt, normal = 10pt, large = 12pt
+#font.size: 10 #9
+#legend.fontsize: 9
+#xtick.labelsize: 9
+#ytick.labelsize: 9
+#axes.labelsize: 9
+#axes.formatter.use_mathtext: True
+
+# --- Backgrounds ---
+figure.facecolor: black
+figure.edgecolor: black
+axes.facecolor: black
+savefig.facecolor: black
+savefig.edgecolor: black
+
+figure.dpi: 300
+figure.constrained_layout.use: True
+
+# --- Text / lines now white ---
+text.color: white
+axes.edgecolor: white
+axes.labelcolor: white
+axes.titlecolor: white
+xtick.color: white
+ytick.color: white
+xtick.labelcolor: white
+ytick.labelcolor: white
+grid.color: white
+patch.edgecolor: white
+hatch.color: white
+legend.facecolor: black
+legend.edgecolor: white
+
+xtick.top: True
+xtick.direction: in
+ytick.right: True
+ytick.direction: in

@@ -1,11 +1,4 @@
 """Unit test for test_tgw.py"""
-import numpy as np
-import pytest
-
-from mcfacts.physics.binary.merge import normalize_tgw
-import conftest as provider
-from conftest import InputParameterSet
-
 
 # def param_normalize_tgw():
 #     """return input and expected values"""
