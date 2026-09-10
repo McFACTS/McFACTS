@@ -64,8 +64,8 @@ def main(settings: SettingsManager):
         galaxy = Galaxy(seed=galaxy_seed, runs_folder=settings.output_dir, galaxy_id=str(galaxy_id), settings=settings)
 
         # Create instance of populators
-        single_bh_populator = SingleBlackHolePopulator()
-        single_star_populator = SingleStarPopulator()
+        single_bh_populator = SingleBlackHolePopulator(settings=settings)
+        single_star_populator = SingleStarPopulator(settings=settings)
         galaxy.populate([single_bh_populator, single_star_populator], agn_disk)
 
         # Create timeline to classify objects created during population

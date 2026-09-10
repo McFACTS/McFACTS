@@ -135,10 +135,12 @@ class SingleStarPopulator(GalaxyPopulator):
             masses_initial = setupdiskstars.setup_disk_stars_masses(star_num=star_num_initial,
                                                                     disk_star_mass_min_init=sm.disk_star_mass_min_init,
                                                                     disk_star_mass_max_init=sm.disk_star_mass_max_init,
-                                                                    nsc_imf_star_powerlaw_index=sm.nsc_imf_star_powerlaw_index)
+                                                                    nsc_imf_star_powerlaw_index=sm.nsc_imf_star_powerlaw_index,
+                                                                    random=random_generator)
 
             orbs_a_initial = setupdiskstars.setup_disk_stars_orb_a(star_num_initial, sm.disk_radius_outer,
-                                                                   sm.disk_inner_stable_circ_orb)
+                                                                   sm.disk_inner_stable_circ_orb,
+                                                                   random=random_generator)
 
             # Sort the mass and location arrays by the location array
             sort_idx = np.argsort(orbs_a_initial)
