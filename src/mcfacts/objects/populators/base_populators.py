@@ -30,7 +30,7 @@ class SingleBlackHolePopulator(GalaxyPopulator):
             sm.nsc_density_index_inner,
         )
 
-        bh_orb_a_initial = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
+        bh_orb_a_initial = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw_optimized(
             disk_bh_num, sm.disk_radius_outer, sm.disk_inner_stable_circ_orb,
             sm.smbh_mass, sm.nsc_radius_crit, sm.nsc_density_index_inner,
             sm.nsc_density_index_outer,

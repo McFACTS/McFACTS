@@ -1,7 +1,25 @@
 """Defines functions to set up initial conditions for black holes in the AGN disk."""
 
 import numpy as np
-from mcfast import generate_r
+
+def _powerlaw_mass(start, end, exponent):
+    """Integrate a power law, including its logarithmic limiting case."""
+    if start >= end:
+        return 0.0
+    power = exponent + 1.0
+    log_ratio = np.log(end / start)
+    if power == 0.0:
+        return log_ratio
+    return start**power * np.expm1(power * log_ratio) / power
+
+
+def _powerlaw_quantile(uniform, start, end, exponent):
+    """Invert a bounded power-law CDF without cancellation near exponent -1."""
+    power = exponent + 1.0
+    log_ratio = np.log(end / start)
+    if power == 0.0:
+        return start * np.exp(uniform * log_ratio)
+    return start * np.exp(np.log1p(uniform * np.expm1(power * log_ratio)) / power)
 
 def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb, random):
     """Generates initial single BH orbital semi-major axes :math:`r_{g,SMBH}'
@@ -45,20 +63,13 @@ def setup_disk_blackholes_location_NSC_powerlaw_optimized(disk_bh_num,
     from a nuclear star cluster with a broken powerlaw density distribution
     (i.e. two slopes).
 
-    Uses a Rust function from mcfast to perform steps 2-5.
+    Integrate each region analytically and invert its cumulative distribution.
+    Work in radius / critical_radius so the density stays continuous across the
+    break. Memory and runtime scale with the number of draws, without building
+    the reference implementation's million-point grid.
 
-    Algorithm:
-    1. convert all parsec units to gravitational radii
-    2. create a radius array r with the bounds
-        minimum = disk_inner_stable_circ_orb
-        maximum = disk_radius_outer
-    3. create y = f(r) using power law indices
-            for r < nsc_radius_crit
-            for r > nsc_radius_crit
-    4. Optional: scale y by each radial shell's volume
-    5. calculate pdf: p(r) = y / sum(y)
-    6. draw locations from the pdf:
-            `rng.choice(r, size=disk_bh_num, p=y_pdf)`
+    Draws are reproducible for a given generator state, but differ from the old
+    discrete-grid sampler, even with the same seed.
 
     Parameters
     ----------
@@ -76,6 +87,8 @@ def setup_disk_blackholes_location_NSC_powerlaw_optimized(disk_bh_num,
         Powerlaw index of the nuclear star cluster interior to `nsc_radius_crit`
     nsc_density_index_outer : ing
         Powerlaw index of the nuclear star cluster exterior to `nsc_radius_crit`
+    random : numpy.random.Generator
+        Generator used to generate random numbers
     volume_scaling=True : bool
         A switch to normalize by each radial shell's volume such that the total
         probability over the range is 1. When :obj`True`, each radial bin of the
@@ -87,21 +100,48 @@ def setup_disk_blackholes_location_NSC_powerlaw_optimized(disk_bh_num,
         Initial BH locations in disk :math:`r_{g,SMBH}` with :obj:`float` type
     """
 
+    parameters = [disk_inner_stable_circ_orb, disk_radius_outer, smbh_mass,
+                  nsc_radius_crit, nsc_density_index_inner, nsc_density_index_outer]
+    if not np.all(np.isfinite(parameters)):
+        raise ValueError("NSC sampling parameters must be finite.")
+    if not 0 < disk_inner_stable_circ_orb < disk_radius_outer:
+        raise ValueError("NSC sampling requires 0 < inner radius < outer radius.")
+    if smbh_mass <= 0 or nsc_radius_crit <= 0:
+        raise ValueError("SMBH mass and NSC critical radius must be positive.")
+
     # Unit conversions from Parsec to Gravitational radii
     convert_1pc_to_rg_SMBH = 2.e5 * (smbh_mass / 1.e8)**(-1.0)
     # nsc_radius_outer_rg = nsc_radius_outer * convert_1pc_to_rg_SMBH
     nsc_radius_crit_rg = nsc_radius_crit * convert_1pc_to_rg_SMBH
 
-    r, r_pdf = generate_r(disk_inner_stable_circ_orb, disk_radius_outer, 1000000, nsc_radius_crit_rg, nsc_density_index_inner, nsc_density_index_outer, volume_scaling)
+    start = disk_inner_stable_circ_orb / nsc_radius_crit_rg
+    end = disk_radius_outer / nsc_radius_crit_rg
+    split = np.clip(1.0, start, end)
+    exponent_inner = (2.0 if volume_scaling else 0.0) - nsc_density_index_inner
+    exponent_outer = (2.0 if volume_scaling else 0.0) - nsc_density_index_outer
+    mass_inner = _powerlaw_mass(start, split, exponent_inner)
+    mass_outer = _powerlaw_mass(split, end, exponent_outer)
+    total_mass = mass_inner + mass_outer
+    if not np.isfinite(total_mass) or total_mass <= 0:
+        raise ValueError("NSC probability mass must be positive and finite.")
 
-    # Ensure the total probabiliy is 1.0 accounting for deviations at machine precision
-    if not np.isclose(r_pdf.sum(), 1.0):
-        raise ValueError(f"[Setup BH Locs] Sum of p(r) must be less than 1 but is {r_pdf.sum()}.")
+    probability_inner = mass_inner / total_mass
+    uniform = random.random(size=disk_bh_num)
+    inner = uniform < probability_inner
+    locations = np.empty_like(uniform)
+    if np.any(inner):
+        locations[inner] = _powerlaw_quantile(
+            uniform[inner] / probability_inner, start, split, exponent_inner
+        )
+    if np.any(~inner):
+        locations[~inner] = _powerlaw_quantile(
+            (uniform[~inner] - probability_inner) / (1.0 - probability_inner),
+            split, end, exponent_outer
+        )
 
-    # Draw locations for all the black holes from the r array with the associated probabilities.
-    bh_initial_locations = random.choice(r, size=disk_bh_num, p=r_pdf)
-
-    return bh_initial_locations
+    # Keep endpoint roundoff within the requested physical interval.
+    return np.clip(locations * nsc_radius_crit_rg,
+                   disk_inner_stable_circ_orb, disk_radius_outer)
 
 def setup_disk_blackholes_location_NSC_powerlaw(disk_bh_num,
                                   disk_radius_outer,

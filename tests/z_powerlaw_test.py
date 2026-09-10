@@ -32,7 +32,7 @@ def test_powerlaw(
     nsc_density_index_inner,
     nsc_density_index_outer,
 ):
-    """Test that optimized powerlaw matches original."""
+    """Compare continuous draws with the discrete reference's grid precision."""
     original = setup_disk_blackholes_location_NSC_powerlaw(
         int(disk_bh_num),
         disk_radius_outer,
@@ -57,5 +57,5 @@ def test_powerlaw(
         volume_scaling=True,
     )
 
-    assert np.allclose(original, optimized, rtol=1e-9)
-
+    grid_spacing = (disk_radius_outer - disk_inner_stable_circ_orb) / 999999
+    np.testing.assert_allclose(original, optimized, rtol=0, atol=grid_spacing)

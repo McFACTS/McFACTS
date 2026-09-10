@@ -57,4 +57,6 @@ def test_setup_disk_blackholes_location_NSC_powerlaw(smbh_mass, disk_radius_oute
                                   volume_scaling=True)
 
     # Don't use boolean operator `==` because of possible machine precision limitations
-    assert np.allclose(location, location_optimized, rtol=1.e-9)
+    # The analytic sampler is continuous; the reference has one million bins.
+    grid_spacing = (disk_radius_outer - disk_inner_stable_circ_orb) / 999999
+    np.testing.assert_allclose(location, location_optimized, rtol=0, atol=grid_spacing)
