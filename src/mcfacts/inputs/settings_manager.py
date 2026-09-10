@@ -108,6 +108,8 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("overwrite_files", "io", False, bool),
         SettingsProperty("save_state", "io", False, bool),
         SettingsProperty("save_each_timestep", "io", False, bool),
+        SettingsProperty("save_every_n_timesteps", "io", 1, int),
+        SettingsProperty("timestep_snapshot_arrays", "io", "*", str),
         SettingsProperty("output_dir", "io", "./runs", str),
         OptionalSettingsProperty("settings_file", "io", "", str),
 

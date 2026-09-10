@@ -106,7 +106,7 @@ class Galaxy:
         self.snapshot_handler = snapshot_handler
 
         if snapshot_handler is None:
-            self.snapshot_handler = TxtSnapshotHandler(self.settings)
+            self.snapshot_handler = TxtSnapshotHandler(settings=self.settings)
 
         # Set the recursion limit higher so python doesn't scream at us. The timeline-actor framework does not do any recursion,
         # but when an actor performs, something can end up executing several "layers" away from the initial call.
@@ -116,6 +116,13 @@ class Galaxy:
         )
 
     def save_state(self, timestep: int = None) -> None:
+        """Save full state, or selected arrays for an intermediate timestep.
+
+        ``timestep_snapshot_arrays`` is a comma-separated list of cabinet names;
+        ``*`` saves all arrays. Missing arrays are skipped until they are created.
+        Selection applies only when a timestep is supplied. Cabinet metadata is
+        retained, and the live populations are never removed by this selection.
+        """
         galaxy_id_str = f"gal{self.galaxy_id.zfill(2)}"
         state_str = f"s{str(len(self.timeline_history)).zfill(2)}"
 
@@ -133,7 +140,17 @@ class Galaxy:
 
         self.log(f"Saving state of galaxy to {save_folder} as {file_name}")
 
-        self.snapshot_handler.save_cabinet(save_folder, file_name, self.filing_cabinet)
+        cabinet = self.filing_cabinet
+        selection = self.settings.timestep_snapshot_arrays.strip()
+        if timestep is not None and selection != "*":
+            selected_names = {name.strip() for name in selection.split(",") if name.strip()}
+            cabinet = copy.copy(self.filing_cabinet)
+            cabinet.agn_objects = {
+                name: array for name, array in self.filing_cabinet.agn_objects.items()
+                if name in selected_names
+            }
+
+        self.snapshot_handler.save_cabinet(save_folder, file_name, cabinet)
 
     def populate(self, populators: list[GalaxyPopulator], agn_disk: AGNDisk, strict_fill: bool = True, join_populations: bool = False) -> None:
         """
@@ -198,6 +215,9 @@ class Galaxy:
         if not self.populated:
             raise Exception("Unable to progress through a timeline as the galaxy has not been populated yet.")
 
+        if self.settings.save_each_timestep and self.settings.save_every_n_timesteps < 1:
+            raise ValueError("save_every_n_timesteps must be at least 1.")
+
         # Create a copy of the timeline with all settings and save it to the history
         active_timeline = copy.deepcopy(simulation_timeline)
         self.timeline_history.append(active_timeline)
@@ -223,7 +243,10 @@ class Galaxy:
                 ))
                 actor.perform(timestep, timestep_length, time_passed, self.filing_cabinet, agn_disk, self.random_generator)
 
-            if self.settings.save_each_timestep:
+            if self.settings.save_each_timestep and (
+                (timestep + 1) % self.settings.save_every_n_timesteps == 0
+                or timestep == active_timeline.timesteps - 1
+            ):
                 self.save_state(timestep)
 
         # Only run a filing cabinet consistency check once per run, since we check every entry against every other entry in the cabinet O(n^2).

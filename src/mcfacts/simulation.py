@@ -61,7 +61,8 @@ def main(settings: SettingsManager):
         galaxy_seed = settings.seed - galaxy_id
 
         # Create instance of galaxy
-        galaxy = Galaxy(seed=galaxy_seed, runs_folder=settings.output_dir, galaxy_id=str(galaxy_id), settings=settings)
+        galaxy = Galaxy(seed=galaxy_seed, runs_folder=settings.output_dir, galaxy_id=str(galaxy_id),
+                        settings=settings, snapshot_handler=snapshot_handler)
 
         # Create instance of populators
         single_bh_populator = SingleBlackHolePopulator()
