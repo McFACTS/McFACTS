@@ -189,7 +189,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
     relevant only for binaries, including semi-major axis of the binary,
     semi-major axis of the orbit of the center of mass of the binary around
     the SMBH, a flag to permit or suppress retrograde binaries, eventually
-    eccentricity and inclination.
+    eccentricity and inclination. New binaries start on circular internal orbits.
 
     Parameters
     ----------
@@ -238,8 +238,8 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
     flag_merging = np.zeros(bin_num)
     time_merged = np.zeros(bin_num)
     # Set up binary eccentricity around its own center of mass.
-    # Draw uniform value btwn [0,1]
-    bin_ecc = random.uniform(size=bin_num)
+    # Assume circular internal orbits at formation (issue #382).
+    bin_ecc = np.zeros(bin_num)
     gen_1 = np.zeros(bin_num)
     gen_2 = np.zeros(bin_num)
     bin_orb_ang_mom = np.zeros(bin_num)
@@ -289,7 +289,7 @@ def add_to_binary_obj(blackholes_binary, blackholes_pro, bh_pro_id_num_binary, i
     #                                     old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
     #                                     flag_include_old_gw_freq=0)
 
-    gw_strain, gw_freq = gw_strain_freq_optimized(
+    _, gw_strain, gw_freq = gw_strain_freq_optimized(
         mass_1=mass_1, mass_2=mass_2, obj_sep=bin_sep, timestep_duration_yr=-1,
                                         old_gw_freq=-1, smbh_mass=smbh_mass, agn_redshift=agn_redshift,
                                         flag_include_old_gw_freq=0
@@ -455,6 +455,8 @@ def close_encounter_ids(id_nums,
     return encounter_id_nums
 
 class BinaryBlackHoleFormation(TimelineActor):
+    """Form binaries with circular internal orbits and damped SMBH orbits."""
+
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Binary Black Hole Formation" if name is None else name, settings)
 
@@ -520,7 +522,7 @@ class BinaryBlackHoleFormation(TimelineActor):
             time_to_merger_gw=np.zeros(primary_ids.size),
             flag_merging=np.zeros(primary_ids.size, dtype=np.int_),
             time_merged=np.zeros(primary_ids.size, dtype=np.float64),
-            bin_ecc=np.array([random_generator.uniform() for _ in range(primary_ids.size)], dtype=np.float64),
+            bin_ecc=np.zeros(primary_ids.size, dtype=np.float64),
             gen=blackholes_pro.get_attribute("gen", primary_ids),
             gen_2=blackholes_pro.get_attribute("gen", secondary_ids),
             bin_orb_ang_mom=np.array(bin_orb_ang_mom, dtype=np.float64),
