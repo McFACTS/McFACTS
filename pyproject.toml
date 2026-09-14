@@ -61,7 +61,7 @@ classifiers = [
 "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
-requires-python = ">= 3.10, < 3.14"
+requires-python = ">= 3.10, < 3.15"
 
 dependencies = [
     "numpy>=2.0,<2.4.0",
@@ -70,9 +70,11 @@ dependencies = [
     "astropy",
     "pandas",
     "pagn",
+    "tqdm",
+    "typing-extensions",
     "joblib>=1.4.2",
     "scikit_learn>=1.5.2",
-    "mcfast==0.1.8",
+    "mcfast==0.1.10",
 ]
 
 #TODO: Add description and other dynamically defined variables created in setup.py
@@ -80,3 +82,6 @@ dynamic = [ "version" ]
 
 [tool.pytest.ini_options]
 pythonpath = "src"
+
+[project.scripts]
+mcfacts = "mcfacts.mcfacts:main"

@@ -16,6 +16,7 @@ run*
 *pAGN_*_disk_tauV.png
 *pAGN_*_disk_T.png
 test-build
+*_scaling.png
 
 # Operating System Files
 .DS_Store
@@ -84,3 +85,6 @@ coverage.xml
 cover/
 
 docs/source/_autosummary
+/old_runs/
+/src/mcfacts/inputs/data/surrogate.joblib
+/mcfacts.prof

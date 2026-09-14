@@ -3,7 +3,9 @@ from pagn import Sirko
 import pagn.constants as pagn_ct
 from astropy import constants as ct
 from astropy import units as u
-from mcfacts.physics import point_masses
+
+import mcfacts.utilities.unit_conversion
+from mcfacts.modules import point_masses
 import pandas as pd
 import scipy.interpolate
 import numpy as np
@@ -73,7 +75,7 @@ sk_disk_pressure_grad_func_interp = scipy.interpolate.CubicSpline(
                                                         sk.R,
                                                         np.gradient(sk_ptot)/np.gradient(sk.R),
                                                         extrapolate=False)
-sk_disk_pressure_grad_func = lambda x, f=sk_disk_pressure_grad_func_interp: f(point_masses.si_from_r_g(sk.Mbh * u.kg, x).value)
+sk_disk_pressure_grad_func = lambda x, f=sk_disk_pressure_grad_func_interp: f(mcfacts.utilities.unit_conversion.si_from_r_g(sk.Mbh * u.kg, x).value)
 # Apply to radius and put in vstack form
 sk_data_dpdr = func_to_vstack(sk_disk_pressure_grad_func, sk_aspect['radius'].values)
 
@@ -149,7 +151,7 @@ tqm_disk_pressure_grad_func_interp = scipy.interpolate.CubicSpline(
                                                         tqm.R,
                                                         np.gradient(tqm_ptot)/np.gradient(tqm.R),
                                                         extrapolate=False)
-tqm_disk_pressure_grad_func = lambda x, f=tqm_disk_pressure_grad_func_interp: f(point_masses.si_from_r_g(tqm.Mbh * u.kg, x).value)
+tqm_disk_pressure_grad_func = lambda x, f=tqm_disk_pressure_grad_func_interp: f(mcfacts.utilities.unit_conversion.si_from_r_g(tqm.Mbh * u.kg, x).value)
 # Apply to radius and put in vstack form
 tqm_data_dpdr = func_to_vstack(tqm_disk_pressure_grad_func, tqm_aspect['radius'].values)
 

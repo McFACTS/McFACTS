@@ -1,6 +1,6 @@
 import numpy as np
 import astropy.units as u
-from mcfacts.physics.point_masses import r_g_from_units, r_g_from_units_optimized
+from mcfacts.utilities.unit_conversion import r_g_from_units, r_g_from_units_optimized
 
 
 units = [u.m, u.Rsun]

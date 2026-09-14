@@ -1,6 +1,7 @@
-import numpy as np
 import astropy.units as u
-from mcfacts.physics.point_masses import r_schwarzschild_of_m, r_g_from_units_optimized, r_schwarzschild_of_m_optimized
+import numpy as np
+
+from mcfacts.utilities.unit_conversion import r_schwarzschild_of_m, r_schwarzschild_of_m_optimized
 
 units = [u.g, u.kg, u.solMass, u.jupiterMass, u.earthMass]
 
