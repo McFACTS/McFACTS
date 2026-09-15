@@ -31,6 +31,12 @@ from mcfacts.objects.timeline import SimulationTimeline
 
 
 #### Methods
+def run_galaxy(
+        settings : SettingsManager,
+    ):
+    """Run an individual galaxy which has already been initialized"""
+    galaxy_seed = settings.seed - galaxy_id
+
 def main(settings: SettingsManager):
     # Check for existing output files and overwrite flags
     # TODO: These checks probably should be done via the snapshot handler
@@ -68,6 +74,7 @@ def main(settings: SettingsManager):
         single_star_populator = SingleStarPopulator()
         galaxy.populate([single_bh_populator, single_star_populator], agn_disk)
 
+        #### NOTE START ####
         # Create timeline to classify objects created during population
         pre_timeline = SimulationTimeline("Reclassification", timesteps=1, timestep_length=0)
 
@@ -184,6 +191,7 @@ def main(settings: SettingsManager):
 
         if emri_merged_array in galaxy.filing_cabinet:
             population_cabinet.create_or_append_array("blackholes_emri", galaxy.filing_cabinet.get_array(emri_merged_array))
+        #### NOTE STOP ####
 
     pbar.close()
 
