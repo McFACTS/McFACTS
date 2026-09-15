@@ -1,8 +1,15 @@
+"""Define the SettingsManager object and various components"""
+######## Imports ########
+#### Standard Library ####
 import warnings
 from functools import cached_property
 from types import NoneType
 from typing import Any, TypeVar, Type
 
+#### Third Party ####
+import numpy as np
+
+#### McFACTS ####
 from mcfacts.inputs import ReadInputs
 from mcfacts.utilities import unit_conversion
 
@@ -341,6 +348,14 @@ class SettingsManager:
 
         if isinstance(override, int) and expected == float:
             return float(override)
+
+        ## NumPy types ##
+        if isinstance(override, np.bool) and expected == bool:
+            return bool(override)
+        if isinstance(override, np.float64) and expected == float:
+            return float(override)
+        if isinstance(override, np.int64) and expected == int:
+            return int(override)
 
         if isinstance(prop, OptionalSettingsProperty) and isinstance(override, NoneType):
             return override

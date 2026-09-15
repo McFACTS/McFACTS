@@ -13,6 +13,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+#### Vera ####
+from xdata import Database
+
 #### McFACTS ####
 from mcfacts.inputs import settings_manager
 from mcfacts.inputs.settings_manager import SettingsManager
@@ -384,3 +387,180 @@ class IniSnapshotHandler(SnapshotHandler):
 
         return manager
 
+class HDF5SnapshotHandler(SnapshotHandler):
+    def __init__(self, name: str = None, settings: SettingsManager = None):
+        super().__init__("HDF5 Snapshot Handler" if name is None else name, settings)
+
+    @staticmethod
+    def construct_path(directory, file_name):
+        # Assert the directory is a path
+        if not isinstance(directory, Path):
+            raise TypeError(
+                f"directory is type {type(directory)}; expected Path"
+            )
+        # Make file_name a Path
+        file_name = Path(file_name)
+        suffix = file_name.suffix
+        if suffix.lower() in [".hdf5", ".hdf", ".h5"]:
+            pass
+        elif len(suffix.lower()) == 0:
+            file_name = Path(str(file_name) + ".hdf5")
+        else:
+            raise ValueError(f"Unknown file extension: {suffix}")
+        return directory / file_name
+
+    @property
+    def label(self):
+        if self.settings is None or len(self.settings.settings_file) == 0:
+            return "runs"
+        else:
+            return Path(self.settings.settings_file).stem
+
+    def save_cabinet(
+            self,
+            directory: str | bytes | PathLike,
+            file_name: str | bytes | PathLike,
+            filing_cabinet: FilingCabinet,
+        ):
+        agn_objects: dict[str, AGNObjectArray] = filing_cabinet.agn_objects
+        everything_else: dict[str, Any] = filing_cabinet.everything_else
+
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+
+        # Handle array objects that exist in the filing cabinet
+        for array_name, object_array in agn_objects.items():
+            final_path = os.path.join(directory, file_name + f"_{array_name}.txt")
+            super_dict = object_array.get_super_dict()
+
+            keys = super_dict.keys()
+            type_array = []
+            spacing_array = []
+
+            for key in keys:
+                values = super_dict[key]
+
+                type_str = f"numpy.{values.dtype}" if len(values) == 0 else f"{self.get_fully_qualified_type(values[0])}"
+                final_type_str = f"{key}::{type_str}"
+                type_array.append(final_type_str)
+
+                if len(values) == 0:
+                    spacing_array.append(len(final_type_str))
+                else:
+                    longest = max([str(x) for x in values], key=len)
+                    spacing_array.append(max(len(longest), len(final_type_str)) + 1)
+
+            header = "".join(
+                f"{str(type_array[i]) :<{spacing_array[i]}}" for i, key in enumerate(super_dict.keys())
+            )
+
+            np.savetxt(final_path, np.column_stack(tuple(super_dict.values())), fmt=[f"%-{space - 1}s" for space in spacing_array], header=header, comments='')
+
+        # Handle the 'everything else' dictionary stored in the filing cabinet
+        if len(everything_else) == 0:
+            return
+
+        everything_else_path = os.path.join(directory, file_name + "_everything_else.txt")
+
+        temp_keys = list(everything_else.keys())
+        temp_values = list(everything_else.values())
+        temp_types = list(self.get_fully_qualified_type(x) for x in everything_else.values())
+        temp_array = np.column_stack(tuple([temp_keys, temp_values, temp_types]))
+
+        everything_else_header = "".join(
+            f"{key:<{(37 if key.startswith('unique_id') else 26)}}"
+            for i, key in enumerate(["key", "value", "type"])
+        )
+
+        np.savetxt(everything_else_path, temp_array, fmt='%-25s', header=everything_else_header, comments='')
+
+
+    def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> dict:
+        directory = Path(directory)
+
+        if not directory.exists():
+            raise FileNotFoundError(f"Directory not found: {directory}")
+
+        agn_objects = dict()
+        everything_else = dict() # TODO: Handle everything else dictionary
+
+        for file in directory.iterdir():
+            if not file.is_file():
+                continue
+            if not file.name.startswith(f"{file_name}_"):
+                continue
+            if not file.name.endswith(".txt"):
+                continue
+
+            array_name = file.name[len(file_name + "_"):].rstrip(".txt")
+
+            if not array_name:
+                continue
+
+            try:
+                data = pd.read_csv(file, sep=r"\s+", dtype=str, engine='python')
+            except Exception as ex:
+                print(f"Failed to load {file}: {ex}")
+                continue
+
+            if len(data) == 0:
+                continue
+
+            column_dict = dict()
+
+            for series_name, series in data.items():
+                key, value = str(series_name).split('::')
+
+                if value == "uuid.UUID":
+                    array = np.array([uuid.UUID(v) for v in series], dtype=uuid.UUID)
+                elif value.startswith("numpy."):
+                    array = np.array(series, np.dtype(value.split('.')[1]))
+                else:
+                    array = np.array(series)
+
+                column_dict[key] = array
+
+            agn_objects[array_name] = column_dict
+
+        return agn_objects
+
+
+    def save_settings(
+            self,
+            directory: str | bytes | PathLike,
+            file_name: str | bytes | PathLike,
+            settings: SettingsManager = None,
+        ):
+        # Create the directory if it does not already exist
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+
+        # Make file_name a Path
+        final_path = self.construct_path(directory, file_name)
+        
+        # Decide the top level 
+        # Open the database
+        db = Database(final_path, self.label)
+        # Create the group
+        if "settings" not in db.list_items():
+            db.create_group("settings")
+        # Save the dictionary
+        db.attr_set_dict("settings", settings.settings_finals)
+
+
+    def load_settings(
+            self,
+            directory: str | bytes | PathLike,
+            file_name: str | bytes | PathLike,
+        ) -> SettingsManager:
+        # Create the directory Path
+        directory = Path(directory)
+        # Make file_name a Path
+        final_path = self.construct_path(directory, file_name)
+        # Open the database
+        db = Database(final_path)
+        # Identify top level group
+        label = db.list_items()[0]
+        # Load attribute dictionary
+        settings = db.attr_dict(f"{label}/settings")
+        return SettingsManager(settings)
