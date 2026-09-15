@@ -12,13 +12,7 @@ from typing import Any
 #### Third Party ####
 import numpy as np
 import pandas as pd
-import h5py
 
-#### Developers Maintain ####
-from xdata import Connection, Database
-
-#### In House ####
-# import mcfast
 #### McFACTS ####
 from mcfacts.inputs import settings_manager
 from mcfacts.inputs.settings_manager import SettingsManager
