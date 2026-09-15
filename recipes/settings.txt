@@ -20,6 +20,7 @@ disk_radius_outer                  50000.0                                 float
 disk_alpha_viscosity               0.01                                    float
 disk_aspect_ratio_avg              0.03                                    float
 disk_bh_torque_condition           0.1                                     float
+smbh_eddington_ratio               0.5                                     float
 disk_bh_eddington_ratio            1.0                                     float
 disk_bh_orb_ecc_max_init           0.9                                     float
 disk_radius_capture_outer          2000.0                                  float

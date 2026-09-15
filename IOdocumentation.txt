@@ -12,6 +12,11 @@ star cluster variables second, and assorted other choices (time resolution etc.)
     smbh_mass : float
         supermassive black hole mass in units of solar masses
             default : 1.e8
+    smbh_eddington_ratio : float
+        Accretion rate of the supermassive black hole in units of 
+        Eddington accretion rate. 1.0=embedded BH accreting at Eddington.
+        Super-Eddington accretion rates are permitted.
+            default : 0.5
     flag_use_pagn : int
         Switch pAGN program on (1) or off (0)
         Gangardt, Daria et al. 2024      

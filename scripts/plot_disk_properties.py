@@ -29,7 +29,7 @@ def ROS_plots():
     # Old global scope variables
     smbh_mass = 1e8
     disk_alpha_viscosity = 0.01
-    disk_bh_eddington_ratio=0.5
+    smbh_eddington_ratio=0.5
     rad_efficiency = 0.1
     disk_model_name = 'sirko_goodman'
     disk_radius_outer = 50000
@@ -51,7 +51,7 @@ def ROS_plots():
             smbh_mass,
             disk_radius_outer,
             disk_alpha_viscosity,
-            disk_bh_eddington_ratio,
+            smbh_eddington_ratio,
             rad_efficiency,
             )
     rvals =        np.array( disk_radius_arr)
@@ -349,7 +349,7 @@ def plot_interpolators(fname_ini=None,output_directory="./"):
         )
 
     _alpha = input_variables["disk_alpha_viscosity"]
-    _edd = input_variables["disk_bh_eddington_ratio"]
+    _edd = input_variables["smbh_eddington_ratio"]
     #_edd = 0.5
     _mass = input_variables["smbh_mass"]
     # Identify pAGN model
