@@ -229,13 +229,13 @@ def main(settings: SettingsManager):
 
         if bbh_lvk_array in galaxy.filing_cabinet:
             population_cabinet.create_or_append_array(
-                "blackholes_lvk", 
+                "blackholes_lvk",
                 galaxy.filing_cabinet.get_array(bbh_lvk_array),
             )
 
         if innerdisk_array in galaxy.filing_cabinet:
             population_cabinet.create_or_append_array(
-                "blackholes_emri", 
+                "blackholes_emri",
                 galaxy.filing_cabinet.get_array(innerdisk_array),
             )
 
@@ -247,14 +247,18 @@ def main(settings: SettingsManager):
 
         if emri_merged_array in galaxy.filing_cabinet:
             population_cabinet.create_or_append_array(
-                "blackholes_emri", 
+                "blackholes_emri",
                 galaxy.filing_cabinet.get_array(emri_merged_array),
             )
 
     pbar.close()
 
     # Save the entire population cabinet
-    snapshot_handler.save_cabinet(settings.output_dir, "population", population_cabinet)
+    snapshot_handler.save_cabinet(
+        settings.output_dir,
+        "population",
+        population_cabinet,
+    )
 
 
 if __name__ == "__main__":
