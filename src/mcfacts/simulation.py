@@ -144,13 +144,16 @@ def run_galaxy(
     # Rub the active timeline
     galaxy.run(active_phase_timeline, agn_disk)
 
-    #### NOTE STOP ####
-
 def main(settings: SettingsManager):
+
+    ## Setup the filesystem for a run ##
     # Check for existing output files and overwrite flags
     # TODO: These checks probably should be done via the snapshot handler
     if settings.overwrite_files == False and os.path.isdir(settings.output_dir):
-        assert False, f"Output directory {settings.output_dir} already exist. Set --overwrite_files=True to clear the directory."
+        raise FileExistsError(
+            f"Output directory {settings.output_dir} already exist. "
+            "Set --overwrite_files=True to clear the directory."
+        )
 
     if settings.overwrite_files and os.path.isdir(settings.output_dir):
         shutil.rmtree(settings.output_dir)
@@ -161,31 +164,43 @@ def main(settings: SettingsManager):
     ini_handler = IniSnapshotHandler(settings=settings)
     ini_handler.save_settings(settings.output_dir, "settings", settings)
 
+    ## Initialize objects that should persist across galaxies ##
+
     # Load disk model and setup empty filing cabinet for result populations
     agn_disk = AGNDisk(settings)
     population_cabinet = FilingCabinet()
 
+    # Initialize progress bar
     pbar = tqdm(total=settings.galaxy_num, position=0, leave=True)
 
     for galaxy_id in range(settings.galaxy_num):
+        # Update progress bar with information
         pbar.set_description(f"Running Galaxy {galaxy_id}")
         pbar.update(1)
 
+        ## Define the galaxy object ##
         # The Galaxy class creates a random generated based on this seed,
         # Philox output for n and n+-1 seeds are uncorrelated
         galaxy_seed = settings.seed - galaxy_id
 
         # Create instance of galaxy
-        galaxy = Galaxy(seed=galaxy_seed, runs_folder=settings.output_dir, galaxy_id=str(galaxy_id), settings=settings)
+        galaxy = Galaxy(
+            seed=galaxy_seed,
+            runs_folder=settings.output_dir,
+            galaxy_id=str(galaxy_id),
+            settings=settings,
+        )
 
+        ## Populate galaxy with a new population ##
         # Create instance of populators
         single_bh_populator = SingleBlackHolePopulator()
         single_star_populator = SingleStarPopulator()
         galaxy.populate([single_bh_populator, single_star_populator], agn_disk)
 
-        # Run the galaxy
+        ## Run the galaxy ##
         run_galaxy(settings, galaxy, agn_disk=agn_disk)
 
+        ## Manage simulation outputs ##
         # Ignore consistency checks on these arrays since they are allowed to have duplicates
         population_cabinet.ignore_consistency_check("blackholes_merged")
         population_cabinet.ignore_consistency_check("blackholes_lvk")
