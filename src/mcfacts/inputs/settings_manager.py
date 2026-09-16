@@ -116,8 +116,8 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("save_state", "io", False, bool),
         SettingsProperty("save_each_timestep", "io", False, bool),
         SettingsProperty("output_dir", "io", "./runs", str),
-        SettingsProperty("settings_snapshot", "io", "ini", str)
-        SettingsProperty("cabinet_snapshot", "io", "txt", str)
+        SettingsProperty("settings_snapshot", "io", "ini", str),
+        SettingsProperty("cabinet_snapshot", "io", "txt", str),
         OptionalSettingsProperty("settings_file", "io", "", str),
 
         # Simulation Parameters
@@ -519,3 +519,37 @@ class SettingsManager:
     @property
     def categories(self):
         return self._categories
+
+    def new_settings_snapshot(self):
+        """Return a new settings snapshot"""
+        from mcfacts.objects.snapshot import TxtSnapshotHandler
+        from mcfacts.objects.snapshot import IniSnapshotHandler
+        from mcfacts.objects.snapshot import HDF5SnapshotHandler
+        if self.settings_snapshot == "txt":
+            return TxtSnapshotHandler(settings=self) #Neat that this is allowed
+        elif self.settings_snapshot == "ini":
+            return IniSnapshotHandler(settings=self)
+        elif self.settings_snapshot == "hdf5":
+            return HDF5SnapshotHandler(settings=self)
+        else:
+            raise ValueError(
+                f"No such snapshot handler: {self.settings_snapshot}",
+            )
+
+    def new_cabinet_snapshot(self):
+        """Return a new cabinet snapshot"""
+        from mcfacts.objects.snapshot import TxtSnapshotHandler
+        from mcfacts.objects.snapshot import HDF5SnapshotHandler
+        if self.cabinet_snapshot == "txt":
+            return TxtSnapshotHandler(settings=self)
+        elif self.cabinet_snapshot == "ini":
+            raise NotImplementedError(
+                f"configparser should not be used to save agn_objects."
+            )
+        elif self.cabinet_snapshot == "hdf5":
+            return HDF5SnapshotHandler(settings=self)
+        else:
+            raise ValueError(
+                f"No such snapshot handler: {self.cabinet_snapshot}",
+            )
+

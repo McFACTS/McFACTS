@@ -26,7 +26,6 @@ from mcfacts.objects.agn_object_array import *
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopulator
-from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 
 
@@ -159,10 +158,14 @@ def main(settings: SettingsManager):
         shutil.rmtree(settings.output_dir)
 
     # Create the IO handlers and save the current settings
-    snapshot_handler = TxtSnapshotHandler(settings = settings)
+    cabinet_snapshot_handler = settings.new_cabinet_snapshot()
+    settings_snapshot_handler = settings.new_settings_snapshot()
 
-    ini_handler = IniSnapshotHandler(settings=settings)
-    ini_handler.save_settings(settings.output_dir, "settings", settings)
+    settings_snapshot_handler.save_settings(
+        settings.output_dir,
+        "settings",
+        settings,
+    )
 
     ## Initialize objects that should persist across galaxies ##
 
@@ -254,7 +257,7 @@ def main(settings: SettingsManager):
     pbar.close()
 
     # Save the entire population cabinet
-    snapshot_handler.save_cabinet(
+    cabinet_snapshot_handler.save_cabinet(
         settings.output_dir,
         "population",
         population_cabinet,
