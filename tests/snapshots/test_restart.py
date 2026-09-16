@@ -19,6 +19,18 @@ from mcfacts.simulation import run_galaxy
 
 ######## Setup ########
 
+def agn_objects_are_equal(A, B):
+    """Check to see if one AGN object array is equal to another"""
+    # Check the population objects
+    for name, agn_object_array in A.items():
+        if name not in B:
+            return False
+        for key, value in agn_object_array.get_super_dict().items():
+            if key not in B[name]:
+                return False
+            if not np.all(value == B[name][key]):
+                return False
+    return True
 
 ######## Tests ########
 def test_run_galaxy():
@@ -28,8 +40,12 @@ def test_run_galaxy():
         # Define some settings
         live = SettingsManager()
         live.set_preprocessing("output_dir", wkdir)
+        live.set_preprocessing("save_state", True)
+        #live.set_preprocessing("save_each_timestep", True)
         assert live.output_dir == wkdir, \
             "Failed to setup output directory"
+        assert live.save_state
+        #assert live.save_each_timestep
 
         # Create the IO handlers and save the current settings
         txt_handler = TxtSnapshotHandler(settings = live)
@@ -42,7 +58,7 @@ def test_run_galaxy():
         galaxy = Galaxy(
             seed=42,
             runs_folder=live.output_dir,
-            galaxy_id=0,
+            galaxy_id="0",
             settings=live,
         )
 
@@ -113,6 +129,48 @@ def test_run_galaxy():
             population_cabinet,
         )
         print(os.listdir(wkdir))
+        # Get an unrelated TxtSnapshotHandler
+        txt_loader = TxtSnapshotHandler(settings = \
+            {key: value for key, value in live.settings_finals.items()})
+        # Load some AGN objects
+        agn_pop_objs = txt_loader.load_cabinet(
+            live.output_dir,
+            "population",
+        )
+        # Check the population objects
+        assert agn_objects_are_equal(
+            population_cabinet.agn_objects,
+            agn_pop_objs,
+        )
+        # Load the final state of the galaxy
+        gal00_s02_objs = txt_loader.load_cabinet(
+            f"{wkdir}/gal00",
+            "gal00_s02",
+        )
+        for item in os.listdir(f"{wkdir}/gal00"):
+            kind = "directory" if os.path.isdir(f"{wkdir}/gal00/{item}") else \
+                "file"
+            print(item, kind)
+            if kind == "directory":
+                print(os.listdir(f"{wkdir}/gal00/{item}"))
+
+
+
+        for name, arr in galaxy.filing_cabinet.agn_objects.items():
+            print(name)
+            print(name in gal00_s02_objs)
+        raise Exception
+        if False:
+            print(name in gal00_s02_objs)
+            galaxy.filing_cabinet.agn_objects
+            for key, value in arr.items():
+                print(key)
+                print(key in galaxy.filing_cabinet.agn_objects[name])
+        # Check the final state of the galaxy
+        assert agn_objects_are_equal(
+            galaxy.filing_cabinet.agn_objects,
+            gal00_s02_objs,
+        )
 
 
 

@@ -191,6 +191,11 @@ class TxtSnapshotHandler(SnapshotHandler):
             column_dict = dict()
 
             for series_name, series in data.items():
+                if not "::" in series_name:
+                    print(file)
+                    print(series_name)
+                    print(str(series_name))
+                    continue
                 key, value = str(series_name).split('::')
 
                 if value == "uuid.UUID":
@@ -388,8 +393,25 @@ class IniSnapshotHandler(SnapshotHandler):
         return manager
 
 class HDF5SnapshotHandler(SnapshotHandler):
-    def __init__(self, name: str = None, settings: SettingsManager = None):
+    def __init__(
+            self,
+            name    : str = None,
+            settings: SettingsManager = None,
+            addr    : str = None,
+        ):
         super().__init__("HDF5 Snapshot Handler" if name is None else name, settings)
+        self.addr = addr
+
+    @property
+    def needle(self):
+        """Setting to search for to find settings
+
+        Name a setting that is unlikely to have a run named after it,
+          which is also unlikely to have its name be changed.
+
+        A needle in a haystack
+        """
+        return "disk_radius_outer"
 
     @staticmethod
     def construct_path(directory, file_name):
@@ -411,68 +433,80 @@ class HDF5SnapshotHandler(SnapshotHandler):
 
     @property
     def label(self):
-        if self.settings is None or len(self.settings.settings_file) == 0:
+        if self.addr is not None:
+            return self.addr
+        elif self.settings is None or len(self.settings.settings_file) == 0:
             return "runs"
         else:
             return Path(self.settings.settings_file).stem
 
+    @property
+    def settings_addr(self):
+        if self.addr is not None:
+            return self.addr # Note there is no /settings
+        else:
+            return self.label + "/settings"
+
     def save_cabinet(
             self,
-            directory: str | bytes | PathLike,
-            file_name: str | bytes | PathLike,
-            filing_cabinet: FilingCabinet,
+            directory       : str | bytes | PathLike,
+            file_name       : str | bytes | PathLike,
+            filing_cabinet  : FilingCabinet,
+            addr            : str = None,
         ):
+        """Save a cabinet to HDF5 using xdata
+
+        Parameters
+        ----------
+        directory   : path_like
+            The location of the directory where the file will be saved
+        file_name   : path_like
+            The name of the file that will be saved
+        filing_cabinet : FilingCabinet
+            The cabinet with your population
+        addr        : str, optional
+            The address within the hdf5 file to save settings
+        """
         agn_objects: dict[str, AGNObjectArray] = filing_cabinet.agn_objects
         everything_else: dict[str, Any] = filing_cabinet.everything_else
 
+        # Create the directory if it does not already exist
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
+        # Make file_name a Path
+        final_path = self.construct_path(directory, file_name)
+        # Open the database
+        if addr is None:
+            if self.addr is not None:
+                addr = self.addr
+            else:
+                addr = self.label + "/population"
+        db = Database(final_path, addr)
 
         # Handle array objects that exist in the filing cabinet
         for array_name, object_array in agn_objects.items():
-            final_path = os.path.join(directory, file_name + f"_{array_name}.txt")
+            # Up, up, and away!
             super_dict = object_array.get_super_dict()
+            print(array_name)
+            print(list(super_dict.keys))
+            raise Exception
+            if array_name not in db.list_items(kind='group'):
+                # path relative to addr
+                db.create_group(array_name)
+            for key, value in super_dict.items():
+                print(key, type(value), np.shape(value),  value)
+            raise Exception
+            for key, value in super_dict.items():
+                # path relative to addr
+                db.dset_set(f"{array_name}/{key}", value)
 
-            keys = super_dict.keys()
-            type_array = []
-            spacing_array = []
-
-            for key in keys:
-                values = super_dict[key]
-
-                type_str = f"numpy.{values.dtype}" if len(values) == 0 else f"{self.get_fully_qualified_type(values[0])}"
-                final_type_str = f"{key}::{type_str}"
-                type_array.append(final_type_str)
-
-                if len(values) == 0:
-                    spacing_array.append(len(final_type_str))
-                else:
-                    longest = max([str(x) for x in values], key=len)
-                    spacing_array.append(max(len(longest), len(final_type_str)) + 1)
-
-            header = "".join(
-                f"{str(type_array[i]) :<{spacing_array[i]}}" for i, key in enumerate(super_dict.keys())
-            )
-
-            np.savetxt(final_path, np.column_stack(tuple(super_dict.values())), fmt=[f"%-{space - 1}s" for space in spacing_array], header=header, comments='')
-
-        # Handle the 'everything else' dictionary stored in the filing cabinet
+        # If there's nothing else, we're done here
         if len(everything_else) == 0:
             return
-
-        everything_else_path = os.path.join(directory, file_name + "_everything_else.txt")
-
-        temp_keys = list(everything_else.keys())
-        temp_values = list(everything_else.values())
-        temp_types = list(self.get_fully_qualified_type(x) for x in everything_else.values())
-        temp_array = np.column_stack(tuple([temp_keys, temp_values, temp_types]))
-
-        everything_else_header = "".join(
-            f"{key:<{(37 if key.startswith('unique_id') else 26)}}"
-            for i, key in enumerate(["key", "value", "type"])
-        )
-
-        np.savetxt(everything_else_path, temp_array, fmt='%-25s', header=everything_else_header, comments='')
+        # Handle the 'everything else' dictionary stored in the filing cabinet
+        for key, value in everything_else.items():
+            # path relative to addr
+            db.dset_set(key, value)
 
 
     def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> dict:
@@ -527,40 +561,92 @@ class HDF5SnapshotHandler(SnapshotHandler):
 
     def save_settings(
             self,
-            directory: str | bytes | PathLike,
-            file_name: str | bytes | PathLike,
-            settings: SettingsManager = None,
+            directory   : str | bytes | PathLike,
+            file_name   : str | bytes | PathLike,
+            settings    : SettingsManager = None,
+            addr        : str = None,
         ):
+        """Save settings to HDF5 using xdata
+
+        Parameters
+        ----------
+        directory   : path_like
+            The location of the directory where the file will be saved
+        file_name   : path_like
+            The name of the file that will be saved
+        settings    : SettingsManager, optional
+            The settings to save
+        addr        : str, optional
+            The address within the hdf5 file to save settings
+        """
         # Create the directory if it does not already exist
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
-
         # Make file_name a Path
         final_path = self.construct_path(directory, file_name)
-        
-        # Decide the top level 
+        # Determine the address to save the settings within the HDF5 database
+        if addr is None:
+            addr = self.settings_addr
         # Open the database
-        db = Database(final_path, self.label)
-        # Create the group
-        if "settings" not in db.list_items():
-            db.create_group("settings")
+        db = Database(final_path, addr)
         # Save the dictionary
-        db.attr_set_dict("settings", settings.settings_finals)
+        db.attr_set_dict(".", settings.settings_finals)
 
 
     def load_settings(
             self,
-            directory: str | bytes | PathLike,
-            file_name: str | bytes | PathLike,
+            directory   : str | bytes | PathLike,
+            file_name   : str | bytes | PathLike,
+            addr        : str = None,
         ) -> SettingsManager:
+        """Load settings from HDF5 using xdata
+
+        Parameters
+        ----------
+        directory   : path_like
+            The location of the directory where the file is
+        file_name   : path_like
+            The name of the file
+        addr        : str, optional
+            The address within the hdf5 file to find the settings
+
+        Returns
+        -------
+        SettingsManager
+            The loaded settings
+        """
         # Create the directory Path
         directory = Path(directory)
         # Make file_name a Path
         final_path = self.construct_path(directory, file_name)
         # Open the database
         db = Database(final_path)
-        # Identify top level group
-        label = db.list_items()[0]
-        # Load attribute dictionary
-        settings = db.attr_dict(f"{label}/settings")
+        # Initialize settings
+        settings = None
+        # Easy: the user told us where the settings are
+        if addr is not None:
+            settings = db.attr_dict(addr)
+        # Hard: let's try and look for them
+        else:
+            top = db.list_items()
+            top_attrs = db.attr_dict(".")
+            # See if it's right here
+            if self.needle in top_attrs:
+                settings = top_attrs
+            # See if there's something called settings
+            elif "settings" in top:
+                settings = db.attr_dict("settings")
+            # Let's see if there's exactly one group
+            elif len(top) == 1:
+                # Let's see if this thing has 'settings'
+                if "settings" in db.list_items(top[0]):
+                    settings = db.attr_dict(f"{top[0]}/settings")
+                # Let's see if it has settings
+                else:
+                    label_attrs = db.attr_dict(top[0])
+                    if self.needle in label_attrs:
+                        settings = label_attrs
+        # Die if we failed to find them
+        if settings is None:
+            raise KeyError(f"I could not find your settings.")
         return SettingsManager(settings)
