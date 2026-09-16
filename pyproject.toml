@@ -75,6 +75,7 @@ dependencies = [
     "joblib>=1.4.2",
     "scikit_learn>=1.5.2",
     "mcfast==0.1.10",
+    "xev-data==1.0.0",
 ]
 
 #TODO: Add description and other dynamically defined variables created in setup.py
