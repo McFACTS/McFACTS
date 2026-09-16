@@ -15,6 +15,7 @@ import pandas as pd
 
 #### Vera ####
 from xdata import Database
+from xdata import AddressNotFoundError
 
 #### McFACTS ####
 from mcfacts.inputs import settings_manager
@@ -22,7 +23,17 @@ from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
 from mcfacts.objects.log import LogFunction, PrintLogFunction
 
+######## Setup ########
 
+UUID_FIELDS = [
+    "unique_id",
+    "parent_unique_id",
+    "parent_unique_id_2",
+    "progenitor_unique_id",
+    "unique_id_final",
+]
+
+######## Objects ########
 class SnapshotHandler(ABC):
     def __init__(self, name: str, settings: SettingsManager = None):
         self.name = name
@@ -191,6 +202,7 @@ class TxtSnapshotHandler(SnapshotHandler):
             column_dict = dict()
 
             for series_name, series in data.items():
+                # This makes it not crash, but there's still something wrong
                 if not "::" in series_name:
                     print(file)
                     print(series_name)
@@ -487,18 +499,19 @@ class HDF5SnapshotHandler(SnapshotHandler):
         for array_name, object_array in agn_objects.items():
             # Up, up, and away!
             super_dict = object_array.get_super_dict()
-            print(array_name)
-            print(list(super_dict.keys))
-            raise Exception
             if array_name not in db.list_items(kind='group'):
                 # path relative to addr
                 db.create_group(array_name)
             for key, value in super_dict.items():
-                print(key, type(value), np.shape(value),  value)
-            raise Exception
-            for key, value in super_dict.items():
                 # path relative to addr
-                db.dset_set(f"{array_name}/{key}", value)
+                tag = f"{array_name}/{key}"
+                if key in UUID_FIELDS:
+                    value = np.array([u.bytes for u in value], dtype='S16')
+                try:
+                    db.dset_set(tag, value)
+                except Exception as exc:
+                    print(key, value.dtype, np.shape(value))
+                    raise exc
 
         # If there's nothing else, we're done here
         if len(everything_else) == 0:
@@ -509,53 +522,83 @@ class HDF5SnapshotHandler(SnapshotHandler):
             db.dset_set(key, value)
 
 
-    def load_cabinet(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> dict:
-        directory = Path(directory)
+    def load_cabinet(
+            self,
+            directory   : str | bytes | PathLike,
+            file_name   : str | bytes | PathLike,
+            addr        : str = None,
+        ) -> dict:
+        """Load a cabinet from HDF5 using xdata
 
+        Parameters
+        ----------
+        directory   : path_like
+            The location of the directory where the file exists
+        file_name   : path_like
+            The name of the file that will be loaded
+        addr        : str, optional
+            The address within the hdf5 file to load a cabinet
+        """
+        # Create the directory Path
+        directory = Path(directory)
         if not directory.exists():
             raise FileNotFoundError(f"Directory not found: {directory}")
+        # Make file_name a Path
+        final_path = self.construct_path(directory, file_name)
+        if not final_path.exists():
+            raise FileNotFoundError(f"File not found: {final_path}")
+        # Open the database
+        db = Database(final_path)
+        # Easy: the user told us where the cabinet is
+        # Note this is the only way to save a cabinet for a galaxy
+        if addr is not None:
+            if not db.exists(addr):
+                raise AddressNotFoundError(f"No such address: {addr}")
+        # Hard: let's try and look for them
+        else:
+            top = db.list_items()
+            if "population" in top:
+                addr = "population"
+            elif len(top) == 1:
+                for item in db.list_items(top[0]):
+                    if item == "population":
+                        addr = f"{item}/population"
+        # Make sure we found something
+        if addr is None:
+            raise RuntimeError(f"Please specify HDF5 cabinet address!")
+        # Point database
+        db = Database(final_path, addr)
 
+        # The dictionary
         agn_objects = dict()
         everything_else = dict() # TODO: Handle everything else dictionary
 
-        for file in directory.iterdir():
-            if not file.is_file():
-                continue
-            if not file.name.startswith(f"{file_name}_"):
-                continue
-            if not file.name.endswith(".txt"):
-                continue
-
-            array_name = file.name[len(file_name + "_"):].rstrip(".txt")
-
-            if not array_name:
-                continue
-
-            try:
-                data = pd.read_csv(file, sep=r"\s+", dtype=str, engine='python')
-            except Exception as ex:
-                print(f"Failed to load {file}: {ex}")
-                continue
-
-            if len(data) == 0:
-                continue
-
+        # First load AGN objects
+        for item in db.list_items(kind="group"):
+            kind = db.kind(item)
+            # Initialize column dict
             column_dict = dict()
-
-            for series_name, series in data.items():
-                key, value = str(series_name).split('::')
-
-                if value == "uuid.UUID":
-                    array = np.array([uuid.UUID(v) for v in series], dtype=uuid.UUID)
-                elif value.startswith("numpy."):
-                    array = np.array(series, np.dtype(value.split('.')[1]))
+            for key in db.list_items(item, kind="dset"):
+                if key in UUID_FIELDS:
+                    # Load the bytes array into RAM
+                    tmp = db.dset_value(f"{item}/{key}")
+                    col = np.empty(tmp.shape, dtype=object)
+                    for i, bts in enumerate(tmp):
+                        if bts == b'':
+                            col[i] = uuid.UUID(int=0)
+                        else:
+                            col[i] = uuid.UUID(bytes=bts)
+                    # Initialize column_dict
+                    column_dict[key] = col
                 else:
-                    array = np.array(series)
+                    # EZ
+                    column_dict[key] = db.dset_value(f"{item}/{key}")
+            agn_objects[item] = column_dict
 
-                column_dict[key] = array
-
-            agn_objects[array_name] = column_dict
-
+        # Handle everything else
+        for item in db.list_items(kind="dset"):
+            kind = db.kind(item)
+            print(item, kind)
         return agn_objects
 
 
@@ -619,6 +662,8 @@ class HDF5SnapshotHandler(SnapshotHandler):
         directory = Path(directory)
         # Make file_name a Path
         final_path = self.construct_path(directory, file_name)
+        if not final_path.exists():
+            raise FileNotFoundError(f"File not found: {final_path}")
         # Open the database
         db = Database(final_path)
         # Initialize settings
