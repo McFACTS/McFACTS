@@ -116,6 +116,8 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("save_state", "io", False, bool),
         SettingsProperty("save_each_timestep", "io", False, bool),
         SettingsProperty("output_dir", "io", "./runs", str),
+        SettingsProperty("settings_snapshot", "io", "ini", str)
+        SettingsProperty("cabinet_snapshot", "io", "txt", str)
         OptionalSettingsProperty("settings_file", "io", "", str),
 
         # Simulation Parameters
