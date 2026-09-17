@@ -4,6 +4,7 @@
 #### Standard ####
 import tempfile
 import os
+from os.path import isfile, isdir, join
 
 #### Third Party ####
 import numpy as np
@@ -29,11 +30,18 @@ def agn_objects_are_equal(A, B):
     for name, agn_object_array in A.items():
         if name not in B:
             return False
-        for key, value in agn_object_array.get_super_dict().items():
-            if key not in B[name]:
-                return False
-            if not np.all(value == B[name][key]):
-                return False
+        if isinstance(agn_object_array, dict):
+            for key, value in agn_object_array.items():
+                if key not in B[name]:
+                    return False
+                if not np.all(value == B[name][key]):
+                    return False
+        else:
+            for key, value in agn_object_array.get_super_dict().items():
+                if key not in B[name]:
+                    return False
+                if not np.all(value == B[name][key]):
+                    return False
     return True
 
 ######## Tests ########
@@ -132,7 +140,6 @@ def test_run_galaxy():
             "population",
             population_cabinet,
         )
-        print(os.listdir(wkdir))
         # Get an unrelated TxtSnapshotHandler
         txt_loader = TxtSnapshotHandler(settings = \
             {key: value for key, value in live.settings_finals.items()})
@@ -140,7 +147,7 @@ def test_run_galaxy():
         txt_agn_pop_objs = txt_loader.load_cabinet(
             live.output_dir,
             "population",
-        )
+        )[0]
         # Check the population objects
         assert agn_objects_are_equal(
             population_cabinet.agn_objects,
@@ -150,11 +157,11 @@ def test_run_galaxy():
         txt_gal00_s02_objs = txt_loader.load_cabinet(
             f"{wkdir}/gal00",
             "gal00_s02",
-        )
+        )[0]
         # Was used for testing TxtSnapshotHandler.load/save cabinet
         """
         for item in os.listdir(f"{wkdir}/gal00"):
-            kind = "directory" if os.path.isdir(f"{wkdir}/gal00/{item}") else \
+            kind = "directory" if isdir(f"{wkdir}/gal00/{item}") else \
                 "file"
             print(item, kind)
             if kind == "directory":
@@ -271,30 +278,98 @@ def test_run_galaxy():
             live.output_dir,
             "live.hdf5",
             addr=f"{hdf_handler.label}/population",
-        )
+        )[0]
         # Check the population objects
         assert agn_objects_are_equal(
             population_cabinet.agn_objects,
             hdf_agn_pop_objs,
         )
-        print("Not dead yet!")
+        # print("Not dead yet!")
         # Loop
         #os.system(f"h5ls -r {wkdir}/live.hdf5")
         # Feels good to be able to use this
-        db = Database(os.path.join(wkdir, "live.hdf5"), "live/gal00")
+        db = Database(join(wkdir, "live.hdf5"), "live/gal00")
 
         # Loop things
-        """
         for name in db.list_items():
+            # Construct the full address
             addr = f"live/gal00/{name}"
-            print(name, addr)
-            hdf_agn_objs = hdf_loader.load_cabinet(
+            # Get parts of the string
+            parts = name.split("_")
+            #print(len(parts), name, addr, parts)
+            hdf_agn_objs, hdf_all_else = hdf_loader.load_cabinet(
                 wkdir,
                 "live.hdf5",
                 addr = addr,
             )
-        print(os.listdir(wkdir))
-        """
+            # Find state snapshots
+            if len(parts) == 2:
+                # Identify state
+                state = parts[1]
+                # Load some AGN objects
+                txt_agn_objs, txt_all_else = txt_loader.load_cabinet(
+                    live.output_dir,
+                    name,
+                )
+                assert agn_objects_are_equal(
+                    txt_agn_objs,
+                    hdf_agn_objs,
+                )
+                for key in txt_all_else:
+                    assert key in hdf_all_else
+                    assert txt_all_else[key] == hdf_all_else[key]
+            # Find timestep snapshots
+            elif len(parts) == 5:
+                # Identify state
+                prev_state = parts[1]
+                next_state = parts[3]
+                tmpdir = join(
+                    wkdir,
+                    parts[0],
+                    f"{parts[0]}_{prev_state}_to_{next_state}",
+                )
+                # Load some AGN objects
+                txt_agn_objs, txt_all_else = txt_loader.load_cabinet(
+                    tmpdir,
+                    name,
+                )
+                try:
+                    assert agn_objects_are_equal(
+                        hdf_agn_objs,
+                        txt_agn_objs,
+                    )
+                except AssertionError:
+                    for item, agn_object_array in hdf_agn_objs.items():
+                        if item not in txt_agn_objs:
+                            # Initialize empty
+                            empty = True
+                            for key, value in agn_object_array.items():
+                                if np.size(value) > 0:
+                                    empty = False
+                            if empty:
+                                continue
+                            print(f"{item} not in txt_agn_objs for {name}")
+                        for key, value in agn_object_array.items():
+                            if key not in txt_agn_objs[item]:
+                                print(f"{key} not in txt_agn_objs {item} for {name}")
+                            if not np.all(value == txt_agn_objs[item][key]):
+                                print(f"Unequal;")
+                                print(
+                                    f"HDF5 type: {type(value)}; "
+                                    f"shape: {np.shape(value)}; "
+                                    f"value: {value}"
+                                )
+                                print(
+                                    f"Txt type: {type(txt_agn_objs[item][key])}; "
+                                    f"shape: {np.shape(txt_agn_objs[item][key])}; "
+                                    f"value: {txt_agn_objs[item][key]}"
+                                )
+                for key in txt_all_else:
+                    assert key in hdf_all_else
+                    assert txt_all_else[key] == hdf_all_else[key]
+            # Die
+            else:
+                raise RuntimeError(f"Unaccounted group: {addr}")
 
 
 ######## Main ########

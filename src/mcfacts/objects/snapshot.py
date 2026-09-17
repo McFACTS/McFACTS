@@ -181,10 +181,30 @@ class TxtSnapshotHandler(SnapshotHandler):
                 continue
             if not file.name.startswith(f"{file_name}_"):
                 continue
-            if not file.name.endswith(".txt"):
+            if not file.name.lower().endswith(".txt"):
+                continue
+            if "everything_else" in str(file):
+                with open(file, 'r') as F:
+                    for line in F:
+                        if line.startswith("key"):
+                            continue
+                        line = line.strip("\n")
+                        parts = line.split()
+                        if len(parts) != 3:
+                            continue
+                        key, value, dt = parts
+                        # This is bad. Do not do this.
+                        #value = eval(dt)(value)
+                        if dt == "float":
+                            value = float(value)
+                        else:
+                            raise TypeError(
+                                f"Bad type in everything_else: {dt}"
+                            )
+                        everything_else[key] = value
                 continue
 
-            array_name = file.name[len(file_name + "_"):].rstrip(".txt")
+            array_name = file.name[len(file_name + "_"):].removesuffix(".txt")
 
             if not array_name:
                 continue
@@ -196,17 +216,14 @@ class TxtSnapshotHandler(SnapshotHandler):
                 continue
 
             if len(data) == 0:
+                # VD: NOTE this continue here is not good Python.
+                # It should return an empty array.
+                # This is some pandas nonsense, and I'm not fixing it.
                 continue
 
             column_dict = dict()
 
             for series_name, series in data.items():
-                # This makes it not crash, but there's still something wrong
-                if not "::" in series_name:
-                    print(file)
-                    print(series_name)
-                    print(str(series_name))
-                    continue
                 key, value = str(series_name).split('::')
 
                 if value == "uuid.UUID":
@@ -220,7 +237,7 @@ class TxtSnapshotHandler(SnapshotHandler):
 
             agn_objects[array_name] = column_dict
 
-        return agn_objects
+        return agn_objects, everything_else
 
 
     def save_settings(
@@ -583,16 +600,17 @@ class HDF5SnapshotHandler(SnapshotHandler):
                     tmp = db.dset_value(f"{item}/{key}")
                     col = np.empty(tmp.shape, dtype=object)
                     for i, bts in enumerate(tmp):
-                        if bts == b'':
+                        lbts = len(bts)
+                        if lbts == 0:
                             col[i] = uuid.UUID(int=0)
+                        elif lbts == 16:
+                            col[i] = uuid.UUID(bytes=bts)
+                        elif lbts < 16:
+                            col[i] = uuid.UUID(bytes=bts.ljust(16, b"\x00"))
                         else:
-                            try:
-                                col[i] = uuid.UUID(bytes=bts)
-                            except Exception as exc:
-                                print(item)
-                                print(key)
-                                print(bts)
-                                raise exc
+                            raise ValueError(
+                                f"UUID bytearray has an element with {lbts} bytes!"
+                            )
                     # Initialize column_dict
                     column_dict[key] = col
                 else:
@@ -602,9 +620,9 @@ class HDF5SnapshotHandler(SnapshotHandler):
 
         # Handle everything else
         for item in db.list_items(kind="dset"):
-            kind = db.kind(item)
-            print(item, kind)
-        return agn_objects
+            everything_else[item] = db.dset_value(item)
+
+        return agn_objects, everything_else
 
 
     def save_settings(
