@@ -42,11 +42,11 @@ def test_run_galaxy():
         live = SettingsManager()
         live.set_preprocessing("output_dir", wkdir)
         live.set_preprocessing("save_state", True)
-        #live.set_preprocessing("save_each_timestep", True)
+        live.set_preprocessing("save_each_timestep", True)
         assert live.output_dir == wkdir, \
             "Failed to setup output directory"
         assert live.save_state
-        #assert live.save_each_timestep
+        assert live.save_each_timestep
 
         # Create the IO handlers and save the current settings
         txt_handler = TxtSnapshotHandler(settings = live)

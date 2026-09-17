@@ -518,7 +518,6 @@ class HDF5SnapshotHandler(SnapshotHandler):
         # Handle the 'everything else' dictionary stored in the filing cabinet
         for key, value in everything_else.items():
             # path relative to addr
-            print(key, type(value))
             db.dset_set(key, np.asarray(value))
 
 
