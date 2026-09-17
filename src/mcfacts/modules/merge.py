@@ -827,8 +827,8 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass, r_g_in_meters):
     ----------
     bin_orbs_a : numpy.ndarray
         Location of binary [r_{g,SMBH}] wrt to the SMBH with :obj:`float` type
-    bh_kick_comp_merged : numpy.ndarray
-        Kick velocity [km/s] with :obj:`float` type in the x, y, and z component
+    v_kicks : numpy.ndarray
+        Kick velocity [km/s] with :obj:`float` type
     smbh_mass : float
         Mass [Msun] of the SMBH
 
@@ -836,16 +836,12 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass, r_g_in_meters):
     -------
     merged_ecc : numpy.ndarray
         Orbital eccentricity of merged binary with :obj:`float` type
-    merged_inc : numpy.ndarray
-        Orbital inclination of merged binary with :obj:`float` type
     """
     smbh_mass_units = smbh_mass * u.solMass
     # orbs_a_units = unit_conversion.si_from_r_g(smbh_mass * u.solMass, bin_orbs_a, r_g_defined=r_g_in_meters).to("meter")
     orbs_a_units = unit_conversion.si_from_r_g_optimized(smbh_mass, bin_orbs_a)
 
     v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
-    v_kickx = bh_kick_comp_merged[:,0]
-    v_kickz = bh_kick_comp_merged[:,2]
 
     merged_ecc = v_kicks/v_kep
 
