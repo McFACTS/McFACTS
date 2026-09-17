@@ -586,7 +586,13 @@ class HDF5SnapshotHandler(SnapshotHandler):
                         if bts == b'':
                             col[i] = uuid.UUID(int=0)
                         else:
-                            col[i] = uuid.UUID(bytes=bts)
+                            try:
+                                col[i] = uuid.UUID(bytes=bts)
+                            except Exception as exc:
+                                print(item)
+                                print(key)
+                                print(bts)
+                                raise exc
                     # Initialize column_dict
                     column_dict[key] = col
                 else:

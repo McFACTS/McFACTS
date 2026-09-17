@@ -8,6 +8,9 @@ import os
 #### Third Party ####
 import numpy as np
 
+#### Vera ####
+from xdata import Database
+
 #### Local ####
 from mcfacts.inputs.settings_manager import SettingsManager, DEFAULT_SETTINGS
 from mcfacts.objects.agn_object_array import FilingCabinet
@@ -260,7 +263,6 @@ def test_run_galaxy():
             population_cabinet,
             addr=f"{hdf_handler.label}/population",
         )
-        print(os.listdir(wkdir))
         # Get an unrelated TxtSnapshotHandler
         hdf_loader = HDF5SnapshotHandler(settings = \
             {key: value for key, value in live.settings_finals.items()})
@@ -276,13 +278,22 @@ def test_run_galaxy():
             hdf_agn_pop_objs,
         )
         print("Not dead yet!")
-        # Load the final state of the galaxy
-        hdf_gal00_s02_objs = hdf_loader.load_cabinet(
-            f"{wkdir}",
-            "live.hdf5",
-            addr=f"{hdf_handler.label}/gal00/s02",
-        )
-        os.system(f"h5ls -r {wkdir}/live.hdf5")
+        # Loop
+        #os.system(f"h5ls -r {wkdir}/live.hdf5")
+        # Feels good to be able to use this
+        db = Database(os.path.join(wkdir, "live.hdf5"), "live/gal00")
+
+        # Loop things
+        for name in db.list_items():
+            addr = f"live/gal00/{name}"
+            print(name, addr)
+            hdf_agn_objs = hdf_loader.load_cabinet(
+                wkdir,
+                "live.hdf5",
+                addr = addr,
+            )
+        print(os.listdir(wkdir))
+
 
 ######## Main ########
 def main():
