@@ -198,7 +198,7 @@ def main():
                                          opts.disk_radius_outer,
                                          opts.disk_model_name,
                                          opts.disk_alpha_viscosity,
-                                         opts.disk_bh_eddington_ratio,
+                                         opts.smbh_eddington_ratio,
                                          disk_radius_max_pc=opts.disk_radius_max_pc,
                                          flag_use_pagn=opts.flag_use_pagn,
                                          verbose=opts.verbose
@@ -621,7 +621,7 @@ def main():
                     blackholes_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
-                    opts.disk_bh_eddington_ratio,
+                    opts.smbh_eddington_ratio,
                     opts.disk_alpha_viscosity,
                     opts.disk_radius_outer)
 
@@ -629,7 +629,7 @@ def main():
                     stars_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
-                    opts.disk_bh_eddington_ratio,
+                    opts.smbh_eddington_ratio,
                     opts.disk_alpha_viscosity,
                     opts.disk_radius_outer, )
             else:
@@ -727,7 +727,7 @@ def main():
                     disk_opacity,
                     disk_aspect_ratio,
                     temp_func,
-                    opts.disk_bh_eddington_ratio,
+                    opts.smbh_eddington_ratio,
                     blackholes_pro.orb_a,
                     blackholes_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
@@ -743,7 +743,7 @@ def main():
                     disk_opacity,
                     disk_aspect_ratio,
                     temp_func,
-                    opts.disk_bh_eddington_ratio,
+                    opts.smbh_eddington_ratio,
                     stars_pro.orb_a,
                     stars_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
@@ -944,7 +944,7 @@ def main():
             # Accrete
             blackholes_pro.mass = accretion.change_bh_mass(
                 blackholes_pro.mass,
-                opts.disk_bh_eddington_ratio,
+                opts.smbh_eddington_ratio,
                 disk_bh_eddington_mass_growth_rate,
                 opts.timestep_duration_yr
             )
@@ -2308,7 +2308,7 @@ def main():
                         blackholes_binary.bin_orb_a,
                         disk_surface_density,
                         disk_opacity,
-                        opts.disk_bh_eddington_ratio,
+                        opts.smbh_eddington_ratio,
                         opts.disk_alpha_viscosity,
                         opts.disk_radius_outer
                     )
@@ -2358,7 +2358,7 @@ def main():
                         disk_opacity,
                         disk_aspect_ratio,
                         temp_func,
-                        opts.disk_bh_eddington_ratio,
+                        opts.smbh_eddington_ratio,
                         blackholes_binary.bin_orb_a,
                         blackholes_binary.bin_orb_ecc,
                         opts.disk_bh_pro_orb_ecc_crit,
