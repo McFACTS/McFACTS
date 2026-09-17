@@ -1,12 +1,16 @@
+######## Imports ########
+#### Standard Library ####
 import copy
 import os.path
 import sys
 from abc import ABC, abstractmethod
 
+#### Third Party ####
 import numpy as np
 from numpy.random import Generator
 from tqdm.auto import tqdm
 
+#### Local ####
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.log import LogFunction, PrintLogFunction
@@ -132,15 +136,17 @@ class Galaxy:
                 f"s{str(len(self.timeline_history) - 1).zfill(2)}"
             current_state_str = f"s{str(len(self.timeline_history)).zfill(2)}"
 
-
-        self.log(f"Saving state of galaxy to {save_folder} as {file_name}")
-
         if isinstance(self.snapshot_handler, TxtSnapshotHandler):
             save_folder = os.path.join(self.runs_folder, galaxy_id_str)
             file_name = f"{galaxy_id_str}_{state_str}"
             if timestep is not None:
                 save_folder = os.path.join(save_folder, f"{galaxy_id_str}_{previous_state_str}_to_{current_state_str}")
                 file_name = f"{galaxy_id_str}_{previous_state_str}_to_{current_state_str}_{timestep_str}"
+
+            self.log(
+                f"Saving state of galaxy {galaxy_id_str} to "
+                f"{save_folder} as {file_name}."
+            )
 
             self.snapshot_handler.save_cabinet(
                 save_folder,
@@ -154,8 +160,11 @@ class Galaxy:
                 group_addr = f"{galaxy_id_str}/{galaxy_id_str}_" + \
                     f"{previous_state_str}_to_{current_state_str}_" + \
                     f"{timestep_str}"
+            self.log(
+                f"Saving state of galaxy {galaxy_id_str} to {group_addr}."
+            )
             self.snapshot_handler.save_cabinet(
-                os.path.runs_folder,
+                self.runs_folder,
                 self.snapshot_handler.label,
                 self.filing_cabinet,
                 addr = group_addr,

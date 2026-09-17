@@ -15,7 +15,6 @@ import pandas as pd
 
 #### Vera ####
 from xdata import Database
-from xdata import AddressNotFoundError
 
 #### McFACTS ####
 from mcfacts.inputs import settings_manager
@@ -553,7 +552,7 @@ class HDF5SnapshotHandler(SnapshotHandler):
         # Note this is the only way to save a cabinet for a galaxy
         if addr is not None:
             if not db.exists(addr):
-                raise AddressNotFoundError(f"No such address: {addr}")
+                db.create_group(addr)
         # Hard: let's try and look for them
         else:
             top = db.list_items()
