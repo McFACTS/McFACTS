@@ -1,16 +1,21 @@
+######## Imports ########
+#### Standard Library ####
 import copy
 import os.path
 import sys
 from abc import ABC, abstractmethod
 
+#### Third Party ####
 import numpy as np
 from numpy.random import Generator
 from tqdm.auto import tqdm
 
+#### Local ####
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.log import LogFunction, PrintLogFunction
 from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
+from mcfacts.objects.snapshot import HDF5SnapshotHandler
 from mcfacts.objects.agn_object_array import AGNObjectArray, FilingCabinet
 from mcfacts.objects.timeline import SimulationTimeline
 
@@ -76,7 +81,14 @@ class Galaxy:
                 Evolves the galaxy using the specified SimulationTimeline, updating the state of the galaxy.
     """
 
-    def __init__(self, seed: int, runs_folder: str, galaxy_id: str, settings: SettingsManager = SettingsManager(), snapshot_handler: SnapshotHandler = None):
+    def __init__(
+            self,
+            seed: int,
+            runs_folder: str,
+            galaxy_id: str,
+            settings: SettingsManager = SettingsManager(),
+            snapshot_handler: SnapshotHandler = None,
+        ):
         """
         __init__(settings_manger: SettingsManager, seed: int):
             Initializes the Galaxy instance with configuration settings and a random seed.
@@ -87,10 +99,10 @@ class Galaxy:
                 settings (SettingsManager, optional): Configuration settings for the galaxy.
                 galaxy_id (string): Id or name used to create the output folder for the simulation.
         """
-        self.seed: int = seed
-        self.runs_folder: str = runs_folder
-        self.settings: SettingsManager = settings
-        self.galaxy_id: str = galaxy_id
+        self.seed = seed
+        self.runs_folder = runs_folder
+        self.settings = settings
+        self.galaxy_id = galaxy_id
 
         # Setup random
         self.random_generator = Generator(np.random.Philox(seed))
@@ -104,7 +116,7 @@ class Galaxy:
         self.populated: bool = False
 
         if snapshot_handler is None:
-            self.snapshot_handler = TxtSnapshotHandler(self.settings)
+            self.snapshot_handler = settings.new_cabinet_snapshot()
         else:
             self.snapshot_handler = snapshot_handler
 
@@ -118,22 +130,53 @@ class Galaxy:
     def save_state(self, timestep: int = None) -> None:
         galaxy_id_str = f"gal{self.galaxy_id.zfill(2)}"
         state_str = f"s{str(len(self.timeline_history)).zfill(2)}"
-
-        save_folder = os.path.join(self.runs_folder, galaxy_id_str)
-        file_name = f"{galaxy_id_str}_{state_str}"
-
         if timestep is not None:
             timestep_str = f"t{str(timestep).zfill(2)}"
-
-            previous_state_str = f"s{str(len(self.timeline_history) - 1).zfill(2)}"
+            previous_state_str = \
+                f"s{str(len(self.timeline_history) - 1).zfill(2)}"
             current_state_str = f"s{str(len(self.timeline_history)).zfill(2)}"
 
-            save_folder = os.path.join(save_folder, f"{galaxy_id_str}_{previous_state_str}_to_{current_state_str}")
-            file_name = f"{galaxy_id_str}_{previous_state_str}_to_{current_state_str}_{timestep_str}"
+        if isinstance(self.snapshot_handler, TxtSnapshotHandler):
+            save_folder = os.path.join(self.runs_folder, galaxy_id_str)
+            file_name = f"{galaxy_id_str}_{state_str}"
+            if timestep is not None:
+                save_folder = os.path.join(save_folder, f"{galaxy_id_str}_{previous_state_str}_to_{current_state_str}")
+                file_name = f"{galaxy_id_str}_{previous_state_str}_to_{current_state_str}_{timestep_str}"
 
-        self.log(f"Saving state of galaxy to {save_folder} as {file_name}")
+            self.log(
+                f"Saving state of galaxy {galaxy_id_str} to "
+                f"{save_folder} as {file_name}."
+            )
 
-        self.snapshot_handler.save_cabinet(save_folder, file_name, self.filing_cabinet)
+            self.snapshot_handler.save_cabinet(
+                save_folder,
+                file_name,
+                self.filing_cabinet,
+            )
+        elif isinstance(self.snapshot_handler, HDF5SnapshotHandler):
+            if timestep is None:
+                group_addr = f"{self.snapshot_handler.label}/" + \
+                f"{galaxy_id_str}/{galaxy_id_str}_{state_str}"
+            else:
+                group_addr = f"{self.snapshot_handler.label}/" + \
+                    f"{galaxy_id_str}/" + \
+                    f"{galaxy_id_str}_" + \
+                    f"{previous_state_str}_to_{current_state_str}_" + \
+                    f"{timestep_str}"
+            self.log(
+                f"Saving state of galaxy {galaxy_id_str} to {group_addr}."
+            )
+            self.snapshot_handler.save_cabinet(
+                self.runs_folder,
+                self.snapshot_handler.label,
+                self.filing_cabinet,
+                addr = group_addr,
+            )
+        else:
+            raise NotImplementedError(
+                "galaxy.save_state does not yet support "
+                f"{type(self.snapshot_handler)}.",
+            )
 
     def load_state(self, timestep: int = None) -> None:
         raise NotImplementedError
