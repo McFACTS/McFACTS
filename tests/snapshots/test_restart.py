@@ -174,8 +174,12 @@ def test_run_galaxy():
         )
         """
         ## HDF5SnapshotHandler ##
+        live.set_preprocessing("settings_snapshot", "hdf5")
+        live.set_preprocessing("cabinet_snapshot", "hdf5")
+        live.set_preprocessing("settings_file", "live.ini")
         # Create the IO handlers and save the current settings
-        hdf_handler = HDF5SnapshotHandler(settings = live)
+        hdf_handler = live.new_cabinet_snapshot()
+        assert isinstance(hdf_handler, HDF5SnapshotHandler)
 
         # Load disk model and setup empty filing cabinet for result populations
         agn_disk = AGNDisk(live)
@@ -278,6 +282,7 @@ def test_run_galaxy():
             "live.hdf5",
             addr=f"{hdf_handler.label}/gal00/s02",
         )
+        os.system(f"h5ls -r {wkdir}/live.hdf5")
 
 ######## Main ########
 def main():

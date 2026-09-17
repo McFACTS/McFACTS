@@ -153,11 +153,14 @@ class Galaxy:
                 file_name,
                 self.filing_cabinet,
             )
-        elif isinstance(self.snapshot_hander, HDF5SnapshotHandler):
+        elif isinstance(self.snapshot_handler, HDF5SnapshotHandler):
             if timestep is None:
-                group_addr = f"{galaxy_id_str}/{galaxy_id_str}_{state_str}"
+                group_addr = f"{self.snapshot_handler.label}/" + \
+                f"{galaxy_id_str}/{galaxy_id_str}_{state_str}"
             else:
-                group_addr = f"{galaxy_id_str}/{galaxy_id_str}_" + \
+                group_addr = f"{self.snapshot_handler.label}/" + \
+                    f"{galaxy_id_str}/" + \
+                    f"{galaxy_id_str}_" + \
                     f"{previous_state_str}_to_{current_state_str}_" + \
                     f"{timestep_str}"
             self.log(
