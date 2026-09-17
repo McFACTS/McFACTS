@@ -1,12 +1,15 @@
 """
 simulation.py contains the canonical simulation supported by the McFACTS collaboration.
 """
-
+######## Imports ########
+#### Standard library ####
 import os
 import shutil
-
+import time
+#### Third Party ####
 from tqdm.auto import tqdm
 
+#### Local ####
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.modules.accretion import ProgradeBlackHoleAccretion, BinaryBlackHoleAccretion, ProgradeBlackHoleBondi
 from mcfacts.modules.damping import ProgradeBlackHoleDamping, BinaryBlackHoleDamping
@@ -145,6 +148,7 @@ def run_galaxy(
 
 def main(settings: SettingsManager):
 
+    tic = time.perf_counter()
     ## Setup the filesystem for a run ##
     # Check for existing output files and overwrite flags
     # TODO: These checks probably should be done via the snapshot handler
@@ -262,6 +266,8 @@ def main(settings: SettingsManager):
         "population",
         population_cabinet,
     )
+    toc = time.perf_counter()
+    print(f"Time: {toc-tic:.6f} seconds!")
 
 
 if __name__ == "__main__":

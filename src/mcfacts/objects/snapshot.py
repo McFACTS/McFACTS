@@ -463,7 +463,9 @@ class HDF5SnapshotHandler(SnapshotHandler):
     def label(self):
         if self.addr is not None:
             return self.addr
-        elif self.settings is None or len(self.settings.settings_file) == 0:
+        elif (self.settings is None) or \
+                (self.settings.settings_file is None) or \
+                (len(self.settings.settings_file) == 0):
             return "runs"
         else:
             return Path(self.settings.settings_file).stem
@@ -655,8 +657,21 @@ class HDF5SnapshotHandler(SnapshotHandler):
             addr = self.settings_addr
         # Open the database
         db = Database(final_path, addr)
+
+        ## Save requires mutating data ##
+        save_attrs = {key:value for key, value in settings.settings_finals.items()}
+        # Cannot save objects to hdf5
+        if save_attrs["settings_file"] is None:
+            save_attrs["settings_file"] = ""
+        # Seed is a u128, 
+        #  but NumPy doesn't support a u128 datatype so I don't either
+        save_attrs["seed"] = str(save_attrs["seed"])
+        # Loop settings (leave this here for testing)
+        #for key, value in save_attrs.items():
+        #    print(key, type(value), value)
+        #    db.attr_set(".", key, value)
         # Save the dictionary
-        db.attr_set_dict(".", settings.settings_finals)
+        db.attr_set_dict(".", save_attrs)
 
 
     def load_settings(
@@ -717,4 +732,6 @@ class HDF5SnapshotHandler(SnapshotHandler):
         # Die if we failed to find them
         if settings is None:
             raise KeyError(f"I could not find your settings.")
+        # Fix seed
+        settings["seed"] = int(settings["seed"])
         return SettingsManager(settings)
