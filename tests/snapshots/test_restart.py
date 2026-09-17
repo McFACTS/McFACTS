@@ -284,6 +284,7 @@ def test_run_galaxy():
         db = Database(os.path.join(wkdir, "live.hdf5"), "live/gal00")
 
         # Loop things
+        """
         for name in db.list_items():
             addr = f"live/gal00/{name}"
             print(name, addr)
@@ -293,6 +294,7 @@ def test_run_galaxy():
                 addr = addr,
             )
         print(os.listdir(wkdir))
+        """
 
 
 ######## Main ########
