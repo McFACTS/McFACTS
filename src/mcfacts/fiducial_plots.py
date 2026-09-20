@@ -1165,7 +1165,7 @@ def main(settings: SettingsManager):
     file_path = settings.output_dir
     plots_dir = Path(file_path, "plots")
 
-    population_cabinet = snapshot_handler.load_cabinet(file_path, "population")
+    population_cabinet = snapshot_handler.load_cabinet(file_path, "population")[0]
 
     mergers = population_cabinet["blackholes_merged"]
     lvk = population_cabinet["blackholes_lvk"]
