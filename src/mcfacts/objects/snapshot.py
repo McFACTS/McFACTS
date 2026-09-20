@@ -11,6 +11,7 @@ from typing import Any
 
 #### Third Party ####
 import numpy as np
+import h5py
 import pandas as pd
 
 #### Vera ####
@@ -666,15 +667,14 @@ class HDF5SnapshotHandler(SnapshotHandler):
         final_path = self.construct_path(directory, file_name)
         if not final_path.exists():
             raise FileNotFoundError(f"File not found: {final_path}")
-        # Open the database
-        db = Database(final_path)
         # Easy: the user told us where the cabinet is
         # Note this is the only way to save a cabinet for a galaxy
         if addr is not None:
-            if not db.exists(addr):
-                db.create_group(addr)
+            pass
         # Hard: let's try and look for them
         else:
+            # Open the database
+            db = Database(final_path)
             top = db.list_items()
             if "population" in top:
                 addr = "population"
@@ -685,51 +685,60 @@ class HDF5SnapshotHandler(SnapshotHandler):
         # Make sure we found something
         if addr is None:
             raise RuntimeError(f"Please specify HDF5 cabinet address!")
-        # Point database
-        db = Database(final_path, addr)
-
         # The dictionary
         agn_objects = dict()
         everything_else = dict() # TODO: Handle everything else dictionary
 
-        # First load AGN objects
-        for item in db.list_items(kind="group"):
-            kind = db.kind(item)
-            ## Compound path ##
-            if db.exists(f"{item}/compound", kind="dset"):
-                tmp = db.dset_value(f"{item}/compound")
-                column_dict = {key: tmp[key] for key in tmp.dtype.names}
-            ## Column path ##
-            else:
-                # Initialize column dict
-                column_dict = dict()
-                for key in db.list_items(item, kind="dset"):
-                    column_dict[key] = db.dset_value(f"{item}/{key}")
-            ## Join ##
-            for key, value in column_dict.items():
-                if key in UUID_FIELDS:
+        ## Open Connection ##
+        with Connection(final_path, mode='r', retries=3, sleep=1.) as conn:
+
+          # First load AGN objects
+          for item in conn.file[addr]:
+            # Get item_addr
+            item_addr = f"{addr}/{item}"
+            # Group path
+            if isinstance(conn.file[item_addr], h5py._hl.group.Group):
+                # This is an AGNobject array
+                ## Compound path ##
+                if "compound" in conn.file[item_addr]:
+                    tmp = conn.file[f"{item_addr}/compound"][...]
+                    column_dict = {key: tmp[key] for key in tmp.dtype.names}
+                ## Column path ##
+                else:
+                    # Initialize column dict
+                    column_dict = dict()
+                    # Loop
+                    for key in conn.file[item_addr]:
+                        key_addr = f"{item_addr}/{key}"
+                        column_dict[key] = conn.file[key_addr][...]
+                ## Join ##
+                for key, value in column_dict.items():
+                  if key in UUID_FIELDS:
                     # Load the bytes array into RAM
                     col = np.empty(value.shape, dtype=object)
                     for i, bts in enumerate(value):
-                        lbts = len(bts)
-                        if lbts == 0:
-                            col[i] = uuid.UUID(int=0)
-                        elif lbts == 16:
-                            col[i] = uuid.UUID(bytes=bts)
-                        elif lbts < 16:
-                            col[i] = uuid.UUID(bytes=bts.ljust(16, b"\x00"))
-                        else:
-                            raise ValueError(
-                                f"UUID bytearray has an element with {lbts} bytes!"
-                            )
+                      lbts = len(bts)
+                      if lbts == 0:
+                        col[i] = uuid.UUID(int=0)
+                      elif lbts == 16:
+                        col[i] = uuid.UUID(bytes=bts)
+                      elif lbts < 16:
+                        col[i] = uuid.UUID(bytes=bts.ljust(16, b"\x00"))
+                      else:
+                        raise ValueError(
+                            f"UUID bytearray has an element with {lbts} bytes!"
+                        )
                     # Initialize column_dict
                     column_dict[key] = col
-            # Assign to agn_objects
-            agn_objects[item] = column_dict
+                # Assign to agn_objects
+                agn_objects[item] = column_dict
 
-        # Handle everything else
-        for item in db.list_items(kind="dset"):
-            everything_else[item] = db.dset_value(item)
+            elif isinstance(conn.file[item_addr], h5py._hl.dataset.Dataset):
+                everything_else[item] = conn.file[item_addr][...]
+            else:
+                raise RuntimeError(
+                    f"Unknown object type: {type(conn.file[item_addr])}"
+                )
 
         return agn_objects, everything_else
 
