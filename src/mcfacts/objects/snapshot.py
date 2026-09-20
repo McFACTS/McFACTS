@@ -23,6 +23,7 @@ from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
 from mcfacts.objects.log import LogFunction, PrintLogFunction
 
 ######## Setup ########
+MIN_COMPRESS = 64
 
 UUID_FIELDS = [
     "unique_id",
@@ -541,35 +542,63 @@ class HDF5SnapshotHandler(SnapshotHandler):
                 addr = self.label + "/population"
         db = Database(final_path, addr)
 
-        ## Data mode ##
-        if self.mode == "column":
-            # Handle array objects that exist in the filing cabinet
-            for array_name, object_array in agn_objects.items():
-                # Up, up, and away!
-                super_dict = object_array.get_super_dict()
-                if array_name not in db.list_items(kind='group'):
-                    # path relative to addr
-                    db.create_group(array_name)
+        # Handle array objects that exist in the filing cabinet
+        for array_name, object_array in agn_objects.items():
+            ## Open file ##
+            if array_name not in db.list_items(kind='group'):
+                # path relative to addr
+                db.create_group(array_name)
+
+            # Up, up, and away!
+            super_dict = object_array.get_super_dict()
+            for key, value in super_dict.items():
+                if key in UUID_FIELDS:
+                    super_dict[key] = np.array([u.bytes for u in value], dtype='S16')
+            # Get nsystems
+            nsystems = super_dict[list(super_dict.keys())[0]].shape[0]
+
+            ## Data mode ##
+            if self.mode == "column":
                 for key, value in super_dict.items():
                     # path relative to addr
                     tag = f"{array_name}/{key}"
-                    if key in UUID_FIELDS:
-                        value = np.array([u.bytes for u in value], dtype='S16')
                     try:
-                        db.dset_set(tag, value, compression=self.compression)
+                        if nsystems > MIN_COMPRESS:
+                            db.dset_set(tag, value, compression=self.compression)
+                        else:
+                            db.dset_set(tag, value)
                     except Exception as exc:
                         print(key, value.dtype, np.shape(value))
                         raise exc
+            elif self.mode == "compound":
+                # Initialize fields for compound array
+                fields = []
+                for key, value in super_dict.items():
+                    # Assert 1D arrays
+                    assert np.size(value) == nsystems
+                    fields.append((key, value.dtype))
+                # Initialize the output array
+                out = np.empty(nsystems, dtype=np.dtype(fields))
+                for key, value in super_dict.items():
+                    out[key] = value
+                # Save output
+                if nsystems > MIN_COMPRESS:
+                    db.dset_set(f"{array_name}/compound", out, compression=self.compression)
+                else:
+                    db.dset_set(f"{array_name}/compound", out)
+            else:
+                raise NotImplementedError(f"No such HDF5 mode: {self.mode}")
 
-            # If there's nothing else, we're done here
-            if len(everything_else) == 0:
-                return
-            # Handle the 'everything else' dictionary stored in the filing cabinet
-            for key, value in everything_else.items():
-                # path relative to addr
+        # If there's nothing else, we're done here
+        if len(everything_else) == 0:
+            return
+        # Handle the 'everything else' dictionary stored in the filing cabinet
+        for key, value in everything_else.items():
+            # Check if compressible
+            if np.size(value) > MIN_COMPRESS:
                 db.dset_set(key, np.asarray(value), compression=self.compression)
-        else:
-            raise NotImplementedError(f"No such HDF5 mode: {self.mode}")
+            else:
+                db.dset_set(key, np.asarray(value))
 
 
     def load_cabinet(
@@ -626,14 +655,22 @@ class HDF5SnapshotHandler(SnapshotHandler):
         # First load AGN objects
         for item in db.list_items(kind="group"):
             kind = db.kind(item)
-            # Initialize column dict
-            column_dict = dict()
-            for key in db.list_items(item, kind="dset"):
+            ## Compound path ##
+            if db.exists(f"{item}/compound", kind="dset"):
+                tmp = db.dset_value(f"{item}/compound")
+                column_dict = {key: tmp[key] for key in tmp.dtype.names}
+            ## Column path ##
+            else:
+                # Initialize column dict
+                column_dict = dict()
+                for key in db.list_items(item, kind="dset"):
+                    column_dict[key] = db.dset_value(f"{item}/{key}")
+            ## Join ##
+            for key, value in column_dict.items():
                 if key in UUID_FIELDS:
                     # Load the bytes array into RAM
-                    tmp = db.dset_value(f"{item}/{key}")
-                    col = np.empty(tmp.shape, dtype=object)
-                    for i, bts in enumerate(tmp):
+                    col = np.empty(value.shape, dtype=object)
+                    for i, bts in enumerate(value):
                         lbts = len(bts)
                         if lbts == 0:
                             col[i] = uuid.UUID(int=0)
@@ -647,9 +684,7 @@ class HDF5SnapshotHandler(SnapshotHandler):
                             )
                     # Initialize column_dict
                     column_dict[key] = col
-                else:
-                    # EZ
-                    column_dict[key] = db.dset_value(f"{item}/{key}")
+            # Assign to agn_objects
             agn_objects[item] = column_dict
 
         # Handle everything else
