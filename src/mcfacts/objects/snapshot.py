@@ -485,7 +485,7 @@ class HDF5SnapshotHandler(SnapshotHandler):
         if self._mode is not None:
             return self._mode
         elif (self.settings is None):
-            return "column"
+            return "columns"
         else:
             return self.settings.hdf5_snapshot_mode
 
@@ -590,7 +590,7 @@ class HDF5SnapshotHandler(SnapshotHandler):
             nsystems = super_dict[list(super_dict.keys())[0]].shape[0]
 
             ## Data mode ##
-            if self.mode == "column":
+            if self.mode == "columns":
                 for key, value in super_dict.items():
                     # path relative to addr
                     key_addr = f"{addr}/{array_name}/{key}"
