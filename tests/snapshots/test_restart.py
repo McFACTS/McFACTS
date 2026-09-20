@@ -53,7 +53,7 @@ def agn_objects_are_equal(A, B):
     return True
 
 ######## HDF5 settings ########
-HDF5_SNAPSHOT_MODES = ["column", "compound"]
+HDF5_SNAPSHOT_MODES = ["columns", "compound"]
 HDF5_SNAPSHOT_COMPRESSIONS = ["none", "gzip"]
 TEST_HDF5_SETTING_REALS = named_product(
     mode = HDF5_SNAPSHOT_MODES,
