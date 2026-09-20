@@ -120,6 +120,8 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("cabinet_snapshot", "io", "txt", str),
         SettingsProperty("hdf5_snapshot_mode", "io", "compound", str),
         SettingsProperty("hdf5_snapshot_compression", "io", "gzip", str),
+        SettingsProperty("hdf5_snapshot_retries", "io", 3, int),
+        SettingsProperty("hdf5_snapshot_sleep", "io", 1., float),
         OptionalSettingsProperty("settings_file", "io", "", str),
 
         # Simulation Parameters

@@ -430,11 +430,15 @@ class HDF5SnapshotHandler(SnapshotHandler):
             addr        : str               = None,
             mode        : str               = None,
             compression : str               = None,
+            retries     : int               = None,
+            sleep       : float             = None,
         ):
         super().__init__("HDF5 Snapshot Handler" if name is None else name, settings)
         self.addr = addr
         self._mode = mode
         self._compression = compression
+        self._retries = retries
+        self._sleep = sleep
 
     @property
     def needle(self):
@@ -484,6 +488,24 @@ class HDF5SnapshotHandler(SnapshotHandler):
             return "column"
         else:
             return self.settings.hdf5_snapshot_mode
+
+    @property
+    def retries(self):
+        if self._retries is not None:
+            return self._retries
+        elif (self.settings is None):
+            return 0
+        else:
+            return self.settings.hdf5_snapshot_retries
+
+    @property
+    def sleep(self):
+        if self._sleep is not None:
+            return self._sleep
+        elif (self.settings is None):
+            return 1.
+        else:
+            return self.settings.hdf5_snapshot_sleep
 
     @property
     def compression(self):
@@ -543,7 +565,12 @@ class HDF5SnapshotHandler(SnapshotHandler):
                 addr = self.label + "/population"
 
         ## Open Connection ##
-        with Connection(final_path, mode='a', retries=3, sleep=1.) as conn:
+        with Connection(
+            final_path,
+            mode='a',
+            retries=self.retries,
+            sleep=self.sleep,
+        ) as conn:
           # Create group
           conn.file.create_group(addr)
 
@@ -690,8 +717,12 @@ class HDF5SnapshotHandler(SnapshotHandler):
         everything_else = dict() # TODO: Handle everything else dictionary
 
         ## Open Connection ##
-        with Connection(final_path, mode='r', retries=3, sleep=1.) as conn:
-
+        with Connection(
+            final_path,
+            mode='r',
+            retries=self.retries,
+            sleep=self.sleep,
+        ) as conn:
           # First load AGN objects
           for item in conn.file[addr]:
             # Get item_addr

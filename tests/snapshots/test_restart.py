@@ -280,9 +280,12 @@ def test_run_galaxy():
         # End timer
         toc = time.perf_counter()
         hdf_time = toc - tic
-        # Get an unrelated TxtSnapshotHandler
-        hdf_loader = HDF5SnapshotHandler(settings = \
-            {key: value for key, value in live.settings_finals.items()})
+        # Get an unrelated HDF5SnapshotHandler
+        hdf_loader = HDF5SnapshotHandler(
+            settings = SettingsManager(
+                {key: value for key, value in live.settings_finals.items()}
+            )
+        )
         # Load some AGN objects
         hdf_agn_pop_objs = hdf_loader.load_cabinet(
             live.output_dir,
@@ -506,8 +509,11 @@ def test_compression():
         toc = time.perf_counter()
         hdf_time = toc - tic
         # Get an unrelated HDF5SnapshotHandler
-        hdf_loader = HDF5SnapshotHandler(settings = \
-            {key: value for key, value in live.settings_finals.items()})
+        hdf_loader = HDF5SnapshotHandler(
+            settings = SettingsManager(
+                {key: value for key, value in live.settings_finals.items()}
+            )
+        )
         # Load some AGN objects
         hdf_agn_pop_objs = hdf_loader.load_cabinet(
             live.output_dir,
