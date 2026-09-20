@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 #### Vera ####
-from xdata import Database
+from xdata import Database, Connection
 
 #### McFACTS ####
 from mcfacts.inputs import settings_manager
@@ -540,14 +540,18 @@ class HDF5SnapshotHandler(SnapshotHandler):
                 addr = self.addr
             else:
                 addr = self.label + "/population"
-        db = Database(final_path, addr)
 
-        # Handle array objects that exist in the filing cabinet
-        for array_name, object_array in agn_objects.items():
-            ## Open file ##
-            if array_name not in db.list_items(kind='group'):
-                # path relative to addr
-                db.create_group(array_name)
+        ## Open Connection ##
+        with Connection(final_path, mode='a', retries=3, sleep=1.) as conn:
+          # Create group
+          conn.file.create_group(addr)
+
+          # Handle array objects that exist in the filing cabinet
+          for array_name, object_array in agn_objects.items():
+            # Get array_addr
+            array_addr = f"{addr}/{array_name}"
+            # Create the group
+            conn.file.create_group(array_addr)
 
             # Up, up, and away!
             super_dict = object_array.get_super_dict()
@@ -561,12 +565,23 @@ class HDF5SnapshotHandler(SnapshotHandler):
             if self.mode == "column":
                 for key, value in super_dict.items():
                     # path relative to addr
-                    tag = f"{array_name}/{key}"
+                    key_addr = f"{addr}/{array_name}/{key}"
                     try:
                         if nsystems > MIN_COMPRESS:
-                            db.dset_set(tag, value, compression=self.compression)
+                            conn.file.create_dataset(
+                                key_addr,
+                                value.shape,
+                                dtype=value.dtype,
+                                data=value,
+                                compression=self.compression,
+                            )
                         else:
-                            db.dset_set(tag, value)
+                            conn.file.create_dataset(
+                                key_addr,
+                                value.shape,
+                                dtype=value.dtype,
+                                data=value,
+                            )
                     except Exception as exc:
                         print(key, value.dtype, np.shape(value))
                         raise exc
@@ -583,23 +598,48 @@ class HDF5SnapshotHandler(SnapshotHandler):
                     out[key] = value
                 # Save output
                 if nsystems > MIN_COMPRESS:
-                    db.dset_set(f"{array_name}/compound", out, compression=self.compression)
+                    conn.file.create_dataset(
+                        f"{addr}/{array_name}/compound",
+                        out.shape,
+                        dtype=out.dtype,
+                        data=out,
+                        compression=self.compression,
+                    )
                 else:
-                    db.dset_set(f"{array_name}/compound", out)
+                    conn.file.create_dataset(
+                        f"{addr}/{array_name}/compound",
+                        out.shape,
+                        dtype=out.dtype,
+                        data=out,
+                    )
             else:
                 raise NotImplementedError(f"No such HDF5 mode: {self.mode}")
 
-        # If there's nothing else, we're done here
-        if len(everything_else) == 0:
+          # If there's nothing else, we're done here
+          if len(everything_else) == 0:
             return
-        # Handle the 'everything else' dictionary stored in the filing cabinet
-        for key, value in everything_else.items():
+          # Handle the 'everything else' dictionary stored in the filing cabinet
+          for key, value in everything_else.items():
+            # Get addr
+            key_addr = f"{addr}/{key}"
+            # Make it an array
+            value = np.asarray(value)
             # Check if compressible
-            if np.size(value) > MIN_COMPRESS:
-                db.dset_set(key, np.asarray(value), compression=self.compression)
+            if nsystems > MIN_COMPRESS:
+                conn.file.create_dataset(
+                    key_addr,
+                    value.shape,
+                    dtype=value.dtype,
+                    data=value,
+                    compression=self.compression,
+                )
             else:
-                db.dset_set(key, np.asarray(value))
-
+                conn.file.create_dataset(
+                    key_addr,
+                    value.shape,
+                    dtype=value.dtype,
+                    data=value,
+                )
 
     def load_cabinet(
             self,
