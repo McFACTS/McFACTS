@@ -105,6 +105,8 @@ test-build: build-install
 	cd test-build; python3 ${notdir ${MCFACTS_SIM_EXE}}
 
 #### Test one thing at a time ####
+test_restart: install
+	python3 tests/snapshots/test_restart.py
 
 # do not put linebreaks between any of these lines. Your run will call a different .ini file
 mcfacts_sim: clean

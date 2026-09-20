@@ -2,7 +2,9 @@
 """Test the AGNDisk object"""
 ######## Imports ########
 #### Standard ####
+import subprocess
 import tempfile
+import time
 import os
 from os.path import isfile, isdir, join
 
@@ -59,6 +61,8 @@ def test_run_galaxy():
         assert live.save_state
         assert live.save_each_timestep
 
+        # Start timer
+        tic = time.perf_counter()
         # Create the IO handlers and save the current settings
         txt_handler = TxtSnapshotHandler(settings = live)
 
@@ -140,6 +144,9 @@ def test_run_galaxy():
             "population",
             population_cabinet,
         )
+        # End timer
+        toc = time.perf_counter()
+        txt_time = toc - tic
         # Get an unrelated TxtSnapshotHandler
         txt_loader = TxtSnapshotHandler(settings = \
             {key: value for key, value in live.settings_finals.items()})
@@ -158,31 +165,6 @@ def test_run_galaxy():
             f"{wkdir}/gal00",
             "gal00_s02",
         )[0]
-        # Was used for testing TxtSnapshotHandler.load/save cabinet
-        """
-        for item in os.listdir(f"{wkdir}/gal00"):
-            kind = "directory" if isdir(f"{wkdir}/gal00/{item}") else \
-                "file"
-            print(item, kind)
-            if kind == "directory":
-                print(os.listdir(f"{wkdir}/gal00/{item}"))
-
-        for name, arr in galaxy.filing_cabinet.agn_objects.items():
-            print(name)
-            print(name in txt_gal00_s02_objs)
-        raise Exception
-        if False:
-            print(name in txt_gal00_s02_objs)
-            galaxy.filing_cabinet.agn_objects
-            for key, value in arr.items():
-                print(key)
-                print(key in galaxy.filing_cabinet.agn_objects[name])
-        # Check the final state of the galaxy
-        assert agn_objects_are_equal(
-            galaxy.filing_cabinet.agn_objects,
-            txt_gal00_s02_objs,
-        )
-        """
         ## HDF5SnapshotHandler ##
         live.set_preprocessing("settings_snapshot", "hdf5")
         live.set_preprocessing("cabinet_snapshot", "hdf5")
@@ -190,6 +172,15 @@ def test_run_galaxy():
         # Create the IO handlers and save the current settings
         hdf_handler = live.new_cabinet_snapshot()
         assert isinstance(hdf_handler, HDF5SnapshotHandler)
+        # Start hdf timer
+        tic = time.perf_counter()
+        # Get size of directory
+        du_output = subprocess.run(
+            ["du", "-sh", wkdir],
+            capture_output=True,
+            text=True,
+        ).stdout
+        txt_size = du_output.split("\t")[0]
 
         # Load disk model and setup empty filing cabinet for result populations
         agn_disk = AGNDisk(live)
@@ -270,6 +261,9 @@ def test_run_galaxy():
             population_cabinet,
             addr=f"{hdf_handler.label}/population",
         )
+        # End timer
+        toc = time.perf_counter()
+        hdf_time = toc - tic
         # Get an unrelated TxtSnapshotHandler
         hdf_loader = HDF5SnapshotHandler(settings = \
             {key: value for key, value in live.settings_finals.items()})
@@ -370,6 +364,13 @@ def test_run_galaxy():
             # Die
             else:
                 raise RuntimeError(f"Unaccounted group: {addr}")
+
+        ## Report ##
+        print(f"TxtSnapshotHandler  Size: {txt_size}")
+        hdf_size = os.path.getsize(join(wkdir, "live.hdf5")) / 1_000_000
+        print(f"HDF5SnapshotHandler Size: {hdf_size} MB")
+        print(f"TxtSnapshotHandler  Time: {txt_time:.3f} s")
+        print(f"HDF5SnapshotHandler Time: {hdf_time:.3f} s")
 
 
 ######## Main ########

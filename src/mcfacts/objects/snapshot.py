@@ -423,12 +423,16 @@ class IniSnapshotHandler(SnapshotHandler):
 class HDF5SnapshotHandler(SnapshotHandler):
     def __init__(
             self,
-            name    : str = None,
-            settings: SettingsManager = None,
-            addr    : str = None,
+            name        : str               = None,
+            settings    : SettingsManager   = None,
+            addr        : str               = None,
+            mode        : str               = None,
+            compression : str               = None,
         ):
         super().__init__("HDF5 Snapshot Handler" if name is None else name, settings)
         self.addr = addr
+        self._mode = mode
+        self._compression = compression
 
     @property
     def needle(self):
@@ -469,6 +473,30 @@ class HDF5SnapshotHandler(SnapshotHandler):
             return "runs"
         else:
             return Path(self.settings.settings_file).stem
+
+    @property
+    def mode(self):
+        if self._mode is not None:
+            return self._mode
+        elif (self.settings is None):
+            return "column"
+        else:
+            return self.settings.hdf5_snapshot_mode
+
+    @property
+    def compression(self):
+        # Interpret priority of arguments
+        if self._compression is not None:
+            tmp = self._compression
+        elif (self.settings is None):
+            tmp = None
+        else:
+            tmp = self.settings.hdf5_snapshot_compression
+        # Catch string None
+        if tmp == "none":
+            return None
+        else:
+            return tmp
 
     @property
     def settings_addr(self):
@@ -513,31 +541,35 @@ class HDF5SnapshotHandler(SnapshotHandler):
                 addr = self.label + "/population"
         db = Database(final_path, addr)
 
-        # Handle array objects that exist in the filing cabinet
-        for array_name, object_array in agn_objects.items():
-            # Up, up, and away!
-            super_dict = object_array.get_super_dict()
-            if array_name not in db.list_items(kind='group'):
-                # path relative to addr
-                db.create_group(array_name)
-            for key, value in super_dict.items():
-                # path relative to addr
-                tag = f"{array_name}/{key}"
-                if key in UUID_FIELDS:
-                    value = np.array([u.bytes for u in value], dtype='S16')
-                try:
-                    db.dset_set(tag, value)
-                except Exception as exc:
-                    print(key, value.dtype, np.shape(value))
-                    raise exc
+        ## Data mode ##
+        if self.mode == "column":
+            # Handle array objects that exist in the filing cabinet
+            for array_name, object_array in agn_objects.items():
+                # Up, up, and away!
+                super_dict = object_array.get_super_dict()
+                if array_name not in db.list_items(kind='group'):
+                    # path relative to addr
+                    db.create_group(array_name)
+                for key, value in super_dict.items():
+                    # path relative to addr
+                    tag = f"{array_name}/{key}"
+                    if key in UUID_FIELDS:
+                        value = np.array([u.bytes for u in value], dtype='S16')
+                    try:
+                        db.dset_set(tag, value, compression=self.compression)
+                    except Exception as exc:
+                        print(key, value.dtype, np.shape(value))
+                        raise exc
 
-        # If there's nothing else, we're done here
-        if len(everything_else) == 0:
-            return
-        # Handle the 'everything else' dictionary stored in the filing cabinet
-        for key, value in everything_else.items():
-            # path relative to addr
-            db.dset_set(key, np.asarray(value))
+            # If there's nothing else, we're done here
+            if len(everything_else) == 0:
+                return
+            # Handle the 'everything else' dictionary stored in the filing cabinet
+            for key, value in everything_else.items():
+                # path relative to addr
+                db.dset_set(key, np.asarray(value), compression=self.compression)
+        else:
+            raise NotImplementedError(f"No such HDF5 mode: {self.mode}")
 
 
     def load_cabinet(

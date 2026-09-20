@@ -118,6 +118,8 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("output_dir", "io", "./runs", str),
         SettingsProperty("settings_snapshot", "io", "ini", str),
         SettingsProperty("cabinet_snapshot", "io", "txt", str),
+        SettingsProperty("hdf5_snapshot_mode", "io", "column", str),
+        SettingsProperty("hdf5_snapshot_compression", "io", "none", str),
         OptionalSettingsProperty("settings_file", "io", "", str),
 
         # Simulation Parameters
