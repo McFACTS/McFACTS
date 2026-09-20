@@ -7,8 +7,8 @@ save_each_timestep                 False                                   bool
 save_snapshots                     0                                       int  
 settings_snapshot                  "ini"                                   str
 cabinet_snapshot                   "txt"                                   str
-hdf5_snapshot_mode                 "column"                                str
-hdf5_snapshot_compression          "none"                                  str
+hdf5_snapshot_mode                 "compound"                              str
+hdf5_snapshot_compression          "gzip"                                  str
 output_dir                         ./runs                                  str  
 settings_file                      ./recipes/settings.txt                  str
 active_timestep_duration_yr        10000.0                                 float
