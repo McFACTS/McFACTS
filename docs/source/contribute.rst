@@ -87,7 +87,7 @@ Pull requests should comply with these requirements:
 #. Unless otherwise instructed, direct all new pull requests at the ``mcfacts/main-dev`` branch.
 #. Include all information outlined in the `Pull Request Template`_ (automatically populates the description field when
    initiating a pull request).
-#. Remember to include the fiducial plots!
+#. Upload our fiducial plots to the PR as attachments (see README.md for a list of the fiducial plots).
 #. Categorize your pull request using one (or more!) option from this
    `list <https://github.com/McFACTS/McFACTS/labels>`_ of labels.
 
@@ -139,7 +139,7 @@ Steps to setup a pull request to `main`:
    - Description of everything going to main which is not in another PR.
 
 6. Copy everything below Changelog and add it to the top of CHANGELOG.md, including a header with a link to this PR. Commit that file to the staging branch
-7. Upload our fiducial plots to the PR as attachments.
+7. Upload our fiducial plots to the PR as attachments (see README.md for a list of the fiducial plots).
 8. Open the PR as ready for review!
 9. After the PR has been merged, the admins will create a new tag for the version and generate a release.
 
