@@ -5,10 +5,10 @@ overwrite_files                    True                                    bool
 save_state                         False                                   bool 
 save_each_timestep                 False                                   bool 
 save_snapshots                     0                                       int  
-settings_snapshot                  "ini"                                   str
-cabinet_snapshot                   "txt"                                   str
-hdf5_snapshot_mode                 "compound"                              str
-hdf5_snapshot_compression          "gzip"                                  str
+settings_snapshot                  ini                                     str
+cabinet_snapshot                   txt                                     str
+hdf5_snapshot_mode                 compound                                str
+hdf5_snapshot_compression          gzip                                    str
 hdf5_snapshot_retries               3                                      int
 hdf5_snapshot_sleep                 1.0                                    float
 output_dir                         ./runs                                  str  
