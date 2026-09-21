@@ -270,7 +270,7 @@ def accrete_star_mass_optimized(disk_star_pro_masses,
     return disk_star_pro_new_masses, mass_gained, immortal_mass_lost
 
 
-def change_bh_mass(disk_bh_pro_masses, smbh_eddington_ratio, disk_bh_eddington_mass_growth_rate,
+def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddington_mass_growth_rate,
                    timestep_duration_yr):
     """Adds mass according to chosen BH mass accretion prescription
 
@@ -281,9 +281,9 @@ def change_bh_mass(disk_bh_pro_masses, smbh_eddington_ratio, disk_bh_eddington_m
     ----------
     disk_bh_pro_masses : numpy.ndarray
         Initial masses [M_sun] of black holes in prograde orbits around SMBH :obj:`float` type
-    smbh_eddington_ratio : float
-        Accretion rate of the supermassive black hole [Eddington accretion rate].
-        0.5 = the SMBH is accreting at 50% of its Eddington limit.
+    disk_bh_eddington_ratio : float
+        Accretion rate of the stellar mass black hole [Eddington accretion rate].
+        1.0 = the black holes are accreting at 100% of their Eddington limit.
         Super-Eddington accretion rates are permitted.
         User chosen input set by input file
     mdisk_bh_eddington_mass_growth_rate : float
@@ -298,7 +298,7 @@ def change_bh_mass(disk_bh_pro_masses, smbh_eddington_ratio, disk_bh_eddington_m
     """
     # Mass grows exponentially for length of timestep:
     disk_bh_pro_new_masses = disk_bh_pro_masses * np.exp(
-        disk_bh_eddington_mass_growth_rate * smbh_eddington_ratio * timestep_duration_yr)
+        disk_bh_eddington_mass_growth_rate * disk_bh_eddington_ratio * timestep_duration_yr)
 
     assert np.all(disk_bh_pro_new_masses > 0), \
         "disk_bh_pro_new_masses has values <= 0"
