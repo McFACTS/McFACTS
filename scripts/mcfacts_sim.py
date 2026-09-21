@@ -944,7 +944,7 @@ def main():
             # Accrete
             blackholes_pro.mass = accretion.change_bh_mass(
                 blackholes_pro.mass,
-                opts.smbh_eddington_ratio,
+                opts.disk_bh_eddington_ratio,
                 disk_bh_eddington_mass_growth_rate,
                 opts.timestep_duration_yr
             )
