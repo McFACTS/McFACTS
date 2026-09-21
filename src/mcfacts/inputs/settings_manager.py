@@ -118,11 +118,15 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("output_dir", "io", "./runs", str),
         SettingsProperty("settings_snapshot", "io", "ini", str),
         SettingsProperty("cabinet_snapshot", "io", "txt", str),
-        SettingsProperty("hdf5_snapshot_mode", "io", "compound", str),
-        SettingsProperty("hdf5_snapshot_compression", "io", "gzip", str),
-        SettingsProperty("hdf5_snapshot_retries", "io", 3, int),
-        SettingsProperty("hdf5_snapshot_sleep", "io", 1., float),
         OptionalSettingsProperty("settings_file", "io", "", str),
+
+        # HDF5 Snapshot Parameters
+        SettingsProperty("hdf5_snapshot_file", "hdf5", "model.hdf5", str),
+        SettingsProperty("hdf5_snapshot_label", "hdf5", "runs", str),
+        SettingsProperty("hdf5_snapshot_mode", "hdf5", "compound", str),
+        SettingsProperty("hdf5_snapshot_compression", "hdf5", "gzip", str),
+        SettingsProperty("hdf5_snapshot_retries", "hdf5", 3, int),
+        SettingsProperty("hdf5_snapshot_sleep", "hdf5", 1., float),
 
         # Simulation Parameters
         SettingsProperty("active_timestep_duration_yr", "sim", 1.e4, float),

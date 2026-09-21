@@ -29,6 +29,8 @@ from mcfacts.objects.agn_object_array import *
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopulator
+from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
+from mcfacts.objects.snapshot import HDF5SnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 
 
@@ -165,11 +167,23 @@ def main(settings: SettingsManager):
     cabinet_snapshot_handler = settings.new_cabinet_snapshot()
     settings_snapshot_handler = settings.new_settings_snapshot()
 
-    settings_snapshot_handler.save_settings(
-        settings.output_dir,
-        "settings",
-        settings,
-    )
+    if isinstance(settings_snapshot_handler, TxtSnapshotHandler):
+        settings_snapshot_handler.save_settings(
+            settings.output_dir,
+            "settings",
+            settings,
+        )
+    elif isinstance(settings_snapshot_handler, HDF5SnapshotHandler):
+        settings_snapshot_handler.save_settings(
+            settings.output_dir,
+            settings.hdf5_snapshot_file,
+            settings,
+        )
+    else:
+        NotImplementedError(
+            "I don't know how to save settings using "
+            f"{settings_snapshot_handler}"
+        )
 
     ## Initialize objects that should persist across galaxies ##
 
@@ -261,11 +275,23 @@ def main(settings: SettingsManager):
     pbar.close()
 
     # Save the entire population cabinet
-    cabinet_snapshot_handler.save_cabinet(
-        settings.output_dir,
-        "population",
-        population_cabinet,
-    )
+    if isinstance(cabinet_snapshot_handler, TxtSnapshotHandler):
+        cabinet_snapshot_handler.save_cabinet(
+            settings.output_dir,
+            "population",
+            population_cabinet,
+        )
+    elif isinstance(cabinet_snapshot_handler, HDF5SnapshotHandler):
+        cabinet_snapshot_handler.save_cabinet(
+            settings.output_dir,
+            settings.hdf5_snapshot_file,
+            population_cabinet,
+        )
+    else:
+        NotImplementedError(
+            "I don't know how to save the population using "
+            f"{cabinet_snapshot_handler}"
+        )
     toc = time.perf_counter()
     print(f"Time: {toc-tic:.6f} seconds!")
 

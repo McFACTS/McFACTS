@@ -190,7 +190,8 @@ def test_run_galaxy():
         ## HDF5SnapshotHandler ##
         live.set_preprocessing("settings_snapshot", "hdf5")
         live.set_preprocessing("cabinet_snapshot", "hdf5")
-        live.set_preprocessing("settings_file", "live.hdf5")
+        live.set_preprocessing("hdf5_snapshot_file", "live.hdf5")
+        live.set_preprocessing("hdf5_snapshot_label", "live")
         live.set_preprocessing("hdf5_snapshot_mode", "compound")
         live.set_preprocessing("hdf5_snapshot_compression", "gzip")
         # Create the IO handlers and save the current settings
@@ -273,7 +274,7 @@ def test_run_galaxy():
         # Save the entire population cabinet
         hdf_handler.save_cabinet(
             live.output_dir,
-            "live.hdf5",
+            live.hdf5_snapshot_file,
             population_cabinet,
             addr=f"{hdf_handler.label}/population",
         )
@@ -289,7 +290,7 @@ def test_run_galaxy():
         # Load some AGN objects
         hdf_agn_pop_objs = hdf_loader.load_cabinet(
             live.output_dir,
-            "live.hdf5",
+            live.hdf5_snapshot_file,
             addr=f"{hdf_handler.label}/population",
         )[0]
         # Check the population objects
@@ -301,7 +302,7 @@ def test_run_galaxy():
         # Loop
         #os.system(f"h5ls -r {wkdir}/live.hdf5")
         # Feels good to be able to use this
-        db = Database(join(wkdir, "live.hdf5"), "live/gal00")
+        db = Database(join(wkdir, live.hdf5_snapshot_file), "live/gal00")
 
         # Loop things
         for name in db.list_items():
@@ -312,7 +313,7 @@ def test_run_galaxy():
             #print(len(parts), name, addr, parts)
             hdf_agn_objs, hdf_all_else = hdf_loader.load_cabinet(
                 wkdir,
-                "live.hdf5",
+                live.hdf5_snapshot_file,
                 addr = addr,
             )
             # Find state snapshots
@@ -386,7 +387,8 @@ def test_run_galaxy():
 
         ## Report ##
         print(f"TxtSnapshotHandler  Size: {txt_size}")
-        hdf_size = os.path.getsize(join(wkdir, "live.hdf5")) / 1_000_000
+        hdf_size = os.path.getsize(join(wkdir, live.hdf5_snapshot_file)) \
+            / 1_000_000
         print(f"HDF5SnapshotHandler Size: {hdf_size} MB")
         print(f"TxtSnapshotHandler  Time: {txt_time:.3f} s")
         print(f"HDF5SnapshotHandler Time: {hdf_time:.3f} s")
@@ -405,7 +407,8 @@ def test_compression():
         live.set_preprocessing("save_each_timestep", True)
         live.set_preprocessing("settings_snapshot", "hdf5")
         live.set_preprocessing("cabinet_snapshot", "hdf5")
-        live.set_preprocessing("settings_file", "live.hdf5")
+        live.set_preprocessing("hdf5_snapshot_file", "live.hdf5")
+        live.set_preprocessing("hdf5_snapshot_label", "live")
         live.set_preprocessing("hdf5_snapshot_mode", mode)
         live.set_preprocessing("hdf5_snapshot_compression", compression)
 
@@ -448,7 +451,7 @@ def test_compression():
         run_galaxy(live, galaxy, agn_disk=agn_disk)
 
         ## Manage simulation outputs ##
-        # Ignore consistency checks on these arrays since they are allowed to have duplicates
+        # Ignore consistency checks on these arrays (duplicates allowed)
         population_cabinet.ignore_consistency_check("blackholes_merged")
         population_cabinet.ignore_consistency_check("blackholes_lvk")
 
@@ -461,7 +464,7 @@ def test_compression():
         emri_merged_array = galaxy.settings.emri_array_name
         bh_ejected_array = galaxy.settings.bh_ejected_array_name
 
-        # Sort objects into the final population cabinet containing results from all galaxies
+        # Sort objects into the final population with results from all galaxies
         if bh_ejected_array in galaxy.filing_cabinet:
             population_cabinet.create_or_append_array(
                 "blackholes_ejected",
@@ -533,7 +536,8 @@ def test_compression():
         )
         settings_size = os.path.getsize(join(wkdir, "settings.hdf5")) / int(1e6)
         pop_size = os.path.getsize(join(wkdir, "population.hdf5")) / int(1e6)
-        states_size = os.path.getsize(join(wkdir, "live.hdf5")) / int(1e6)
+        states_size = os.path.getsize(join(wkdir, live.hdf5_snapshot_file)) \
+            / int(1e6)
         print(f"Time: {hdf_time:.3} s!")
         print(f"Settings    size: {settings_size} MB")
         print(f"Population  size: {pop_size} MB")

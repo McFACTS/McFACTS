@@ -168,7 +168,7 @@ class Galaxy:
             )
             self.snapshot_handler.save_cabinet(
                 self.runs_folder,
-                self.snapshot_handler.label,
+                self.settings.hdf5_snapshot_file,
                 self.filing_cabinet,
                 addr = group_addr,
             )

@@ -301,7 +301,7 @@ class TxtSnapshotHandler(SnapshotHandler):
             file_name = file_name + ".txt"
         final_path = os.path.join(directory, file_name)
 
-        # Loade the settings from the txt snapshot
+        # Load the settings from the txt snapshot
         data = np.genfromtxt(final_path, skip_header=1, dtype=str)
 
         settings = {}
@@ -471,14 +471,10 @@ class HDF5SnapshotHandler(SnapshotHandler):
 
     @property
     def label(self):
-        if self.addr is not None:
-            return self.addr
-        elif (self.settings is None) or \
-                (self.settings.settings_file is None) or \
-                (len(self.settings.settings_file) == 0):
+        if (self.settings is None):
             return "runs"
         else:
-            return Path(self.settings.settings_file).stem
+            return  self.settings.hdf5_snapshot_label
 
     @property
     def mode(self):
