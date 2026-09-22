@@ -230,7 +230,7 @@ def make_batch(opts, wkdir, smbh_mass, nsc_mass):
                 smbh_mass,
                 mcfacts_input_variables["disk_radius_outer"],
                 mcfacts_input_variables["disk_alpha_viscosity"],
-                mcfacts_input_variables["disk_bh_eddington_ratio"],
+                mcfacts_input_variables["smbh_eddington_ratio"],
             )
     else:
         disk_surf_dens_func, \

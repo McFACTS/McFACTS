@@ -323,7 +323,7 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
 
     return Torque_jimenezmasset_coeff
 
-
+#smbh or bh accretion?
 def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func,
                                          disk_temp_func, disk_bh_eddington_ratio, orbs_a, orbs_ecc, orb_ecc_crit,
                                          bh_masses, flag_thermal_feedback, disk_dlog10pressure_dlog10R_func, r_g_in_meters):
@@ -987,7 +987,7 @@ def type1_migration_binary(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_orb
 
     return (new_bin_orb_a)
 
-
+#smbh or bh accretion?
 def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_func, disk_bh_eddington_ratio,
                        disk_alpha_viscosity, disk_radius_outer):
     """Calculate the ratio of radiative feedback torque to migration torque.
@@ -1065,7 +1065,7 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
 
     return ratio_feedback_migration_torque
 
-
+#smbh or bh accretion?
 def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_opacity_func, disk_stars_eddington_ratio,
                           disk_alpha_viscosity, disk_radius_outer):
     """Calculate the ratio of radiative feedback torque to migration torque.
@@ -1141,7 +1141,7 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
 
     return ratio_feedback_migration_torque
 
-
+#smbh or bh accretion?
 def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio, disk_alpha_viscosity, disk_radius_outer):
     """Calculates ratio of heating torque to migration torque using Eqn. 28 in Hankla, Jiang & Armitage (2020)
 
@@ -1313,7 +1313,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     agn_disk.disk_dlog10temp_dlog10R_func,
                     sm.r_g_in_meters
                 )
-
+#smbh or bh accretion?
                 # Thermal torque from JM17 (if flag_thermal_feedback off, this component is 0.)
                 jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
                     sm.smbh_mass,
@@ -1481,7 +1481,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                 agn_disk.disk_dlog10temp_dlog10R_func,
                 sm.r_g_in_meters
             )
-
+#smbh or bh accretion?
             jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
                 sm.smbh_mass,
                 agn_disk.disk_surface_density,
