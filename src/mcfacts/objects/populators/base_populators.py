@@ -11,8 +11,11 @@ from mcfacts.setup import setupdiskblackholes, initializediskstars, setupdisksta
 
 
 class SingleBlackHolePopulator(GalaxyPopulator):
-    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
-        super().__init__(settings.bh_array_name if name is None else name, settings)
+    def __init__(self, settings: SettingsManager, name : str = None):
+        super().__init__(
+            name = settings.bh_array_name if name is None else name,
+            settings = settings,
+        )
 
     def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
         sm = self.settings
@@ -105,8 +108,11 @@ class SingleBlackHolePopulator(GalaxyPopulator):
 
 
 class SingleStarPopulator(GalaxyPopulator):
-    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
-        super().__init__(settings.star_array_name if name is None else name, settings)
+    def __init__(self, settings: SettingsManager, name: str = None):
+        super().__init__(
+            name = settings.star_array_name if name is None else name,
+            settings = settings,
+        )
 
     def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
         sm = self.settings
