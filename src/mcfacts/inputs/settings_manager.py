@@ -13,7 +13,7 @@ import numpy as np
 from mcfacts.inputs import ReadInputs
 from mcfacts.utilities import unit_conversion
 
-#### Setup
+#### Setup ####
 IGNORE_ARGS = [
     "print_version",
     "subcommand",
@@ -497,6 +497,34 @@ class SettingsManager:
         # Check value
         final_value = self._cast_override(found, value)
         self.settings_finals[prop.name] = final_value
+
+    def __eq__(self, other):
+        """Check if one settings object is equal to another settings object
+        
+        Parameters
+        ----------
+        other : SettingsManager object
+            The alternative settings
+        """
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return self.settings_finals == other.settings_finals
+
+    def copy(self, replace : dict = None):
+        """Return a copy of the settings
+
+        Parameters
+        ----------
+        replace : dict
+            Replacement parameters for the copy
+        """
+        # Handle none
+        if replace is None:
+            replace = {}
+        return self.__class__(
+            {key: replace[key] if key in replace else value for key, value in self.settings_finals.items()}
+        )
+
 
     def add_custom_category(self, category: str, props: dict[str, Any]) -> None:
         """

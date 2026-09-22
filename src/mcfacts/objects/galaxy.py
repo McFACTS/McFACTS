@@ -21,7 +21,7 @@ from mcfacts.objects.timeline import SimulationTimeline
 
 
 class GalaxyPopulator(ABC):
-    def __init__(self, name: str, settings: SettingsManager = SettingsManager()):
+    def __init__(self, name: str, settings: SettingsManager):
         self.name: str = name
         self.settings: SettingsManager = settings
         self.parent_log_func: LogFunction = PrintLogFunction(
