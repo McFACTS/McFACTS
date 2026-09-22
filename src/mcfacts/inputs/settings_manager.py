@@ -473,7 +473,7 @@ class SettingsManager:
         final_value = self._cast_override(found, value)
         self.settings_finals[prop.name] = final_value
 
-    def __eq__(self, other : SettingsManager):
+    def __eq__(self, other):
         """Check if one settings object is equal to another settings object
         
         Parameters
