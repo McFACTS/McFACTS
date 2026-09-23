@@ -5,15 +5,20 @@ import argparse
 import concurrent.futures
 import multiprocessing as mp
 from pathlib import Path
+import time
 #### Third Party ####
 import tqdm
 import numpy as np
+#### Vera ####
+from xdata import Database
 #### McFACTS ####
+from mcfacts.inputs import setup_scaling
 from mcfacts.inputs.settings_manager import SettingsProperty
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.inputs.settings_manager import DEFAULT_SETTINGS
 from mcfacts.objects.snapshot import IniSnapshotHandler
 from mcfacts.objects.snapshot import HDF5SnapshotHandler
+from mcfacts.simulation import run_galaxy
 
 ######## Setup ########
 FORBIDDEN_COLUMNS = [
@@ -35,7 +40,20 @@ FORBIDDEN_COLUMNS = [
 
 ######## Functions ########
 def run_process(settings: SettingsManager):
-    return settings.seed
+    # Enforce scaling
+    if settings.flag_use_scaling:
+        setup_scaling(settings)
+
+    # Create the IO handlers and save the current settings
+    cabinet_snapshot_handler = settings.new_cabinet_snapshot()
+    settings_snapshot_handler = settings.new_settings_snapshot()
+    settings_snapshot_handler.save_settings(
+        settings.output_dir,
+        settings.hdf5_snapshot_file,
+        settings,
+        addr=settings_snapshot_handler.label,
+    )
+    return settings
 
 ######## Objects ########
 class SimulationQueue(object):
@@ -195,8 +213,16 @@ def main(
         settings,
         batch,
     )
+    tic = time.perf_counter()
     values = queue.run(max_processes=max_processes)
-    print(values)
+    toc = time.perf_counter()
+    print(f"SimulationQueue ran in {toc-tic:.6f} seconds!")
+    db = Database(
+        queue.settings.output_dir + "/" + queue.settings.hdf5_snapshot_file
+    )
+    for item in values:
+        label = item.hdf5_snapshot_label
+        print(label, db.exists(label), db.attr_value(label, "seed"))
     return
     
 

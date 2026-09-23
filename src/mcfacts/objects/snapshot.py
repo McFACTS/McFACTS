@@ -799,20 +799,27 @@ class HDF5SnapshotHandler(SnapshotHandler):
         if addr is None:
             addr = self.settings_addr
         # Open the database
-        db = Database(final_path, addr)
+        db = Database(
+            final_path,
+            addr,
+            retries=self.retries,
+            sleep=self.sleep,
+        )
 
         ## Save requires mutating data ##
         save_attrs = {key:value for key, value in settings.settings_finals.items()}
-        # Cannot save objects to hdf5
+        # Cannot save NoneType to hdf5
         if save_attrs["settings_file"] is None:
             save_attrs["settings_file"] = ""
         # Seed is a u128, 
         #  but NumPy doesn't support a u128 datatype so I don't either
         save_attrs["seed"] = str(save_attrs["seed"])
         # Loop settings (leave this here for testing)
+        """
         #for key, value in save_attrs.items():
         #    print(key, type(value), value)
         #    db.attr_set(".", key, value)
+        """
         # Save the dictionary
         db.attr_set_dict(".", save_attrs)
 
