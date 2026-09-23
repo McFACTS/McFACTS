@@ -115,7 +115,7 @@ class ContextLogFunction(LogFunction):
         """Redirect standard out and pass arguments ahead to print"""
         with open(self.filename, 'a') as File:
             if self.catch_stderr:
-                with redirect_stdout(File) and redirect_stderr(File):
+                with redirect_stdout(File), redirect_stderr(File):
                     print(msg, *args, **kwargs)
             else:
                 with redirect_stdout(File):

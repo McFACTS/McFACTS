@@ -1,3 +1,4 @@
+import uuid
 import numpy as np
 from numpy.random import Generator
 
@@ -92,7 +93,7 @@ class SingleBlackHolePopulator(GalaxyPopulator):
             random_generator
         )
 
-        unique_ids = np.array([uuid_provider(random_generator) for _ in range(disk_bh_num)])
+        unique_ids = np.array([uuid_provider(random_generator) for _ in range(disk_bh_num)], dtype=uuid.UUID)
 
         return AGNBlackHoleArray(
             unique_id=unique_ids,
@@ -190,7 +191,7 @@ class SingleStarPopulator(GalaxyPopulator):
                                                                       star_ZAMS_helium=sm.nsc_star_metallicity_y_init)
         log_radius, log_luminosity, log_teff = stellar_interpolation.interp_star_params(masses_stars)
 
-        unique_ids = np.array([uuid_provider(random_generator) for _ in range(star_num)])
+        unique_ids = np.array([uuid_provider(random_generator) for _ in range(star_num)], dtype=uuid.UUID)
 
         return AGNStarArray(
             unique_id=unique_ids,
