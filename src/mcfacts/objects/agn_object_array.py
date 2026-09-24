@@ -38,6 +38,7 @@ class AGNObjectArray(ABC):
 
     def __init__(self,
                  unique_id: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
+                 galaxy_id: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  mass: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  spin: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  spin_angle: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
@@ -60,6 +61,8 @@ class AGNObjectArray(ABC):
         # Size of id is 16 bytes. In 1 GB of memory, you can store 62,500,000 ids.
         # Since its not raw byte, that number is a bit smaller, but it should not cause any space issues.
         self.unique_id = unique_id
+
+        self.galaxy_id = np.full(len(unique_id), int(1), dtype=np.int64) if len(galaxy_id) == 0 else galaxy_id
 
         self.mass = mass # Mass is required, if this is missing the consistency check with throw an error.
         self.spin = np.full(len(unique_id), 0., dtype=np.float64) if len(spin) == 0 else spin
@@ -234,6 +237,7 @@ class AGNObjectArray(ABC):
     def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
         return {
             "unique_id": self.unique_id,
+            "galaxy_id": self.galaxy_id,
             "mass": self.mass,
             "spin": self.spin,
             "spin_angle": self.spin_angle,
@@ -255,6 +259,7 @@ class AGNObjectArray(ABC):
             raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNObjectArray.")
 
         self.unique_id = np.concatenate((self.unique_id, agn_object_array.unique_id))
+        self.galaxy_id = np.concatenate((self.galaxy_id, agn_object_array.galaxy_id))
         self.gen = np.concatenate((self.gen, agn_object_array.gen))
         self.mass = np.concatenate((self.mass, agn_object_array.mass))
         self.spin = np.concatenate((self.spin, agn_object_array.spin))

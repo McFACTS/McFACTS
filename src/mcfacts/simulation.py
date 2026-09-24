@@ -205,51 +205,22 @@ def main(settings: SettingsManager):
         population_cabinet.ignore_consistency_check("blackholes_merged")
         population_cabinet.ignore_consistency_check("blackholes_lvk")
 
-        # Grab array names from settings manager
-        prograde_array = galaxy.settings.bh_prograde_array_name
-        innerdisk_array = galaxy.settings.bh_inner_disk_array_name
-        inner_gw_only_array = galaxy.settings.bh_inner_gw_array_name
-        bbh_merged_array = galaxy.settings.bbh_merged_array_name
-        bbh_lvk_array = galaxy.settings.bbh_gw_array_name
-        emri_merged_array = galaxy.settings.emri_array_name
-        bh_ejected_array = galaxy.settings.bh_ejected_array_name
+        population_arrays = {
+            "blackholes_merged": [settings.bbh_merged_array_name],
+            "blackholes_lvk": [settings.bbh_gw_array_name],
+            "blackholes_ejected": [settings.bh_ejected_array_name],
+            "blackholes_emri": [settings.bh_inner_disk_array_name, settings.bh_inner_gw_array_name, settings.emri_array_name],
+        }
 
-        # Sort objects into the final population cabinet containing results from all galaxies
-        if bh_ejected_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_ejected",
-                galaxy.filing_cabinet.get_array(bh_ejected_array),
-            )
+        for key, value in population_arrays.items():
+            for object_array_name in value:
+                if object_array_name not in galaxy.filing_cabinet:
+                    continue
 
-        if bbh_merged_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_merged",
-                galaxy.filing_cabinet.get_array(bbh_merged_array),
-            )
+                object_array = galaxy.filing_cabinet.get_array(object_array_name)
+                object_array.galaxy_id = np.full(len(object_array.unique_id), galaxy_id)
 
-        if bbh_lvk_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_lvk",
-                galaxy.filing_cabinet.get_array(bbh_lvk_array),
-            )
-
-        if innerdisk_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_emri",
-                galaxy.filing_cabinet.get_array(innerdisk_array),
-            )
-
-        if inner_gw_only_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_emri",
-                galaxy.filing_cabinet.get_array(inner_gw_only_array),
-            )
-
-        if emri_merged_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_emri",
-                galaxy.filing_cabinet.get_array(emri_merged_array),
-            )
+                population_cabinet.create_or_append_array(key, object_array)
 
     pbar.close()
 
