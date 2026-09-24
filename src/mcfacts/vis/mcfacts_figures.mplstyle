@@ -40,3 +40,17 @@ xtick.top: True
 xtick.direction: in
 ytick.right: True
 ytick.direction: in
+
+axes.linewidth: 0.5
+
+# Major Ticks
+xtick.major.size: 2.5      # Length of major ticks in points
+xtick.major.width: 0.5     # Width of major ticks in points
+ytick.major.size: 2.5
+ytick.major.width: 0.5
+
+# Minor Ticks (Optional, if you use them)
+xtick.minor.size: 1.5      # Length of minor ticks in points
+xtick.minor.width: 0.4     # Width of minor ticks in points
+ytick.minor.size: 1.5
+ytick.minor.width: 0.4
