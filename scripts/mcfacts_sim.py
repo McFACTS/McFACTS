@@ -621,15 +621,15 @@ def main():
                     blackholes_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
-                    opts.smbh_eddington_ratio,
+                    opts.disk_bh_eddington_ratio, 
                     opts.disk_alpha_viscosity,
                     opts.disk_radius_outer)
-
+#unsure if these 2 are SMBH or BH
                 ratio_heat_mig_stars_torques = migration.feedback_stars_hankla(
                     stars_pro.orb_a,
                     disk_surface_density,
                     disk_opacity,
-                    opts.smbh_eddington_ratio,
+                    opts.disk_bh_eddington_ratio,
                     opts.disk_alpha_viscosity,
                     opts.disk_radius_outer, )
             else:
@@ -721,6 +721,7 @@ def main():
                 )
 
                 # Thermal torque from JM17 (if flag_thermal_feedback off, this component is 0.)
+                #should this have BOTH opts.smbh and opts.disk_bh
                 jimenez_masset_thermal_torque_coeff_bh = migration.jimenezmasset17_thermal_torque_coeff(
                     opts.smbh_mass,
                     disk_surface_density,
@@ -2303,12 +2304,13 @@ def main():
                 # region Binary Migration
                 # Migrate binaries
                 # First if feedback present, find ratio of feedback heating torque to migration torque
+                #unsure if SMBH or BH here
                 if opts.flag_thermal_feedback > 0:
                     ratio_heat_mig_torques_bin_com = migration.bin_com_feedback_hankla(
                         blackholes_binary.bin_orb_a,
                         disk_surface_density,
                         disk_opacity,
-                        opts.smbh_eddington_ratio,
+                        opts.disk_bh_eddington_ratio,
                         opts.disk_alpha_viscosity,
                         opts.disk_radius_outer
                     )
