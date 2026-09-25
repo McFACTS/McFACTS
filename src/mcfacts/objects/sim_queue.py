@@ -221,8 +221,8 @@ def run_simulation(settings: SettingsManager, fname_log):
         galaxy.parent_log_func = log_fn.spawn(f"(ID:{galaxy_id:03d}) ")
 
         ## Populate galaxy with a new population ##
-        single_bh_populator = SingleBlackHolePopulator(settings=settings)
-        single_star_populator = SingleStarPopulator(settings=settings)
+        single_bh_populator = SingleBlackHolePopulator()
+        single_star_populator = SingleStarPopulator()
         galaxy.populate(
             [single_bh_populator, single_star_populator],
             agn_disk,
