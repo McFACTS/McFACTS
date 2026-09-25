@@ -11,6 +11,7 @@ import numpy as np
 #### Local ####
 from mcfacts.inputs.settings_manager import SettingsManager, DEFAULT_SETTINGS
 from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
+from mcfacts.objects.snapshot import HDF5SnapshotHandler
 
 ######## Setup ########
 
@@ -81,13 +82,27 @@ def test_cycle_inputs():
         txt_handler.save_settings(wkdir, "seedset.txt", live)
         # Create an unrelated handler and load the txt snapshot
         txt_loader = TxtSnapshotHandler()
-        loaded = txt_handler.load_settings(wkdir, "seedset.txt")
+        loaded = txt_loader.load_settings(wkdir, "seedset.txt")
         assert loaded.seed == 9001, \
             "Serialization failed for TxtSnapshotHandler"
         assert settings_equal(live, loaded), \
             "Serialization failed for TxtSnapshotHandler"
         assert len(non_default_settings(loaded)) == 1, \
             "Serialization failed for TxtSnapshotHandler!"
+
+        ## HDF5SnapshotHandler ##
+        hdf5_handler = HDF5SnapshotHandler(settings=live)
+        hdf5_handler.save_settings(wkdir, "seedset.hdf5", live)
+        # Create an unrelated handler and load the hdf5 snapshot
+        hdf5_loader = HDF5SnapshotHandler()
+        loaded = hdf5_loader.load_settings(wkdir, "seedset.hdf5")
+        assert loaded.seed == 9001, \
+            "Serialization failed for HDF5SnapshotHandler"
+        assert settings_equal(live, loaded), \
+            "Serialization failed for HDF5SnapshotHandler"
+        assert len(non_default_settings(loaded)) == 1, \
+            "Serialization failed for HDF5SnapshotHandler!"
+
 
 ######## Main ########
 def main():
