@@ -34,8 +34,8 @@ DISK_MODEL_NAMES = [
 SMBH_MASSES = np.asarray([1e8,])
 # disk_alpha_viscosities to try
 DISK_ALPHA_VISCOSITIES = np.asarray([0.1, 0.5])
-# disk_bh_eddington_ratios to try
-DISK_BH_EDDINGTON_RATIOS = np.asarray([0.5,0.1])
+# smbh_eddington_ratios to try
+SMBH_EDDINGTON_RATIOS = np.asarray([0.5,0.1])
 # pAGN flag
 FLAG_USE_PAGN = np.asarray([True, False])
 
@@ -296,7 +296,7 @@ def test_construct_disk_pAGN(verbose=True):
         disk_model_name         = DISK_MODEL_NAMES,
         smbh_mass               = SMBH_MASSES,
         disk_alpha_viscosity    = DISK_ALPHA_VISCOSITIES,
-        disk_bh_eddington_ratio = DISK_BH_EDDINGTON_RATIOS,
+        smbh_eddington_ratio = SMBH_EDDINGTON_RATIOS,
     )
     # Loop tests
     for test_config in test_product_space:
@@ -313,7 +313,7 @@ def test_construct_disk_pAGN(verbose=True):
                 test_config.smbh_mass,
                 disk_radius_outer,
                 test_config.disk_alpha_viscosity,
-                test_config.disk_bh_eddington_ratio,
+                test_config.smbh_eddington_ratio,
             )
     if verbose:
         print("  pass!")
@@ -342,7 +342,7 @@ def test_construct_disk_interp(
     smbh_mass = input_variables["smbh_mass"]
     disk_radius_outer = input_variables["disk_radius_outer"]
     disk_alpha_viscosity = input_variables["disk_alpha_viscosity"]
-    disk_bh_eddington_ratio = input_variables["disk_bh_eddington_ratio"]
+    smbh_eddington_ratio = input_variables["smbh_eddington_ratio"]
     disk_radius_max_pc = input_variables["disk_radius_max_pc"]
     # Construct productspace
     test_product_space = named_product(
@@ -363,7 +363,7 @@ def test_construct_disk_interp(
                 disk_radius_outer,
                 test_config.disk_model_name,
                 disk_alpha_viscosity,
-                disk_bh_eddington_ratio,
+                smbh_eddington_ratio,
                 disk_radius_max_pc=disk_radius_max_pc,
                 flag_use_pagn=test_config.flag_use_pagn,
                 verbose=verbose,

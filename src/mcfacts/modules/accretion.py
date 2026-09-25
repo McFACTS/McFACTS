@@ -282,8 +282,8 @@ def change_bh_mass(disk_bh_pro_masses, disk_bh_eddington_ratio, disk_bh_eddingto
     disk_bh_pro_masses : numpy.ndarray
         Initial masses [M_sun] of black holes in prograde orbits around SMBH :obj:`float` type
     disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
+        Accretion rate of the stellar mass black hole [Eddington accretion rate].
+        1.0 = the black holes are accreting at 100% of their Eddington limit.
         Super-Eddington accretion rates are permitted.
         User chosen input set by input file
     mdisk_bh_eddington_mass_growth_rate : float
