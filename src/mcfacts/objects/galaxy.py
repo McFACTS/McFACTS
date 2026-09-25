@@ -16,15 +16,23 @@ from mcfacts.objects.timeline import SimulationTimeline
 
 
 class GalaxyPopulator(ABC):
-    def __init__(self, name: str, settings: SettingsManager = SettingsManager()):
-        self.name: str = name
-        self.settings: SettingsManager = settings
+    def __init__(self):
         self.parent_log_func: LogFunction = PrintLogFunction(
             prefix=f"(ID:??) {self.name} :: "
         )
 
+    @property
     @abstractmethod
-    def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
+    def name(self):
+        return NotImplemented
+
+    @abstractmethod
+    def populate(
+            self, 
+            settings: SettingsManager,
+            agn_disk: AGNDisk,
+            random_generator: Generator,
+        ) -> AGNObjectArray:
         return NotImplemented
 
     def set_log_func(self, log_func: LogFunction) -> None:
@@ -166,7 +174,11 @@ class Galaxy:
             populator.set_log_func(self.parent_log_func.spawn(
                     prefix=f"{populator.name} :: ",
                 ))
-            galaxy_object_array: AGNObjectArray = populator.populate(agn_disk, self.random_generator)
+            galaxy_object_array: AGNObjectArray = populator.populate(
+                self.settings,
+                agn_disk,
+                self.random_generator,
+            )
 
             # In strict mode, check to make sure that we actually created some objects, otherwise throw an exception.
             if strict_fill and len(galaxy_object_array) == 0:
