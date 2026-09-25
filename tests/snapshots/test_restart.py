@@ -48,8 +48,8 @@ def test_run_galaxy():
 
         ## Populate galaxy with a new population ##
         # Create instance of populators
-        single_bh_populator = SingleBlackHolePopulator(settings=live)
-        single_star_populator = SingleStarPopulator(settings=live)
+        single_bh_populator = SingleBlackHolePopulator()
+        single_star_populator = SingleStarPopulator()
         galaxy.populate([single_bh_populator, single_star_populator], agn_disk)
 
         ## Run the galaxy ##
