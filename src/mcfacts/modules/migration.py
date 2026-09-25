@@ -1060,8 +1060,18 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
     # print(disk_surface_density)
     # print(ratio_feedback_migration_torque)
 
-    assert np.isfinite(ratio_feedback_migration_torque).all(), \
-        "Finite check failure: ratio_feedback_migration_torque"
+    nan_mask = ~np.isfinite(ratio_feedback_migration_torque)
+    if np.any(nan_mask):
+        print("disk_bh_pro_orbs_a:", disk_bh_pro_orbs_a[nan_mask])
+        print("disk_surface_density:", disk_surface_density[nan_mask])
+        print("disk_opacity:", disk_opacity[nan_mask])
+        print("disk_bh_eddington_ratio:", disk_bh_eddington_ratio)
+        print("disk_alpha_viscosity:", disk_alpha_viscosity)
+        print("disk_radius_outer:", disk_radius_outer)
+        print("ratio_feedback_migration_torque:", ratio_feedback_migration_torque[nan_mask])
+        raise RuntimeError(
+            "Finite check failure: ratio_feedback_migration_torque"
+        )
 
     return ratio_feedback_migration_torque
 

@@ -8,7 +8,7 @@ from numpy.random import Generator
 from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 from mcfacts.utilities import unit_conversion
-from mcfacts.utilities.constants import M_SUN_KG
+from mcfacts.utilities.constants import M_SUN_KG, HUBBLE_TIME_IN_S
 from mcfacts.utilities.unit_conversion import si_from_r_g_optimized
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
@@ -445,13 +445,19 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
             disk_bh_retro_orbs_a_new[nan_mask] = 5.9
             # It's been eaten
             disk_bh_retro_orbs_inc_new[nan_mask] = 0.
+        #
         else:
             print("nan_mask:", np.where(nan_mask))
+            print(f"{np.sum(nan_mask)} NaNs (of {nan_mask.size}).")
             print("nan old ecc:", disk_bh_retro_orbs_ecc[nan_mask])
             print("disk_bh_retro_masses:", disk_bh_retro_masses[nan_mask])
             print("disk_bh_retro_orbs_a:", disk_bh_retro_orbs_a[nan_mask])
+            print("disk_bh_retro_orbs_ecc:", disk_bh_retro_orbs_ecc[nan_mask])
             print("disk_bh_retro_orbs_inc:", disk_bh_retro_orbs_inc[nan_mask])
             print("disk_bh_retro_arg_periapse:", disk_bh_retro_arg_periapse[nan_mask])
+            print("disk_bh_retro_orbs_ecc_new:", disk_bh_retro_orbs_ecc_new[nan_mask])
+            print("disk_bh_retro_orbs_a_new:", disk_bh_retro_orbs_a_new[nan_mask])
+            print("disk_bh_retro_orbs_inc_new:", disk_bh_retro_orbs_inc_new[nan_mask])
             disk_bh_retro_orbs_ecc_new[nan_mask] = 2.
             disk_bh_retro_orbs_a_new[nan_mask] = 0.
             disk_bh_retro_orbs_inc_new[nan_mask] = 0.
@@ -633,39 +639,58 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     """
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
-    smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
+    smbh_mass_si = smbh_mass * u.Msun.to("kg") # kg
+    if smbh_mass_si < 1.e30 or smbh_mass_si > 1.e60:
+        raise ValueError(f"Something is wrong with the smbh_mass input")
+    print("tau smbh_mass:", smbh_mass)
     # semi_maj_axis = mcfacts.utilities.unit_conversion.si_from_r_g(smbh_mass, retrograde_bh_locations, r_g_defined=r_g_in_meters).to("m").value
+    print(f"tau retrograde_bh_locations: {retrograde_bh_locations}")
     semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, retrograde_bh_locations).value
-    retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
+    print("tau semi_maj_axis:", semi_maj_axis)
+    retro_mass = retrograde_bh_masses * u.Msun.to("kg") # kg
+    print("tau retro_mass:", retro_mass)
     omega = retro_arg_periapse  # radians
+    print("tau omega:", omega)
     ecc = retrograde_bh_orb_ecc  # unitless
+    print("tau ecc:", ecc)
     inc = retrograde_bh_orb_inc  # radians
+    print("tau inc:", inc)
     cos_omega = np.cos(omega)
+    cos_omega[cos_omega < 1.e-6] = 1.e-6
+    print("tau cos_omega:", cos_omega)
 
     # period in units of sec
-    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (const.G * smbh_mass))
+    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (const.G.si.value * smbh_mass_si))
+    print("tau period:", period)
     # semi-latus rectum in units of meters
     semi_lat_rec = semi_maj_axis * (1.0 - (ecc ** 2))
+    print("tau semi_lat_rec:", semi_lat_rec)
     # WZL Eqn 7 (sigma+/-)
     sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * cos_omega)
     sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * cos_omega)
+    print("tau: sigma_plus, sigma_minus:", sigma_plus, sigma_minus)
     # WZL Eqn 8 (eta+/-)
     eta_plus = np.sqrt(1.0 + ecc * cos_omega)
     eta_minus = np.sqrt(1.0 - ecc * cos_omega)
+    print(f"tau eta_plus, eta_minus:", eta_plus, eta_minus)
     # WZL Eqn 62
     kappa = 0.5 * (np.sqrt(1.0 / (eta_plus ** 15)) + np.sqrt(1.0 / (eta_minus ** 15)))
+    print(f"tau kappa:", kappa)
     # WZL Eqn 63
     xi = 0.5 * (np.sqrt(1.0 / (eta_plus ** 13)) + np.sqrt(1.0 / (eta_minus ** 13)))
+    print(f"tau xi:", xi)
     # WZL Eqn 64
     zeta = xi / kappa
+    print(f"tau zeta:", zeta)
     # WZL Eqn 30
     delta = 0.5 * (sigma_plus / (eta_plus ** 2) + sigma_minus / (eta_minus ** 2))
+    print(f"tau delta:", delta)
     # WZL Eqn 70
     #   NOTE: preserved retrograde_bh_locations in r_g to feed to disk_surf_model function
     #   tau in units of sec
     #   NOTE: had to add an abs(sin(inc)) to avoid negative timescales(!)
     tau_p_dyn = np.abs(np.sin(inc)) * ((delta - np.cos(inc)) ** 1.5) \
-                * (smbh_mass ** 2) * period / (
+                * (smbh_mass_si ** 2) * period / (
                         retro_mass * disk_surf_model(retrograde_bh_locations) * np.pi * (semi_lat_rec ** 2)) \
                 / (np.sqrt(2) * kappa * np.abs(np.cos(inc) - zeta))
 
@@ -689,11 +714,11 @@ def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
     disk_bh_retro_masses : float array | float
         Mass [M_sun] of retrograde singleton BH at start of timestep_duration_yr with :obj:`float` type
-    disk_bh_retro_arg_periapse : numpy.ndarray
+    omega : numpy.ndarray
         Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
-    disk_bh_retro_orbs_ecc : numpy.ndarray
+    ecc : numpy.ndarray
         Orbital eccentricity [unitless] of retrograde singleton BH at start of a timestep with :obj:`float` type
-    disk_bh_retro_orbs_inc : numpy.ndarray
+    inc : numpy.ndarray
         Orbital inclination [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
     disk_surf_density_func : function
         Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH
@@ -707,20 +732,40 @@ def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
     tau_a_dyn : numpy.ndarray
         Semi-major axis damping timescale [s]
     """
-    smbh_mass *= M_SUN_KG
+    smbh_mass_si = smbh_mass * M_SUN_KG
 
     retro_mass = disk_bh_retro_masses * M_SUN_KG  # kg
 
     # semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a, r_g_defined=r_g_in_meters).to("m").value
-    semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, disk_bh_retro_orbs_a).value
+    semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass_si, disk_bh_retro_orbs_a).value
     disk_surf_res = disk_surf_density_func(disk_bh_retro_orbs_a)
     # call out to Rust helper fn
-    tau_e_dyn, tau_a_dyn = tau_ecc_dyn_helper(smbh_mass, retro_mass, ecc, inc, omega, disk_surf_res, semi_maj_axis)
-
-    assert np.isfinite(tau_e_dyn).all(), \
-        "Finite check failure: tau_e_dyn"
-    assert np.isfinite(tau_a_dyn).all(), \
-        "Finite check failure: tau_a_dyn"
+    tau_e_dyn, tau_a_dyn = tau_ecc_dyn_helper(smbh_mass_si, retro_mass, ecc, inc, omega, disk_surf_res, semi_maj_axis)
+    # Identifie NaNs
+    nan_mask = ~(np.isfinite(tau_e_dyn) & np.isfinite(tau_a_dyn))
+    if any(nan_mask):
+        try:
+            tau_e_dyn[nan_mask], tau_a_dyn[nan_mask] = tau_ecc_dyn(
+                smbh_mass,
+                disk_bh_retro_orbs_a[nan_mask],
+                disk_bh_retro_masses[nan_mask],
+                omega[nan_mask],
+                ecc[nan_mask],
+                inc[nan_mask],
+                disk_surf_density_func,
+                r_g_in_meters,
+            )
+        except (AssertionError, RuntimeError) as exc:
+            print(f"{(~nan_mask).sum()} of {nan_mask.size} pass!")
+            print(f"smbh_mass: {smbh_mass}")
+            print(f"disk_surf_res: {disk_surf_res[nan_mask]}")
+            print(f"disk_bh_retro_orbs_a: {disk_bh_retro_orbs_a[nan_mask]}")
+            print(f"disk_bh_retro_masses: {disk_bh_retro_masses[nan_mask]}")
+            print(f"omega: {omega[nan_mask]}")
+            print(f"ecc: {ecc[nan_mask]}")
+            print(f"inc: {inc[nan_mask]}")
+            print(f"tau_e_dyn: {tau_e_dyn[nan_mask]}")
+            raise 
 
     return tau_e_dyn, tau_a_dyn
 
@@ -763,43 +808,61 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
     cos_omega = np.cos(omega)
+    cos_omega[cos_omega < 1.e-6] = 1.e-6
+    print(f"cos_omega:{cos_omega}")
 
     # WZL Eqn 7 (sigma+/-)
     sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * cos_omega)
     sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * cos_omega)
+    print(f"sigma_plus, sigma_minus = {sigma_plus}, {sigma_minus}")
     # WZL Eqn 8 (eta+/-)
     eta_plus = np.sqrt(1.0 + ecc * cos_omega)
     eta_minus = np.sqrt(1.0 - ecc * cos_omega)
+    print(f"eta_plus, eta_minus = {eta_plus}, {eta_minus}")
     # WZL Eqn 62
     kappa = 0.5 * (np.sqrt(1.0 / (eta_plus ** 15)) + np.sqrt(1.0 / (eta_minus ** 15)))
+    print(f"kappa: {kappa}")
     # WZL Eqn 63
     xi = 0.5 * (np.sqrt(1.0 / (eta_plus ** 13)) + np.sqrt(1.0 / (eta_minus ** 13)))
+    print(f"xi: {xi}")
     # WZL Eqn 64
     zeta = xi / kappa
+    print(f"zeta: {zeta}")
     # WZL Eqn 65
     kappa_bar = 0.5 * (np.sqrt(1.0 / (eta_plus ** 7)) + np.sqrt(1.0 / (eta_minus ** 7)))
+    print(f"kappa_bar: {kappa_bar}")
     # WZL Eqn 66
     xi_bar = 0.5 * (np.sqrt((sigma_plus ** 4) / (eta_plus ** 13)) + np.sqrt((sigma_minus ** 4) / (eta_minus ** 13)))
+    print(f"xi_bar: {xi_bar}")
     # WZL Eqn 67
     zeta_bar = xi_bar / kappa_bar
+    print(f"zeta_bar: {zeta_bar}")
 
     # call function for tau_p_dyn (WZL Eqn 70)
     tau_p_dyn = tau_semi_lat(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
                              disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
                              disk_surf_density_func, r_g_in_meters)
+    print(f"tau_p_dyn: {tau_p_dyn}")
     #  also need to find tau_a_dyn, but
     #   fortunately it's a few factors off of tau_p_dyn (this may be a dumb way to handle it)
     tau_a_dyn = tau_p_dyn * (1.0 - (ecc ** 2)) * kappa * np.abs(np.cos(inc) - zeta) / (
             kappa_bar * np.abs(np.cos(inc) - zeta_bar))
+    tau_a_dyn[ecc == 0] = HUBBLE_TIME_IN_S.value
+    print(f"tau_a_dyn: {tau_a_dyn}")
     # WZL Eqn 73
     tau_e_dyn = (2.0 * (ecc ** 2) / (1.0 - (ecc ** 2))) * 1.0 / np.abs(1.0 / tau_a_dyn - 1.0 / tau_p_dyn)
+    tau_e_dyn[(tau_a_dyn == 0) | (tau_p_dyn == 0)] = HUBBLE_TIME_IN_S.value
+    tau_e_dyn[ecc == 0] = HUBBLE_TIME_IN_S.value
+    print(f"tau_e_dyn: {tau_e_dyn}")
 
-    assert np.isfinite(tau_e_dyn).all(), \
-        "Finite check failure: tau_e_dyn"
-    assert np.isfinite(tau_a_dyn).all(), \
-        "Finite check failure: tau_a_dyn"
+    nan_mask = ~(np.isfinite(tau_e_dyn) & np.isfinite(tau_a_dyn))
+    if any(nan_mask):
+        if not np.isfinite(tau_e_dyn).all():
+            raise RuntimeError("Finite check failure: tau_e_dyn")
+        if not np.isfinite(tau_a_dyn).all():
+            raise RuntimeError("Finite check failure: tau_a_dyn")
 
-    return tau_e_dyn.value, tau_a_dyn.value
+    return tau_e_dyn, tau_a_dyn
 
 
 def bin_recapture(bin_mass_1_all, bin_mass_2_all, bin_orb_a_all, bin_orb_inc_all, timestep_duration_yr):

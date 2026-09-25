@@ -9,11 +9,12 @@ import os
 from pathlib import Path
 import time
 import traceback
+import warnings
 #### Third Party ####
 import tqdm
 import numpy as np
 #### Vera ####
-from xdata import Database
+from xdata import Database, Connection
 #### McFACTS ####
 from mcfacts.inputs import setup_scaling
 from mcfacts.inputs.settings_manager import SettingsProperty
@@ -29,21 +30,28 @@ from mcfacts.objects.snapshot import HDF5SnapshotHandler
 from mcfacts.simulation import run_galaxy
 
 ######## Setup ########
-FORBIDDEN_COLUMNS = [
-    "seed",
-    "verbose",
+COLUMNS_FORBIDDEN = [
     "show_timeline_progress",
     "overwrite_files",
     "save_state",
-    "save_each_timestep",
     "output_dir",
     "settings_snapshot",
     "cabinet_snapshot",
     "hdf5_snapshot_file",
     "hdf5_snapshot_mode",
-    "hdf5_snapshot_gzip",
     "hdf5_snapshot_retries",
     "hdf5_snapshot_sleep",
+]
+
+COLUMNS_SCALING = [
+    "disk_radius_outer",
+    "stellar_mass",
+    "smbh_mass",
+    "nsc_mass",
+    "inner_disk_outer_radius",
+    "disk_radius_trap",
+    "disk_radius_capture_outer",
+    "capture_time_yr",
 ]
 
 ######## Functions ########
@@ -65,57 +73,149 @@ def last_line(fname):
     return last_line
     
 
-def run_process(settings: SettingsManager):
-    # Start logging
-    fname_log = os.path.join(
-        settings.output_dir,
-        f"{settings.hdf5_snapshot_label}.log",
-    )
-    # Check for directory
-    if not os.path.isdir(Path(fname_log).parent):
-        Path(fname_log).parent.mkdir()
-    # Open the logging file
-    with open(fname_log, 'a') as LogFile:
-        with redirect_stdout(LogFile), redirect_stderr(LogFile):
-            try:
-                out = run_simulation(settings, fname_log)
-            except Exception:
-                traceback.print_exc(file=LogFile)
-                raise
-    return out
+def run_simulation(settings: SettingsManager, fname_log):
+    """Populate a galaxy and run an active timeline
 
-def run_simulation(settings: SettingsManager, fname_log=None):
+    Parameters
+    ----------
+    settings : SettingsManager
+        The SettingsManager object for this run in particular
+    fname_log : path_like
+        Path to save outputs to
+
+    Returns
+    -------
+    settings : SettingsManager
+        I needed something besides None to distinguish successful runs
+        from early exits, and this seemed like a useful one, anyway.
+    """
     # Define log function
     log_fn = ContextLogFunction(
         fname_log,
         prefix="",
         catch_stderr=True,
     )
-    # Enforce scaling
-    if settings.flag_use_scaling:
+
+    ## Check for persistence ##
+    # Check if this already ran
+    db = Database(
+        os.path.join(
+            settings.output_dir,
+            settings.hdf5_snapshot_file,
+        ),
+        retries=settings.hdf5_snapshot_retries,
+        sleep=settings.hdf5_snapshot_sleep,
+    )
+    label_group_exists = db.exists(settings.hdf5_snapshot_label)
+    if label_group_exists:
+        # We are rerunning a simulation with the same name
+        # setup_scaling is expensive (Have to make and throw away a disk
+        # interpolator object). We don't have to do it again.
+        prev_handler = HDF5SnapshotHandler()
+        try:
+            prev_settings = prev_handler.load_settings(
+                settings.output_dir,
+                settings.hdf5_snapshot_file,
+                addr=settings.hdf5_snapshot_label,
+            )
+        except KeyError as exc:
+            prev_settings = None
+    else:
+        prev_settings = None
+
+    # Check if the settings are the same as the last run
+    match = True
+    if prev_settings is None:
+        match = False
+        print(f"match failure; case 1")
+    else:
+        for key, value in prev_settings.settings_finals.items():
+            # We might have re-seeded the galaxy
+            if key == "seed":
+                continue
+            # Scaling will change some clumns
+            if key in COLUMNS_SCALING:
+                continue
+            if value != getattr(settings, key):
+                match = False
+                print(f"match failure; case 2; key: {key}")
+
+    # Collision
+    if not match and label_group_exists:
+        # We have incompatible attributes with the provided settings
+        # We need to crash or overwrite them
+        # The way to reliably overwrite them is to delete the group
+        if settings.overwrite_files:
+            db.remove(settings.hdf5_snapshot_label)
+            label_group_exists = False
+        else:
+            raise ValueError(
+                f"Failed to resume a failed run!"
+            )
+
+    ## Apply scaling ##
+    # Load the scaling columns
+    if match and settings.flag_use_scaling:
+        settings = settings.copy(
+            {key:getattr(prev_settings, key) for key in COLUMNS_SCALING},
+        )
+    # Rerun setup_scaling manually
+    else:
         setup_scaling(settings)
 
+    # Save the settings if they're not saved
+    if not label_group_exists:
+        settings_snapshot_handler = settings.new_settings_snapshot()
+        settings_snapshot_handler.save_settings(
+            settings.output_dir,
+            settings.hdf5_snapshot_file,
+            settings,
+            addr=settings_snapshot_handler.label,
+        )
     # Create the IO handlers and save the current settings
     cabinet_snapshot_handler = settings.new_cabinet_snapshot()
-    settings_snapshot_handler = settings.new_settings_snapshot()
-    settings_snapshot_handler.save_settings(
-        settings.output_dir,
-        settings.hdf5_snapshot_file,
-        settings,
-        addr=settings_snapshot_handler.label,
-    )
 
     # Load the AGN disk
     agn_disk = AGNDisk(settings)
     # Create a cabinet
     population_cabinet = FilingCabinet()
-    ## Loop galaxies ##
+
+    ## Loop galaxies to run them ##
     for galaxy_id in np.arange(settings.galaxy_num):
+        # Seed is offset; trick for restarting runs
+        galaxy_seed = settings.seed - galaxy_id
+        # Tag for labelling galaxy
+        galaxy_tag = f"{galaxy_id:03d}"
+        # Address of galaxy
+        galaxy_addr = "/".join([
+            settings.hdf5_snapshot_label,
+            f"gal{galaxy_tag}",
+        ])
+        # Check if the galaxy was already run
+        galaxy_prev_exists = db.exists(galaxy_addr)
+        if galaxy_prev_exists:
+            galaxy_prev_seed = int(db.attr_value(galaxy_addr, 'seed'))
+        # Check for a collision
+        if galaxy_prev_exists and galaxy_prev_seed != galaxy_seed:
+            if settings.overwrite_files:
+                print(f"Removing failed galaxy: {galaxy_addr} (seed:{galaxy_seed})")
+                db.remove(galaxy_addr)
+                galaxy_prev_exists = False
+        # Check if we've literally run this exact simulation before
+        if galaxy_prev_exists:
+            print(f"We have run {galaxy_addr} with seed {galaxy_seed} before! No need to rerun")
+            continue
+        # Create the galaxy group and assign it the seed attribute
+        else:
+            db.create_group(galaxy_addr)
+            db.attr_set(galaxy_addr, "seed", galaxy_seed)
+            db.attr_set(galaxy_addr, "success", False)
+
         # Define the galaxy object
         galaxy = Galaxy(
-            seed = settings.seed - galaxy_id,
+            seed = galaxy_seed,
             runs_folder=settings.output_dir,
-            galaxy_id=f"{galaxy_id:03d}",
+            galaxy_id=galaxy_tag,
             settings=settings,
         )
         galaxy.parent_log_func = log_fn.spawn(f"(ID:{galaxy_id:03d}) ")
@@ -131,66 +231,146 @@ def run_simulation(settings: SettingsManager, fname_log=None):
 
         ## Run the galaxy ##
         run_galaxy(settings, galaxy, agn_disk=agn_disk)
+        db.attr_set(galaxy_addr, "success", True)
 
-        ## Manage simulation outputs ##
-        population_cabinet.ignore_consistency_check("blackholes_merged")
-        population_cabinet.ignore_consistency_check("blackholes_lvk")
+    ## Loop galaxies to append population ##
+    # Open the connection in readonly mode
+    with Connection(
+            os.path.join(
+                settings.output_dir,
+                settings.hdf5_snapshot_file,
+            ),
+            mode='r',
+            retries=settings.hdf5_snapshot_retries,
+            sleep=settings.hdf5_snapshot_sleep,
+    ) as conn:
+        # initialize dtypes and arrays
+        population_dtypes = {}
+        population_arrays = {}
+        ## Loop galaxies ##
+        for galaxy_id in np.arange(settings.galaxy_num):
+            # Tag for labelling galaxy
+            galaxy_tag = f"{galaxy_id:03d}"
+            # Address of galaxy
+            galaxy_addr = "/".join([
+                settings.hdf5_snapshot_label,
+                f"gal{galaxy_tag}",
+            ])
+            # Check address is in file
+            if not galaxy_addr in conn.file:
+                raise KeyError(f"{galaxy_addr} not found!")
+            if "success" not in conn.file[galaxy_addr].attrs:
+                raise KeyError(f"{galaxy_addr} not initialized properly!")
+            _seed = conn.file[galaxy_addr].attrs["seed"]
+            _success = bool(conn.file[galaxy_addr].attrs["success"])
+            if not _success:
+                raise RuntimeError(
+                    f"{galaxy_addr} with seed "
+                    f"{conn.file[galaxy_addr].attrs['seed']} "
+                    "has failed to land correctly. "
+                    "This may cost them the race!"
+                    # This is a sonic riders reference.
+                    # I can take it out if it's distracting.
+                )
 
-        # Grab array names from settings manager
-        prograde_array      = galaxy.settings.bh_prograde_array_name
-        innerdisk_array     = galaxy.settings.bh_inner_disk_array_name
-        inner_gw_only_array = galaxy.settings.bh_inner_gw_array_name
-        bbh_merged_array    = galaxy.settings.bbh_merged_array_name
-        bbh_lvk_array       = galaxy.settings.bbh_gw_array_name
-        emri_merged_array   = galaxy.settings.emri_array_name
-        bh_ejected_array    = galaxy.settings.bh_ejected_array_name
+            # Okay, we found it. What now?
+            states = [key for key in conn.file[galaxy_addr] if len(key.split('_')) == 2]
+            states.sort()
+            state_addr = f"{galaxy_addr}/{states[-1]}"
+            assert state_addr in conn.file
+            # Loop through keys (E.g. blackholes_merged)
+            for array_name in conn.file[state_addr]:
+                # Get array address
+                array_addr = f"{state_addr}/{array_name}/compound"
+                if array_addr not in conn.file:
+                    continue
+                # Load the array
+                tmp = conn.file[array_addr][...]
+                # Get the datatype
+                population_dtypes[array_name] = tmp.dtype
+                # Append it
+                if not array_name in population_arrays:
+                    population_arrays[array_name] = []
+                population_arrays[array_name].append(tmp)
 
-        # Sort objects into the final population cabinet containing results from all galaxies
-        # (shamelessly copy-pasted from simulation.py)
-        if bh_ejected_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_ejected",
-                galaxy.filing_cabinet.get_array(bh_ejected_array),
+    # Open the connection with writing priveleges
+    with Connection(
+            os.path.join(
+                settings.output_dir,
+                settings.hdf5_snapshot_file,
+            ),
+            mode='r+',
+            retries=settings.hdf5_snapshot_retries,
+            sleep=settings.hdf5_snapshot_sleep,
+    ) as conn:
+        # initialize dtypes and arrays
+        # Save arrays
+        pop_addr = f"{settings.hdf5_snapshot_label}/population"
+        if pop_addr not in conn.file:
+            conn.file.create_group(pop_addr)
+        # Loop array names
+        for array_name in population_dtypes:
+            # Create intermediate array group
+            tmp_addr = f"{pop_addr}/{array_name}"
+            if tmp_addr not in conn.file:
+                conn.file.create_group(tmp_addr)
+            # Get array address
+            array_addr = f"{pop_addr}/{array_name}/compound"
+            if array_addr in conn.file:
+                # Overwrite population
+                if settings.overwrite_files:
+                    # Careful here
+                    del conn.file[array_addr]
+                else:
+                    warnings.warn(f"Skipping {array_name}; already exists!")
+                    continue
+            # Concatenate arrays
+            array_value = np.concatenate(
+                population_arrays[array_name],
             )
-
-        if bbh_merged_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_merged",
-                galaxy.filing_cabinet.get_array(bbh_merged_array),
+            # Write population output
+            conn.file.create_dataset(
+                array_addr,
+                array_value.shape,
+                dtype=population_dtypes[array_name],
+                data=array_value,
+                compression=settings.hdf5_snapshot_compression,
             )
-
-        if bbh_lvk_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_lvk",
-                galaxy.filing_cabinet.get_array(bbh_lvk_array),
-            )
-
-        if innerdisk_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_emri",
-                galaxy.filing_cabinet.get_array(innerdisk_array),
-            )
-
-        if inner_gw_only_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_emri",
-                galaxy.filing_cabinet.get_array(inner_gw_only_array),
-            )
-
-        if emri_merged_array in galaxy.filing_cabinet:
-            population_cabinet.create_or_append_array(
-                "blackholes_emri",
-                galaxy.filing_cabinet.get_array(emri_merged_array),
-            )
-
-    # Save the entire population cabinet
-    cabinet_snapshot_handler.save_cabinet(
-        settings.output_dir,
-        settings.hdf5_snapshot_file,
-        population_cabinet,
-    )
-
+                
     return settings
+
+def run_process(settings: SettingsManager):
+    """Wrapper for simulation calls
+
+    Redirects outputs to log file
+
+    Parameters
+    ----------
+    settings : SettingsManager
+        The SettingsManager object for this run in particular
+    """
+    # Start logging
+    fname_log = os.path.join(
+        settings.output_dir,
+        f"{settings.hdf5_snapshot_label}.log",
+    )
+    # Check if the file already exists
+    if os.path.isfile(fname_log):
+        os.remove(fname_log)
+    # Check for directory
+    if not os.path.isdir(Path(fname_log).parent):
+        Path(fname_log).parent.mkdir()
+    # Open the logging file
+    with open(fname_log, 'a') as LogFile:
+        with redirect_stdout(LogFile), redirect_stderr(LogFile):
+            try:
+                out = run_simulation(settings, fname_log)
+                # This is how COSMIC simulations end, so this is a short homage
+                print("All done friend!")
+            except Exception:
+                traceback.print_exc(file=LogFile)
+                raise
+    return out
 
 ######## Objects ########
 class SimulationQueue(object):
@@ -219,10 +399,12 @@ class SimulationQueue(object):
         ## Autocorrect ##
         replace = {
             "show_timeline_progress"    : True,
+            "save_state"                : True,
             "cabinet_snapshot"          : "hdf5",
             "settings_snapshot"         : "hdf5",
             "hdf5_snapshot_retries"     : 2*self.n_sim,
             "hdf5_snapshot_sleep"       : 1.0,
+            "hdf5_snapshot_mode"        : "compound",
         }
 
         # Settings
@@ -230,10 +412,10 @@ class SimulationQueue(object):
 
         #### Check columns ###
         for key in columns:
-            if key in FORBIDDEN_COLUMNS:
+            if key in COLUMNS_FORBIDDEN:
                 raise ValueError(
                     f"{key} was specified separately for each simulation. "
-                    "If this was on purpose, remove it from FORBIDDEN_COLUMNS."
+                    "If this was on purpose, remove it from COLUMNS_FORBIDDEN."
                 )
         # Get global RNG
         self.rng = np.random.Generator(
@@ -241,15 +423,16 @@ class SimulationQueue(object):
                 np.random.SeedSequence(settings.seed)
             )
         )
+        ## Modify Columns ##
+        if "seed" not in columns:
+            columns["seed"] = \
+                self.rng.bit_generator.random_raw(size=self.n_sim) >> 1
+
         # Label
         if "hdf5_snapshot_label" not in columns:
             columns["hdf5_snapshot_label"] = np.asarray(
                 [f"sim_{i:3d}" for i in range(self.n_sim)]
             )
-
-        ## Modify Columns ##
-        columns["seed"] = \
-            self.rng.bit_generator.random_raw(size=self.n_sim) >> 1
 
         # Set columns
         self.columns = columns
@@ -257,12 +440,10 @@ class SimulationQueue(object):
         #### Setup directoy ####
         wkdir = Path(settings.output_dir)
         wkdir.mkdir(exist_ok=True)
-        fname = wkdir / settings.hdf5_snapshot_file
-        if fname.is_file():
-            if settings.overwrite_files:
-                fname.unlink()
-            else:
-                raise ValueError(f"{fname} already exists!")
+        fname_db = wkdir / settings.hdf5_snapshot_file
+        self.wkdir = wkdir
+        self.fname_db = fname_db
+        self.db = Database(fname_db)
 
     @classmethod
     def from_batch_file(cls, fname_settings, fname_batch):
@@ -335,6 +516,76 @@ class SimulationQueue(object):
                         pbar.update(1)
         return return_values
 
+    def log_of_run(self, run):
+        # Determine where the log file should be
+        log = Path(self.settings.output_dir) / f"{run}.log"
+        # Check if the log file exists
+        if not log.is_file():
+            log = None
+        return log
+
+    def did_run_fail(self, run):
+        # Check if the run is in the database
+        if not self.db.exists(run, kind="group"):
+            return 1
+        # Check if the run has a population group
+        pop_addr = f"{run}/population"
+        if not self.db.exists(pop_addr, kind="group"):
+            return 2
+        # Check if "blackholes_merged" is in the population group
+        merged_addr = f"{pop_addr}/blackholes_merged"
+        if not self.db.exists(merged_addr, kind="group"):
+            return 0
+        # Check if the compound array exists
+        compound_addr = f"{merged_addr}/compound"
+        if not self.db.exists(compound_addr):
+            return 5
+        # Run succeeded!
+        return 0
+
+    #def attrs_of_run(self, run):
+
+    def report(self):
+        """Report on the status of runs"""
+        # Get the filename for the snapshot file
+        fname_db = os.path.join(self.wkdir, self.settings.hdf5_snapshot_file)
+        if not os.path.isfile(fname_db):
+            print(f"No such file named '{fname_db}' exists yet.")
+            return
+        # Identify expected runs
+        expected = self.columns["hdf5_snapshot_label"]
+        # Open the database
+        db = Database(fname_db)
+        for run in expected:
+            # Determine where the log file should be
+            log = self.log_of_run(run)
+            # Check if the run succeeded
+            ret_code = self.did_run_fail(run)
+            success = ret_code == 0
+            # Check if the attrs are available
+            if db.exists(run):
+                attrs = db.attr_dict(run)
+            else:
+                attrs = {}
+            print(" ".join([
+                run,
+                f"return_code={ret_code}",
+                f"seed={attrs['seed'] if 'seed' in attrs else None}",
+                f"log={log if log is not None else None}",
+            ]))
+            # Report errors
+            if not success:
+                # Get the last line
+                if log is None:
+                    last = None
+                else:
+                    last = last_line(log)
+                print(last)
+
+    def failed_galaxy_ids(self):
+        """Return the galaxy_ids of each failed run"""
+        
+
 ######## Argparse ########
 def arg():
     parser = argparse.ArgumentParser()
@@ -362,29 +613,7 @@ def main(
     values = queue.run(max_workers=max_workers)
     toc = time.perf_counter()
     print(f"SimulationQueue ran in {toc-tic:.6f} seconds!")
-    db = Database(
-        queue.settings.output_dir + "/" + queue.settings.hdf5_snapshot_file
-    )
-    # Identify finished runs
-    finished = [val.hdf5_snapshot_label if val is not None else None for val in values]
-    print(finished)
-    for item in queue.columns["hdf5_snapshot_label"]:
-        # Check if this run finished
-        success = item in finished
-        # Determine where the log file should be
-        log = Path(queue.settings.output_dir) / f"{item}.log"
-        if not log.is_file():
-            log = None
-        # Try to get the seed
-        try:
-            seed = db.attr_value(item, "seed")
-        except:
-            seed = None
-        # Print information
-        print(f"{item}: success={success}; seed={seed}; log={log}")
-        # Print error
-        if not success and log is not None:
-            print(last_line(log))
+    queue.report()
     return
     
 

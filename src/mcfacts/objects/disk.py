@@ -11,6 +11,7 @@ from astropy import constants as ct
 import pagn.constants as pagn_ct
 #### Local ####
 from mcfacts.objects.cache import readonly_cached_property
+from mcfacts.objects.interp import Boundary
 from mcfacts.objects.interp import CubicSpline, dCubicSpline
 from mcfacts.inputs import data as mcfacts_input_data
 from mcfacts.inputs.settings_manager import SettingsManager
@@ -98,6 +99,8 @@ class AGNDiskInterp(object):
         self._pagn_bonus_structures = None
 
         ## Boundary Shenanigans ##
+        self._surface_density_loglog.bounds[0] = Boundary.FLAT
+        self._opacity_loglog.bounds[0] = Boundary.FLAT
 
     ### Properties ###
     @property
