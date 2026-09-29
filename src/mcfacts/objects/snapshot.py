@@ -164,7 +164,6 @@ class TxtSnapshotHandler(SnapshotHandler):
 
         np.savetxt(everything_else_path, temp_array, fmt='%-25s', header=everything_else_header, comments='')
 
-
     def load_cabinet(
             self,
             directory: str | bytes | PathLike,
@@ -221,6 +220,10 @@ class TxtSnapshotHandler(SnapshotHandler):
                 # VD: NOTE this continue here is not good Python.
                 # It should return an empty array.
                 # This is some pandas nonsense, and I'm not fixing it.
+                # This may be why load_cabinet returns a less complete object
+                #  than save_cabinet saves, especially when `blackholes_unsort`
+                #  or another object is empty.
+                # This works fine in HDF5
                 continue
 
             column_dict = dict()
@@ -238,9 +241,8 @@ class TxtSnapshotHandler(SnapshotHandler):
                 column_dict[key] = array
 
             agn_objects[array_name] = column_dict
-
-        return agn_objects, everything_else
-
+        settings = SettingsManager()
+        return FilingCabinet.from_dicts(settings, agn_objects, everything_else)
 
     def save_settings(
             self,
@@ -767,8 +769,8 @@ class HDF5SnapshotHandler(SnapshotHandler):
                     f"Unknown object type: {type(conn.file[item_addr])}"
                 )
 
-        return agn_objects, everything_else
-
+        settings = SettingsManager()
+        return FilingCabinet.from_dicts(settings, agn_objects, everything_else)
 
     def save_settings(
             self,

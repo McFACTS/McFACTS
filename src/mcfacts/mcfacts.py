@@ -9,7 +9,8 @@ from pathlib import Path
 
 from mcfacts import __version__
 from mcfacts import fiducial_plots, simulation
-from mcfacts.inputs import settings_manager, setup_scaling
+from mcfacts.inputs import settings_manager
+from mcfacts.inputs.scaling import setup_scaling
 from mcfacts.inputs.settings_manager import SettingsManager, StaticSettingsProperty
 from mcfacts.objects.snapshot import TxtSnapshotHandler, IniSnapshotHandler
 from mcfacts.utilities.unit_conversion import str2bool

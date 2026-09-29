@@ -18,7 +18,7 @@ from xdata import Database
 
 #### Local ####
 from mcfacts.inputs.settings_manager import SettingsManager, DEFAULT_SETTINGS
-from mcfacts.objects.agn_object_array import FilingCabinet
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopulator
@@ -45,10 +45,17 @@ def agn_objects_are_equal(A, B):
                 if not np.all(value == B[name][key]):
                     return False
         else:
+            if isinstance(B[name], AGNObjectArray):
+                Bdict = B[name].get_super_dict()
+            elif isinstance(B[name], dict):
+                Bdict = B[name]
+            else:
+                return False
             for key, value in agn_object_array.get_super_dict().items():
-                if key not in B[name]:
+                assert isinstance(Bdict, dict)
+                if key not in Bdict:
                     return False
-                if not np.all(value == B[name][key]):
+                if not np.all(value == Bdict[key]):
                     return False
     return True
 
@@ -173,20 +180,22 @@ def test_run_galaxy():
         txt_loader = TxtSnapshotHandler(settings = \
             {key: value for key, value in live.settings_finals.items()})
         # Load some AGN objects
-        txt_agn_pop_objs = txt_loader.load_cabinet(
+        txt_cabinet = txt_loader.load_cabinet(
             live.output_dir,
             "population",
-        )[0]
+        )
+        txt_agn_pop_objs = txt_cabinet.agn_objects
         # Check the population objects
         assert agn_objects_are_equal(
             population_cabinet.agn_objects,
             txt_agn_pop_objs,
         )
         # Load the final state of the galaxy
-        txt_gal00_s02_objs = txt_loader.load_cabinet(
+        txt_gal00_s02_cab = txt_loader.load_cabinet(
             f"{wkdir}/gal00",
             "gal00_s02",
-        )[0]
+        )
+        txt_gal00_s02_objs = txt_gal00_s02_cab.agn_objects
         ## HDF5SnapshotHandler ##
         live.set_preprocessing("settings_snapshot", "hdf5")
         live.set_preprocessing("cabinet_snapshot", "hdf5")
@@ -288,11 +297,12 @@ def test_run_galaxy():
             )
         )
         # Load some AGN objects
-        hdf_agn_pop_objs = hdf_loader.load_cabinet(
+        hdf_cabinet = hdf_loader.load_cabinet(
             live.output_dir,
             live.hdf5_snapshot_file,
             addr=f"{hdf_handler.label}/population",
-        )[0]
+        )
+        hdf_agn_pop_objs = hdf_cabinet.agn_objects
         # Check the population objects
         assert agn_objects_are_equal(
             population_cabinet.agn_objects,
@@ -311,20 +321,24 @@ def test_run_galaxy():
             # Get parts of the string
             parts = name.split("_")
             #print(len(parts), name, addr, parts)
-            hdf_agn_objs, hdf_all_else = hdf_loader.load_cabinet(
+            hdf_cabinet = hdf_loader.load_cabinet(
                 wkdir,
                 live.hdf5_snapshot_file,
                 addr = addr,
             )
+            hdf_agn_objs = hdf_cabinet.agn_objects
+            hdf_all_else = hdf_cabinet.everything_else
             # Find state snapshots
             if len(parts) == 2:
                 # Identify state
                 state = parts[1]
                 # Load some AGN objects
-                txt_agn_objs, txt_all_else = txt_loader.load_cabinet(
+                txt_cabinet = txt_loader.load_cabinet(
                     live.output_dir,
                     name,
                 )
+                txt_agn_objs = txt_cabinet.agn_objects
+                txt_all_else = txt_cabinet.everything_else
                 assert agn_objects_are_equal(
                     txt_agn_objs,
                     hdf_agn_objs,
@@ -343,10 +357,12 @@ def test_run_galaxy():
                     f"{parts[0]}_{prev_state}_to_{next_state}",
                 )
                 # Load some AGN objects
-                txt_agn_objs, txt_all_else = txt_loader.load_cabinet(
+                txt_cabinet = txt_loader.load_cabinet(
                     tmpdir,
                     name,
                 )
+                txt_agn_objs = txt_cabinet.agn_objects
+                txt_all_else = txt_cabinet.everything_else
                 try:
                     assert agn_objects_are_equal(
                         hdf_agn_objs,
@@ -357,16 +373,16 @@ def test_run_galaxy():
                         if item not in txt_agn_objs:
                             # Initialize empty
                             empty = True
-                            for key, value in agn_object_array.items():
+                            for key, value in agn_object_array.get_super_dict().items():
                                 if np.size(value) > 0:
                                     empty = False
                             if empty:
                                 continue
                             print(f"{item} not in txt_agn_objs for {name}")
-                        for key, value in agn_object_array.items():
-                            if key not in txt_agn_objs[item]:
+                        for key, value in agn_object_array.get_super_dict().items():
+                            if key not in txt_agn_objs[item].get_super_dict():
                                 print(f"{key} not in txt_agn_objs {item} for {name}")
-                            if not np.all(value == txt_agn_objs[item][key]):
+                            if not np.all(value == txt_agn_objs[item].get_super_dict()[key]):
                                 print(f"Unequal;")
                                 print(
                                     f"HDF5 type: {type(value)}; "
@@ -518,11 +534,12 @@ def test_compression():
             )
         )
         # Load some AGN objects
-        hdf_agn_pop_objs = hdf_loader.load_cabinet(
+        hdf_cabinet = hdf_loader.load_cabinet(
             live.output_dir,
             "population.hdf5",
             addr=f"{hdf_handler.label}/population",
-        )[0]
+        )
+        hdf_agn_pop_objs = hdf_cabinet.agn_objects
         # Check the population objects
         assert agn_objects_are_equal(
             population_cabinet.agn_objects,
