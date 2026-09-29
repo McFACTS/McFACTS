@@ -323,9 +323,8 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
 
     return Torque_jimenezmasset_coeff
 
-#smbh or bh accretion?
 def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func,
-                                         disk_temp_func, disk_bh_eddington_ratio, orbs_a, orbs_ecc, orb_ecc_crit,
+                                         disk_temp_func, smbh_eddington_ratio, orbs_a, orbs_ecc, orb_ecc_crit,
                                          bh_masses, flag_thermal_feedback, disk_dlog10pressure_dlog10R_func, r_g_in_meters):
     """Return the Jimenez & Masset (2017) thermal torque coefficient for Type 1 migration
         Jimenez-Masset_thermal_torque_coeff = Torque_hot*(4mu_thermal/(1+4.*mu_thermal))+ Torque_cold*(2mu_thermal/(1+2.*mu_thermal))
@@ -401,7 +400,7 @@ def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk
     # If r_bondi for a migrating BH is > disk_height, set effective Bondi radius to disk height
     effective_bondi_radius = np.where(r_bondi < disk_height_in_meters, r_bondi, disk_height_in_meters)
     # Luminosity of migrating BH
-    lum = disk_bh_eddington_ratio * 4.0 * np.pi * scipy.constants.G * bh_masses_in_kg * scipy.constants.c / kappa_e_scattering
+    lum = smbh_eddington_ratio * 4.0 * np.pi * scipy.constants.G * bh_masses_in_kg * scipy.constants.c / kappa_e_scattering
 
     log_new_orbs_a = np.log10(new_orbs_a)
 
@@ -987,8 +986,7 @@ def type1_migration_binary(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_orb
 
     return (new_bin_orb_a)
 
-#smbh or bh accretion?
-def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_func, disk_bh_eddington_ratio,
+def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_func, smbh_eddington_ratio,
                        disk_alpha_viscosity, disk_radius_outer):
     """Calculate the ratio of radiative feedback torque to migration torque.
 
@@ -1007,9 +1005,9 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
         can accept a simple float (constant), but this is deprecated
     disk_opacity_model : lambda
         Opacity as a function of radius
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
+    smbh_eddington_ratio : float
+        Accretion rate of the SMBH [Eddington accretion rate].
+        0.5 =SMBH accreting at half Eddington.
         Super-Eddington accretion rates are permitted.
         User chosen input set by input file
     disk_alpha_viscosity : float
@@ -1049,7 +1047,7 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
     disk_opacity = disk_opacity_func(disk_bh_pro_orbs_a)
 
     ratio_feedback_migration_torque = 0.07 * (1 / disk_opacity) * (disk_alpha_viscosity ** -1.5) * \
-                                      disk_bh_eddington_ratio * np.sqrt(disk_bh_pro_orbs_a) / disk_surface_density
+                                      smbh_eddington_ratio * np.sqrt(disk_bh_pro_orbs_a) / disk_surface_density
 
     # set ratio = 1 (no migration) for black holes at or beyond the disk outer radius
     ratio_feedback_migration_torque[np.where(disk_bh_pro_orbs_a >= disk_radius_outer)] = 1.
@@ -1086,11 +1084,6 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
         can accept a simple float (constant), but this is deprecated
     disk_opacity_model : lambda
         Opacity as a function of radius
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
     disk_alpha_viscosity : float
         Disk gas viscocity [units??] alpha parameter
     disk_radius_outer : float
@@ -1141,8 +1134,7 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
 
     return ratio_feedback_migration_torque
 
-#smbh or bh accretion?
-def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio, disk_alpha_viscosity, disk_radius_outer):
+def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, smbh_eddington_ratio, disk_alpha_viscosity, disk_radius_outer):
     """Calculates ratio of heating torque to migration torque using Eqn. 28 in Hankla, Jiang & Armitage (2020)
 
     Parameters
@@ -1154,9 +1146,9 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
         can accept a simple float (constant), but this is deprecated
     disk_opacity_model : lambda
         Opacity as a function of radius
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
+    smbh_eddington_ratio : float
+        Accretion rate of the SMBH [Eddington accretion rate].
+        0.5 = SMBH accreting at half Eddington.
         Super-Eddington accretion rates are permitted.
         User chosen input set by input file
     disk_alpha_viscosity : float
@@ -1204,7 +1196,7 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
     # Define kappa (or set up a function to call).
     disk_opacity = disk_opacity_func(bin_orb_a)
 
-    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity, -1.5) * disk_bh_eddington_ratio * np.sqrt(bin_orb_a) / disk_surface_density_at_location
+    ratio_heat_mig_torques_bin_com = 0.07 * (1 / disk_opacity) * np.power(disk_alpha_viscosity, -1.5) * smbh_eddington_ratio * np.sqrt(bin_orb_a) / disk_surface_density_at_location
 
     # set ratio = 1 (no migration) for binaries at or beyond the disk outer radius
     ratio_heat_mig_torques_bin_com[bin_orb_a > disk_radius_outer] = 1.0
@@ -1236,7 +1228,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 blackholes_array.orb_a,
                 agn_disk.disk_surface_density,
                 agn_disk.disk_opacity,
-                sm.disk_bh_eddington_ratio,
+                sm.smbh_eddington_ratio,
                 sm.disk_alpha_viscosity,
                 sm.disk_radius_outer
             )
@@ -1313,7 +1305,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     agn_disk.disk_dlog10temp_dlog10R_func,
                     sm.r_g_in_meters
                 )
-#smbh or bh accretion?
+                
                 # Thermal torque from JM17 (if flag_thermal_feedback off, this component is 0.)
                 jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
                     sm.smbh_mass,
@@ -1321,7 +1313,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     agn_disk.disk_opacity,
                     agn_disk.disk_aspect_ratio,
                     agn_disk.temp_func,
-                    sm.disk_bh_eddington_ratio,
+                    sm.smbh_eddington_ratio,
                     blackholes_array.orb_a,
                     blackholes_array.orb_ecc,
                     sm.disk_bh_pro_orb_ecc_crit,
@@ -1430,7 +1422,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                 blackholes_binary.bin_orb_a,
                 agn_disk.disk_surface_density,
                 agn_disk.disk_opacity,
-                sm.disk_bh_eddington_ratio,
+                sm.smbh_eddington_ratio,
                 sm.disk_alpha_viscosity,
                 sm.disk_radius_outer
             )
@@ -1481,14 +1473,14 @@ class BinaryBlackHoleMigration(TimelineActor):
                 agn_disk.disk_dlog10temp_dlog10R_func,
                 sm.r_g_in_meters
             )
-#smbh or bh accretion?
+
             jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
                 sm.smbh_mass,
                 agn_disk.disk_surface_density,
                 agn_disk.disk_opacity,
                 agn_disk.disk_aspect_ratio,
                 agn_disk.temp_func,
-                sm.disk_bh_eddington_ratio,
+                sm.smbh_eddington_ratio,
                 blackholes_binary.bin_orb_a,
                 blackholes_binary.bin_orb_ecc,
                 sm.disk_bh_pro_orb_ecc_crit,
