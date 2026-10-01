@@ -2211,6 +2211,30 @@ def quiescence_orb_inc(bh_orb_inc,ratio_q_sph_vrr):
     #updated_retro_mask =np.where(np.abs(actual_draws_inclination - np.pi)<0.14,actual_draws_inclination,0)
     return(updated_orb_inc)
 
+#def quiescence_add_nsc_bh(quiescence_time,mass_nsc,frac_bh_to_star,t_lookback,):
+#    """
+#    NSCs grow over cosmic time. This function adds BH to inner NSC as a function of quiescence_time.
+#    Back of envelope: O(10^4) BH are added to NSC over O(10)Gyr, the average rate of addition is 10^-6BH/yr or 1BH/Myr.
+#    Add as a function of radius (e.g. R=5e4r_g=0.25pc as r^-7/4.
+#    Assume BH to be added are:
+#      -thermal (<e>~0.7 or e^2=[0,1] uniform distribution)
+#      -isotropic (uniform in inc=[0,pi] rads)
+#      -IMF as for initial population
+#      -semi-major axis as for initial population (e.g. r^-7/4 distribution)
+#    Say 1/2 of NSC is added by mass from z=2 (or t_lookback=10Gyr). Then 
+#    n_bh_added_nsc_in_t_lookback = 0.5*mass_nsc*frac_bh_to_stars/(mass_bh_imf*t_lookback)
+#    E.g. for mass_nsc= 3e7Msun, frac_bh_to_stars=1.e-3, t_q=10Myr,mass_bh_imf=35Msun, t_lookback=10Gyr 
+#    n_bh_added_nsc_in_t_lookback = 0.5*3e7*1e-3/(35*10^10 yr)= 1.5/35 * e-6 = 4.3e-8 yr^-1 = 0.043/Myr 
+#    In t_q=10Myr, we add 0.43BH of mass 35Msun (ie we add ~15Msun worth of BH. 
+#    In t_q=100Myr, we add 4.3BH of mass 35Msun (ie 150Msun worth of BH)
+#    In t_q=1Gyr, we add 43BH of mass 35Msun (ie 1500Msun worth of BH)
+#    In t_q=10Gyr we add 430 BH of mass 35Msun (ie 15,000Msun worth of BH or 1500BH at mass ~10Msun)
+#        """
+#    n_bh_added_during_quiescence = mass_nsc*frac_bh_to_star
+#    #Thermal distribution
+#
+#    return(add_pop)
+
 def bh_near_smbh(
         smbh_mass,
         disk_bh_pro_orbs_a,
