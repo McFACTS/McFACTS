@@ -1,3 +1,6 @@
+"""Module for the serialization of McFACTS simulation data"""
+######## Imports ########
+#### Standard Library ####
 import configparser
 import os
 import uuid
@@ -6,9 +9,11 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
+#### Third Party ####
 import numpy as np
 import pandas as pd
 
+#### McFACTS ####
 from mcfacts.inputs import settings_manager
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNObjectArray
@@ -176,11 +181,26 @@ class TxtSnapshotHandler(SnapshotHandler):
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
-        everything_else_path = os.path.join(directory, file_name + ".txt")
+        if not file_name.lower().endswith(".txt"):
+            file_name = file_name + ".txt"
+        final_path = os.path.join(directory, file_name)
 
         temp_keys = list(settings.settings_finals.keys())
         temp_values = list(settings.settings_finals.values())
         temp_types = list(self.get_fully_qualified_type(x) for x in settings.settings_finals.values())
+
+        # Fixes a bug with an unset "settings_file" that I found in testing
+        for i, (t, key, val) in enumerate(zip(temp_types, temp_keys, temp_values)):
+            if isinstance(val, str) and len(val) == 0:
+                if key == "settings_file":
+                    temp_values[i] = os.path.basename(file_name)
+                else:
+                    raise ValueError(
+                        f"setting {key} had value {val} with length 0. "
+                        "TxtSnapshotHandler cannot preserve empty strings."
+                    )
+                
+        # Join arrays
         temp_array = np.column_stack(tuple([temp_keys, temp_values, temp_types]))
 
         spacing_array = []
@@ -199,15 +219,15 @@ class TxtSnapshotHandler(SnapshotHandler):
             for i, key in enumerate(["key", "value", "type"])
         )
 
-        np.savetxt(everything_else_path, temp_array, fmt=[f"%-{space - 1}s" for space in spacing_array], header=settings_header, comments='')
+        np.savetxt(final_path, temp_array, fmt=[f"%-{space - 1}s" for space in spacing_array], header=settings_header, comments='')
 
 
     def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
-        final_path = os.path.join(directory, file_name + ".txt")
+        if not file_name.lower().endswith(".txt"):
+            file_name = file_name + ".txt"
+        final_path = os.path.join(directory, file_name)
 
-        if file_name.lower().endswith(".txt"):
-            final_path = os.path.join(directory, file_name)
-
+        # Loade the settings from the txt snapshot
         data = np.genfromtxt(final_path, skip_header=1, dtype=str)
 
         settings = {}
@@ -246,10 +266,9 @@ class IniSnapshotHandler(SnapshotHandler):
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
-        if file_name.lower().endswith(".ini"):
-            final_path = os.path.join(directory, file_name)
-        else:
-            final_path = os.path.join(directory, file_name + ".ini")
+        if not file_name.lower().endswith(".ini"):
+            file_name = file_name + ".ini"
+        final_path = os.path.join(directory, file_name)
 
         name_to_category = {prop.name: prop.category for prop in settings_manager.DEFAULT_SETTINGS}
 
@@ -278,10 +297,9 @@ class IniSnapshotHandler(SnapshotHandler):
         self.log(f"Saved settings to {final_path}")
 
     def load_settings(self, directory: str | bytes | PathLike, file_name: str | bytes | PathLike) -> SettingsManager:
-        if file_name.lower().endswith(".ini"):
-            final_path = os.path.join(directory, file_name)
-        else:
-            final_path = os.path.join(directory, file_name + ".ini")
+        if not file_name.lower().endswith(".ini"):
+            file_name = file_name + ".ini"
+        final_path = os.path.join(directory, file_name)
 
         if not Path(final_path).exists():
             raise FileNotFoundError(f"Settings file not found: {final_path}")

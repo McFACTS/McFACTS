@@ -8,7 +8,7 @@ tests: mcfacts_sim
 #### Package ####
 # Version number for the repository
 # This is where you change the version number by hand. Not anywhere else.
-VERSION=0.4.0
+VERSION=0.4.1
 
 ### Should work for everyone ###
 # Current directory

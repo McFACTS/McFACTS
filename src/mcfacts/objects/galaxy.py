@@ -103,10 +103,10 @@ class Galaxy:
         self.timeline_history: list[SimulationTimeline] = list()
         self.populated: bool = False
 
-        self.snapshot_handler = snapshot_handler
-
         if snapshot_handler is None:
             self.snapshot_handler = TxtSnapshotHandler(self.settings)
+        else:
+            self.snapshot_handler = snapshot_handler
 
         # Set the recursion limit higher so python doesn't scream at us. The timeline-actor framework does not do any recursion,
         # but when an actor performs, something can end up executing several "layers" away from the initial call.
@@ -134,6 +134,9 @@ class Galaxy:
         self.log(f"Saving state of galaxy to {save_folder} as {file_name}")
 
         self.snapshot_handler.save_cabinet(save_folder, file_name, self.filing_cabinet)
+
+    def load_state(self, timestep: int = None) -> None:
+        raise NotImplementedError
 
     def populate(self, populators: list[GalaxyPopulator], agn_disk: AGNDisk, strict_fill: bool = True, join_populations: bool = False) -> None:
         """

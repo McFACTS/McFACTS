@@ -1,8 +1,56 @@
 # Changelog
 
 <!---
-Last updated: 2025-07-25
+Last updated: 2026-09-03
 -->
+## <a href=https://github.com/McFACTS/McFACTS/pull/387>[0.4.1] - 2026-09-03 </a>
+
+### Summary
+#### Added
+- Mcfast `v0.1.6` with five new optimized helper functions (GW strain, merged orbital eccentricity, torque migration timescale, shock luminosity, jet luminosity).
+- Unit test for `change_bh_mass`, with expected outputs in `test/bh_change_masses_outputs.csv`.
+- 11 new .ini files for TQM runs in `recipes/paper_4`.
+- Chirp mass calculator function in `em_plots.py`.
+- Documentation of cgs unit conversion handling in `jet_luminosity_opt()` (`lum.py`).
+- Documentation of v_kick, lum_shock, lum_jet, and id_num columns in `output_mergers_population.txt` output in `IODocumentation.txt`.
+
+#### Changed
+- Removed redundant SI unit conversions on `astropy.constants.c` and `astropy.constants.G` in `point_masses.py`; switched string-based units to unit literals.
+- Runtime reduced from ~124s to ~89s overall from the above two optimizations.
+- torque_prescription changed from 'paardekooper' to 'jimenez_masset' in all SG-run .ini files (`recipes/paper_4`).
+- `disk_radius_outer` changed from 20000 to 30000 in `pem_sg_r3e4.ini`.
+- Renamed `pem_sg_r2e4.ini` to `pem_sg_3e4.ini`.
+
+#### Fixed
+- Remove unused variables from `em_plots.py`
+
+### [367: New optimized function variants with mcfast](https://github.com/McFACTS/McFACTS/pull/367)
+- Added mcfast version `0.1.6`, introducing five new helper functions covering seven McFACTS functions:
+  - `gw_strain_helper` (`gw_strain_freq_optimized`)
+  - `merged_orb_ecc_helper` (`merged_orb_ecc_optimized`)
+  - `torque_mig_timescale_helper` (`torque_mig_timescale_optimized`)
+  - `shock_luminosity_helper` (`shock_luminosity_opt`)
+  - `jet_luminosity_helper` (`jet_luminosity_opt`)
+- Substantial speedup. Most recent benchmark shows runtime dropping from 124s to 106s.
+
+### [368: Eliminating redundant unit conversions](https://github.com/McFACTS/McFACTS/pull/368)
+- Removed unnecessary SI conversions on `astropy.constants.c` and `astropy.constants.G` which are already SI-denominated per [astropy docs](https://docs.astropy.org/en/stable/units/ref_api.html#module-astropy.units.si)) from `point_masses.py`, including `r_g_from_units`, `orbital_separation_evolve`, and `orbital_separation_evolve_reverse` (currently unused in the simulation but potentially useful later).
+- Replace string-based unit indication with unit literals.
+- Profiled runtime reduced from 104s to 89s (~15% improvement).
+
+### [369: Unit test for change_bh_mass](https://github.com/McFACTS/McFACTS/pull/369)
+- Created unit test for the `change_bh_mass` function. Expected outputs are stored in the `test/bh_change_masses_outputs.csv` file.
+
+### [387: McFACTS Version 0.4.1 to main](https://github.com/McFACTS/McFACTS/pull/387)
+- `torque_prescription = 'paardekooper'` to `'jimenez_masset'` in all .ini files for SG runs in `recipes/paper_4`
+- In `pem_sg_r3e4.ini`, change `disk_radius_outer = 20000`. -> `30000`.
+- Rename `pem_sg_r2e4.ini` -> `pem_sg_3e4.ini`
+- Remove unused variables from `em_plots.py`
+- 11 new .ini files to `recipes/paper_4` for new TQM runs
+- Chirp mass calculator function to `em_plots.py`
+- Documentation for where cgs unit conversion happens in `jet_luminosity_opt()` function to `lum.py`
+- Documentation of v_kick, lum_shock, lum_jet, and id_num columns in `output_mergers_population.txt` output in `IODocumentation.txt`.
+
 ## <a href=https://github.com/McFACTS/McFACTS/pull/360>[0.4.0] - 2026-02-02</a>
 
 ### Summary
