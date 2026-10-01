@@ -9,10 +9,11 @@ import scipy
 import scipy.interpolate
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.utilities.constants import M_SUN_KG
 from mcfacts.utilities import unit_conversion, checks
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfast import torque_mig_timescale_helper
 
@@ -891,7 +892,7 @@ def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
 
 def type1_migration_single(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
                            disk_surf_density_func, disk_aspect_ratio_func, disk_feedback_ratio_func,
-                           disk_radius_trap, disk_radius_outer, timestep_duration_yr):
+                           disk_radius_trap, disk_radius_outer, timestep_duration_yr, random_generator):
     """Wrapper function for type1_migration for single objects in the disk.
 
     Assumes a gas disk surface density and aspect ratio profile, for objects of specified masses and
@@ -935,14 +936,14 @@ def type1_migration_single(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
 
     new_orbs_a = type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
                                  disk_surf_density_func, disk_aspect_ratio_func, disk_feedback_ratio_func,
-                                 disk_radius_trap, disk_radius_outer, timestep_duration_yr)
+                                 disk_radius_trap, disk_radius_outer, timestep_duration_yr, random=random_generator)
 
     return (new_orbs_a)
 
 
 def type1_migration_binary(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_orb_ecc, orb_ecc_crit,
                            disk_surf_density_func, disk_aspect_ratio_func, disk_feedback_ratio_func,
-                           disk_radius_trap, disk_radius_outer, timestep_duration_yr):
+                           disk_radius_trap, disk_radius_outer, timestep_duration_yr, random_generator):
     """Wrapper function for type1_migration for binaries in the disk.
 
     Assumes a gas disk surface density and aspect ratio profile, for objects of specified masses and
@@ -982,7 +983,7 @@ def type1_migration_binary(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_orb
 
     new_bin_orb_a = type1_migration(smbh_mass, bin_orb_a, bin_mass_1 + bin_mass_2, bin_orb_ecc, orb_ecc_crit,
                                     disk_surf_density_func, disk_aspect_ratio_func, disk_feedback_ratio_func,
-                                    disk_radius_trap, disk_radius_outer, timestep_duration_yr)
+                                    disk_radius_trap, disk_radius_outer, timestep_duration_yr, random_generator)
 
     return (new_bin_orb_a)
 
@@ -1261,7 +1262,8 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 ratio_heat_mig_torques,
                 sm.disk_radius_trap,
                 sm.disk_radius_outer,
-                timestep_length
+                timestep_length,
+                random_generator,
             )
 
         # Normalized torque (multiplies torque coeff)
@@ -1325,7 +1327,8 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     sm.disk_bh_pro_orb_ecc_crit,
                     blackholes_array.mass,
                     sm.flag_thermal_feedback,
-                    agn_disk.disk_dlog10pressure_dlog10R_func
+                    agn_disk.disk_dlog10pressure_dlog10R_func,
+                    sm.r_g_in_meters
                 )
 
                 if sm.flag_thermal_feedback == 1:
@@ -1353,7 +1356,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
 
             # Timescale on which migration happens based on overall torque
-            torque_mig_timescales_bh = torque_mig_timescale(
+            torque_mig_timescales_bh = torque_mig_timescale_optimized(
                 sm.smbh_mass,
                 blackholes_array.orb_a,
                 blackholes_array.mass,
@@ -1391,7 +1394,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                                         3 * sm.disk_inner_stable_circ_orb)
 
         delta_distance = np.abs(new_orb_a_bh - blackholes_array.orb_a)
-        delta_distance_meters = unit_conversion.si_from_r_g(sm.smbh_mass, delta_distance, r_g_defined=sm.r_g_in_meters)
+        delta_distance_meters = unit_conversion.si_from_r_g_optimized(sm.smbh_mass, delta_distance, r_g_defined=sm.r_g_in_meters)
         blackholes_array.migration_velocity = (delta_distance_meters / (timestep_length * u.yr).to(u.s)).value
 
         blackholes_array.orb_a = new_orb_a_bh
@@ -1450,7 +1453,8 @@ class BinaryBlackHoleMigration(TimelineActor):
                 ratio_heat_mig_torques_bin_com,
                 sm.disk_radius_trap,
                 sm.disk_radius_outer,
-                timestep_length
+                timestep_length,
+                random_generator
             )
 
         if sm.torque_prescription == 'paardekooper':
@@ -1488,7 +1492,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                 blackholes_binary.bin_orb_a,
                 blackholes_binary.bin_orb_ecc,
                 sm.disk_bh_pro_orb_ecc_crit,
-                blackholes_binary.mass_1 + blackholes_binary.mass_2,
+                blackholes_binary.mass + blackholes_binary.mass_2,
                 sm.flag_thermal_feedback,
                 agn_disk.disk_dlog10pressure_dlog10R_func,
                 sm.r_g_in_meters
@@ -1537,7 +1541,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                         disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-0.97)
                         disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
 
-                torque_mig_timescales_bh = torque_mig_timescale(
+                torque_mig_timescales_bh = torque_mig_timescale_optimized(
                     sm.smbh_mass,
                     blackholes_binary.bin_orb_a,
                     blackholes_binary.mass + blackholes_binary.mass_2,

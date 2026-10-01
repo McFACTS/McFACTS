@@ -84,11 +84,65 @@ Generating Pull Requests
 
 Pull requests should comply with these requirements:
 
-#. Direct pull requests at the ``mcfacts/main-dev`` branch.
+#. Unless otherwise instructed, direct all new pull requests at the ``mcfacts/main-dev`` branch.
 #. Include all information outlined in the `Pull Request Template`_ (automatically populates the description field when
    initiating a pull request).
+#. Upload our fiducial plots to the PR as attachments (see README.md for a list of the fiducial plots).
 #. Categorize your pull request using one (or more!) option from this
    `list <https://github.com/McFACTS/McFACTS/labels>`_ of labels.
+
+Pull Requests to `main`
+***********************
+
+Generating a pull request to `main` should be done when it is time to make a new stable branch of McFACTS.
+
+Reasons to create a pull request to main:
+
+#. To create a version of McFACTS with a tag and a release in order to cite the code.
+#. To preserve a feature as stable.
+#. To support downstream users of McFACTS.
+#. For housekeeping, when a stable version hasn't been preserved for a while.
+
+Steps to setup a pull request to `main`:
+
+1. Create a staging branch with the updated version number; E.g. `staging-0.4.1`.
+2. Update the `VERSION` in the Makefile, run `make version`, and commit the updated files to the staging branch.
+3. On Github, navigate to `commits/main <https://github.com/McFACTS/McFACTS/commits/main/>`_ and click on the most recent pull request that was merged into main. Look at the changelog section of the PR header to identify the two most recent PRs mentioned in that changelog (should be a PR merged into main-dev and the actual PR merged into main).
+4. Next, navigate to `<https://github.com/McFACTS/McFACTS/pulls>`_ and search: `is:pr is:merged base:main-dev <https://github.com/McFACTS/McFACTS/pulls?q=is%3Apr+is%3Amerged+base%3Amain-dev>`_. This will want a list all of the PRs which have been merged into main-dev. You want to find any PRs which are more new than either of the two most recent PRs mentioned in the changelog. You can create a link to each PR by right clicking from the search screen and selecting 'copy link'.
+5. Create the draft pull request and follow the format:
+
+.. code-block:: text
+
+   ### McFACTS Version `X.Y.Z`
+
+   ### Summary
+   **Added**
+   - Things added in the set of PRs
+
+   **Changed**
+   - Things changed in the set of PRs
+
+   **Fixed**
+   - Things fixed in the set of PRs
+
+   ### Changelog
+   ### Individual PRs (summaries) in the order they were merged into main-dev
+
+   [PR NUMBER: PR Title](https://github.com/McFACTS/McFACTS/pull/[PR NUMBER])
+   - Brief description of PR; can be copied from the actual PR
+
+   [PR NUMBER: PR Title](https://github.com/McFACTS/McFACTS/pull/[PR NUMBER])
+   - Brief description of PR; can be copied from the actual PR
+
+   [THIS PR NUMBER: THIS PR Title](https://github.com/McFACTS/McFACTS/pull/[THIS PR NUMBER])
+   - Updated Version to X.Y.Z
+   - Description of everything going to main which is not in another PR.
+
+6. Copy everything below Changelog and add it to the top of CHANGELOG.md, including a header with a link to this PR. Commit that file to the staging branch
+7. Upload our fiducial plots to the PR as attachments (see README.md for a list of the fiducial plots).
+8. Open the PR as ready for review!
+9. After the PR has been merged, the admins will create a new tag for the version and generate a release.
+
 
 Extending McFACTS with other languages
 **************************************

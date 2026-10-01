@@ -1,6 +1,7 @@
 import uuid
+from collections import Counter
 from abc import ABC, abstractmethod
-from copy import deepcopy
+import copy
 from typing import Any, TypeVar, Type
 
 import numpy as np
@@ -37,6 +38,7 @@ class AGNObjectArray(ABC):
 
     def __init__(self,
                  unique_id: npt.NDArray[uuid.UUID] = np.array([], dtype=uuid.UUID),
+                 galaxy_id: npt.NDArray[np.int64] = np.array([], dtype=np.int64),
                  mass: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  spin: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
                  spin_angle: npt.NDArray[np.float64] = np.array([], dtype=np.float64),
@@ -59,6 +61,8 @@ class AGNObjectArray(ABC):
         # Size of id is 16 bytes. In 1 GB of memory, you can store 62,500,000 ids.
         # Since its not raw byte, that number is a bit smaller, but it should not cause any space issues.
         self.unique_id = unique_id
+
+        self.galaxy_id = np.full(len(unique_id), int(0), dtype=np.int64) if len(galaxy_id) == 0 else galaxy_id
 
         self.mass = mass # Mass is required, if this is missing the consistency check with throw an error.
         self.spin = np.full(len(unique_id), 0., dtype=np.float64) if len(spin) == 0 else spin
@@ -208,25 +212,32 @@ class AGNObjectArray(ABC):
             - Updates all attributes in the superclass attribute list to reflect the retained entries.
             - If no entries match the given unique IDs, no changes are made, and the method returns `False`.
         """
-        remove_mask = np.isin(self.unique_id, unique_id)
+        keep_mask = np.isin(self.unique_id, unique_id)
 
-        if len(remove_mask) == 0:
+        if len(keep_mask) == 0:
             return False
 
         for attribute_name, attribute_value in self.get_super_dict().items():
-            setattr(self, attribute_name, attribute_value[remove_mask])
+            setattr(self, attribute_name, attribute_value[keep_mask])
 
         self.consistency_check()
 
         return True
 
     def copy(self):
-        return deepcopy(self)
+        new = copy.copy(self)
+
+        for attribute_name, attribute_value in self.get_super_dict().items():
+            if isinstance(attribute_value, np.ndarray):
+                setattr(new, attribute_name, attribute_value.copy())
+
+        return new
 
     @abstractmethod
     def get_super_dict(self) -> dict[str, npt.NDArray[Any]]:
         return {
             "unique_id": self.unique_id,
+            "galaxy_id": self.galaxy_id,
             "mass": self.mass,
             "spin": self.spin,
             "spin_angle": self.spin_angle,
@@ -248,6 +259,7 @@ class AGNObjectArray(ABC):
             raise Exception(f"Type Error: Unable to add {type(agn_object_array)} objects to AGNObjectArray.")
 
         self.unique_id = np.concatenate((self.unique_id, agn_object_array.unique_id))
+        self.galaxy_id = np.concatenate((self.galaxy_id, agn_object_array.galaxy_id))
         self.gen = np.concatenate((self.gen, agn_object_array.gen))
         self.mass = np.concatenate((self.mass, agn_object_array.mass))
         self.spin = np.concatenate((self.spin, agn_object_array.spin))
@@ -767,11 +779,11 @@ class FilingCabinet:
     def list_occurrence(self, unique_id: uuid.UUID) -> list[str]:
         occurrence: list[str] = list()
 
-        for key, value in self.agn_objects.items():
+        for key, arr in self.agn_objects.items():
             if key in self.ignore_check:
                 continue
 
-            for entry in value.unique_id:
+            for entry in arr.unique_id:
                 if unique_id == entry:
                     occurrence.append(key)
 
@@ -779,15 +791,36 @@ class FilingCabinet:
 
 
     def consistency_check(self):
-        for key, value in self.agn_objects.items():
-            if key in self.ignore_check:
-                continue
+        arrs = [(k, a.unique_id) for k, a in self.agn_objects.items() if k not in self.ignore_check]
 
-            for entry in value.unique_id:
-                occurrence = self.list_occurrence(entry)
+        total = 0
+        merged = set()
 
-                if len(occurrence) > 1:
-                    raise RuntimeError(f"A duplicate entry has been found in the filing cabinet. {entry} Found in: {occurrence}")
+        for _, arr in arrs:
+            total += len(arr)
+            merged.update(arr)
+
+        if len(merged) == total:
+            # early return, no duplicates
+            return
+
+        # a duplicate, let's look for it
+        seen: dict[uuid.UUID, str] = {}
+
+        for key, arr in arrs:
+            ids = set(arr)
+
+            if len(ids) != len(arr):
+                counts = Counter(arr)
+                dupes = [uid for uid, n in counts.items() if n > 1]
+                raise RuntimeError(
+                    f"A duplicate entry has been found in the filing cabinet. {dupes} appears more than once in: {key}")
+
+            for uid in ids:
+                if uid in seen:
+                    raise RuntimeError(
+                        f"A duplicate entry has been found in the filing cabinet. {uid} Found in: {self.list_occurrence(uid)}")
+                seen[uid] = key
 
 
     def update_time(self, new_time: float):
@@ -881,3 +914,115 @@ class FilingCabinet:
 
     def __len__(self):
         return len(self.agn_objects) + len(self.everything_else)
+
+    @staticmethod
+    def from_dicts(
+            settings,
+            agn_object_dict: dict,
+            everything_else_dict: dict,
+        ):
+        """Instantiate a new FilingCabinet object from dictionaries
+
+        Parameters
+        ----------
+        settings : SettingsManager object
+            The settings where 'bh_array_name' and the like are stored
+        agn_object_dict : dict
+            A dictionary containing the data to be included
+        everything_else_dict : dict
+            A dictionary containing things to be added to the everything_else
+            attribute of the FilingCabinet object
+
+        Returns
+        -------
+        FilingCabinet object
+            A filled filing cabinet
+        """
+        from mcfacts.inputs.settings_manager import SettingsManager
+        # Check inputs
+        if not isinstance(settings, SettingsManager):
+            raise TypeError(
+                "Settings must be type SettingsManager "
+                f"(is type {type(settings)})"
+            )
+        # Initialize output
+        out = FilingCabinet()
+        ### Handle AGNObjectArrays ###
+        # Loop agn_object_dict
+        for item, arr in agn_object_dict.items():
+            # Case 0: EZ
+            if isinstance(arr, AGNObjectArray):
+                out.set_array(item, arr)
+            # Case 1: We have to be smart
+            elif isinstance(arr, dict):
+                # Initialize match
+                match = None
+                for _skey, _svalue in settings.settings_finals.items():
+                    if (item == _svalue) and ("_array_name" in _skey):
+                        match = _skey
+                        break
+                if match is None:
+                    if item == "blackholes_lvk":
+                        match = "bbh_gw_array_name"
+                    else:
+                        raise ValueError(
+                            f"Cannot identify AGNObjectArray type: {item}"
+                        )
+                ## Know a priori what kind of array each of these is ##
+                match_class = None
+                if match in [
+                    "bh_array_name",
+                    "bh_inner_disk_array_name",
+                    "bh_inner_gw_array_name",
+                    "bh_prograde_array_name",
+                    "bh_retrograde_array_name",
+                    "bh_ejected_array_name",
+                    "emri_array_name",
+                ]:
+                    match_class = AGNBlackHoleArray
+                elif match in [
+                    "bbh_array_name",
+                    "bbh_gw_array_name",
+                    "bbh_inter_array_name",
+                ]:
+                    match_class = AGNBinaryBlackHoleArray
+                elif match in [
+                    "bbh_merged_array_name",
+                ]:
+                    match_class = AGNMergedBlackHoleArray
+                elif match in [
+                    "star_array_name",
+                    "stars_prograde_array_name",
+                    "stars_retrograde_array_name",
+                    "stars_merged_array_name",
+                ]:
+                    match_class = AGNStarArray
+                # Placeholders
+                elif match in []:
+                    match_class = AGNBinaryStarArray
+                elif match in []:
+                    match_class = AGNMergedBinaryStarArray
+                elif match in []:
+                    match_class = AGNDisruptedStarArray
+                elif match in []:
+                    match_class = AGNImmortalStarArray
+                else:
+                    match_class = AGNObjectArray
+                # Common sense check
+                if match_class is None:
+                    raise RuntimeError(f"Faulty logic")
+                ## Instantiate object ##
+                obj = match_class(**arr)
+                out.set_array(item, obj)
+
+            else:
+                raise TypeError(
+                    f"agn_object_dict[item] has type {type(arr)}. "
+                    f"Should be AGNObjectArray or dict."
+                )
+
+        ### Handle everything else ###
+        for item, value in everything_else_dict.items():
+            out.set_value(item, value)
+
+        return out

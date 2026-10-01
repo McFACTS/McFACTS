@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
-import ast
-from importlib import resources as impresources
+
 from mcfacts.inputs import ReadInputs
-from mcfacts.inputs import data as mcfacts_input_data
-from mcfacts.physics.binary.merge import merged_orb_ecc, merged_orb_ecc_optimized
+from mcfacts.modules.merge import merged_orb_ecc, merged_orb_ecc_optimized
+from mcfacts.utilities import unit_conversion
+
 
 # parse array out of the csv file
 def parse_array(cell):
@@ -53,7 +53,8 @@ def merged_orb(
     original = merged_orb_ecc(
         bin_orbs_a,
         v_kick,
-        smbh_mass
+        smbh_mass,
+        unit_conversion.initialize_r_g(smbh_mass)
     )
     optimized = merged_orb_ecc_optimized(
         bin_orbs_a,

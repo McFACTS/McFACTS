@@ -1,11 +1,25 @@
+"""Define the SettingsManager object and various components"""
+######## Imports ########
+#### Standard Library ####
 import warnings
 from functools import cached_property
 from types import NoneType
 from typing import Any, TypeVar, Type
 
+#### Third Party ####
+import numpy as np
+
+#### McFACTS ####
 from mcfacts.inputs import ReadInputs
 from mcfacts.utilities import unit_conversion
 
+#### Setup ####
+IGNORE_ARGS = [
+    "print_version",
+    "subcommand",
+    "enable_profiling",
+    "profiling_file",
+]
 
 class SettingsProperty:
     T = TypeVar("T")
@@ -102,7 +116,17 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("save_state", "io", False, bool),
         SettingsProperty("save_each_timestep", "io", False, bool),
         SettingsProperty("output_dir", "io", "./runs", str),
+        SettingsProperty("settings_snapshot", "io", "ini", str),
+        SettingsProperty("cabinet_snapshot", "io", "txt", str),
         OptionalSettingsProperty("settings_file", "io", "", str),
+
+        # HDF5 Snapshot Parameters
+        SettingsProperty("hdf5_snapshot_file", "hdf5", "model.hdf5", str),
+        SettingsProperty("hdf5_snapshot_label", "hdf5", "runs", str),
+        SettingsProperty("hdf5_snapshot_mode", "hdf5", "compound", str),
+        SettingsProperty("hdf5_snapshot_compression", "hdf5", "gzip", str),
+        SettingsProperty("hdf5_snapshot_retries", "hdf5", 3, int),
+        SettingsProperty("hdf5_snapshot_sleep", "hdf5", 1., float),
 
         # Simulation Parameters
         SettingsProperty("active_timestep_duration_yr", "sim", 1.e4, float),
@@ -186,6 +210,17 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("nsc_star_metallicity_y_init", "nsc", 0.2735, float),
         SettingsProperty("nsc_star_metallicity_z_init", "nsc", 0.02, float),
         SettingsProperty("nsc_imf_bh_method", "nsc", "default", str),
+
+        # Scaling settings
+        SettingsProperty("disk_truncation", "scale", "none", str),
+        SettingsProperty("flag_use_scaling", "scale", False, bool),
+        SettingsProperty("stellar_mass", "scale", 1e10, float),
+        SettingsProperty("scale_smbh_mass", "scale", "schramm-silverman", str),
+        SettingsProperty("scale_nsc_mass", "scale", "neumayer-early", str),
+        SettingsProperty("scale_inner_disk", "scale", "decay-time", str),
+        SettingsProperty("scale_trap", "scale", "sqrt-smbh", str),
+        SettingsProperty("scale_capture_radius", "scale", "sqrt-smbh", str),
+        SettingsProperty("scale_capture_time", "scale", "hubble", str),
 
         # Filing cabinet array names
         StaticSettingsProperty("bh_array_name", "arrays", "blackholes_unsort", str),
@@ -324,6 +359,14 @@ class SettingsManager:
         if isinstance(override, int) and expected == float:
             return float(override)
 
+        ## NumPy types ##
+        if isinstance(override, np.bool) and expected == bool:
+            return bool(override)
+        if isinstance(override, np.float64) and expected == float:
+            return float(override)
+        if isinstance(override, np.int64) and expected == int:
+            return int(override)
+
         if isinstance(prop, OptionalSettingsProperty) and isinstance(override, NoneType):
             return override
 
@@ -361,6 +404,8 @@ class SettingsManager:
             category_props.setdefault(prop.category, {})[prop.name] = final_value
 
         for key in settings_overrides.keys():
+            if key in IGNORE_ARGS:
+                continue
             if key in self.settings_finals:
                 continue
 
@@ -414,6 +459,72 @@ class SettingsManager:
         except KeyError:
             raise AttributeError(f"SettingsManager has no key {item!r}")
 
+    def set_preprocessing(self, key: str, value: Any):
+        """
+        Sets the "final" value of a particular setting after the time
+            of creation.
+
+        Parameters
+        ----------
+        key : str
+            The "true name" of a setting, as stored in the dictionary
+        value : Any
+            A value for that setting
+        """
+        # Check if key is a setting
+        if key not in self.settings_finals:
+            raise ValueError(
+                f"No such setting: {key}; "
+                f"settings: {list(self.settings_finals.key())}"
+            )
+        # Identify the property
+        found = None
+        for prop in DEFAULT_SETTINGS:
+            if prop.name == key:
+                found = prop
+                break
+        # Check if the property was found
+        if found is None:
+            raise ValueError(
+                f"Failed to find setting {key} in DEFAULT_SETTINGS."
+            )
+        # Check static settings
+        if isinstance(prop, StaticSettingsProperty):
+            raise TypeError(
+                f"Modifying a StaticSetting is not allowed, "
+                "even in preprocessing!"
+            )
+        # Check value
+        final_value = self._cast_override(found, value)
+        self.settings_finals[prop.name] = final_value
+
+    def __eq__(self, other):
+        """Check if one settings object is equal to another settings object
+        
+        Parameters
+        ----------
+        other : SettingsManager object
+            The alternative settings
+        """
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return self.settings_finals == other.settings_finals
+
+    def copy(self, replace : dict = None):
+        """Return a copy of the settings
+
+        Parameters
+        ----------
+        replace : dict
+            Replacement parameters for the copy
+        """
+        # Handle none
+        if replace is None:
+            replace = {}
+        return self.__class__(
+            {key: replace[key] if key in replace else value for key, value in self.settings_finals.items()}
+        )
+
 
     def add_custom_category(self, category: str, props: dict[str, Any]) -> None:
         """
@@ -445,41 +556,36 @@ class SettingsManager:
     def categories(self):
         return self._categories
 
+    def new_settings_snapshot(self):
+        """Return a new settings snapshot"""
+        from mcfacts.objects.snapshot import TxtSnapshotHandler
+        from mcfacts.objects.snapshot import IniSnapshotHandler
+        from mcfacts.objects.snapshot import HDF5SnapshotHandler
+        if self.settings_snapshot == "txt":
+            return TxtSnapshotHandler(settings=self) #Neat that this is allowed
+        elif self.settings_snapshot == "ini":
+            return IniSnapshotHandler(settings=self)
+        elif self.settings_snapshot == "hdf5":
+            return HDF5SnapshotHandler(settings=self)
+        else:
+            raise ValueError(
+                f"No such snapshot handler: {self.settings_snapshot}",
+            )
 
-class AGNDisk:
-    """
-    Container class for the construct_disk_interp method, allowing for pass-by-reference access to disk functions.
-    """
+    def new_cabinet_snapshot(self):
+        """Return a new cabinet snapshot"""
+        from mcfacts.objects.snapshot import TxtSnapshotHandler
+        from mcfacts.objects.snapshot import HDF5SnapshotHandler
+        if self.cabinet_snapshot == "txt":
+            return TxtSnapshotHandler(settings=self)
+        elif self.cabinet_snapshot == "ini":
+            raise NotImplementedError(
+                f"configparser should not be used to save agn_objects."
+            )
+        elif self.cabinet_snapshot == "hdf5":
+            return HDF5SnapshotHandler(settings=self)
+        else:
+            raise ValueError(
+                f"No such snapshot handler: {self.cabinet_snapshot}",
+            )
 
-    def __init__(self, settings: SettingsManager):
-        # TODO: More advanced handling?
-
-        (
-            self.disk_surface_density,
-            self.disk_aspect_ratio,
-            self.disk_opacity,
-            self.disk_sound_speed,
-            self.disk_density,
-            self.disk_pressure_grad,
-            self.disk_omega,
-            self.disk_surface_density_log,
-            self.temp_func,
-            self.disk_dlog10surfdens_dlog10R_func,
-            self.disk_dlog10temp_dlog10R_func,
-            self.disk_dlog10pressure_dlog10R_func
-        ) = ReadInputs.construct_disk_interp(
-            settings.smbh_mass,
-            settings.disk_radius_outer,
-            settings.disk_model_name,
-            settings.disk_alpha_viscosity,
-            settings.disk_bh_eddington_ratio,
-            disk_radius_max_pc=settings.disk_radius_max_pc,
-            flag_use_pagn=settings.flag_use_pagn,
-            verbose= 1 if settings.verbose else 0
-        )
-
-        self._settings = settings
-
-    @property
-    def settings(self):
-        return self._settings

@@ -9,9 +9,10 @@ from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 from mcfacts.utilities import unit_conversion
 from mcfacts.utilities.constants import M_SUN_KG
-from mcfacts.utilities.unit_conversion import si_from_r_g
-from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.utilities.unit_conversion import si_from_r_g_optimized
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.setup import setupdiskblackholes
 from mcfacts.utilities.random_state import uuid_provider
@@ -349,6 +350,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     inc_scale_factor[cos_0_mask] = stepw0_time * tau_inc_div[cos_0_mask]
 
     # Calculate new orb_ecc values
+    # TODO: Evaluate for correctness, possibly break out in-line operation.  - Vera & Jake
     disk_bh_retro_orbs_ecc_new[cos_pm1_mask & no_max_ecc_retro_mask] = disk_bh_retro_orbs_ecc[
                                                                            cos_pm1_mask & no_max_ecc_retro_mask] * (
                                                                                1.0 + step1_delta_ecc /
@@ -870,7 +872,7 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
 
         blackholes_pro = filing_cabinet.get_array(sm.bh_prograde_array_name, AGNBlackHoleArray)
 
-        bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
+        bh_orb_a_captured = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw_optimized(
             1, sm.disk_radius_capture_outer, sm.disk_inner_stable_circ_orb,
             sm.smbh_mass, sm.nsc_radius_crit, sm.nsc_density_index_inner,
             sm.nsc_density_index_outer, random_generator,

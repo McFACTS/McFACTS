@@ -417,7 +417,12 @@ class AGNObject(object):
             print(id_num, type(id_num))
             raise AttributeError("Passed id_num is not a valid type.")
         # Ensures that values are returned in the order of the original id_num array
-        _, id_mask = np.where(getattr(self, "id_num") == id_num_arr[:, None])
+        sort_idx = np.argsort(self.id_num)
+        sorted_ids = self.id_num[sort_idx]
+        pos_in_sorted = np.searchsorted(sorted_ids, id_num_arr)
+        pos_in_sorted_clipped = np.clip(pos_in_sorted, 0, len(sorted_ids) - 1)
+        valid = sorted_ids[pos_in_sorted_clipped] == id_num_arr
+        id_mask = sort_idx[pos_in_sorted_clipped[valid]]
 
         if attr is not None:
             try:
@@ -2083,7 +2088,12 @@ class AGNFilingCabinet(AGNObject):
             raise AttributeError("Passed id_num is not a valid type.")
 
         # Ensures that values are returned in the order of the original id_num array
-        _, id_mask = np.where(getattr(self, "id_num") == id_num_arr[:, None])
+        sort_idx = np.argsort(self.id_num)
+        sorted_ids = self.id_num[sort_idx]
+        pos_in_sorted = np.searchsorted(sorted_ids, id_num_arr)
+        pos_in_sorted_clipped = np.clip(pos_in_sorted, 0, len(sorted_ids) - 1)
+        valid = sorted_ids[pos_in_sorted_clipped] == id_num_arr
+        id_mask = sort_idx[pos_in_sorted_clipped[valid]]
         assert len(id_mask) == len(id_num_arr), "Not all IDs exist in AGNFilingCabinet."
 
         if isinstance(attr, (np.ndarray, list)):

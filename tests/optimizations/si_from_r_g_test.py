@@ -1,8 +1,7 @@
+import astropy.units as u
 import numpy as np
 
-import astropy.units as u
-from mcfacts.physics.point_masses import si_from_r_g, si_from_r_g_optimized
-import itertools
+from mcfacts.utilities.unit_conversion import si_from_r_g, si_from_r_g_optimized
 
 # at present, the original si_from_r_g function cannot take in length or mass units as variants for the distance_r_g argument, it needs to be a scalar
 units = [1, u.g, u.kg, u.solMass, u.jupiterMass, u.earthMass]

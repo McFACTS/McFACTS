@@ -11,9 +11,30 @@
 #axes.labelsize: 9
 #axes.formatter.use_mathtext: True
 
+# --- Backgrounds ---
 figure.facecolor: white
+figure.edgecolor: white
+axes.facecolor: white
+savefig.facecolor: white
+savefig.edgecolor: white
+
 figure.dpi: 300
 figure.constrained_layout.use: True
+
+# --- Text / lines ---
+text.color: black
+axes.edgecolor: black
+axes.labelcolor: black
+axes.titlecolor: black
+xtick.color: black
+ytick.color: black
+xtick.labelcolor: black
+ytick.labelcolor: black
+grid.color: black
+patch.edgecolor: black
+hatch.color: black
+legend.facecolor: white
+legend.edgecolor: black
 
 xtick.top: True
 xtick.direction: in
