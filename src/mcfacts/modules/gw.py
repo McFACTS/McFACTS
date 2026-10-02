@@ -46,7 +46,7 @@ def evolve_emri_gw(blackholes_inner_disk_mass, blackholes_inner_disk_orb_a, time
     #                                     agn_redshift=agn_redshift,
     #                                     flag_include_old_gw_freq=1)
 
-    char_strain, nu_gw = peters.gw_strain_freq_optimized(mass_1=smbh_mass,
+    char_strain, strain, nu_gw = peters.gw_strain_freq_optimized(mass_1=smbh_mass,
                                         mass_2=blackholes_inner_disk_mass,
                                         obj_sep=blackholes_inner_disk_orb_a,
                                         timestep_duration_yr=timestep_duration_yr,

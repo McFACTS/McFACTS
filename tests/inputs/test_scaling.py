@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test the AGNDisk object"""
+"""Test the mcfacts.inputs.scaling module"""
 ######## Imports ########
 #### Standard ####
 import tempfile
