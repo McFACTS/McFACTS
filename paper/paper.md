@@ -10,9 +10,6 @@ authors:
     orcid: 0000-0003-0738-8186
     corresponding: true
     affiliation: "1, 2"
-  - name: Miranda McCarthy
-    orcid: 0009-0005-9964-4790
-    affiliation: "1, 2"
   - name: Nicolas Posner
     orcid: 0009-0004-4600-5074
     affiliation: "9"
@@ -28,6 +25,9 @@ authors:
   - name: Vera Delfavero
     orcid: 0000-0001-7099-765X
     affiliation: "8"
+  - name: Miranda McCarthy
+    orcid: 0009-0005-9964-4790
+    affiliation: "1, 2"
   - name: Emily McPike
     orcid: 0009-0008-5622-6857
     affiliation: "1, 2"
@@ -73,48 +73,49 @@ affiliations:
   - name: Data Science Institute, University of Chicago, 5801 S Ellis Ave, Chicago, IL 60637, USA
     index: 9
     ror: "024mw5h28"
-date: 01 July 2026
+date: 01 Oct 2026
 bibliography: paper.bib
 ---
 
 # Summary
 
-Active Galactic Nuclei (AGN) are gas-rich and dynamically active structures at
+Active Galactic Nuclei (AGN) are gas-rich and dynamically-active structures at
 the center of some galaxies. At the core of an AGN exists a Supermassive Black
-Hole (SMBH), creating an immense gravitational well hosting a diverse populations 
-of black holes and stars. A portion of the gravitational waves events detected 
-by the LIGO-Virgo-KAGRA (LVK) collaboration are expected to originate
-from the merging of binary black holes (BBHs) embedded in the accretion disk of 
-AGN. This "AGN channel" is also expected to host binaries that will be 
-detectable by the Laser Interferometer Space Antenna (LISA). Several features of 
-this population, which appear in current observables, strongly depend on the 
-properties of the accretion disk, and nuclear star cluster (NSC). Some of these 
-properties can be difficult to directly measure; however, through population 
-synthesis we can place constraints on some of these features, expanding out 
-understanding of the AGN channel.
+Hole (SMBH), creating an immense gravitational well hosting a diverse population
+of black holes and stars collectively forming a Nuclear Star Cluster (NSC). A 
+portion of the gravitational waves events detected by the LIGO-Virgo-KAGRA (LVK) 
+collaboration are expected to originate from the merging of binary black holes 
+(BBHs) embedded in the accretion disk of AGN. This "AGN channel" is also 
+expected to host binaries that will be detectable by the Laser Interferometer 
+Space Antenna (LISA). Several features of this population, which appear in 
+current observables, strongly depend on the properties of the accretion disk, 
+and NSC. Some of these properties can be difficult to directly measure; however, 
+through population synthesis we can place constraints on some of these features, 
+expanding our understanding of the AGN channel.
 
 `McFACTS` (Monte carlo For AGN Channel Testing and Simulation) is the leading
 public and open-source population synthesis code that models the AGN channel for 
 LVK-detectable BBH mergers [@mckernan:2025]. Given a model of an AGN disk and 
-distributions of object properties in the NSC, `McFACTS` seeds a population of 
-single black holes and stars which are then allowed to evolve through a
-variety of physical effects and form binary objects which in-turn can ionize.
-The gas in the disk can drive accretion, migration, and eccentricity dampening.
-Different populations within the disk (e.g. circular vs eccentric orbiters), can
-have dynamical encounters and exchange energy. Stellar binaries, BBH, and 
-Extreme Mass Ratio Inspirals (EMRIs) are also allowed to evolve through
-gravitational wave decay. `McFACTS` makes use of several long-standing
-packages making up the scientific python ecosystem, such as `Astropy`
-[@astropy:2022], `NumPy` [@harris:2020],  and `SciPy` [@scipy:2020]. The AGN
-disk structure and properties are obtained through the `pAGN` [@gangardt:2024]
-package, supporting both the Sirko and Goodman [@sg:2003] and Thompson,
-Quataert and Murry [@tqm:2005] disk models.
+distributions of objects derived from the properties of an NSC, `McFACTS` 
+seeds a population of single black holes and stars which are then allowed 
+to evolve through a variety of physical effects and form binary objects 
+which in-turn can ionize. The gas in the disk can drive accretion, migration,
+and eccentricity dampening. Different populations within the disk (e.g. 
+circular vs eccentric orbiters), can have dynamical encounters and exchange 
+energy. Stellar binaries, BBH, and Extreme Mass Ratio Inspirals (EMRIs) are 
+also allowed to evolve through gravitational wave decay. `McFACTS` makes use 
+of several long-standing packages making up the scientific python ecosystem, 
+such as `Astropy` [@astropy:2022], `NumPy` [@harris:2020],  and `SciPy` 
+[@scipy:2020]. The AGN disk structure and properties are obtained through 
+the `pAGN` [@gangardt:2024] package, supporting both the Sirko and Goodman 
+[@sg:2003] and Thompson, Quataert and Murry [@tqm:2005] disk models.
 
-This paper serves to document a substantial re-structure of `McFACTS`,
-relative to the version first presented in @mckernan:2025. The code has been
-significantly reorganized around a modular simulation framework, allowing for 
-easy and intuitive composition of simulation timelines. Several key methods have
-also been vectorized, and the most computationally demanding algorithms have
+This paper serves to document `McFACTS` along with a substantial re-structure 
+of the code, relative to the version first presented in @mckernan:2025. The 
+code has been significantly reorganized following a modular framework, 
+allowing for easy and intuitive composition of simulation timelines. Several 
+key methods have also been vectorized, and the most computationally 
+demanding algorithms have
 been offloaded to a companion library called `McFAST`, built in Rust. On the
 astrophysics side of things, the simulation has been expanded to include a 
 full stellar population [@nathenial:2026, in prep], 
@@ -181,15 +182,23 @@ objects. Once the `Galaxy` is seeded, a `SimulationTimeline` holding several
 
 ## Filing Cabinet and AGN Object Array
 
-A `Galaxy` stores its population in a `FilingCabinet`, a typed container that
-organizes different populations with consistency checks to ensure that an
-object does not appear in two categories at once. Each entry in the cabinet
-takes the form of an `AGNObjectArray`, which stores every property (orbital
-parameters, mass, spin and spin angle, etc.) as parallel `NumPy` `arrays. Every 
-object carries a unique identifier and the ids of its parents, should they 
-exist. Subclasses for different population categories, such as single black 
-holes, binary black holes, merged black holes, and so forth, allows for quick
-object-type validation when needed, and for the inheritance of shared parameters.
+A `FilingCabinet` is a flexible typed-container that stores the population for 
+a single `Galaxy` object or an entire universe of galaxies. The cabinet stores a
+dictionary of `AGNObjectArray`s referenced by a string key. The `FilingCabinet`
+also provides a storage interface for variables that need to be accessed by
+multiple different modules without introducing circular imports or issues that
+can arise from interdependency of internal and external modules. 
+The `FilingCabinet` and `AGNObjectArray` objects feature toggleable consistency
+checks to ensure an object with the same `UUID` doesn't appear in two categories
+at once. The `AGNObjectArray` object allows for the association of attributes
+representing physical properties of objects, while maintaining pythonic
+conventions of storing object properties (orbital parameters, mass, spin and 
+spin angle, etc.) in distinct parallel `NumPy` arrays. Every 
+entry in an `AGNObjectArray` carries a unique identifier and the ids of any 
+parents, should they exist. Subclasses for different population categories, such 
+as single black holes, binary black holes, merged black holes, and so forth, 
+allows for quick object-type validation when needed, and for the inheritance of 
+shared attributes.
 
 ## Simulation Timeline, Timeline Actors, and Populators
 
@@ -218,32 +227,36 @@ modification by the user, and custom settings can be passed for use with
 third-party modules. The `SnapshotHandler` provide an interface for the 
 simulation framework to load and save the `SettingsManager` and `FilingCabinet`
 objects. By default, we support both `.txt` and `.ini` for the loading and
-saving of the `SettingsManger` and support `.txt` files for the `FilingCabinet`.
-Plans exist to implement the `.h5` format for HDF5 support and `.db, .sqlite`
-with SQLite support.
+saving of the `SettingsManger` and support `.txt` files for the `FilingCabinet`. 
+Members of the `McFACTS` collaboration have developed tooling to support `.h5`
+files and the HDF5 format, along with `.parquet` files using the Apache Parquet 
+format. There are also plans to support `.db, .sqlite` files through SQLite. 
+This flexibility in IO formating allows for a highly customizable
+experience, encouraging the implementation of `McFACTS` in to third-party data 
+processing pipelines and software stacks.
 
 ## Extension: McFAST
 
 `mcfast` is a custom-built extension to the `McFACTS` codebase written in Rust,
 with Python bindings produced by `pyo3`. It provides optimized variants of
 several `McFACTS` functions, including vectorized, single-pass variants of
-computation-heavy functions (e.g. `shock_luminosity`,
-`analytical_kick_velocity`) and tailored variants of unit conversion functions
-(e.g. `si_from_r_g`, `r_g_from_units`) which bypass AstroPy's allocation- and
-string-heavy unit conversion operations.
+computation-heavy functions (e.g. `shock_luminosity`,`analytical_kick_velocity`) 
+and tailored variants of unit conversion functions (e.g. `si_from_r_g`, 
+`r_g_from_units`) which bypass AstroPy's allocation- and string-heavy unit 
+conversion operations.
 
 ### Motivation
 
-As of the prior version v0.3.0, `McFACTS`'s most time-intensive operations fell
+As of the version v0.3.0 of `McFACTS`, the most time-intensive operations fell
 into three categories:
- 1. Long chains of `numpy` array operations on many arrays of equal length.
+ 1. Long chains of `numpy` array operations on several arrays of equal length.
  2. Inefficient general-purpose code in Python (eigenvalue rootfinding vs
  Cardano, `np.where` vs `np.searchsort()`, etc.).
- 3. Small but frequently-called helpers reliant on AstroPy's general-purpose
+ 3. Small, but frequently-called, helpers reliant on AstroPy's general-purpose
  unit conversion operations.
 
 `mcfast` aims to mitigate slowdowns as a result of problems 1 and 3, both of
-which benefit from a purpose-built, compiled extensions.
+which would benefit from a purpose-built, compiled extensions.
 
 ### Design
 
@@ -285,7 +298,8 @@ enforced for floating point operations.
 
 # Research impact statement
 
-%% @Jake / Barry / Saavik / Anyone else :)
+...
+
 
 # AI usage disclosure
 
