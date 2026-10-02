@@ -136,7 +136,10 @@ class AGNObjectArray(ABC):
 
     # Legacy method for at_id_num()
     def at_id_num(self, unique_id: npt.NDArray[uuid.UUID], attribute_name: str):
-        return self.get_attribute(attribute_name, unique_id)
+        if unique_id.size > 0:
+            return self.get_attribute(attribute_name, unique_id)
+        else:
+            return np.empty(0)
 
     def get_attribute(self, attribute_name: str, unique_id: npt.NDArray[uuid.UUID]) -> npt.NDArray[Any]:
         """
@@ -165,7 +168,7 @@ class AGNObjectArray(ABC):
         condition_mat = self.unique_id == unique_id[:, None]
 
         # Returns the row and column numbers of where the matrix of conditions is true.
-        row_indices, column_indices = np.where(condition_mat)
+        _, column_indices = np.where(condition_mat)
 
         # We use the column_indices to make our final selection since it retains the original order of the input ids.
         return super_list[attribute_name][column_indices]
