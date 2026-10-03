@@ -41,8 +41,8 @@ DISK_MODEL_NAMES = [
 SMBH_MASSES = np.asarray([1e8,])
 # disk_alpha_viscosities to try
 DISK_ALPHA_VISCOSITIES = np.asarray([0.01,])
-# disk_bh_eddington_ratios to try
-DISK_BH_EDDINGTON_RATIOS = np.asarray([1.0,])
+# smbh_eddington_ratios to try
+SMBH_EDDINGTON_RATIOS = np.asarray([0.5,])
 
 ######## Tests ########
 
@@ -208,7 +208,7 @@ def test_pagn_disk_object(verbose=True):
         disk_model_name         = DISK_MODEL_NAMES,
         smbh_mass               = SMBH_MASSES,
         disk_alpha_viscosity    = DISK_ALPHA_VISCOSITIES,
-        disk_bh_eddington_ratio = DISK_BH_EDDINGTON_RATIOS,
+        smbh_eddington_ratio = SMBH_EDDINGTON_RATIOS,
     )
     # Loop tests
     for test_config in test_product_space:
@@ -218,7 +218,7 @@ def test_pagn_disk_object(verbose=True):
             test_config.smbh_mass,
             disk_radius_outer,
             test_config.disk_alpha_viscosity,
-            test_config.disk_bh_eddington_ratio,
+            test_config.smbh_eddington_ratio,
         )
         # Run pAGN
         with open(os.devnull, 'w') as devnull:
@@ -243,7 +243,7 @@ def test_pagn_disk_object(verbose=True):
                     test_config.smbh_mass,
                     disk_radius_outer,
                     test_config.disk_alpha_viscosity,
-                    test_config.disk_bh_eddington_ratio,
+                    test_config.smbh_eddington_ratio,
                 )
         # Evaluate estimates for each quantity
         surface_density_loc = np.exp(disko._surface_density_loglog.x_train_unstacked[0])

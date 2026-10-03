@@ -203,7 +203,7 @@ class AGNDiskInterp(object):
         smbh_mass,
         disk_radius_outer,
         disk_alpha_viscosity,
-        disk_bh_eddington_ratio,
+        smbh_eddington_ratio,
         rad_efficiency=0.1,
     ):
         # instead, populate with pagn
@@ -212,7 +212,7 @@ class AGNDiskInterp(object):
             base_args = {
                 'Mbh': smbh_mass*pagn_ct.MSun,
                 'alpha': disk_alpha_viscosity, 
-                'le': disk_bh_eddington_ratio,
+                'le': smbh_eddington_ratio,
                 'eps': rad_efficiency
             }
         elif 'thompson' in disk_model_name:
@@ -222,7 +222,7 @@ class AGNDiskInterp(object):
                 'm': disk_alpha_viscosity, 
             }
                 #'epsilon': rad_efficiency
-                #'le': disk_bh_eddington_ratio,\
+                #'le': smbh_eddington_ratio,\
             Rg = smbh_mass * ct.M_sun * ct.G / (ct.c**2)
             # pAGN TQM disk models exclude `Rout`, so feed pAGN a slightly
             # larger value (+1%) than the user set for `disk_radius_outer`
@@ -265,7 +265,7 @@ class AGNDisk(AGNDiskInterp):
                 self.smbh_mass,
                 self.disk_radius_outer,
                 settings.disk_alpha_viscosity,
-                settings.disk_bh_eddington_ratio,
+                settings.smbh_eddington_ratio,
                 rad_efficiency=0.1, # TODO This should really be a setting
             )
             interp_data, bonus = pagn_model.return_disk_surf_data()
