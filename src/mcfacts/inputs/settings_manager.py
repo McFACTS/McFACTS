@@ -174,6 +174,7 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("flag_enable_bondi", "bh", False, bool),
         SettingsProperty("bondi_fraction", "bh", 1e-5, float),
         SettingsProperty("stalling_separation", "bh", 0.0, float),
+        SettingsProperty("flag_hill_sphere_mass", "bh", True, bool),
         SettingsProperty("gas_hardening_prescription", "bh", "baruteau", str),
         StaticSettingsProperty("disk_bh_eddington_mass_growth_rate", "bh", 2.3e-8, float),
         StaticSettingsProperty("disk_bh_spin_resolution_min", "bh", 0.02, float),
