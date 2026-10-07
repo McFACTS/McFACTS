@@ -1094,7 +1094,7 @@ def merge_blackholes_precession(
         chi_1,
         chi_2,
     )
-    bh_thetaL = precession.reminantspindirection(
+    bh_thetaL = precession.remnantspindirection(
         theta1,
         theta2,
         deltaphi,
