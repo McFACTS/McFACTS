@@ -15,7 +15,7 @@ from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray, AGNBlackHoleArray, AGNMergedBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, checks, peters
-from mcfacts.utilities.random_state import uuid_provider
+from mcfacts.utilities.random_state import uuid_provider, global_numpy_random_from
 from mcfacts.utilities.unit_conversion import si_from_r_g
 from mcfast import merged_orb_ecc_helper, shock_luminosity_helper, jet_luminosity_helper, \
     analytical_kick_velocity_helper
@@ -992,117 +992,119 @@ def merge_blackholes_precession(
     critical_separation = ((separation_inspiral * const.c**2 / const.G) / \
         ((mass_1 + mass_2) * u.solMass)).si.value
 
-    # Check for unphysical spins
-    chi_eff = precession.eval_chieff(
-        theta1,
-        theta2,
-        mass_ratio,
-        chi_1,
-        chi_2,
-    )
-
-    #### Inspiral ####
-    for i in range(mass_1.size):
-        # Check separation
-        if bin_sep_M[i] < critical_separation[i]:
-            continue
-        elif bin_sep_M[i] > 1000:
-            bin_sep_M[i] = 1000
-        # Check angle
-        if (theta1[i] == 0) and (theta2[i] == 0):
-            # Not precessing
-            continue
-        # Check chi effective limits
-        chi_eff_minus, chi_eff_plus = precession.chiefflimits(
-            q=mass_ratio[i],
-            chi1=chi_1[i],
-            chi2=chi_2[i],
+    # precession uses numpy global random calls, so we need to point it at our passed random generator
+    with global_numpy_random_from(random):
+        # Check for unphysical spins
+        chi_eff = precession.eval_chieff(
+            theta1,
+            theta2,
+            mass_ratio,
+            chi_1,
+            chi_2,
         )
-        _chi_eff_minus = min(chi_eff_minus,chi_eff_plus)
-        _chi_eff_plus = max(chi_eff_minus,chi_eff_plus)
-        chi_eff_minus, chi_eff_plus = _chi_eff_minus, _chi_eff_plus
-        if (chi_eff[i] > chi_eff_plus) or (chi_eff[i] < chi_eff_minus):
-            print(f"chi_eff[i]: {chi_eff[i]}")
-            print(f"chi_eff_minus: {chi_eff_minus}")
-            print(f"chi_eff_plus: {chi_eff_plus}")
-            print(f"mass_1[i]: {mass_1[i]}")
-            print(f"mass_2[i]: {mass_2[i]}")
-            print(f"theta1[i]: {theta1[i]}")
-            print(f"theta2[i]: {theta2[i]}")
-            print(f"deltaphi[i]: {deltaphi[i]}")
-            print(f"mass_ratio[i]: {mass_ratio[i]}")
-            print(f"chi_1[i]: {chi_1[i]}")
-            print(f"chi_2[i]: {chi_2[i]}")
-            warnings.warn(f"Nonphysical chi effective: {chi_eff}")
-            #raise ValueError(f"Nonphysical chi effective: {chi_eff}")
-            if chi_eff[i] > chi_eff_plus:
-                chi_eff[i] = chi_eff_plus
-            elif chi_eff[i] < chi_eff_minus:
-                chi_eff[i] = chi_eff_minus
-            else:
-                raise ValueError(f"Nonphysical chi effective: {chi_eff}")
-        # Evolve binary
-        try:
-            evolve_outputs = precession.inspiral_precav(
-                r=[bin_sep_M[i],critical_separation[i]],
-                theta1=theta1[i],
-                theta2=theta2[i],
-                deltaphi=deltaphi[i],
+
+        #### Inspiral ####
+        for i in range(mass_1.size):
+            # Check separation
+            if bin_sep_M[i] < critical_separation[i]:
+                continue
+            elif bin_sep_M[i] > 1000:
+                bin_sep_M[i] = 1000
+            # Check angle
+            if (theta1[i] == 0) and (theta2[i] == 0):
+                # Not precessing
+                continue
+            # Check chi effective limits
+            chi_eff_minus, chi_eff_plus = precession.chiefflimits(
                 q=mass_ratio[i],
                 chi1=chi_1[i],
                 chi2=chi_2[i],
             )
-        except OverflowError:
-            # This is an internal precession error
-            # Binary is not evolved.
-            continue
-        if np.isnan(evolve_outputs["deltaphi"][0,-1]):
-            # If the spins are not finite, do not evolve binary
-            continue
-        # Update quantities
-        bin_sep_M[i] = critical_separation[i]
-        #chi_1[i] = evolve_outputs["chi1"][0,-1]
-        #chi_2[i] = evolve_outputs["chi2"][0,-1]
-        theta1[i] = evolve_outputs["theta1"][0,-1]
-        theta2[i] = evolve_outputs["theta2"][0,-1]
-        deltaphi[i] = evolve_outputs["deltaphi"][0,-1]
-        #print(evolve_outputs)
-        #raise Exception
+            _chi_eff_minus = min(chi_eff_minus,chi_eff_plus)
+            _chi_eff_plus = max(chi_eff_minus,chi_eff_plus)
+            chi_eff_minus, chi_eff_plus = _chi_eff_minus, _chi_eff_plus
+            if (chi_eff[i] > chi_eff_plus) or (chi_eff[i] < chi_eff_minus):
+                print(f"chi_eff[i]: {chi_eff[i]}")
+                print(f"chi_eff_minus: {chi_eff_minus}")
+                print(f"chi_eff_plus: {chi_eff_plus}")
+                print(f"mass_1[i]: {mass_1[i]}")
+                print(f"mass_2[i]: {mass_2[i]}")
+                print(f"theta1[i]: {theta1[i]}")
+                print(f"theta2[i]: {theta2[i]}")
+                print(f"deltaphi[i]: {deltaphi[i]}")
+                print(f"mass_ratio[i]: {mass_ratio[i]}")
+                print(f"chi_1[i]: {chi_1[i]}")
+                print(f"chi_2[i]: {chi_2[i]}")
+                warnings.warn(f"Nonphysical chi effective: {chi_eff}")
+                #raise ValueError(f"Nonphysical chi effective: {chi_eff}")
+                if chi_eff[i] > chi_eff_plus:
+                    chi_eff[i] = chi_eff_plus
+                elif chi_eff[i] < chi_eff_minus:
+                    chi_eff[i] = chi_eff_minus
+                else:
+                    raise ValueError(f"Nonphysical chi effective: {chi_eff}")
+            # Evolve binary
+            try:
+                evolve_outputs = precession.inspiral_precav(
+                    r=[bin_sep_M[i],critical_separation[i]],
+                    theta1=theta1[i],
+                    theta2=theta2[i],
+                    deltaphi=deltaphi[i],
+                    q=mass_ratio[i],
+                    chi1=chi_1[i],
+                    chi2=chi_2[i],
+                )
+            except OverflowError:
+                # This is an internal precession error
+                # Binary is not evolved.
+                continue
+            if np.isnan(evolve_outputs["deltaphi"][0,-1]):
+                # If the spins are not finite, do not evolve binary
+                continue
+            # Update quantities
+            bin_sep_M[i] = critical_separation[i]
+            #chi_1[i] = evolve_outputs["chi1"][0,-1]
+            #chi_2[i] = evolve_outputs["chi2"][0,-1]
+            theta1[i] = evolve_outputs["theta1"][0,-1]
+            theta2[i] = evolve_outputs["theta2"][0,-1]
+            deltaphi[i] = evolve_outputs["deltaphi"][0,-1]
+            #print(evolve_outputs)
+            #raise Exception
 
-    #### Merger ####
-    bh_mass_merged = precession.remnantmass(
-        theta1,
-        theta2,
-        mass_ratio,
-        chi_1,
-        chi_2,
-    ) * (mass_1 + mass_2)
-    bh_v_kick = precession.remnantkick(
-        theta1,
-        theta2,
-        deltaphi,
-        mass_ratio,
-        chi_1,
-        chi_2,
-        kms=True
-    )
-    bh_spin_merged = precession.remnantspin(
-        theta1,
-        theta2,
-        deltaphi,
-        mass_ratio,
-        chi_1,
-        chi_2,
-    )
-    bh_thetaL = precession.remnantspindirection(
-        theta1,
-        theta2,
-        deltaphi,
-        bin_sep_M,
-        mass_ratio,
-        chi_1,
-        chi_2,
-    )
+        #### Merger ####
+        bh_mass_merged = precession.remnantmass(
+            theta1,
+            theta2,
+            mass_ratio,
+            chi_1,
+            chi_2,
+        ) * (mass_1 + mass_2)
+        bh_v_kick = precession.remnantkick(
+            theta1,
+            theta2,
+            deltaphi,
+            mass_ratio,
+            chi_1,
+            chi_2,
+            kms=True
+        )
+        bh_spin_merged = precession.remnantspin(
+            theta1,
+            theta2,
+            deltaphi,
+            mass_ratio,
+            chi_1,
+            chi_2,
+        )
+        bh_thetaL = precession.remnantspindirection(
+            theta1,
+            theta2,
+            deltaphi,
+            bin_sep_M,
+            mass_ratio,
+            chi_1,
+            chi_2,
+        )
     if not np.all(np.isfinite(bh_spin_merged)):
         print(f"chi_eff: {chi_eff}")
         print(f"chi_eff_minus: {chi_eff_minus}")

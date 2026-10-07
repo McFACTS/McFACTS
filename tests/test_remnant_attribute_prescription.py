@@ -5,13 +5,7 @@ from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.modules.merge import merge_blackholes_precession
 
 
-def test_precession_remnant_attributes():
-    """Test if the precession prescription returns expected values."""
-
-    sm = SettingsManager()
-    rng = np.random.default_rng(TEST_SEED)
-
-    # Definite test arrays
+def get_test_arrays():
     mass_1 = np.array([30., 20., 50.])
     mass_2 = np.array([10., 15., 45.])
 
@@ -24,8 +18,18 @@ def test_precession_remnant_attributes():
     bin_sep = np.array([10., 20., 50.])
     bin_ecc = np.zeros(3)
 
+    return mass_1, mass_2, chi_1, chi_2, theta1, theta2, bin_sep, bin_ecc
+
+
+def test_precession_remnant_attributes():
+    """Test if the precession prescription returns expected values."""
+
+    sm = SettingsManager()
+    rng = np.random.default_rng(TEST_SEED)
+    mass_1, mass_2, chi_1, chi_2, theta_1, theta_2, bin_sep, bin_ecc = get_test_arrays()
+
     mass_merged, spin_merged, spin_angle_merged, v_kick, *_ = merge_blackholes_precession(
-        mass_1, mass_2, chi_1, chi_2, theta1, theta2, bin_sep, bin_ecc,
+        mass_1, mass_2, chi_1, chi_2, theta_1, theta_2, bin_sep, bin_ecc,
         sm.smbh_mass, sm.r_g_in_meters, rng
     )
 
@@ -41,3 +45,28 @@ def test_precession_remnant_attributes():
 
     # Check that the kick velocity is positive, and finite
     assert np.all(np.isfinite(v_kick) & (v_kick >= 0.))
+
+
+def test_precession_is_reproducible():
+    """Test that precession only draws from the defined generator."""
+    sm = SettingsManager()
+    mass_1, mass_2, chi_1, chi_2, theta_1, theta_2, bin_sep, bin_ecc = get_test_arrays()
+
+    global_bit_generator = np.random.get_bit_generator()
+
+    outputs = []
+
+    for _ in range(2):
+        # Scramble the rng, which precession would otherwise draw from
+        np.random.seed(None)
+
+        outputs.append(merge_blackholes_precession(
+            mass_1.copy(), mass_2.copy(), chi_1.copy(), chi_2.copy(), theta_1.copy(), theta_2.copy(),
+            bin_sep.copy(), bin_ecc.copy(), sm.smbh_mass, sm.r_g_in_meters, np.random.default_rng(TEST_SEED)
+        ))
+
+    for first, second in zip(*outputs):
+        assert np.array_equal(first, second)
+
+    # make sure the global rng generator is restored after our call to merge_blackholes_precession
+    assert np.random.get_bit_generator() is global_bit_generator
