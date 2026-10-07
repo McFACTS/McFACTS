@@ -1,8 +1,12 @@
 import numpy as np
+import pytest
 
 from conftest import TEST_SEED
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.modules.merge import merge_blackholes_precession
+
+# Only test precession when it is installed
+pytest.importorskip("precession")
 
 
 def get_test_arrays():
