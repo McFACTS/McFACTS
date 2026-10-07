@@ -1127,7 +1127,7 @@ def merge_blackholes_precession(
 
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
-                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, disk_sound_speed, time_passed, galaxy,
+                     smbh_mass, remnant_attribute_prescription, flag_truncate_akiba_remnant_spin, disk_aspect_ratio, disk_density, disk_sound_speed, time_passed, galaxy,
                      r_g_in_meters, random):
     # TODO: Vectorize this function, lists should be modified on the outside after this function returns new values
     """Calculates parameters for merged BHs and adds them to :code:`blackholes_pro` and :code:`blackholes_merged`
@@ -1148,9 +1148,9 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         Array of BH ID numbers to be merged
     smbh_mass : float
         Mass [Msun] of SMBH
-    flag_use_surrogate : int
-        Flag to use surrogate model for kick calculations
-    flag_use_spin_check : int
+    remnant_attribute_prescription : str
+        Define which model to use for merger remnant calculations
+    flag_truncate_akiba_remnant_spin : bool
         Flag to apply spin_check filter to spin results
     disk_aspect_ratio : function
         Disk aspect ratio at specified rg
@@ -1191,7 +1191,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_inc")
     )
 
-    if flag_use_surrogate == 0:
+    if remnant_attribute_prescription == "akiba":
         bh_spin_merged = merged_spin(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1201,7 +1201,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
             random=random
         )
-        if flag_use_spin_check == 1:
+
+        if flag_truncate_akiba_remnant_spin == 1:
             bh_spin_merged = checks.spin_check(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
@@ -1209,6 +1210,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             )
         else:
             bh_spin_merged = bh_spin_merged
+
         bh_v_kick = analytical_kick_velocity_optimized(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1225,7 +1227,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_spin_2_20Hz = np.zeros(bh_binary_id_num_merger.size)
         bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
 
-    elif flag_use_surrogate == 1:
+    elif remnant_attribute_prescription == "surrogate":
         from mcfacts.external.sxs import evolve_binary
         from mcfacts.external.sxs import fit_modeler
         #bh_v_kick = 200 #evolve_binary.velocity()
@@ -1248,7 +1250,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             None, # spin_smbh
             surrogate
         )
-    elif flag_use_surrogate == -1:
+    elif remnant_attribute_prescription == "precession":
         # Call Davide's code
         bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = merge_blackholes_precession(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
@@ -1262,7 +1264,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             smbh_mass,
         )
     else:
-        raise ValueError(f"Invalid option: flag_use_surrogate = {flag_use_surrogate}")
+        raise ValueError(f"Invalid option: remnant_attribute_prescription = {remnant_attribute_prescription}")
 
     bh_lum_shock = shock_luminosity_opt(
         smbh_mass,
@@ -1386,7 +1388,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_inc")
         )
 
-        if sm.flag_use_surrogate == 0:
+        if sm.remnant_attribute_prescription == "akiba":
             bh_spin_merged = merged_spin(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1397,7 +1399,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                 random_generator
             )
 
-            if sm.flag_use_spin_check:
+            if sm.flag_truncate_akiba_remnant_spin:
                 bh_spin_merged = checks.spin_check(
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
@@ -1420,7 +1422,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             bh_spin_2_20_hz = np.zeros(bh_binary_id_num_merger.size)
             bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
 
-        elif sm.flag_use_surrogate == 1:
+        elif sm.remnant_attribute_prescription == "surrogate":
             from mcfacts.external.sxs import fit_modeler, evolve_binary
 
             # TODO: Take in surrogate.joblib file from user definied option
@@ -1451,7 +1453,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                     None,  # spin_smbh
                     surrogate
                 ))
-        elif sm.flag_use_surrogate == -1:
+        elif sm.remnant_attribute_prescription == "precession":
             # Call Davide's code
             (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
              bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) =\
@@ -1469,7 +1471,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                     random_generator
                 )
         else:
-            raise ValueError(f"Invalid option: flag_use_surrogate = {sm.flag_use_surrogate}")
+            raise ValueError(f"Invalid option: remnant_attribute_prescription = {sm.remnant_attribute_prescription}")
 
         bh_lum_shock = shock_luminosity_opt(
             sm.smbh_mass,
