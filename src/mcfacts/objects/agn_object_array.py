@@ -133,10 +133,7 @@ class AGNObjectArray(ABC):
 
     # Legacy method for at_id_num()
     def at_id_num(self, unique_id: npt.NDArray[uuid.UUID], attribute_name: str):
-        if unique_id.size > 0:
-            return self.get_attribute(attribute_name, unique_id)
-        else:
-            return np.empty(0)
+        return self.get_attribute(attribute_name, unique_id)
 
     def get_attribute(self, attribute_name: str, unique_id: npt.NDArray[uuid.UUID]) -> npt.NDArray[Any]:
         """
@@ -156,6 +153,11 @@ class AGNObjectArray(ABC):
             - The method uses a selection mask to filter the attribute array based on the provided unique IDs.
             - Assumes that the `unique_id` attribute of the class contains a list of IDs matching those in the superclass.
         """
+        # if unique_id is empty, then we can skip this rigmarole and 
+        # return an empty array directly
+        if unique_id.size == 0:
+            return np.empty(0)
+
         super_list = self.get_super_dict()
 
         if attribute_name not in super_list.keys():
