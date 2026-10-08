@@ -156,7 +156,9 @@ class AGNObjectArray(ABC):
         # if unique_id is empty, then we can skip this rigmarole and 
         # return an empty array directly
         if unique_id.size == 0:
-            return np.empty(0)
+            # instead of constructing an empty array with no dtype,
+            # we make sure to return an empty array of the right dtype
+            return self.get_super_dict()[attribute_name][:0]
 
         super_list = self.get_super_dict()
 
