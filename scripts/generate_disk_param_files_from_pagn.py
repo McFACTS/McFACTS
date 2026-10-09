@@ -39,12 +39,12 @@ smbh_mass = 1.e8
 
 # Sirko & Goodman 2003
 sk_Mbh = smbh_mass*pagn_ct.MSun  # 10^8 solar mass SMBH
-sk_le = 1.0  # disk_bh_eddington_ratio
+smbh_eddington_ratio = 0.5  # smbh_eddington_ratio
 sk_alpha = 0.01  # disk_alpha_viscosity
 rad_efficiency = 0.1  # from ReadInputs
 
 # Create disk model
-sk = Sirko.SirkoAGN(Mbh=sk_Mbh, le=sk_le, alpha=sk_alpha, eps=rad_efficiency)
+sk = Sirko.SirkoAGN(Mbh=sk_Mbh, le=smbh_eddington_ratio, alpha=sk_alpha, eps=rad_efficiency)
 sk.solve_disk(N=1e4)  # 10^4 tends to be a sufficient resolution for most Mbh values
 
 # Read in existing file to get radii

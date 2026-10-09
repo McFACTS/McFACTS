@@ -65,7 +65,7 @@ def main():
     # Get disk Mdot
     disk = Sirko.SirkoAGN(Mbh=log_data["smbh_mass"]*ct.MSun,
                           alpha=log_data["disk_alpha_viscosity"],
-                          le=log_data["disk_bh_eddington_ratio"],
+                          le=log_data["smbh_eddington_ratio"],
                           eps = 0.1)
     mdot_disk = (disk.Mdot*u.kg/u.s).to("Msun/year").value
 

@@ -438,14 +438,60 @@ def plot_interpolators(fname_ini=None,output_directory="./"):
     ax.set_xlim([1.,6.])
     ax.set_ylim([2.,7.])
     # axis labels
-    ax.set_xlabel(r"$\log_{10}(R)$")
-    ax.set_ylabel(r"$\log_{10}(\mathrm{Sigma})$")
+    ax.set_xlabel("Rg (log10)")
+    ax.set_ylabel("Disk surface density (log10)")
     # show plots
     #plt.tight_layout()
-    savename = f"{output_directory}/disk_interp_rho.png"
+    savename = f"{output_directory}/disk_surface_density.png"
     fig.savefig(savename)
     #plt.show()
     plt.close()
+
+    # Plotting the disk densitiy volume 
+
+    # Setup density plot
+    fig, ax = plt.subplots(figsize=plotting.set_size(size))
+    
+    ax.plot(
+            np.log10(disk_radius_test),
+            np.log10(disk_density_func(disk_radius_test)),
+            label="McFacts disk interp",
+    )
+    # Plot pAGN interp
+    ax.plot(
+            np.log10(disk_radius_test),
+            np.log10(pagn_disk_density_func(disk_radius_test)),
+            label="pAGN disk interp",
+    )
+    # Plot pAGN raw output
+    ax.plot(
+            np.log10(bonus_structures['R']),
+            np.log10(bonus_structures['rho']),
+            label="pAGN raw output",
+            linestyle='dotted',
+           )
+
+    # Vertical line for disk_radius_outer
+    ylims = ax.get_ylim()
+    ax.vlines(
+              np.log10(disk_radius_outer),
+              ylims[0],ylims[1],
+              color='black',
+              label="disk_radius_outer",
+              linestyle='dashed'
+             )
+    ax.set_ylim(ylims)
+
+    # Set a legend
+    ax.legend()
+    # axis labels
+    ax.set_xlabel("Rg (log10)")
+    ax.set_ylabel("Disk volume density (log10)")
+    # show plots
+    #plt.tight_layout()
+    savename = f"{output_directory}/disk_density.png"
+    fig.savefig(savename)
+
 
 def main():
     opts = arg()
