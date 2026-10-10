@@ -2,23 +2,23 @@
 Module for calculating the final variables of a merging binary.
 """
 import uuid
-
 import warnings
+
 import numpy as np
 import scipy
 from astropy import constants as const
 from astropy import units as u
+from mcfast import merged_orb_ecc_helper, shock_luminosity_helper, jet_luminosity_helper, \
+    analytical_kick_velocity_helper
 from numpy.random import Generator
 
 from mcfacts.inputs.settings_manager import SettingsManager
+from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray, AGNBlackHoleArray, \
+    AGNMergedBlackHoleArray
 from mcfacts.objects.disk import AGNDisk
-from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleArray, AGNBlackHoleArray, AGNMergedBlackHoleArray
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, checks, peters
-from mcfacts.utilities.random_state import uuid_provider
-from mcfacts.utilities.unit_conversion import si_from_r_g
-from mcfast import merged_orb_ecc_helper, shock_luminosity_helper, jet_luminosity_helper, \
-    analytical_kick_velocity_helper
+from mcfacts.utilities.random_state import uuid_provider, global_numpy_random_from
 
 
 def analytical_kick_velocity(
@@ -57,7 +57,7 @@ def analytical_kick_velocity(
     mask = mass_1 <= mass_2
 
     m_1_new = np.where(mask, mass_1, mass_2) * u.solMass
-    m_2_new = np.where(mask, mass_2, mass_1)* u.solMass
+    m_2_new = np.where(mask, mass_2, mass_1) * u.solMass
     spin_1_new = np.where(mask, spin_1, spin_2)
     spin_2_new = np.where(mask, spin_2, spin_1)
     spin_angle_1_new = np.where(mask, spin_angle_1, spin_angle_2)
@@ -74,33 +74,33 @@ def analytical_kick_velocity(
     # Find the mass ratio q and asymmetric mass ratio eta
     # as defined in Akiba et al. 2024 Appendix A:
     q = m_1_new / m_2_new
-    eta = q / (1 + q)**2
+    eta = q / (1 + q) ** 2
 
     # Use Akiba et al. 2024 eqn A5:
-    S = (2 * (spin_1_new + q**2 * spin_2_new)) / (1 + q)**2
+    S = (2 * (spin_1_new + q ** 2 * spin_2_new)) / (1 + q) ** 2
 
     # As defined in Akiba et al. 2024 Appendix A:
     xi = np.radians(145)
     A = 1.2e4 * u.km / u.s
     B = -0.93
     H = 6.9e3 * u.km / u.s
-    V_11, V_A, V_B, V_C = 3678 * u.km / u.s, 2481 * u.km / u.s, 1793* u.km / u.s, 1507 * u.km / u.s
-    angle = random.uniform(0.0, 2*np.pi, size=len(mass_1))
+    V_11, V_A, V_B, V_C = 3678 * u.km / u.s, 2481 * u.km / u.s, 1793 * u.km / u.s, 1507 * u.km / u.s
+    angle = random.uniform(0.0, 2 * np.pi, size=len(mass_1))
 
     # Use Akiba et al. 2024 eqn A2:
-    v_m = A * eta**2 * np.sqrt(1 - 4 * eta) * (1 + B * eta)
+    v_m = A * eta ** 2 * np.sqrt(1 - 4 * eta) * (1 + B * eta)
 
     # Use Akiba et al. 2024 eqn A3:
-    v_perp = (H * eta**2 / (1 + q)) * (spin_2_par - q * spin_1_par)
+    v_perp = (H * eta ** 2 / (1 + q)) * (spin_2_par - q * spin_1_par)
 
     # Use Akiba et al. 2024 eqn A4:
-    v_par = ((16 * eta**2) / (1 + q)) * (V_11 + (V_A * S) + (V_B * S**2) + (V_C * S**3)) * \
+    v_par = ((16 * eta ** 2) / (1 + q)) * (V_11 + (V_A * S) + (V_B * S ** 2) + (V_C * S ** 3)) * \
             np.abs(spin_2_perp - q * spin_1_perp) * np.cos(angle)
 
     # Use Akiba et al. 2024 eqn A1:
-    v_kick = np.sqrt((v_m + v_perp * np.cos(xi))**2 +
-                     (v_perp * np.sin(xi))**2 +
-                     v_par**2)
+    v_kick = np.sqrt((v_m + v_perp * np.cos(xi)) ** 2 +
+                     (v_perp * np.sin(xi)) ** 2 +
+                     v_par ** 2)
     v_kick = np.array(v_kick.value)
     assert np.all(v_kick > 0), \
         "v_kick has values <= 0"
@@ -142,7 +142,7 @@ def analytical_kick_velocity_optimized(
         Kick velocity [km/s] of the remnant BH with :obj:`float` type
     """
 
-    angle = random.uniform(0.0, 2*np.pi, size=len(mass_1))
+    angle = random.uniform(0.0, 2 * np.pi, size=len(mass_1))
 
     v_kick = analytical_kick_velocity_helper(
         mass_1,
@@ -344,7 +344,7 @@ def jet_luminosity(mass_final,
 
     # calculate Bondi accretion, convert sound speed from m / s to cm / s
     mdot_bondi = 4 * np.pi * (const.G.cgs.value ** 2) * (mass_final_g ** 2) * disk_density_cgs * (
-                v_rel ** 2 + (sound_speed * 10 ** 2) ** 2) ** -(3 / 2)
+            v_rel ** 2 + (sound_speed * 10 ** 2) ** 2) ** -(3 / 2)
 
     kappa = 0.1
     # calculate the jet luminosity as in Kim & Most 2025
@@ -499,8 +499,10 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
     spin_angles_1_diffs = spin_angles_1 - np.pi
     spin_angles_2_diffs = spin_angles_2 - np.pi
 
-    spin_angles_1[spin_angles_1_diffs > 0] = spin_angles_1[spin_angles_1_diffs > 0] - spin_angles_1_diffs[spin_angles_1_diffs > 0]
-    spin_angles_2[spin_angles_2_diffs > 0] = spin_angles_2[spin_angles_2_diffs > 0] - spin_angles_2_diffs[spin_angles_2_diffs > 0]
+    spin_angles_1[spin_angles_1_diffs > 0] = spin_angles_1[spin_angles_1_diffs > 0] - spin_angles_1_diffs[
+        spin_angles_1_diffs > 0]
+    spin_angles_2[spin_angles_2_diffs > 0] = spin_angles_2[spin_angles_2_diffs > 0] - spin_angles_2_diffs[
+        spin_angles_2_diffs > 0]
 
     # temporary solution to the spin_angle values being set to a negative value
     spin_angles_1[spin_angles_1 < 0] = 0
@@ -513,20 +515,24 @@ def chi_p(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles_2, bi
     mass_ratios[masses_1 > masses_2] = masses_2[masses_1 > masses_2] / masses_1[masses_1 > masses_2]
     mass_ratios[masses_2 > masses_1] = masses_1[masses_2 > masses_1] / masses_2[masses_2 > masses_1]
 
-    spins_1_perp[masses_2 > masses_1] = np.abs(spins_2[masses_2 > masses_1]) * np.sin(spin_angles_2[masses_2 > masses_1])
+    spins_1_perp[masses_2 > masses_1] = np.abs(spins_2[masses_2 > masses_1]) * np.sin(
+        spin_angles_2[masses_2 > masses_1])
 
-    spins_2_perp[masses_2 > masses_1] = np.abs(spins_1[masses_2 > masses_1]) * np.sin(spin_angles_1[masses_2 > masses_1])
+    spins_2_perp[masses_2 > masses_1] = np.abs(spins_1[masses_2 > masses_1]) * np.sin(
+        spin_angles_1[masses_2 > masses_1])
 
     mass_ratio_factors = mass_ratios * ((4.0 * mass_ratios) + 3.0) / (4.0 + (3.0 * mass_ratios))
 
     # Assume spins_1_perp is dominant source of chi_p
     chi_p = spins_1_perp
     # If not then change chi_p definition and output
-    chi_p[chi_p < (mass_ratio_factors * spins_2_perp)] = mass_ratio_factors[chi_p < (mass_ratio_factors * spins_2_perp)] * spins_2_perp[chi_p < (mass_ratio_factors * spins_2_perp)]
+    chi_p[chi_p < (mass_ratio_factors * spins_2_perp)] = mass_ratio_factors[
+                                                             chi_p < (mass_ratio_factors * spins_2_perp)] * \
+                                                         spins_2_perp[chi_p < (mass_ratio_factors * spins_2_perp)]
 
     assert np.isfinite(chi_p).all(), \
         "Finite check failure: chi_p"
-    #if any(chi_p < 0):
+    # if any(chi_p < 0):
     #    print('mass1 :', masses_1)
     #    print('mass2 :', masses_2)
     #    print('spin1 :', spins_1)
@@ -640,7 +646,7 @@ def merged_mass(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
     nu_squared = nu * nu
 
     mass_factors = 1.0 - (0.2 * nu) - (0.208 * nu_squared * total_spins)
-    merged_masses = total_masses*mass_factors
+    merged_masses = total_masses * mass_factors
 
     assert np.all(merged_masses > 0), \
         "merged_mass has values <= 0"
@@ -731,19 +737,22 @@ def merged_spin(masses_1, masses_2, spins_1, spins_2, spin_angles_1, spin_angles
     spin_factors_1z = (0.632 + mass_ratios) ** 2.0
     spin_factors_2z = (0.632 + mass_ratios_inv) ** 2.0
 
-    merged_spins_x = 0.33 * ((a_x/spin_factors_1xy) + (b_x/spin_factors_2xy)) - (0.112 * nu * (a_y+b_y))
-    merged_spins_y = (0.112 * nu * (a_x+b_x)) + (0.33 * ((a_y/spin_factors_1xy) + (b_y/spin_factors_2xy)))
-    merged_spins_z = 0.686 * ((5.04 * nu) - (4.16 * nu_squared)) + (0.3995 * ((a_z / spin_factors_1z) + (b_z / spin_factors_2z))) + ((0.128 * nu_squared)*((a_x+b_x)**2 + (a_y+b_y)**2 - (a_z+b_z)**2))
+    merged_spins_x = 0.33 * ((a_x / spin_factors_1xy) + (b_x / spin_factors_2xy)) - (0.112 * nu * (a_y + b_y))
+    merged_spins_y = (0.112 * nu * (a_x + b_x)) + (0.33 * ((a_y / spin_factors_1xy) + (b_y / spin_factors_2xy)))
+    merged_spins_z = 0.686 * ((5.04 * nu) - (4.16 * nu_squared)) + (
+                0.3995 * ((a_z / spin_factors_1z) + (b_z / spin_factors_2z))) + (
+                                 (0.128 * nu_squared) * ((a_x + b_x) ** 2 + (a_y + b_y) ** 2 - (a_z + b_z) ** 2))
 
-    merged_spins = np.sqrt(merged_spins_x**2.0 + merged_spins_y**2.0 + merged_spins_z**2.0)
-    #merged_spin_angle = np.arccos( [insert z component of spin] /merged_spins)
+    merged_spins = np.sqrt(merged_spins_x ** 2.0 + merged_spins_y ** 2.0 + merged_spins_z ** 2.0)
+    # merged_spin_angle = np.arccos( [insert z component of spin] /merged_spins)
 
     assert np.isfinite(merged_spins).all(), \
         "Finite check failure: merged_spins"
 
-    return (merged_spins) #merged_spin_angle
+    return (merged_spins)  # merged_spin_angle
 
-def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10):
+
+def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10, *, random):
     """ Random Guassian distribution generator
 
     Parameters
@@ -758,6 +767,8 @@ def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10):
             Upper bound of the distribution
         size : int
             Number of bins based on sample size
+        random : numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns
     -------
@@ -767,10 +778,12 @@ def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10):
 
     a = (lower - mean) / std
     b = (upper - mean) / std
-    spin_dist = scipy.stats.truncnorm.rvs(a, b, loc=mean, scale=std, size=size)
+    spin_dist = scipy.stats.truncnorm.rvs(a, b, loc=mean, scale=std, size=size, random_state=random)
+
     return spin_dist
 
-def spin_check(gen_1, gen_2, spin_merged):
+
+def spin_check(gen_1, gen_2, spin_merged, random):
     """ Since the Tichy and Marronetti '08 perscription generates spin values outside of the expected range for higher mass ratio objects this file checks spin values after merger and if the magnitude is too low, this function resets it to a random distribution between a set range in order to generate results similiar to that of the NRsurrogate model.
 
     Parameters
@@ -781,6 +794,8 @@ def spin_check(gen_1, gen_2, spin_merged):
             generation of m2 (before merger) (1=natal BH that has never been in a prior merger)
         spin_merged : numpy.darray
             Final spin magnitude [unitless] of merger remnant with :obj:`float` type
+        random : numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns
     -------
@@ -793,32 +808,35 @@ def spin_check(gen_1, gen_2, spin_merged):
     for i in range(len(spin_merged)):
         # Sorting first gen objects and keeping their parameters
         if (gen_1[i] == 1.) & (gen_2[i] == 1.):
-            #print('gen 1', spin_merged[i])
+            # print('gen 1', spin_merged[i])
             new_spin_merged.append(spin_merged[i])
         # Sorting 2nd gen objects and updating their spins as needed otherwise keeping them the same
         # If spins < 0.75, they are reset to a randomly selected gaussian distribution between 0.75 - 0.85
         elif ((gen_1[i] == 2.) | (gen_2[i] == 2.)) & ((gen_1[i] <= 2.) & (gen_2[i] <= 2.)):
-            #print('gen 2', spin_merged[i])
+            # print('gen 2', spin_merged[i])
             if spin_merged[i] < 0.75:
-                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=1)
-                #print('gen 2 plus noise', spin_plus_noise)
+                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=1,
+                                                            random=random)
+                # print('gen 2 plus noise', spin_plus_noise)
                 new_spin_merged.append(float(spin_plus_noise))
             else:
-                #print('gen 2', spin_merged[i])
+                # print('gen 2', spin_merged[i])
                 new_spin_merged.append(spin_merged[i])
         # Sorting 3+ gen objects and updating their spins as needed otherwise keeping them the same
         # If spins < 0.85, they are reset to a randomly selected gaussian distribution between 0.85 - 0.95
         elif (gen_1[i] >= 3.) | (gen_2[i] >= 3.):
-            #print('gen x', spin_merged[i])
+            # print('gen x', spin_merged[i])
             if spin_merged[i] < 0.85:
-                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.85, upper=0.95, size=1)
-                #print('gen 3+ plus noise', spin_plus_noise)
+                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.85, upper=0.95, size=1,
+                                                            random=random)
+                # print('gen 3+ plus noise', spin_plus_noise)
                 new_spin_merged.append(float(spin_plus_noise))
             else:
-                #print('gen 3+', spin_merged[i])
+                # print('gen 3+', spin_merged[i])
                 new_spin_merged.append(spin_merged[i])
 
     return np.array(new_spin_merged)
+
 
 def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass, r_g_in_meters):
     """Calculates orbital eccentricity of a merged binary.
@@ -843,9 +861,10 @@ def merged_orb_ecc(bin_orbs_a, v_kicks, smbh_mass, r_g_in_meters):
 
     v_kep = ((np.sqrt(const.G * smbh_mass_units / orbs_a_units)).to("km/s")).value
 
-    merged_ecc = v_kicks/v_kep
+    merged_ecc = v_kicks / v_kep
 
     return (merged_ecc)
+
 
 def merged_orb_ecc_optimized(bin_orbs_a, v_kicks, smbh_mass):
     """Calculates orbital eccentricity of a merged binary.
@@ -868,19 +887,20 @@ def merged_orb_ecc_optimized(bin_orbs_a, v_kicks, smbh_mass):
 
     return (merged_ecc)
 
+
 def merge_blackholes_precession(
-    mass_1,
-    mass_2,
-    chi_1,
-    chi_2,
-    theta1,
-    theta2,
-    bin_sep_r_g,
-    bin_ecc,
-    smbh_mass,
-    r_g_in_meters,
-    random
-    ):
+        mass_1,
+        mass_2,
+        chi_1,
+        chi_2,
+        theta1,
+        theta2,
+        bin_sep_r_g,
+        bin_ecc,
+        smbh_mass,
+        r_g_in_meters,
+        random
+):
     """Use Davide Gerosa's precession package to calculate merged properties
 
     https://pure-oai.bham.ac.uk/ws/files/61360327/1605.01067.pdf
@@ -963,21 +983,20 @@ def merge_blackholes_precession(
     chi_1 = np.abs(chi_1)
     chi_2 = np.abs(chi_2)
 
-
     # Estimate q
-    mass_ratio = mass_2/ mass_1
+    mass_ratio = mass_2 / mass_1
     # Draw random deltaphi
-    deltaphi = random.uniform(low=0.,high=2*np.pi,size=mass_ratio.size)
+    deltaphi = random.uniform(low=0., high=2 * np.pi, size=mass_ratio.size)
     # Get binary separation
     # bin_sep_si = si_from_r_g(smbh_mass, bin_sep_r_g, r_g_defined=r_g_in_meters)
     bin_sep_si = unit_conversion.si_from_r_g_optimized(smbh_mass, bin_sep_r_g)
     orbital_period_si = np.sqrt(
-        (4 * np.pi**2 * bin_sep_si**3) / \
+        (4 * np.pi ** 2 * bin_sep_si ** 3) / \
         (const.G * (mass_1 * u.solMass + mass_2 * u.solMass))
     ).si
-    f_GW_si = 2/orbital_period_si
-    bin_sep_M = (bin_sep_si * const.c**2 / const.G) / \
-        ((mass_1 + mass_2) * u.solMass)
+    f_GW_si = 2 / orbital_period_si
+    bin_sep_M = (bin_sep_si * const.c ** 2 / const.G) / \
+                ((mass_1 + mass_2) * u.solMass)
     bin_sep_M = bin_sep_M.si
     bin_sep_M = bin_sep_M.value
 
@@ -985,124 +1004,126 @@ def merge_blackholes_precession(
     # Estimate orbital period of 20 Hz (GW) / 10 Hz (orb)
     orbital_period_inspiral = 1 / (10 * u.Hz)
     # Identify the separation at 20 Hz, GW
-    separation_inspiral = ((orbital_period_inspiral**2 * \
-        ((mass_1 + mass_2) * u.solMass) * const.G / \
-        (4 * np.pi**2))**(1/3)).si
+    separation_inspiral = ((orbital_period_inspiral ** 2 * \
+                            ((mass_1 + mass_2) * u.solMass) * const.G / \
+                            (4 * np.pi ** 2)) ** (1 / 3)).si
     # Estimate the separation in units of M, at 20 Hz
-    critical_separation = ((separation_inspiral * const.c**2 / const.G) / \
-        ((mass_1 + mass_2) * u.solMass)).si.value
+    critical_separation = ((separation_inspiral * const.c ** 2 / const.G) / \
+                           ((mass_1 + mass_2) * u.solMass)).si.value
 
-    # Check for unphysical spins
-    chi_eff = precession.eval_chieff(
-        theta1,
-        theta2,
-        mass_ratio,
-        chi_1,
-        chi_2,
-    )
-
-    #### Inspiral ####
-    for i in range(mass_1.size):
-        # Check separation
-        if bin_sep_M[i] < critical_separation[i]:
-            continue
-        elif bin_sep_M[i] > 1000:
-            bin_sep_M[i] = 1000
-        # Check angle
-        if (theta1[i] == 0) and (theta2[i] == 0):
-            # Not precessing
-            continue
-        # Check chi effective limits
-        chi_eff_minus, chi_eff_plus = precession.chiefflimits(
-            q=mass_ratio[i],
-            chi1=chi_1[i],
-            chi2=chi_2[i],
+    # precession uses numpy global random calls, so we need to point it at our passed random generator
+    with global_numpy_random_from(random):
+        # Check for unphysical spins
+        chi_eff = precession.eval_chieff(
+            theta1,
+            theta2,
+            mass_ratio,
+            chi_1,
+            chi_2,
         )
-        _chi_eff_minus = min(chi_eff_minus,chi_eff_plus)
-        _chi_eff_plus = max(chi_eff_minus,chi_eff_plus)
-        chi_eff_minus, chi_eff_plus = _chi_eff_minus, _chi_eff_plus
-        if (chi_eff[i] > chi_eff_plus) or (chi_eff[i] < chi_eff_minus):
-            print(f"chi_eff[i]: {chi_eff[i]}")
-            print(f"chi_eff_minus: {chi_eff_minus}")
-            print(f"chi_eff_plus: {chi_eff_plus}")
-            print(f"mass_1[i]: {mass_1[i]}")
-            print(f"mass_2[i]: {mass_2[i]}")
-            print(f"theta1[i]: {theta1[i]}")
-            print(f"theta2[i]: {theta2[i]}")
-            print(f"deltaphi[i]: {deltaphi[i]}")
-            print(f"mass_ratio[i]: {mass_ratio[i]}")
-            print(f"chi_1[i]: {chi_1[i]}")
-            print(f"chi_2[i]: {chi_2[i]}")
-            warnings.warn(f"Nonphysical chi effective: {chi_eff}")
-            #raise ValueError(f"Nonphysical chi effective: {chi_eff}")
-            if chi_eff[i] > chi_eff_plus:
-                chi_eff[i] = chi_eff_plus
-            elif chi_eff[i] < chi_eff_minus:
-                chi_eff[i] = chi_eff_minus
-            else:
-                raise ValueError(f"Nonphysical chi effective: {chi_eff}")
-        # Evolve binary
-        try:
-            evolve_outputs = precession.inspiral_precav(
-                r=[bin_sep_M[i],critical_separation[i]],
-                theta1=theta1[i],
-                theta2=theta2[i],
-                deltaphi=deltaphi[i],
+
+        #### Inspiral ####
+        for i in range(mass_1.size):
+            # Check separation
+            if bin_sep_M[i] < critical_separation[i]:
+                continue
+            elif bin_sep_M[i] > 1000:
+                bin_sep_M[i] = 1000
+            # Check angle
+            if (theta1[i] == 0) and (theta2[i] == 0):
+                # Not precessing
+                continue
+            # Check chi effective limits
+            chi_eff_minus, chi_eff_plus = precession.chiefflimits(
                 q=mass_ratio[i],
                 chi1=chi_1[i],
                 chi2=chi_2[i],
             )
-        except OverflowError:
-            # This is an internal precession error
-            # Binary is not evolved.
-            continue
-        if np.isnan(evolve_outputs["deltaphi"][0,-1]):
-            # If the spins are not finite, do not evolve binary
-            continue
-        # Update quantities
-        bin_sep_M[i] = critical_separation[i]
-        #chi_1[i] = evolve_outputs["chi1"][0,-1]
-        #chi_2[i] = evolve_outputs["chi2"][0,-1]
-        theta1[i] = evolve_outputs["theta1"][0,-1]
-        theta2[i] = evolve_outputs["theta2"][0,-1]
-        deltaphi[i] = evolve_outputs["deltaphi"][0,-1]
-        #print(evolve_outputs)
-        #raise Exception
+            _chi_eff_minus = min(chi_eff_minus, chi_eff_plus)
+            _chi_eff_plus = max(chi_eff_minus, chi_eff_plus)
+            chi_eff_minus, chi_eff_plus = _chi_eff_minus, _chi_eff_plus
+            if (chi_eff[i] > chi_eff_plus) or (chi_eff[i] < chi_eff_minus):
+                print(f"chi_eff[i]: {chi_eff[i]}")
+                print(f"chi_eff_minus: {chi_eff_minus}")
+                print(f"chi_eff_plus: {chi_eff_plus}")
+                print(f"mass_1[i]: {mass_1[i]}")
+                print(f"mass_2[i]: {mass_2[i]}")
+                print(f"theta1[i]: {theta1[i]}")
+                print(f"theta2[i]: {theta2[i]}")
+                print(f"deltaphi[i]: {deltaphi[i]}")
+                print(f"mass_ratio[i]: {mass_ratio[i]}")
+                print(f"chi_1[i]: {chi_1[i]}")
+                print(f"chi_2[i]: {chi_2[i]}")
+                warnings.warn(f"Nonphysical chi effective: {chi_eff}")
+                # raise ValueError(f"Nonphysical chi effective: {chi_eff}")
+                if chi_eff[i] > chi_eff_plus:
+                    chi_eff[i] = chi_eff_plus
+                elif chi_eff[i] < chi_eff_minus:
+                    chi_eff[i] = chi_eff_minus
+                else:
+                    raise ValueError(f"Nonphysical chi effective: {chi_eff}")
+            # Evolve binary
+            try:
+                evolve_outputs = precession.inspiral_precav(
+                    r=[bin_sep_M[i], critical_separation[i]],
+                    theta1=theta1[i],
+                    theta2=theta2[i],
+                    deltaphi=deltaphi[i],
+                    q=mass_ratio[i],
+                    chi1=chi_1[i],
+                    chi2=chi_2[i],
+                )
+            except OverflowError:
+                # This is an internal precession error
+                # Binary is not evolved.
+                continue
+            if np.isnan(evolve_outputs["deltaphi"][0, -1]):
+                # If the spins are not finite, do not evolve binary
+                continue
+            # Update quantities
+            bin_sep_M[i] = critical_separation[i]
+            # chi_1[i] = evolve_outputs["chi1"][0,-1]
+            # chi_2[i] = evolve_outputs["chi2"][0,-1]
+            theta1[i] = evolve_outputs["theta1"][0, -1]
+            theta2[i] = evolve_outputs["theta2"][0, -1]
+            deltaphi[i] = evolve_outputs["deltaphi"][0, -1]
+            # print(evolve_outputs)
+            # raise Exception
 
-    #### Merger ####
-    bh_mass_merged = precession.remnantmass(
-        theta1,
-        theta2,
-        mass_ratio,
-        chi_1,
-        chi_2,
-    ) * (mass_1 + mass_2)
-    bh_v_kick = precession.remnantkick(
-        theta1,
-        theta2,
-        deltaphi,
-        mass_ratio,
-        chi_1,
-        chi_2,
-        kms=True
-    )
-    bh_spin_merged = precession.remnantspin(
-        theta1,
-        theta2,
-        deltaphi,
-        mass_ratio,
-        chi_1,
-        chi_2,
-    )
-    bh_thetaL = precession.remnantspindirection(
-        theta1,
-        theta2,
-        deltaphi,
-        bin_sep_M,
-        mass_ratio,
-        chi_1,
-        chi_2,
-    )
+        #### Merger ####
+        bh_mass_merged = precession.remnantmass(
+            theta1,
+            theta2,
+            mass_ratio,
+            chi_1,
+            chi_2,
+        ) * (mass_1 + mass_2)
+        bh_v_kick = precession.remnantkick(
+            theta1,
+            theta2,
+            deltaphi,
+            mass_ratio,
+            chi_1,
+            chi_2,
+            kms=True
+        )
+        bh_spin_merged = precession.remnantspin(
+            theta1,
+            theta2,
+            deltaphi,
+            mass_ratio,
+            chi_1,
+            chi_2,
+        )
+        bh_thetaL = precession.remnantspindirection(
+            theta1,
+            theta2,
+            deltaphi,
+            bin_sep_M,
+            mass_ratio,
+            chi_1,
+            chi_2,
+        )
     if not np.all(np.isfinite(bh_spin_merged)):
         print(f"chi_eff: {chi_eff}")
         print(f"chi_eff_minus: {chi_eff_minus}")
@@ -1127,7 +1148,8 @@ def merge_blackholes_precession(
 
 
 def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_binary_id_num_merger,
-                     smbh_mass, flag_use_surrogate, flag_use_spin_check, disk_aspect_ratio, disk_density, disk_sound_speed, time_passed, galaxy,
+                     smbh_mass, remnant_attribute_prescription, flag_truncate_akiba_remnant_spin, disk_aspect_ratio,
+                     disk_density, disk_sound_speed, time_passed, galaxy,
                      r_g_in_meters, random):
     # TODO: Vectorize this function, lists should be modified on the outside after this function returns new values
     """Calculates parameters for merged BHs and adds them to :code:`blackholes_pro` and :code:`blackholes_merged`
@@ -1148,9 +1170,9 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         Array of BH ID numbers to be merged
     smbh_mass : float
         Mass [Msun] of SMBH
-    flag_use_surrogate : int
-        Flag to use surrogate model for kick calculations
-    flag_use_spin_check : int
+    remnant_attribute_prescription : str
+        Define which model to use for merger remnant calculations
+    flag_truncate_akiba_remnant_spin : bool
         Flag to apply spin_check filter to spin results
     disk_aspect_ratio : function
         Disk aspect ratio at specified rg
@@ -1191,7 +1213,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_inc")
     )
 
-    if flag_use_surrogate == 0:
+    if remnant_attribute_prescription == "akiba":
         bh_spin_merged = merged_spin(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1201,14 +1223,17 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
             random=random
         )
-        if flag_use_spin_check == 1:
+
+        if flag_truncate_akiba_remnant_spin == 1:
             bh_spin_merged = checks.spin_check(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
-                bh_spin_merged
+                bh_spin_merged,
+                random=random
             )
         else:
             bh_spin_merged = bh_spin_merged
+
         bh_v_kick = analytical_kick_velocity_optimized(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1225,30 +1250,35 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         bh_spin_2_20Hz = np.zeros(bh_binary_id_num_merger.size)
         bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
 
-    elif flag_use_surrogate == 1:
+    elif remnant_attribute_prescription == "surrogate":
         from mcfacts.external.sxs import evolve_binary
         from mcfacts.external.sxs import fit_modeler
-        #bh_v_kick = 200 #evolve_binary.velocity()
-        surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
+        # bh_v_kick = 200 #evolve_binary.velocity()
+        surrogate = fit_modeler.GPRFitters.read_from_file(f"./src/mcfacts/inputs/data/surrogate.joblib")
         bh_mass_merged, bh_kick_comp_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = evolve_binary.surrogate(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
-            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")), # phi_1 - randomly set in the function file
-            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")), # phi_2 - randomly set in the function file
-            1000, # binary seperation - in units of mass_1+mass_2 - shawn need to optimize seperation to speed up processing time
-            [0, 0, 1], # binary inclination - cartesian coords
-            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")), # bin_phase - randomly set in the function file
+            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
+            # phi_1 - randomly set in the function file
+            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
+            # phi_2 - randomly set in the function file
+            1000,
+            # binary seperation - in units of mass_1+mass_2 - shawn need to optimize seperation to speed up processing time
+            [0, 0, 1],  # binary inclination - cartesian coords
+            len(blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2")),
+            # bin_phase - randomly set in the function file
             # the following three None values are any correction needed to the values
-            None, # bin_orb_a
-            None, # mass_smbh
-            None, # spin_smbh
-            surrogate
+            None,  # bin_orb_a
+            None,  # mass_smbh
+            None,  # spin_smbh
+            surrogate,
+            random=random
         )
-    elif flag_use_surrogate == -1:
+    elif remnant_attribute_prescription == "precession":
         # Call Davide's code
         bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = merge_blackholes_precession(
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
@@ -1262,7 +1292,7 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             smbh_mass,
         )
     else:
-        raise ValueError(f"Invalid option: flag_use_surrogate = {flag_use_surrogate}")
+        raise ValueError(f"Invalid option: remnant_attribute_prescription = {remnant_attribute_prescription}")
 
     bh_lum_shock = shock_luminosity_opt(
         smbh_mass,
@@ -1285,8 +1315,8 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
     #                                          np.full(bh_binary_id_num_merger.size, bh_v_kick),
     #                                          smbh_mass)
     bh_orb_ecc_merged = merged_orb_ecc_optimized(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
-                                             np.full(bh_binary_id_num_merger.size, bh_v_kick),
-                                             smbh_mass)
+                                                 np.full(bh_binary_id_num_merger.size, bh_v_kick),
+                                                 smbh_mass)
 
     # assert(np.allclose(bh_orb_ecc_merged, bh_orb_ecc_merged_opt))
 
@@ -1301,8 +1331,10 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
                                      new_mass_2=blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
                                      new_spin_1=blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
                                      new_spin_2=blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-                                     new_spin_angle_1=blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-                                     new_spin_angle_2=blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+                                     new_spin_angle_1=blackholes_binary.at_id_num(bh_binary_id_num_merger,
+                                                                                  "spin_angle_1"),
+                                     new_spin_angle_2=blackholes_binary.at_id_num(bh_binary_id_num_merger,
+                                                                                  "spin_angle_2"),
                                      new_gen_1=blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_1"),
                                      new_gen_2=blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
                                      new_chi_eff=bh_chi_eff_merged,
@@ -1325,12 +1357,13 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
                                   new_orb_ang_mom=np.ones(bh_binary_id_num_merger.size),
                                   new_orb_ecc=bh_orb_ecc_merged,
                                   new_gen=np.maximum(blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_1"),
-                                                     blackholes_merged.at_id_num(bh_binary_id_num_merger, "gen_2")) + 1.0,
+                                                     blackholes_merged.at_id_num(bh_binary_id_num_merger,
+                                                                                 "gen_2")) + 1.0,
                                   new_orb_arg_periapse=np.full(bh_binary_id_num_merger.size, -1.5),
                                   new_galaxy=np.full(bh_binary_id_num_merger.size, galaxy),
                                   new_time_passed=np.full(bh_binary_id_num_merger.size, time_passed),
                                   new_id_num=bh_binary_id_num_merger)
-    #raise Exception
+    # raise Exception
     return (blackholes_merged, blackholes_pro)
 
 
@@ -1338,7 +1371,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Binary Black Hole Merging" if name is None else name, settings)
 
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
         if sm.bbh_array_name not in filing_cabinet:
@@ -1350,6 +1384,9 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         checks.flag_binary_mergers(sm, filing_cabinet)
 
         bh_binary_id_num_merger = blackholes_binary.id_num[blackholes_binary.flag_merging < 0]
+
+        if len(bh_binary_id_num_merger) == 0:
+            return
 
         self.log("Merger ID Numbers")
         self.log(bh_binary_id_num_merger)
@@ -1383,7 +1420,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_inc")
         )
 
-        if sm.flag_use_surrogate == 0:
+        if sm.remnant_attribute_prescription == "akiba":
             bh_spin_merged = merged_spin(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1394,11 +1431,12 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                 random_generator
             )
 
-            if sm.flag_use_spin_check:
+            if sm.flag_truncate_akiba_remnant_spin:
                 bh_spin_merged = checks.spin_check(
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "gen_2"),
-                    bh_spin_merged
+                    bh_spin_merged,
+                    random_generator
                 )
 
             bh_v_kick = analytical_kick_velocity_optimized(
@@ -1417,13 +1455,13 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             bh_spin_2_20_hz = np.zeros(bh_binary_id_num_merger.size)
             bh_spin_angle_merged = np.zeros(bh_binary_id_num_merger.size)
 
-        elif sm.flag_use_surrogate == 1:
+        elif sm.remnant_attribute_prescription == "surrogate":
             from mcfacts.external.sxs import fit_modeler, evolve_binary
 
             # TODO: Take in surrogate.joblib file from user definied option
-            surrogate = fit_modeler.GPRFitters.read_from_file(f"../src/mcfacts/inputs/data/surrogate.joblib")
+            surrogate = fit_modeler.GPRFitters.read_from_file(f"./src/mcfacts/inputs/data/surrogate.joblib")
 
-            (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
+            (bh_mass_merged, _, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
              bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) = (
                 evolve_binary.surrogate(
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
@@ -1446,12 +1484,13 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                     None,  # bin_orb_a
                     None,  # mass_smbh
                     None,  # spin_smbh
-                    surrogate
+                    surrogate,
+                    random_generator
                 ))
-        elif sm.flag_use_surrogate == -1:
+        elif sm.remnant_attribute_prescription == "precession":
             # Call Davide's code
             (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
-             bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) =\
+             bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) = \
                 merge_blackholes_precession(
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
                     blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
@@ -1466,7 +1505,7 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                     random_generator
                 )
         else:
-            raise ValueError(f"Invalid option: flag_use_surrogate = {sm.flag_use_surrogate}")
+            raise ValueError(f"Invalid option: remnant_attribute_prescription = {sm.remnant_attribute_prescription}")
 
         bh_lum_shock = shock_luminosity_opt(
             sm.smbh_mass,
@@ -1475,7 +1514,6 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             agn_disk.disk_aspect_ratio,
             agn_disk.disk_density,
             bh_v_kick)
-
 
         bh_lum_jet = jet_luminosity_opt(
             bh_mass_merged,
@@ -1486,8 +1524,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
             agn_disk.disk_sound_speed)
 
         bh_orb_ecc_merged = merged_orb_ecc_optimized(blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_orb_a"),
-                                           np.full(bh_binary_id_num_merger.size, bh_v_kick),
-                                           sm.smbh_mass)
+                                                     np.full(bh_binary_id_num_merger.size, bh_v_kick),
+                                                     sm.smbh_mass)
 
         blackholes_merged = blackholes_binary.copy()
 
@@ -1498,7 +1536,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
 
         blackholes_merged = AGNMergedBlackHoleArray(
             **blackholes_merged.get_super_dict(),
-            unique_id_final=np.array([uuid_provider(random_generator) for _ in range(len(blackholes_merged))], dtype=uuid.UUID),
+            unique_id_final=np.array([uuid_provider(random_generator) for _ in range(len(blackholes_merged))],
+                                     dtype=uuid.UUID),
             mass_final=bh_mass_merged,
             spin_final=bh_spin_merged,
             spin_angle_final=bh_spin_angle_merged,
@@ -1517,14 +1556,13 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         blackholes_merged.bin_sep = 2 * (blackholes_merged.mass + blackholes_merged.mass_2) / sm.smbh_mass
 
         char_strain, gw_strain, gw_freq = peters.gw_strain_freq_optimized(mass_1=blackholes_merged.mass,
-                                                    mass_2=blackholes_merged.mass_2,
-                                                    obj_sep=blackholes_merged.bin_sep,
-                                                    timestep_duration_yr=-1,
-                                                    old_gw_freq=-1,
-                                                    smbh_mass=sm.smbh_mass,
-                                                    agn_redshift=sm.agn_redshift,
-                                                    flag_include_old_gw_freq=0)
-
+                                                                          mass_2=blackholes_merged.mass_2,
+                                                                          obj_sep=blackholes_merged.bin_sep,
+                                                                          timestep_duration_yr=-1,
+                                                                          old_gw_freq=-1,
+                                                                          smbh_mass=sm.smbh_mass,
+                                                                          agn_redshift=sm.agn_redshift,
+                                                                          flag_include_old_gw_freq=0)
 
         blackholes_merged.gw_freq = gw_freq
         blackholes_merged.gw_strain = gw_strain
@@ -1534,7 +1572,8 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
 
         filing_cabinet.ignore_consistency_check(sm.bbh_gw_array_name)
         filing_cabinet.ignore_time_update(sm.bbh_gw_array_name)
-        filing_cabinet.create_or_append_array(sm.bbh_gw_array_name, AGNBinaryBlackHoleArray(**blackholes_merged.get_super_dict()))
+        filing_cabinet.create_or_append_array(sm.bbh_gw_array_name,
+                                              AGNBinaryBlackHoleArray(**blackholes_merged.get_super_dict()))
 
         new_blackholes = AGNBlackHoleArray(
             unique_id=blackholes_merged.unique_id_final,
@@ -1564,7 +1603,8 @@ class ProcessEMRIMergers(TimelineActor):
     def __init__(self, name: str = None, settings: SettingsManager = None):
         super().__init__("Process EMRI Mergers" if name is None else name, settings)
 
-    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet, agn_disk: AGNDisk, random_generator: Generator):
+    def perform(self, timestep: int, timestep_length: float, time_passed: float, filing_cabinet: FilingCabinet,
+                agn_disk: AGNDisk, random_generator: Generator):
         sm = self.settings
 
         # TODO: Process both arrays so only one needs to exist to allow EMRIs to merge.
@@ -1580,7 +1620,8 @@ class ProcessEMRIMergers(TimelineActor):
         # TODO: Check both orb_a and periapsis to see if < SMBH ISCO
 
         merged_ids = innerdisk_array.unique_id[innerdisk_array.orb_a <= sm.disk_inner_stable_circ_orb]
-        gw_only_merged_ids = innerdisk_gw_only_array.unique_id[innerdisk_gw_only_array.orb_a <= sm.disk_inner_stable_circ_orb]
+        gw_only_merged_ids = innerdisk_gw_only_array.unique_id[
+            innerdisk_gw_only_array.orb_a <= sm.disk_inner_stable_circ_orb]
 
         emris = innerdisk_array.copy()
         emris_gw_only = innerdisk_gw_only_array.copy()
@@ -1596,13 +1637,13 @@ class ProcessEMRIMergers(TimelineActor):
         emris.gw_freq[emris.gw_freq == -1] = 9.e-7
 
         char_strain, strain, nu_gw = peters.gw_strain_freq_optimized(mass_1=sm.smbh_mass,
-                                                           mass_2=emris.mass,
-                                                           obj_sep=emris.orb_a,
-                                                           timestep_duration_yr=timestep_length,
-                                                           old_gw_freq=(emris.gw_freq * u.Hz),
-                                                           smbh_mass=sm.smbh_mass,
-                                                           agn_redshift=sm.agn_redshift,
-                                                           flag_include_old_gw_freq=0)
+                                                                     mass_2=emris.mass,
+                                                                     obj_sep=emris.orb_a,
+                                                                     timestep_duration_yr=timestep_length,
+                                                                     old_gw_freq=(emris.gw_freq * u.Hz),
+                                                                     smbh_mass=sm.smbh_mass,
+                                                                     agn_redshift=sm.agn_redshift,
+                                                                     flag_include_old_gw_freq=0)
 
         emris.gw_freq = nu_gw
         emris.gw_strain = char_strain
@@ -1611,5 +1652,3 @@ class ProcessEMRIMergers(TimelineActor):
 
         innerdisk_array.consistency_check()
         emris.consistency_check()
-
-
