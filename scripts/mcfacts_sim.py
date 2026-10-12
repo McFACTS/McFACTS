@@ -721,14 +721,12 @@ def main():
                 )
 
                 # Thermal torque from JM17 (if flag_thermal_feedback off, this component is 0.)
-                #should this have BOTH opts.smbh and opts.disk_bh
                 jimenez_masset_thermal_torque_coeff_bh = migration.jimenezmasset17_thermal_torque_coeff(
                     opts.smbh_mass,
                     disk_surface_density,
                     disk_opacity,
                     disk_aspect_ratio,
                     temp_func,
-                    opts.smbh_eddington_ratio,
                     blackholes_pro.orb_a,
                     blackholes_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
@@ -744,7 +742,6 @@ def main():
                     disk_opacity,
                     disk_aspect_ratio,
                     temp_func,
-                    opts.smbh_eddington_ratio,
                     stars_pro.orb_a,
                     stars_pro.orb_ecc,
                     opts.disk_bh_pro_orb_ecc_crit,
@@ -2360,7 +2357,7 @@ def main():
                         disk_opacity,
                         disk_aspect_ratio,
                         temp_func,
-                        opts.smbh_eddington_ratio,
+                        opts.disk_bh_eddington_ratio,
                         blackholes_binary.bin_orb_a,
                         blackholes_binary.bin_orb_ecc,
                         opts.disk_bh_pro_orb_ecc_crit,

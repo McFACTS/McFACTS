@@ -175,7 +175,7 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("bondi_fraction", "bh", 1e-5, float),
         SettingsProperty("stalling_separation", "bh", 0.0, float),
         SettingsProperty("gas_hardening_prescription", "bh", "baruteau", str),
-        SettingsProperty("disk_bh_eddington_ratio", "disk", 1.0, float),
+        SettingsProperty("disk_bh_eddington_ratio", "bh", 1.0, float),
         StaticSettingsProperty("disk_bh_eddington_mass_growth_rate", "bh", 2.3e-8, float),
         StaticSettingsProperty("disk_bh_spin_resolution_min", "bh", 0.02, float),
         StaticSettingsProperty("min_bbh_gw_separation", "bh", 2.0, float),
