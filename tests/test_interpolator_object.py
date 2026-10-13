@@ -21,7 +21,11 @@ def test_boundary_enum():
     F = Boundary.ZERO_EXC
     G = Boundary.ONE_INC
     H = Boundary.ONE_EXC
-    alph = [A, B, C, D, E, F, G, H]
+    I = Boundary.INF_INC
+    J = Boundary.INF_EXC
+    K = Boundary.NINF_INC
+    L = Boundary.NINF_EXC
+    alph = [A, B, C, D, E, F, G, H, I, J, K, L]
     for i in range(len(alph)):
         for j in range(i):
             assert alph[i] is not alph[j]
@@ -29,7 +33,7 @@ def test_boundary_enum():
     # Make sure this fails
     failed = False
     try:
-        I = Boundary.banana
+        Z = Boundary.banana
     except AttributeError:
         failed = True
         pass
@@ -200,6 +204,56 @@ def test_CubicSpline():
     assert np.allclose(y_eval[mask_eg], 1.)
     assert np.allclose(y_eval[mask_lt], 1.)
     assert np.allclose(y_eval[mask_gt], 1.)
+    # INF_INC
+    CS.bounds[0,0] = Boundary.INF_INC
+    CS.bounds[0,1] = Boundary.INF_INC
+    assert CS.bounds[0,0] is Boundary.INF_INC
+    assert CS.bounds[0,1] is Boundary.INF_INC
+    y_eval = CS(x_eval)
+    assert np.allclose(y_eval[mask_in], myfunc(x_eval[mask_in]))
+    assert np.allclose(y_eval[mask_el], myfunc(x_eval[mask_el]))
+    assert np.allclose(y_eval[mask_eg], myfunc(x_eval[mask_eg]))
+    assert np.allclose(y_eval[mask_lt], np.inf)
+    assert np.allclose(y_eval[mask_gt], np.inf)
+    # INF_EXC
+    CS.bounds[0,0] = Boundary.INF_EXC
+    CS.bounds[0,1] = Boundary.INF_EXC
+    assert CS.bounds[0,0] is Boundary.INF_EXC
+    assert CS.bounds[0,1] is Boundary.INF_EXC
+    y_eval = CS(x_eval)
+    assert np.allclose(y_eval[mask_in], myfunc(x_eval[mask_in]))
+    assert np.allclose(y_eval[mask_el], np.inf)
+    assert np.allclose(y_eval[mask_eg], np.inf)
+    assert np.allclose(y_eval[mask_lt], np.inf)
+    assert np.allclose(y_eval[mask_gt], np.inf)
+    # NINF_INC
+    CS.bounds[0,0] = Boundary.NINF_INC
+    CS.bounds[0,1] = Boundary.NINF_INC
+    assert CS.bounds[0,0] is Boundary.NINF_INC
+    assert CS.bounds[0,1] is Boundary.NINF_INC
+    y_eval = CS(x_eval)
+    assert np.allclose(y_eval[mask_in], myfunc(x_eval[mask_in]))
+    assert np.allclose(y_eval[mask_el], myfunc(x_eval[mask_el]))
+    assert np.allclose(y_eval[mask_eg], myfunc(x_eval[mask_eg]))
+    assert np.allclose(y_eval[mask_lt], -np.inf)
+    assert np.allclose(y_eval[mask_gt], -np.inf)
+    assert np.allclose(np.exp(y_eval[mask_lt]), 0.)
+    assert np.allclose(np.exp(y_eval[mask_gt]), 0.)
+    # NINF_EXC
+    CS.bounds[0,0] = Boundary.NINF_EXC
+    CS.bounds[0,1] = Boundary.NINF_EXC
+    assert CS.bounds[0,0] is Boundary.NINF_EXC
+    assert CS.bounds[0,1] is Boundary.NINF_EXC
+    y_eval = CS(x_eval)
+    assert np.allclose(y_eval[mask_in], myfunc(x_eval[mask_in]))
+    assert np.allclose(y_eval[mask_el], -np.inf)
+    assert np.allclose(y_eval[mask_eg], -np.inf)
+    assert np.allclose(y_eval[mask_lt], -np.inf)
+    assert np.allclose(y_eval[mask_gt], -np.inf)
+    assert np.allclose(np.exp(y_eval[mask_el]), 0.)
+    assert np.allclose(np.exp(y_eval[mask_eg]), 0.)
+    assert np.allclose(np.exp(y_eval[mask_lt]), 0.)
+    assert np.allclose(np.exp(y_eval[mask_gt]), 0.)
 
 def test_NearestNeighbor2D():
     # Training data
