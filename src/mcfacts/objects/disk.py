@@ -101,26 +101,28 @@ class AGNDiskInterp(object):
         ### Boundary Shenanigans ###
         # Options: NAN_INC, NAN_EXC, EXTRAPOLATE, FLAT,
         # ZERO_INC, ZERO_EXC, ONE_INC, ONE_EXC
+        # INF_INC, INF_EXC, NINF_INC, NINF_EXC
+        # Note that np.exp(-np.inf) is zero (NINF in loglog)
         
         ## Surface density ##
         self._surface_density_loglog.bounds[0,0] = Boundary.FLAT
-        self._surface_density_loglog.bounds[0,1] = Boundary.ZERO_INC
+        self._surface_density_loglog.bounds[0,1] = Boundary.NINF_INC
 
         ## Aspect ratio ##
         self._aspect_ratio_loglog.bounds[0,0] = Boundary.FLAT
-        self._aspect_ratio_loglog.bounds[0,1] = Boundary.ZERO_INC
+        self._aspect_ratio_loglog.bounds[0,1] = Boundary.NINF_INC
 
         ## Opacity ##
         self._opacity_loglog.bounds[0,0] =  Boundary.FLAT
-        self._opacity_loglog.bounds[0,1] =  Boundary.ZERO_INC
+        self._opacity_loglog.bounds[0,1] =  Boundary.NINF_INC
 
         ## Sound speed ##
         self._sound_speed_loglog.bounds[0,0] =  Boundary.FLAT
-        self._sound_speed_loglog.bounds[0,1] =  Boundary.ZERO_INC
+        self._sound_speed_loglog.bounds[0,1] =  Boundary.NINF_INC
 
         ## Density ##
         self._density_loglog.bounds[0,0] =  Boundary.FLAT
-        self._density_loglog.bounds[0,1] =  Boundary.ZERO_INC
+        self._density_loglog.bounds[0,1] =  Boundary.NINF_INC
 
         ## Omega ##
         self._omega_loglog.bounds[0,0] =  Boundary.EXTRAPOLATE
@@ -128,23 +130,23 @@ class AGNDiskInterp(object):
 
         ## Temperature ##
         self._temperature_loglog.bounds[0,0] =  Boundary.FLAT
-        self._temperature_loglog.bounds[0,1] =  Boundary.ZERO_INC
+        self._temperature_loglog.bounds[0,1] =  Boundary.NINF_INC
 
         ## Pressure gradient ##
         self._pressure_grad_linear.bounds[0,0] =  Boundary.FLAT
         self._pressure_grad_linear.bounds[0,1] =  Boundary.ZERO_INC
 
         ## derivative surface density ##
-        self._dlog10_surface_density_dlog10R.bounds[0,0] =  Boundary.ZERO_INC
-        self._dlog10_surface_density_dlog10R.bounds[0,1] =  Boundary.ZERO_INC
+        self._dlog10_surface_density_dlog10R.bounds[0,0] =  Boundary.NINF_INC
+        self._dlog10_surface_density_dlog10R.bounds[0,1] =  Boundary.NINF_INC
 
         ## Derivative temperature ##
-        self._dlog10_temp_dlog10R.bounds[0,0] =  Boundary.ZERO_INC
-        self._dlog10_temp_dlog10R.bounds[0,1] =  Boundary.ZERO_INC
+        self._dlog10_temp_dlog10R.bounds[0,0] =  Boundary.NINF_INC
+        self._dlog10_temp_dlog10R.bounds[0,1] =  Boundary.NINF_INC
 
         ## Derivative midplane pressure
-        self._dlog10_midplane_pressure_dlog10R.bounds[0,0] =  Boundary.ZERO_INC
-        self._dlog10_midplane_pressure_dlog10R.bounds[0,1] =  Boundary.ZERO_INC
+        self._dlog10_midplane_pressure_dlog10R.bounds[0,0] =  Boundary.NINF_INC
+        self._dlog10_midplane_pressure_dlog10R.bounds[0,1] =  Boundary.NINF_INC
 
     ### Properties ###
     @property
