@@ -46,7 +46,7 @@ def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dl
     Torque_paardekooper_coeff = -0.85 + dlogSigmadlogR + (0.9 * dlogTempdlogR)
 
     # Check for nans
-    nan_mask = np.isnan(Torque_paardekooper_coeff)
+    nan_mask = ~np.isfinite(Torque_paardekooper_coeff)
     if any(nan_mask):
         if all(orbs_a[migration_indices][nan_mask] < 12.1):
             # They are not migrating if they have already been captured
