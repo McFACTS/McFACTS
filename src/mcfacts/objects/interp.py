@@ -14,14 +14,18 @@ from mcfacts.objects.cache import readonly_cached_property
 ######## Objects ########
 #### Boundary Object ####
 class Boundary(Enum):
-    NAN_INC     = auto()
-    NAN_EXC     = auto()
-    EXTRAPOLATE = auto()
-    FLAT        = auto()
-    ZERO_INC    = auto()
-    ZERO_EXC    = auto()
-    ONE_INC     = auto()
-    ONE_EXC     = auto()
+    NAN_INC     = auto() # NaN inclusive (boundary is not NaN)
+    NAN_EXC     = auto() # NaN exclusive (boundary is NaN)
+    EXTRAPOLATE = auto() # Extrapolate
+    FLAT        = auto() # Flat (constant value)
+    ZERO_INC    = auto() # Zero inclusive
+    ZERO_EXC    = auto() # Zero exclusive
+    ONE_INC     = auto() # One inclusive
+    ONE_EXC     = auto() # One exclusive
+    INF_INC     = auto() # Infinity inclusive
+    INF_EXC     = auto() # Infinite exclusive
+    NINF_INC    = auto() # Negative infinity inclusive
+    NINF_EXC    = auto() # Negative infinity exclusive
 
 #### Bounds Object ####
 class Bounds(object):
@@ -221,6 +225,42 @@ class Interpolator(ABC):
                     match = x_eval < self.limits[0, 1]
                     inside &= match
                     out[~match] = 0.
+            elif bound is Boundary.INF_INC:
+                if b == 0:
+                    match = x_eval >= self.limits[0, 0]
+                    inside &= match
+                    out[~match] = np.inf
+                else:
+                    match = x_eval <= self.limits[0, 1]
+                    inside &= match
+                    out[~match] = np.inf
+            elif bound is Boundary.INF_EXC:
+                if b == 0:
+                    match = x_eval > self.limits[0, 0]
+                    inside &= match
+                    out[~match] = np.inf
+                else:
+                    match = x_eval < self.limits[0, 1]
+                    inside &= match
+                    out[~match] = np.inf
+            elif bound is Boundary.NINF_INC:
+                if b == 0:
+                    match = x_eval >= self.limits[0, 0]
+                    inside &= match
+                    out[~match] = -np.inf
+                else:
+                    match = x_eval <= self.limits[0, 1]
+                    inside &= match
+                    out[~match] = -np.inf
+            elif bound is Boundary.NINF_EXC:
+                if b == 0:
+                    match = x_eval > self.limits[0, 0]
+                    inside &= match
+                    out[~match] = -np.inf
+                else:
+                    match = x_eval < self.limits[0, 1]
+                    inside &= match
+                    out[~match] = -np.inf
             else: 
                 raise ValueError(f"Somehow bound is not a {Boundary}")
 
@@ -298,6 +338,42 @@ class Interpolator(ABC):
                         match = x_eval[:,dim] < self.limits[dim, 1]
                         inside &= match
                         out[~match] = 0.
+                elif bound is Boundary.INF_INC:
+                    if b == 0:
+                        match = x_eval[:,dim] >= self.limits[dim, 0]
+                        inside &= match
+                        out[~match] = np.inf
+                    else:
+                        match = x_eval[:,dim] <= self.limits[dim, 1]
+                        inside &= match
+                        out[~match] = np.inf
+                elif bound is Boundary.INF_EXC:
+                    if b == 0:
+                        match = x_eval[:,dim] > self.limits[dim, 0]
+                        inside &= match
+                        out[~match] = np.inf
+                    else:
+                        match = x_eval[:,dim] < self.limits[dim, 1]
+                        inside &= match
+                        out[~match] = np.inf
+                elif bound is Boundary.NINF_INC:
+                    if b == 0:
+                        match = x_eval[:,dim] >= self.limits[dim, 0]
+                        inside &= match
+                        out[~match] = -np.inf
+                    else:
+                        match = x_eval[:,dim] <= self.limits[dim, 1]
+                        inside &= match
+                        out[~match] = -np.inf
+                elif bound is Boundary.NINF_EXC:
+                    if b == 0:
+                        match = x_eval[:,dim] > self.limits[dim, 0]
+                        inside &= match
+                        out[~match] = -np.inf
+                    else:
+                        match = x_eval[:,dim] < self.limits[dim, 1]
+                        inside &= match
+                        out[~match] = -np.inf
                 else: 
                     raise ValueError(f"Somehow bound is not a {Boundary}")
 
