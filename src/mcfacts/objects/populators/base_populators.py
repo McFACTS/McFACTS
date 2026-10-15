@@ -180,7 +180,7 @@ class SingleStarPopulator(GalaxyPopulator):
 
         star_num = len(masses_stars)
 
-        if sm.flag_initial_stars_BH_immortal == 0:
+        if sm.flag_initial_stars_bh_immortal == 0:
             # Stars over disk_star_initial_mass_cutoff will be held at disk_star_initial_mass_cutoff and be immortal
             masses_stars[masses_stars > sm.disk_star_initial_mass_cutoff] = sm.disk_star_initial_mass_cutoff
 
