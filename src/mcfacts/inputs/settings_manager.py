@@ -187,7 +187,7 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("rstar_rhill_exponent_ratio", "star", 2.0, float),
         SettingsProperty("disk_star_scale_factor", "star", 1.e-3, float),
         SettingsProperty("flag_coalesce_initial_stars", "star", False, bool),
-        SettingsProperty("flag_initial_stars_BH_immortal", "star", False, bool),
+        SettingsProperty("flag_initial_stars_bh_immortal", "star", False, bool),
         SettingsProperty("disk_star_initial_mass_cutoff", "star", 298.0, float),
 
         # Nuclear Star Cluster Parameters
