@@ -323,6 +323,7 @@ def jimenezmasset17_torque(smbh_mass, disk_surf_density_func, disk_opacity_func,
 
     return Torque_jimenezmasset_coeff
 
+
 def jimenezmasset17_thermal_torque_coeff(smbh_mass, disk_surf_density_func, disk_opacity_func, disk_aspect_ratio_func,
                                          disk_temp_func, disk_bh_eddington_ratio, orbs_a, orbs_ecc, orb_ecc_crit,
                                          bh_masses, flag_thermal_feedback, disk_dlog10pressure_dlog10R_func, r_g_in_meters):
@@ -1063,7 +1064,7 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
 
     return ratio_feedback_migration_torque
 
-#smbh or bh accretion?
+
 def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_opacity_func, disk_stars_eddington_ratio,
                           disk_alpha_viscosity, disk_radius_outer):
     """Calculate the ratio of radiative feedback torque to migration torque.
@@ -1133,6 +1134,7 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
         "Finite check failure: ratio_feedback_migration_torque"
 
     return ratio_feedback_migration_torque
+
 
 def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, disk_bh_eddington_ratio, disk_alpha_viscosity, disk_radius_outer):
     """Calculates ratio of heating torque to migration torque using Eqn. 28 in Hankla, Jiang & Armitage (2020)
