@@ -1,4 +1,5 @@
 # NRSurrogate model published by Varma+2019 and modified for use in McFACTS by Keefe Mitman
+import sys
 
 import joblib
 import warnings
@@ -152,6 +153,8 @@ class GPRFitters:
         return np.array(ys)
 
     def read_from_file(filename):
+        # surrogate.joblib was pickled with fit_modeler as a top-level module
+        sys.modules.setdefault("fit_modeler", sys.modules[__name__])
         return joblib.load(filename)
 
     def write_to_file(self, filename):

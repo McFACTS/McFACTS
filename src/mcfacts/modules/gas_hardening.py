@@ -10,8 +10,9 @@ import mcfacts.modules.gw
 import mcfacts.utilities.checks
 import mcfacts.utilities.peters
 import mcfacts.utilities.unit_conversion
-from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import peters, checks, unit_conversion
 from mcfast import baruteau_helper

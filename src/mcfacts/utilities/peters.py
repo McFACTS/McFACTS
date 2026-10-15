@@ -269,7 +269,7 @@ def gw_strain_freq_no_prior(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, agn_reds
     #                                     agn_redshift=agn_redshift,
     #                                     flag_include_old_gw_freq=0)
 
-    char_strain, nu_gw = gw_strain_freq_optimized(mass_1=bin_mass_1,
+    char_strain, strain, nu_gw = gw_strain_freq_optimized(mass_1=bin_mass_1,
                                         mass_2=bin_mass_2,
                                         obj_sep=bin_sep,
                                         timestep_duration_yr=-1,
@@ -326,7 +326,7 @@ def bbh_gw_params(bin_mass_1, bin_mass_2, bin_sep, smbh_mass, timestep_duration_
     #                                     agn_redshift=agn_redshift,
     #                                     flag_include_old_gw_freq=1)
 
-    char_strain, nu_gw = gw_strain_freq_optimized(mass_1=bin_mass_1,
+    char_strain, strain, nu_gw = gw_strain_freq_optimized(mass_1=bin_mass_1,
                                         mass_2=bin_mass_2,
                                         obj_sep=bin_sep,
                                         timestep_duration_yr=timestep_duration_yr,

@@ -1,8 +1,9 @@
 import numpy as np
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.modules import stellar_interpolation
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.galaxy import GalaxyPopulator
 from mcfacts.utilities.random_state import uuid_provider
 from mcfacts.objects.agn_object_array import AGNObjectArray, AGNBlackHoleArray, AGNStarArray
@@ -10,11 +11,18 @@ from mcfacts.setup import setupdiskblackholes, initializediskstars, setupdisksta
 
 
 class SingleBlackHolePopulator(GalaxyPopulator):
-    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
-        super().__init__(settings.bh_array_name if name is None else name, settings)
 
-    def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
-        sm = self.settings
+    @property
+    def name(self):
+        return "blackholes_unsort"
+
+    def populate(
+            self,
+            settings: SettingsManager,
+            agn_disk: AGNDisk,
+            random_generator: Generator,
+        ) -> AGNObjectArray:
+        sm = settings
 
         disk_bh_num = setupdiskblackholes.setup_disk_nbh(
             sm.nsc_mass,
@@ -104,11 +112,18 @@ class SingleBlackHolePopulator(GalaxyPopulator):
 
 
 class SingleStarPopulator(GalaxyPopulator):
-    def __init__(self, name: str = None, settings: SettingsManager = SettingsManager()):
-        super().__init__(settings.star_array_name if name is None else name, settings)
 
-    def populate(self, agn_disk: AGNDisk, random_generator: Generator) -> AGNObjectArray:
-        sm = self.settings
+    @property
+    def name(self):
+        return "stars_unsort"
+
+    def populate(
+            self,
+            settings: SettingsManager,
+            agn_disk: AGNDisk,
+            random_generator: Generator,
+        ) -> AGNObjectArray:
+        sm = settings
 
         # Initialize stars
 

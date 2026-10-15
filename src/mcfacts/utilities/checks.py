@@ -164,13 +164,13 @@ def flag_binary_mergers(sm: SettingsManager, filing_cabinet: FilingCabinet):
     )
 
 
-def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10):
+def generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=10, *, random):
     a = (lower - mean) / std
     b = (upper - mean) / std
-    return truncnorm.rvs(a, b, loc=mean, scale=std, size=size)
+    return truncnorm.rvs(a, b, loc=mean, scale=std, size=size, random_state=random)
 
 
-def spin_check(gen_1, gen_2, spin_merged):
+def spin_check(gen_1, gen_2, spin_merged, random):
     """
     Since the Tichy and Marronetti '08 prescription generates spin values outside the expected range for
     higher mass ratio objects, this definition checks spin values after merger and if the magnitude is too low, this
@@ -185,6 +185,8 @@ def spin_check(gen_1, gen_2, spin_merged):
             generation of m2 (before merger) (1=natal BH that has never been in a prior merger)
         spin_merged : numpy.darray
             Final spin magnitude [unitless] of merger remnant with :obj:`float` type
+        random : numpy.random.Generator
+            Generator used to generate random numbers
 
     Returns
     -------
@@ -208,7 +210,7 @@ def spin_check(gen_1, gen_2, spin_merged):
         elif ((gen_1[i] == 2.) | (gen_2[i] == 2.)) & ((gen_1[i] <= 2.) & (gen_2[i] <= 2.)):
             # print('gen 2', spin_merged[i])
             if spin_merged[i] < 0.75:
-                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=1)
+                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.75, upper=0.85, size=1, random=random)
                 # print('gen 2 plus noise', spin_plus_noise)
                 new_spin_merged.append(float(spin_plus_noise))
             else:
@@ -219,7 +221,7 @@ def spin_check(gen_1, gen_2, spin_merged):
         elif (gen_1[i] >= 3.) | (gen_2[i] >= 3.):
             # print('gen x', spin_merged[i])
             if spin_merged[i] < 0.85:
-                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.85, upper=0.95, size=1)
+                spin_plus_noise = generate_truncated_normal(mean=0, std=1, lower=0.85, upper=0.95, size=1, random=random)
                 # print('gen 3+ plus noise', spin_plus_noise)
                 new_spin_merged.append(float(spin_plus_noise))
             else:

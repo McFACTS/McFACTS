@@ -9,8 +9,9 @@ from numpy.random import Generator
 
 import mcfacts.utilities.checks
 import mcfacts.utilities.unit_conversion
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import checks, unit_conversion
 from mcfast import star_wind_mass_loss_helper, accrete_star_mass_helper
