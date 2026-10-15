@@ -165,7 +165,7 @@ class AGNObjectArray(ABC):
         condition_mat = self.unique_id == unique_id[:, None]
 
         # Returns the row and column numbers of where the matrix of conditions is true.
-        row_indices, column_indices = np.where(condition_mat)
+        _, column_indices = np.where(condition_mat)
 
         # We use the column_indices to make our final selection since it retains the original order of the input ids.
         return super_list[attribute_name][column_indices]

@@ -274,7 +274,7 @@ class InitialStarReclassification(TimelineActor):
         blackholes_unsort = filing_cabinet.get_array(sm.bh_array_name, AGNBlackHoleArray, True)
         stars = filing_cabinet.get_array(sm.star_array_name, AGNStarArray, True)
 
-        if (sm.flag_initial_stars_BH_immortal == 1):
+        if (sm.flag_initial_stars_bh_immortal == 1):
             # Stars over disk_star_initial_mass_cutoff will turn into BH
 
             star_to_bh_id_num = stars.id_num[stars.mass > sm.disk_star_initial_mass_cutoff]

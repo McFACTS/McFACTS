@@ -3816,7 +3816,7 @@ class SingleBlackHoleDynamics(TimelineActor):
                 blackholes_array.orb_ecc,
                 timestep_length,
                 sm.disk_bh_pro_orb_ecc_crit,
-                sm.delta_energy_strong_mu,
+                sm.mu_ecc_encounter,
                 sm.disk_radius_outer,
                 random_generator
             )
@@ -3828,7 +3828,7 @@ class SingleBlackHoleDynamics(TimelineActor):
                 blackholes_array.orb_ecc,
                 timestep_length,
                 sm.disk_bh_pro_orb_ecc_crit,
-                sm.delta_energy_strong_mu,
+                sm.mu_ecc_encounter,
                 sm.disk_radius_outer,
                 random_generator
             )
@@ -3867,7 +3867,7 @@ class SingleStarDynamics(TimelineActor):
             sm.rstar_rhill_exponent_ratio,
             timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong_mu,
+            sm.mu_ecc_encounter,
             sm.disk_radius_outer
         )
 
@@ -3954,8 +3954,8 @@ class SingleBlackHoleStarDynamics(TimelineActor):
             blackholes_pro.id_num,
             timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong_mu,
-            sm.delta_energy_strong_sigma,
+            sm.mu_ecc_encounter,
+            sm.sigma_ecc_encounter,
             sm.disk_radius_outer,
             random_generator
         )
@@ -4111,10 +4111,10 @@ class BinaryBlackHoleSpheroidDynamics(TimelineActor):
             blackholes_binary.bin_orb_inc[non_merge_mask],
             time_passed,
             sm.nsc_imf_bh_powerlaw_index,
-            sm.delta_energy_strong_mu,
+            sm.mu_ecc_encounter,
             sm.nsc_spheroid_normalization,
-            sm.mean_harden_energy_delta,
-            sm.var_harden_energy_delta,
+            sm.mu_circ_encounter,
+            sm.sigma_circ_encounter,
             sm.r_g_in_meters,
             random_generator
         )
@@ -4165,7 +4165,7 @@ class BinaryBlackHoleEccDynamics(TimelineActor):
             blackholes_binary.bin_orb_ecc[non_merge_mask],
             timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong_mu,
+            sm.mu_ecc_encounter,
             sm.disk_radius_outer,
             sm.r_g_in_meters,
             random_generator
@@ -4229,10 +4229,10 @@ class BinaryBlackHoleDynamics(TimelineActor):
             blackholes_binary.bin_orb_ecc[non_merge_mask],
             timestep_length,
             sm.disk_bh_pro_orb_ecc_crit,
-            sm.delta_energy_strong_mu,
+            sm.mu_ecc_encounter,
             sm.disk_radius_outer,
-            sm.mean_harden_energy_delta,
-            sm.var_harden_energy_delta,
+            sm.mu_circ_encounter,
+            sm.sigma_circ_encounter,
             sm.r_g_in_meters,
             random_generator
         )
