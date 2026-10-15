@@ -94,7 +94,7 @@ def test_disk_truncation():
     # Define some settings
     live = SettingsManager()
     # before
-    radius_before = 5.e4
+    radius_before = 2.5e4
     # Turn off truncation and max pc
     live.set_preprocessing("flag_use_scaling",      False)
     live.set_preprocessing("disk_truncation",       "opacity-equals-inner-disk")
