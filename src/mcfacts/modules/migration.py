@@ -636,7 +636,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             temp_orbs_a = new_orbs_a[mask_in_trap] - migration_distance[mask_in_trap]
             new_orbs_a[mask_in_trap] = temp_orbs_a
 
-        if smbh_mass < 1.e8 and smbh_mass > 1.e6:
+        if smbh_mass < 1.e8 and smbh_mass >= 1.e6:
             # Trap radius changes as a function of mass.
             # Also new(!) anti-trap radius. Region between trap and anti-trap migrates out, all others migrate inwards
             # Calc new trap radius from Grishin+24
