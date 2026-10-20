@@ -1533,7 +1533,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                         disk_trap_radius = sm.disk_radius_trap
                         disk_anti_trap_radius = sm.disk_radius_trap
                     # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
-                    if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
+                    if sm.smbh_mass < 1.e8 and sm.smbh_mass >= 1.e6:
                         disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
                         disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
                     # Trap location changes again at low SMBH mass (Grishin+24)

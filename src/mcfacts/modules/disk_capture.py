@@ -456,7 +456,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
 
         ## Check for arg_periapse
         # If argument of periapse is pi/2, the body is rotating orthogonally to the plane of the disk.
-        half_pi_nan_mask = nan_index[np.isclose(disk_bh_retro_arg_periapse[nan_index], np.pi/2)]
+        half_pi_nan_mask = np.isclose(disk_bh_retro_arg_periapse[nan_index], np.pi/2)
         half_pi_nan_index = nan_index[half_pi_nan_mask]
 
         # Catch them
@@ -944,7 +944,7 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
 
         captured_blackholes = AGNBlackHoleArray(
             unique_id=np.array(
-                [uuid_provider(random_generator) for _ in range(bh_mass_captured.size)]
+                [uuid_provider(random_generator) for _ in range(bh_mass_captured.size)],
                 dtype=object,
             ),
             mass=bh_mass_captured,
