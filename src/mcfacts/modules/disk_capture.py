@@ -444,21 +444,23 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     ]
     if nan_index.size > 0:
         ## Check for objects inside 12.1 R_g ##
-        inner_nan_index = nan_index[disk_bh_retro_orbs_a[nan_index] < 12.1]
+        inner_nan_mask = disk_bh_retro_orbs_a[nan_index] < 12.1
+        inner_nan_index = nan_index[inner_nan_mask]
         disk_bh_retro_orbs_ecc_new[inner_nan_index] = disk_bh_retro_orbs_ecc[inner_nan_index]
         # Inside ACTUAL ISCO; might get caught better
         disk_bh_retro_orbs_a_new[inner_nan_index] = 5.9
         # It's been eaten
         disk_bh_retro_orbs_inc_new[inner_nan_index] = 0.
         # We assigned these values, so we don't need to catch them a second time
-        nan_index = nan_index[~inner_nan_index]
+        nan_index = nan_index[~inner_nan_mask]
 
         ## Check for arg_periapse
         # If argument of periapse is pi/2, the body is rotating orthogonally to the plane of the disk.
-        half_pi_nan_index = nan_index[np.isclose(disk_bh_retro_arg_periapse[nan_index], np.pi/2)]
+        half_pi_nan_mask = nan_index[np.isclose(disk_bh_retro_arg_periapse[nan_index], np.pi/2)]
+        half_pi_nan_index = nan_index[half_pi_nan_mask]
 
         # Catch them
-        if any(nan_index):
+        if nan_index.size > 0:
             print("nan_index:", np.where(nan_index))
             print("nan old ecc:", disk_bh_retro_orbs_ecc[nan_index])
             print("disk_bh_retro_masses:", disk_bh_retro_masses[nan_index])
@@ -941,7 +943,10 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
         )
 
         captured_blackholes = AGNBlackHoleArray(
-            unique_id=np.array([uuid_provider(random_generator) for _ in range(bh_mass_captured.size)]),
+            unique_id=np.array(
+                [uuid_provider(random_generator) for _ in range(bh_mass_captured.size)]
+                dtype=object,
+            ),
             mass=bh_mass_captured,
             spin=bh_spin_captured,
             spin_angle=bh_spin_angle_captured,
