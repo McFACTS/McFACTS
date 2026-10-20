@@ -299,7 +299,7 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     periapse[cos_0_mask] = periapse_0
 
     # Get current tau values
-    tau_e_current_orig, tau_a_current_orig = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
+    tau_e_current, tau_a_current = tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
                                                disk_bh_retro_arg_periapse, disk_bh_retro_orbs_ecc, disk_bh_retro_orbs_inc,
                                                disk_surf_density_func, r_g_in_meters)
     #tau_e_current, tau_a_current = tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
