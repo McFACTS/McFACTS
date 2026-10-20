@@ -177,6 +177,10 @@ class AGNDiskInterp(object):
     def pagn_bonus_structures(self, value):
         self._pagn_bonus_structures = value
 
+    @property
+    def inner_boundary_r_g(self):
+        return np.exp(self._surface_density_loglog.limits[0][0])
+
     ### Methods ###
     def surface_density(self, orb_a):
         return np.exp(self._surface_density_loglog(np.log(orb_a)))
