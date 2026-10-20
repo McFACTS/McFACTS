@@ -437,34 +437,34 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     disk_bh_retro_orbs_inc_new[disk_bh_retro_orbs_inc_new <= 0.0] = 0.0
 
     # Check Finite
-    nan_mask = (
+    nan_index = np.arange(disk_bh_retro_orbs_ecc_new.size)[
             ~np.isfinite(disk_bh_retro_orbs_ecc_new) | \
             ~np.isfinite(disk_bh_retro_orbs_a_new) | \
             ~np.isfinite(disk_bh_retro_orbs_inc_new) \
-        )
-    if np.sum(nan_mask) > 0:
+    ]
+    if nan_index.size > 0:
         ## Check for objects inside 12.1 R_g ##
-        inner_nan_mask = nan_mask[disk_bh_retro_orbs_a[nan_mask] < 12.1]
-        disk_bh_retro_orbs_ecc_new[inner_nan_mask] = disk_bh_retro_orbs_ecc[inner_nan_mask]
+        inner_nan_index = nan_index[disk_bh_retro_orbs_a[nan_index] < 12.1]
+        disk_bh_retro_orbs_ecc_new[inner_nan_index] = disk_bh_retro_orbs_ecc[inner_nan_index]
         # Inside ACTUAL ISCO; might get caught better
-        disk_bh_retro_orbs_a_new[inner_nan_mask] = 5.9
+        disk_bh_retro_orbs_a_new[inner_nan_index] = 5.9
         # It's been eaten
-        disk_bh_retro_orbs_inc_new[inner_nan_mask] = 0.
+        disk_bh_retro_orbs_inc_new[inner_nan_index] = 0.
         # We assigned these values, so we don't need to catch them a second time
-        nan_mask = nan_mask[~inner_nan_mask]
+        nan_index = nan_index[~inner_nan_index]
 
         ## Check for arg_periapse
         # If argument of periapse is pi/2, the body is rotating orthogonally to the plane of the disk.
-        half_pi_nan_mask = nan_mask[np.isclose(disk_bh_retro_arg_periapse[nan_mask], np.pi/2)]
+        half_pi_nan_index = nan_index[np.isclose(disk_bh_retro_arg_periapse[nan_index], np.pi/2)]
 
         # Catch them
-        if any(nan_mask):
-            print("nan_mask:", np.where(nan_mask))
-            print("nan old ecc:", disk_bh_retro_orbs_ecc[nan_mask])
-            print("disk_bh_retro_masses:", disk_bh_retro_masses[nan_mask])
-            print("disk_bh_retro_orbs_a:", disk_bh_retro_orbs_a[nan_mask])
-            print("disk_bh_retro_orbs_inc:", disk_bh_retro_orbs_inc[nan_mask])
-            print("disk_bh_retro_arg_periapse:", disk_bh_retro_arg_periapse[nan_mask])
+        if any(nan_index):
+            print("nan_index:", np.where(nan_index))
+            print("nan old ecc:", disk_bh_retro_orbs_ecc[nan_index])
+            print("disk_bh_retro_masses:", disk_bh_retro_masses[nan_index])
+            print("disk_bh_retro_orbs_a:", disk_bh_retro_orbs_a[nan_index])
+            print("disk_bh_retro_orbs_inc:", disk_bh_retro_orbs_inc[nan_index])
+            print("disk_bh_retro_arg_periapse:", disk_bh_retro_arg_periapse[nan_index])
             raise RuntimeError("Finite check failed for disk_bh_retro_orbs_ecc_new")
 
     # Anything outside the disk is brought back in
@@ -681,23 +681,23 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
                 / (np.sqrt(2) * kappa * np.abs(np.cos(inc) - zeta))
 
     if not np.isfinite(tau_p_dyn).all():
-        mask_nisfinite = ~np.isfinite(tau_p_dyn)
+        index_nisfinite = ~np.isfinite(tau_p_dyn)
         print(f"smbh_mass: {smbh_mass}")
-        print(f"mask_nisfinite sum: {mask_nisfinite.sum()}; size: {mask_nisfinite.size})")
-        print("locations: ", retrograde_bh_locations[mask_nisfinite])
-        print("mass: ", retrograde_bh_masses[mask_nisfinite])
-        print("ecc: ", retrograde_bh_orb_ecc[mask_nisfinite])
-        print("inc: ", retrograde_bh_orb_inc[mask_nisfinite])
-        print("period: ", period[mask_nisfinite])
-        print("semi_lat_rec: ", semi_lat_rec[mask_nisfinite])
-        print("omega: ", omega[mask_nisfinite])
-        print("cos_omega: ", cos_omega[mask_nisfinite])
-        print("disk_surf_model: ", disk_surf_model(retrograde_bh_locations[mask_nisfinite]))
-        print("delta:", delta[mask_nisfinite])
-        print("zeta:", zeta[mask_nisfinite])
-        print("cos_inc:", np.cos(inc)[mask_nisfinite])
-        print("xi:", xi[mask_nisfinite])
-        print("kappa:", kappa[mask_nisfinite])
+        print(f"index_nisfinite sum: {index_nisfinite.sum()}; size: {index_nisfinite.size})")
+        print("locations: ", retrograde_bh_locations[index_nisfinite])
+        print("mass: ", retrograde_bh_masses[index_nisfinite])
+        print("ecc: ", retrograde_bh_orb_ecc[index_nisfinite])
+        print("inc: ", retrograde_bh_orb_inc[index_nisfinite])
+        print("period: ", period[index_nisfinite])
+        print("semi_lat_rec: ", semi_lat_rec[index_nisfinite])
+        print("omega: ", omega[index_nisfinite])
+        print("cos_omega: ", cos_omega[index_nisfinite])
+        print("disk_surf_model: ", disk_surf_model(retrograde_bh_locations[index_nisfinite]))
+        print("delta:", delta[index_nisfinite])
+        print("zeta:", zeta[index_nisfinite])
+        print("cos_inc:", np.cos(inc)[index_nisfinite])
+        print("xi:", xi[index_nisfinite])
+        print("kappa:", kappa[index_nisfinite])
         raise RuntimeError("Finite check failure: tau_p_dyn")
 
     return tau_p_dyn
