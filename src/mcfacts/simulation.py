@@ -30,6 +30,7 @@ from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.galaxy import Galaxy
 from mcfacts.objects.populators import SingleBlackHolePopulator, SingleStarPopulator
 from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
+from mcfacts.objects.snapshot import IniSnapshotHandler
 from mcfacts.objects.snapshot import HDF5SnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
 
@@ -173,6 +174,12 @@ def main(settings: SettingsManager):
             "settings",
             settings,
         )
+    elif isinstance(settings_snapshot_handler, IniSnapshotHandler):
+        settings_snapshot_handler.save_settings(
+            settings.output_dir,
+            "settings",
+            settings,
+        )
     elif isinstance(settings_snapshot_handler, HDF5SnapshotHandler):
         settings_snapshot_handler.save_settings(
             settings.output_dir,
@@ -180,7 +187,7 @@ def main(settings: SettingsManager):
             settings,
         )
     else:
-        NotImplementedError(
+        raise NotImplementedError(
             "I don't know how to save settings using "
             f"{settings_snapshot_handler}"
         )
