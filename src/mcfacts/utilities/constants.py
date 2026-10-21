@@ -14,3 +14,4 @@ from astropy import units as u
 #### BEGIN GLOBAL VARIABLES
 SEC_IN_YR = u.yr.to(u.s)
 M_SUN_KG = u.M_sun.to(u.kg)
+HUBBLE_TIME_IN_S = cosmo.age(0.).to(u.s)
