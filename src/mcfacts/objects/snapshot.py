@@ -801,7 +801,7 @@ class HDF5SnapshotHandler(SnapshotHandler):
         if addr is None:
             addr = self.settings_addr
         # Open the database
-        db = Database(final_path, addr)
+        db = Database(final_path, addr, retries=self.retries, sleep=self.sleep)
 
         ## Save requires mutating data ##
         save_attrs = {key:value for key, value in settings.settings_finals.items()}
