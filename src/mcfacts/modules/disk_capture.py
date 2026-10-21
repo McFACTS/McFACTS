@@ -829,13 +829,14 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     tau_a_dyn = tau_p_dyn * (1.0 - (ecc ** 2)) * kappa * np.abs(np.cos(inc) - zeta) / (
             kappa_bar * np.abs(np.cos(inc) - zeta_bar))
     # WZL Eqn 73
+    # TODO Saavik check this
+    #tau_a_dyn[ecc == 0] = HUBBLE_TIME_IN_S.value
     tau_e_dyn = (2.0 * (ecc ** 2) / (1.0 - (ecc ** 2))) * 1.0 / np.abs(1.0 / tau_a_dyn - 1.0 / tau_p_dyn)
     # TODO Saavik check this
     # The limit of 1 / ((1/x) + (1/x)) as x goes to zero is zero
     tau_e_dyn[tau_p_dyn == 0] = 0.
-    #tau_e_dyn[(tau_a_dyn == 0) | (tau_p_dyn == 0)] = HUBBLE_TIME_SI.value
-    #tau_e_dyn[ecc == 0] = HUBBLE_TIME_SI.value
-    #print(f"tau_e_dyn: {tau_e_dyn}")
+    #tau_e_dyn[(tau_a_dyn == 0) | (tau_p_dyn == 0)] = HUBBLE_TIME_IN_S.value
+    #tau_e_dyn[ecc == 0] = HUBBLE_TIME_IN_S.value
 
     if not np.isfinite(tau_e_dyn).all():
         mask_nisfinite = ~np.isfinite(tau_e_dyn)
