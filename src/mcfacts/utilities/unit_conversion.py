@@ -65,6 +65,8 @@ def si_from_r_g_optimized(smbh_mass, distance_rg, r_g_defined=None):
     distance : numpy.ndarray
         Distance in SI with :obj:`astropy.units.quantity.Quantity` type
     """
+    if smbh_mass >= 1.e30:
+        raise RuntimeError(f"Some units are not right.")
     return si_from_r_g_helper(smbh_mass, distance_rg) * u.m
 
 
