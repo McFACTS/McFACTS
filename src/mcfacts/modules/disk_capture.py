@@ -637,11 +637,13 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
 
     Appropriate for BH, NS, maaaybe WD?--check
     """
+    # semi_maj_axis = mcfacts.utilities.unit_conversion.si_from_r_g(smbh_mass, retrograde_bh_locations, r_g_defined=r_g_in_meters).to("m").value
+    semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, retrograde_bh_locations).value
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
     smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    # semi_maj_axis = mcfacts.utilities.unit_conversion.si_from_r_g(smbh_mass, retrograde_bh_locations, r_g_defined=r_g_in_meters).to("m").value
-    semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, retrograde_bh_locations).value
+    if smbh_mass < 1.e30 or smbh_mass > 1.e60:
+        raise RuntimeError(f"Some units are not right.")
     retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
     omega = retro_arg_periapse  # radians
     ecc = retrograde_bh_orb_ecc  # unitless
@@ -731,15 +733,25 @@ def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
     tau_a_dyn : numpy.ndarray
         Semi-major axis damping timescale [s]
     """
-    smbh_mass *= M_SUN_KG
-
     retro_mass = disk_bh_retro_masses * M_SUN_KG  # kg
 
     # semi_maj_axis = si_from_r_g(smbh_mass, disk_bh_retro_orbs_a, r_g_defined=r_g_in_meters).to("m").value
-    semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, disk_bh_retro_orbs_a).value
+    semi_maj_axis = unit_conversion.si_from_r_g_optimized(
+        smbh_mass,
+        disk_bh_retro_orbs_a,
+    ).value
     disk_surf_res = disk_surf_density_func(disk_bh_retro_orbs_a)
     # call out to Rust helper fn
-    tau_e_dyn, tau_a_dyn = tau_ecc_dyn_helper(smbh_mass, retro_mass, ecc, inc, omega, disk_surf_res, semi_maj_axis)
+
+    tau_e_dyn, tau_a_dyn = tau_ecc_dyn_helper(
+        smbh_mass * M_SUN_KG,
+        retro_mass,
+        ecc,
+        inc,
+        omega,
+        disk_surf_res,
+        semi_maj_axis,
+    )
 
     assert np.isfinite(tau_e_dyn).all(), \
         "Finite check failure: tau_e_dyn"
