@@ -8,7 +8,7 @@ from numpy.random import Generator
 from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 from mcfacts.utilities import unit_conversion
-from mcfacts.utilities.constants import M_SUN_KG
+from mcfacts.utilities.constants import M_SUN_KG, HUBBLE_TIME_SI
 from mcfacts.utilities.unit_conversion import si_from_r_g_optimized
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
@@ -833,6 +833,9 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     # TODO Saavik check this
     # The limit of 1 / ((1/x) + (1/x)) as x goes to zero is zero
     tau_e_dyn[tau_p_dyn == 0] = 0.
+    #tau_e_dyn[(tau_a_dyn == 0) | (tau_p_dyn == 0)] = HUBBLE_TIME_SI.value
+    #tau_e_dyn[ecc == 0] = HUBBLE_TIME_SI.value
+    #print(f"tau_e_dyn: {tau_e_dyn}")
 
     if not np.isfinite(tau_e_dyn).all():
         mask_nisfinite = ~np.isfinite(tau_e_dyn)
