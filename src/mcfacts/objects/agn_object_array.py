@@ -156,6 +156,13 @@ class AGNObjectArray(ABC):
             - The method uses a selection mask to filter the attribute array based on the provided unique IDs.
             - Assumes that the `unique_id` attribute of the class contains a list of IDs matching those in the superclass.
         """
+        # if unique_id is empty, then we can skip this rigmarole and 
+        # return an empty array directly
+        if unique_id.size == 0:
+            # instead of constructing an empty array with no dtype,
+            # we make sure to return an empty array of the right dtype
+            return self.get_super_dict()[attribute_name][:0]
+
         super_list = self.get_super_dict()
 
         if attribute_name not in super_list.keys():
@@ -165,7 +172,7 @@ class AGNObjectArray(ABC):
         condition_mat = self.unique_id == unique_id[:, None]
 
         # Returns the row and column numbers of where the matrix of conditions is true.
-        row_indices, column_indices = np.where(condition_mat)
+        _, column_indices = np.where(condition_mat)
 
         # We use the column_indices to make our final selection since it retains the original order of the input ids.
         return super_list[attribute_name][column_indices]
