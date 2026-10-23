@@ -366,6 +366,8 @@ class SettingsManager:
             return float(override)
         if isinstance(override, np.int64) and expected == int:
             return int(override)
+        if isinstance(override, np.uint64) and expected == int:
+            return int(override)
 
         if isinstance(prop, OptionalSettingsProperty) and isinstance(override, NoneType):
             return override

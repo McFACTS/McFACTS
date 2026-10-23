@@ -3900,7 +3900,10 @@ class SingleStarDynamics(TimelineActor):
                                          stars_pro.at_id_num(star_touch_id_nums[1], "gen")) + 1.0
 
             merged_stars = AGNStarArray(
-                unique_id=np.array([uuid_provider(random_generator) for _ in range(star_touch_id_nums[1].size)]),
+                unique_id=np.array(
+                    [uuid_provider(random_generator) for _ in range(star_touch_id_nums[1].size)],
+                    dtype=object,
+                ),
                 mass=star_merged_mass,
                 orb_a=star_merged_orbs_a,
                 orb_ang_mom=np.ones(star_touch_id_nums.shape[1]),

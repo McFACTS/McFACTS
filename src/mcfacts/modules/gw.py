@@ -192,7 +192,11 @@ def normalize_tgw(smbh_mass, inner_disk_outer_radius, r_g_in_meters):
     time_gw_normalization = peters.time_of_orbital_shrinkage(
         smbh_mass * u.solMass,
         bin_mass_ref * u.solMass,
-        unit_conversion.si_from_r_g_optimized(smbh_mass * u.solMass, inner_disk_outer_radius, r_g_defined=r_g_in_meters),
+        unit_conversion.si_from_r_g_optimized(
+            smbh_mass * u.solMass,
+            inner_disk_outer_radius,
+            r_g_defined=r_g_in_meters,
+        ),
         0 * u.m,
     )
     return time_gw_normalization.si.value
