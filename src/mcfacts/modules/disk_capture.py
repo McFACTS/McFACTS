@@ -355,10 +355,9 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
     inc_scale_factor[cos_0_mask] = stepw0_time * tau_inc_div[cos_0_mask]
 
     # Calculate new orb_ecc values
-    # TODO: Evaluate for correctness, possibly break out in-line operation.  - Vera & Jake
     here_mask = cos_pm1_mask & no_max_ecc_retro_mask
-    # TODO Saavik this one is + all the other ones are -
-    # Correct?
+    # This one is + all the other ones are -
+    # See Fig 9 of Wang, Zhu, and Lin
     disk_bh_retro_orbs_ecc_new[here_mask] = \
         disk_bh_retro_orbs_ecc[here_mask] + (
             step1_delta_ecc * timestep_duration_yr / ecc_scale_factor[here_mask]
@@ -649,7 +648,9 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     ecc = retrograde_bh_orb_ecc  # unitless
     inc = retrograde_bh_orb_inc  # radians
     cos_omega = np.cos(omega)
-    cos_omega[np.isclose(cos_omega, 0.)] = 0.01 # TODO Saavik look here
+    # Okay if inc == 0 or ecc == 0
+    mask_here = (np.isclose(inc, 0.0) | np.isclose(ecc, 0.0)) & np.isclose(cos_omega, 0.0)
+    cos_omega[mask_here] = 0.01
 
     # period in units of sec
     period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (CONST_G_SI * smbh_mass))
@@ -799,7 +800,9 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
     cos_omega = np.cos(omega)
-    cos_omega[np.isclose(cos_omega, 0.)] = 0.01 # TODO Saavik look here
+    # Okay if inc == 0 or ecc == 0
+    mask_here = (np.isclose(inc, 0.0) | np.isclose(ecc, 0.0)) & np.isclose(cos_omega, 0.0)
+    cos_omega[mask_here] = 0.01
 
     # WZL Eqn 7 (sigma+/-)
     sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * cos_omega)
@@ -829,14 +832,9 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     tau_a_dyn = tau_p_dyn * (1.0 - (ecc ** 2)) * kappa * np.abs(np.cos(inc) - zeta) / (
             kappa_bar * np.abs(np.cos(inc) - zeta_bar))
     # WZL Eqn 73
-    # TODO Saavik check this
-    #tau_a_dyn[ecc == 0] = HUBBLE_TIME_SI.value
     tau_e_dyn = (2.0 * (ecc ** 2) / (1.0 - (ecc ** 2))) * 1.0 / np.abs(1.0 / tau_a_dyn - 1.0 / tau_p_dyn)
-    # TODO Saavik check this
     # The limit of 1 / ((1/x) + (1/x)) as x goes to zero is zero
     tau_e_dyn[tau_p_dyn == 0] = 0.
-    #tau_e_dyn[(tau_a_dyn == 0) | (tau_p_dyn == 0)] = HUBBLE_TIME_SI.value
-    #tau_e_dyn[ecc == 0] = HUBBLE_TIME_SI.value
 
     if not np.isfinite(tau_e_dyn).all():
         mask_nisfinite = ~np.isfinite(tau_e_dyn)
