@@ -13,6 +13,8 @@ Inifile
         If stars over disk_star_initial_mass_cutoff turn into BH (0) or hold at cutoff (1, immortal)
     "smbh_mass"                     : float
         Mass of the supermassive black hole (solMass)
+    "smbh_eddington_ratio"          : float
+        Eddington ratio for the supermassive black hole
     "disk_radius_trap"              : float
         Radius of migration trap in gravitational radii (r_g = G*`smbh_mass`/c^2)
         Should be set to zero if disk model has no trap
@@ -167,6 +169,7 @@ INPUT_TYPES = {
     "flag_coalesce_initial_stars"   : int,
     "flag_initial_stars_BH_immortal": int,
     "smbh_mass"                     : float,
+    "smbh_eddington_ratio"          : float,
     "disk_radius_trap"              : float,
     "disk_radius_outer"             : float,
     "disk_radius_max_pc"            : float,
@@ -623,7 +626,7 @@ def construct_disk_pAGN(
     smbh_mass,
     disk_radius_outer,
     disk_alpha_viscosity,
-    disk_bh_eddington_ratio,
+    smbh_eddington_ratio,
     rad_efficiency=0.1,
     ):
     """Construct AGN disk model using the pAGN code.
@@ -649,6 +652,8 @@ def construct_disk_pAGN(
         final element of disk_model_radius_array (units of r_g)
     disk_alpha_viscosity : float
         disk viscosity 'alpha'
+    smbh_eddington_ratio : float
+        Eddington ratio for the supermassive black hole
     rad_efficiency : float
         An input for pAGN
 
@@ -676,7 +681,7 @@ def construct_disk_pAGN(
         base_args = {
             'Mbh': smbh_mass*pagn_ct.MSun,
             'alpha': disk_alpha_viscosity, 
-            'le': disk_bh_eddington_ratio,
+            'le': smbh_eddington_ratio,
             'eps': rad_efficiency
         }
     elif 'thompson' in disk_model_name:
@@ -686,7 +691,7 @@ def construct_disk_pAGN(
             'm': disk_alpha_viscosity, 
         }
             #'epsilon': rad_efficiency
-            #'le': disk_bh_eddington_ratio,\
+            #'le': smbh_eddington_ratio,\
         Rg = smbh_mass * ct.M_sun * ct.G / (ct.c**2)
         # pAGN TQM disk models exclude `Rout`, so feed pAGN a slightly
         # larger value (+1%) than the user set for `disk_radius_outer`
@@ -716,7 +721,7 @@ def construct_disk_interp(
     disk_radius_outer,
     disk_model_name,
     disk_alpha_viscosity,
-    disk_bh_eddington_ratio,
+    smbh_eddington_ratio,
     disk_radius_max_pc=0.,
     flag_use_pagn=0,
     verbose=0,
@@ -731,6 +736,8 @@ def construct_disk_interp(
             final element of disk_model_radius_array (units of r_g)
         disk_alpha_viscosity : float
             disk viscosity 'alpha'
+        smbh_eddington_ratio : float
+            Eddington ratio for the supermassive black hole
         disk_radius_max_pc : float
             Maximum disk size in parsecs (0. for off)
         flag_use_pagn : int
@@ -775,7 +782,7 @@ def construct_disk_interp(
                 smbh_mass,
                 disk_radius_outer,
                 disk_alpha_viscosity,
-                disk_bh_eddington_ratio,
+                smbh_eddington_ratio,
             )
 
     # Truncate disk models at outer disk radius
