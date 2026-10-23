@@ -987,7 +987,6 @@ def type1_migration_binary(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_orb
 
     return (new_bin_orb_a)
 
-
 def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_func, disk_bh_eddington_ratio,
                        disk_alpha_viscosity, disk_radius_outer):
     """Calculate the ratio of radiative feedback torque to migration torque.
@@ -1008,8 +1007,8 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
     disk_opacity_model : lambda
         Opacity as a function of radius
     disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
+        Accretion rate of fully embedded stellar mass black holes [Eddington accretion rate].
+        1.0 = embedded black holes are accreting at 100% of their Eddington limit.
         Super-Eddington accretion rates are permitted.
         User chosen input set by input file
     disk_alpha_viscosity : float
@@ -1086,11 +1085,6 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
         can accept a simple float (constant), but this is deprecated
     disk_opacity_model : lambda
         Opacity as a function of radius
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
     disk_alpha_viscosity : float
         Disk gas viscocity [units??] alpha parameter
     disk_radius_outer : float
@@ -1155,8 +1149,8 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
     disk_opacity_model : lambda
         Opacity as a function of radius
     disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
+        Accretion rate of fully embedded stellar mass black holes [Eddington accretion rate].
+        1.0 = embedded black holes are accreting at 100% of their Eddington limit.
         Super-Eddington accretion rates are permitted.
         User chosen input set by input file
     disk_alpha_viscosity : float
@@ -1313,7 +1307,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     agn_disk.disk_dlog10temp_dlog10R_func,
                     sm.r_g_in_meters
                 )
-
+                
                 # Thermal torque from JM17 (if flag_thermal_feedback off, this component is 0.)
                 jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
                     sm.smbh_mass,
