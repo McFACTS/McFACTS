@@ -100,7 +100,8 @@ def test_disk_truncation():
     live.set_preprocessing("disk_truncation",       "opacity-equals-inner-disk")
     live.set_preprocessing("disk_radius_max_pc",    0.)
     live.set_preprocessing("disk_model_name",       "sirko_goodman")
-    live.set_preprocessing("smbh_mass",             1.e8)
+    live.set_preprocessing("smbh_eddington_ratio",             1.0)
+    live.set_preprocessing("smbh_mass", 1.e8)
     live.set_preprocessing("disk_radius_outer",     radius_before)
     live.set_preprocessing("flag_use_pagn",         True)
     # Run the truncator
