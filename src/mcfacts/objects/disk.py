@@ -11,6 +11,7 @@ from astropy import constants as ct
 import pagn.constants as pagn_ct
 #### Local ####
 from mcfacts.objects.cache import readonly_cached_property
+from mcfacts.objects.interp import Boundary
 from mcfacts.objects.interp import CubicSpline, dCubicSpline
 from mcfacts.inputs import data as mcfacts_input_data
 from mcfacts.inputs.settings_manager import SettingsManager
@@ -97,7 +98,55 @@ class AGNDiskInterp(object):
         self._pagn_model = None
         self._pagn_bonus_structures = None
 
-        ## Boundary Shenanigans ##
+        ### Boundary Shenanigans ###
+        # Options: NAN_INC, NAN_EXC, EXTRAPOLATE, FLAT,
+        # ZERO_INC, ZERO_EXC, ONE_INC, ONE_EXC
+        # INF_INC, INF_EXC, NINF_INC, NINF_EXC
+        # Note that np.exp(-np.inf) is zero (NINF in loglog)
+        
+        ## Surface density ##
+        self._surface_density_loglog.bounds[0,0] = Boundary.FLAT
+        self._surface_density_loglog.bounds[0,1] = Boundary.NINF_INC
+
+        ## Aspect ratio ##
+        self._aspect_ratio_loglog.bounds[0,0] = Boundary.FLAT
+        self._aspect_ratio_loglog.bounds[0,1] = Boundary.NINF_INC
+
+        ## Opacity ##
+        self._opacity_loglog.bounds[0,0] =  Boundary.FLAT
+        self._opacity_loglog.bounds[0,1] =  Boundary.NINF_INC
+
+        ## Sound speed ##
+        self._sound_speed_loglog.bounds[0,0] =  Boundary.FLAT
+        self._sound_speed_loglog.bounds[0,1] =  Boundary.NINF_INC
+
+        ## Density ##
+        self._density_loglog.bounds[0,0] =  Boundary.FLAT
+        self._density_loglog.bounds[0,1] =  Boundary.NINF_INC
+
+        ## Omega ##
+        self._omega_loglog.bounds[0,0] =  Boundary.EXTRAPOLATE
+        self._omega_loglog.bounds[0,1] =  Boundary.EXTRAPOLATE
+
+        ## Temperature ##
+        self._temperature_loglog.bounds[0,0] =  Boundary.FLAT
+        self._temperature_loglog.bounds[0,1] =  Boundary.NINF_INC
+
+        ## Pressure gradient ##
+        self._pressure_grad_linear.bounds[0,0] =  Boundary.FLAT
+        self._pressure_grad_linear.bounds[0,1] =  Boundary.ZERO_INC
+
+        ## derivative surface density ##
+        self._dlog10_surface_density_dlog10R.bounds[0,0] =  Boundary.NINF_INC
+        self._dlog10_surface_density_dlog10R.bounds[0,1] =  Boundary.NINF_INC
+
+        ## Derivative temperature ##
+        self._dlog10_temp_dlog10R.bounds[0,0] =  Boundary.NINF_INC
+        self._dlog10_temp_dlog10R.bounds[0,1] =  Boundary.NINF_INC
+
+        ## Derivative midplane pressure
+        self._dlog10_midplane_pressure_dlog10R.bounds[0,0] =  Boundary.NINF_INC
+        self._dlog10_midplane_pressure_dlog10R.bounds[0,1] =  Boundary.NINF_INC
 
     ### Properties ###
     @property
@@ -127,6 +176,10 @@ class AGNDiskInterp(object):
     @pagn_bonus_structures.setter
     def pagn_bonus_structures(self, value):
         self._pagn_bonus_structures = value
+
+    @property
+    def inner_boundary_r_g(self):
+        return np.exp(self._surface_density_loglog.limits[0][0])
 
     ### Methods ###
     def surface_density(self, orb_a):
