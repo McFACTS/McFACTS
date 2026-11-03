@@ -120,7 +120,7 @@ been offloaded to a companion library called `McFAST`, built in Rust. On the
 astrophysics side of things, the simulation has been expanded to include a 
 full stellar population [@nathenial:2026, in prep], 
 electromagnetic-counterpart models [@mcpike:2026; @mcpike:2026b, in prep],
-numerical-relativity surrogate models for merger remnants [@ray:2026, in prep],
+numerical-relativity surrogate models for merger remnants [@ray:2026],
 and semi-analytical gas evolution models for binary objects 
 [@postiglione:2026, in prep].
 
@@ -298,7 +298,19 @@ enforced for floating point operations.
 
 # Research impact statement
 
-...
+Since its initial release, `McFACTS` has been used as the primary research 
+tool in several publications aimed at studying the AGN channel. Collectively,
+these publications have been cited over 100 times, and have provided a wealth
+of insight into how the AGN channel contributes to the population of compact
+objects detectible by LIGO-Virgo-KAGARA and LISA. Papers published by
+the `McFACTS` collaboration have studied the effects of AGN on
+the q vs. chi-effective distribution of LVK detectible BBH mergers [@cook:2025],
+shown the effects of NSC properties, galaxy mass, and redshift across an entire
+population of galaxies [@delfavero:2025], demonstrated the effects of the AGN
+channel on electromagnetic signatures and remnant kicks of embedded BBH mergers 
+[@mcpike:2026], and explored the AGN channel's effects on the resulting 
+properties of BBH merger remnants [@ray:2026] through numerical 
+relativity surrogate models. 
 
 
 # AI usage disclosure
@@ -311,5 +323,8 @@ generative models.
 
 # Acknowledgements
 
+The authors would like to acknowledge the helpful... 
+
+Support for JP was provided by Schmidt Sciences, LLC.
 
 # References
