@@ -79,38 +79,37 @@ bibliography: paper.bib
 
 # Summary
 
-Active Galactic Nuclei (AGN) are gas-rich and dynamically-active structures at
-the center of some galaxies. At the core of an AGN exists a Supermassive Black
-Hole (SMBH), creating an immense gravitational well hosting a diverse population
-of black holes and stars collectively forming a Nuclear Star Cluster (NSC). A 
-portion of the gravitational waves events detected by the LIGO-Virgo-KAGRA (LVK) 
-collaboration are expected to originate from the merging of binary black holes 
-(BBHs) embedded in the accretion disk of AGN. This "AGN channel" is also 
+Active Galactic Nuclei (AGN) are gas-rich and dynamically complex structures at
+the center of some galaxies. At the core of an AGN exists a supermassive black
+hole (SMBH), creating an immense gravitational well hosting a diverse population
+of black holes and stars which collectively form a nuclear star cluster (NSC). A 
+portion of the gravitational waves (GWs) events detected by the LIGO-Virgo-KAGRA (LVK) 
+GW detector network are expected to originate from the merging of binary black holes 
+(BBHs) embedded in the gas accretion disk of AGNs. This "AGN channel" is also 
 expected to host binaries that will be detectable by the Laser Interferometer 
-Space Antenna (LISA). Several features of this population, which appear in 
+Space Antenna (LISA) GW observatory. Several features of this population, which appear in 
 current observables, strongly depend on the properties of the accretion disk, 
 and NSC. Some of these properties can be difficult to directly measure; however, 
 through population synthesis we can place constraints on some of these features, 
 expanding our understanding of the AGN channel.
 
 `McFACTS` (Monte carlo For AGN Channel Testing and Simulation) is the leading
-public and open-source population synthesis code that models the AGN channel for 
-LVK-detectable BBH mergers [@mckernan:2025]. Given a model of an AGN disk and 
-distributions of objects derived from the properties of an NSC, `McFACTS` 
+public, open-source population synthesis code that models the AGN channel BBH mergers [@mckernan:2025]. 
+Given a model of an AGN disk and distributions of objects derived from the properties of an NSC, `McFACTS` 
 seeds a population of single black holes and stars which are then allowed 
 to evolve through a variety of physical effects and form binary objects 
-which in-turn can ionize. The gas in the disk can drive accretion, migration,
+which, in-turn, can ionize. The gas in the disk can drive accretion, migration,
 and eccentricity dampening. Different populations within the disk (e.g. 
 circular vs eccentric orbiters), can have dynamical encounters and exchange 
-energy. Stellar binaries, BBH, and Extreme Mass Ratio Inspirals (EMRIs) are 
-also allowed to evolve through gravitational wave decay. `McFACTS` makes use 
+energy. Stellar binaries, BBH, and Extreme Mass Ratio Inspirals (EMRIs; mass ratio $q\sim10^-5-10^7$) are 
+also allowed to evolve through GW decay. `McFACTS` makes use 
 of several long-standing packages making up the scientific python ecosystem, 
 such as `Astropy` [@astropy:2022], `NumPy` [@harris:2020],  and `SciPy` 
 [@scipy:2020]. The AGN disk structure and properties are obtained through 
 the `pAGN` [@gangardt:2024] package, supporting both the Sirko and Goodman 
 [@sg:2003] and Thompson, Quataert and Murry [@tqm:2005] disk models.
 
-This paper serves to document `McFACTS` along with a substantial re-structure 
+This paper serves to document `McFACTS` along with a substantial re-structure [EMILY: is this actually a refactor? IDK semantics]
 of the code, relative to the version first presented in @mckernan:2025. The 
 code has been significantly reorganized following a modular framework, 
 allowing for easy and intuitive composition of simulation timelines. Several 
@@ -118,15 +117,15 @@ key methods have also been vectorized, and the most computationally
 demanding algorithms have
 been offloaded to a companion library called `McFAST`, built in Rust. On the
 astrophysics side of things, the simulation has been expanded to include a 
-full stellar population [@nathenial:2026, in prep], 
-electromagnetic-counterpart models [@mcpike:2026; @mcpike:2026b, in prep],
-numerical-relativity surrogate models for merger remnants [@ray:2026],
+full stellar population [@nathenial:2026, in prep], [EMILY COMMENT: kaila's name is mispelled here]
+electromagnetic counterpart models [@mcpike:2026; @mcpike:2026b, in prep],
+numerical relativity surrogate models for merger remnants [@ray:2026],
 and semi-analytical gas evolution models for binary objects 
 [@postiglione:2026, in prep].
 
 # Statement of need
 
-Of the proposed formation channels for compact-object mergers, the AGN channel
+Of the proposed formation channels for compact-object [EMILY COMMENT: will they know what a compact object is? if not, just say BBH] mergers, the AGN channel
 remains poorly constrained. A population synthesis code for this channel must
 therefore make it possible to easily vary physical assumptions and 
 prescriptions, while remaining fast and performant. The original release of
@@ -138,10 +137,10 @@ and its scientific goals grew, these limitations became the main obstacle in
 maintaining and upgrading the code.
 
 The restructured version of `McFACTS`, documented in this paper, address these
-needs directly. Physical process have been separated into modular, and 
-independent reusable units. Population objects are now stored and managed in a 
+needs directly. Physical processes have been separated into modular, and 
+independent reusable units. Population objects [EMILY COMMENT: what is a population object? might be good to list in parantheses to let the reader know] are now stored and managed in a 
 centralized location with automatic consistency checking against the entire 
-datastore. The input/output structure has been revamped, using interfaces to
+datastore. The input/output structure has been upgraded to use interfaces which
 allow for the handling of different file types and interoperability with other
 pipelines and codes. The result of these changes is a code that is easier to
 extend, faster to run, and more easily adoptable by students and researchers
@@ -150,16 +149,16 @@ it into their own work.
 
 # State of the field            
 
-Several population synthesis codes targeting compact object formation and
+Several population synthesis codes targeting compact object [EMILY COMMENT: also, compact object name drop here, refer to previous comment] formation and
 evolution currently exist, include `COSMIC` [@breivik:2020], 
 `COMPAS` [@riley:2022], `CMC` [@rodriguez:2022], and `cogsworth` [@wagg:2024].
 These codes focus on formation channels for isolated binaries and dense
-stellar clusters, but do not model the gas-driven dynamics of an AGN disk.
+stellar clusters [EMILY COMMENT: this is a hard transition for a non-astro person. I think rephrasing this to be "formation channels for BBHs in gas-free environments (e.g. isolated binaries and dense stellar clusters...)], but do not model the [EMILY COMMENT: add "critical" or some other elevating the stakes adjective] gas-driven dynamics of an AGN disk.
 Codes that focused on the AGN channel have historically been geared towards
 specific features, such as focusing on the mergers found at migration traps, or 
-are not open source and have not been released publicly. `McFACST` distinguishes
-itself from its predecessors by being public, open source, and tooled to
-simulate the full AGN channel across a broad range of the AGN parameter space.
+are not open source and have not been released publicly. `McFACTS` distinguishes
+itself from its predecessors by being public, open-source, and tooled to
+simulate the full AGN channel for BBH mergers [EMILY COMMENT: ehhh is it the full if we don't have NSs and WDs (which I know is impossible ATM), just semantics] across a broad range of the AGN parameter space.
 
 # Software design
 
@@ -196,7 +195,7 @@ conventions of storing object properties (orbital parameters, mass, spin and
 spin angle, etc.) in distinct parallel `NumPy` arrays. Every 
 entry in an `AGNObjectArray` carries a unique identifier and the ids of any 
 parents, should they exist. Subclasses for different population categories, such 
-as single black holes, binary black holes, merged black holes, and so forth, 
+as single black holes, BBHs, merged black holes, and so forth, 
 allows for quick object-type validation when needed, and for the inheritance of 
 shared attributes.
 
@@ -207,7 +206,7 @@ object. The timeline holds an ordered list of different operations that are
 applied to the population over some fixed number of timesteps. A single `Galaxy`
 may run several timelines sequentially, for example a brief timeline that
 classifies objects at the start of a run, followed by the main physics timeline
-evolving the population in the disk. The `TimelineActor` object encapsulates the
+that evolves the population in the disk. The `TimelineActor` object encapsulates the
 implementation of physical processes through a common `perform` interface, with 
 each actor generally representing a single physica process (migration, 
 accretion, eccentricity damping, binary formation, merger processing, etc.).
@@ -250,7 +249,7 @@ conversion operations.
 As of the version v0.3.0 of `McFACTS`, the most time-intensive operations fell
 into three categories:
  1. Long chains of `numpy` array operations on several arrays of equal length.
- 2. Inefficient general-purpose code in Python (eigenvalue rootfinding vs
+ 2. Inefficient general purpose code in Python (eigenvalue rootfinding vs
  Cardano, `np.where` vs `np.searchsort()`, etc.).
  3. Small, but frequently-called, helpers reliant on AstroPy's general-purpose
  unit conversion operations.
@@ -323,7 +322,9 @@ generative models.
 
 # Acknowledgements
 
-The authors would like to acknowledge the helpful... 
+The authors would like to acknowledge the helpful... JP, EM, SR [EMILY COMMENT: I just added everyone who has CCA access.] thank the Center for Computational Astrophysics at the
+Flatiron Institute for hospitality while a portion of this
+research was carried out. The Flatiron Institute is a division of the Simons Foundation. The Flatiron Institute is supported by the Simons Foundation.
 
 Support for JP was provided by Schmidt Sciences, LLC.
 
