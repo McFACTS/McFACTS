@@ -24,18 +24,37 @@ class SingleBlackHolePopulator(GalaxyPopulator):
         ) -> AGNObjectArray:
         sm = settings
 
-        disk_bh_num = setupdiskblackholes.setup_disk_nbh(
-            sm.nsc_mass,
-            sm.nsc_ratio_bh_num_star_num,
-            sm.nsc_ratio_bh_mass_star_mass,
-            sm.nsc_radius_outer,
-            sm.nsc_density_index_outer,
-            sm.smbh_mass,
-            sm.disk_radius_outer,
-            sm.disk_aspect_ratio_avg,
-            sm.nsc_radius_crit,
-            sm.nsc_density_index_inner,
-        )
+        # Below heavily modified by MM 10/19/2026 happy halloween
+        # UNLIKE WHEN I ORIGINALLY DID THIS STUFF IN JUNE, I am actually making this scale the m_bh and m_star based on the run settings. BE WARNED!!!!
+        dbhnum_mbh = sm.nsc_imf_bh_mode # w defaults as I expect them to be at time of writing, this would be 10
+        dbhnum_mstar = sm.nsc_imf_bh_mode/sm.nsc_ratio_bh_mass_star_mass # w defaults as I expect them to be at time of writing, this would be 10/10 = 1
+
+        # originally had:
+        if not sm.disk_nbh_fully_calc:
+            disk_bh_num = setupdiskblackholes.OG_setup_disk_nbh(
+                sm.nsc_mass,
+                sm.nsc_ratio_bh_num_star_num,
+                sm.nsc_ratio_bh_mass_star_mass,
+                sm.nsc_radius_outer,
+                sm.nsc_density_index_outer,
+                sm.smbh_mass,
+                sm.disk_radius_outer,
+                sm.disk_aspect_ratio_avg,
+                sm.nsc_radius_crit,
+                sm.nsc_density_index_inner,
+            )
+        # now w setup_bh fix
+        if sm.disk_nbh_fully_calc:
+            # MM note 10/27/2026 - threre are a few settings in this, namely num_points_diskvol_interp, forceround, and debugprints, that are options effectively uneditable without changing this file directly, since they're not attached to any setting. To do for me is to fix that, at some point. 
+            disk_bh_num = setupdiskblackholes.setup_disk_nbh(
+                nsc_mass = sm.nsc_mass, disk_radius_outer = sm.disk_radius_outer, 
+                nsc_radius_crit = sm.nsc_radius_crit, nsc_radius_outer = sm.nsc_radius_outer, 
+                nsc_ratio_bh_num_star_num = sm.nsc_ratio_bh_num_star_num, 
+                smbh_mass = sm.smbh_mass, agn_disk = agn_disk, 
+                nsc_density_index_inner = sm.nsc_density_index_inner, nsc_density_index_outer = sm.nsc_density_index_outer, 
+                num_points_diskvol_interp = sm.disk_nbh_diskvol_interp_points, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, forceround = True, 
+        debugprints = sm.disk_nbh_debugprints
+            )
 
         bh_orb_a_initial = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
             disk_bh_num, sm.disk_radius_outer, sm.disk_inner_stable_circ_orb,
@@ -128,19 +147,41 @@ class SingleStarPopulator(GalaxyPopulator):
         # Initialize stars
 
         # Generate initial number of stars
-        star_num_initial = setupdiskstars.setup_disk_stars_num(
-            sm.nsc_mass,
-            sm.nsc_ratio_bh_num_star_num,
-            sm.nsc_ratio_bh_mass_star_mass,
-            sm.disk_star_scale_factor,
-            sm.nsc_radius_outer,
-            sm.nsc_density_index_outer,
-            sm.smbh_mass,
-            sm.disk_radius_outer,
-            sm.disk_aspect_ratio_avg,
-            sm.nsc_radius_crit,
-            sm.nsc_density_index_inner,
-        )
+        
+
+        # without setup_disk_nbh fix
+        if not sm.disk_nbh_fully_calc:
+            star_num_initial = setupdiskstars.OG_setup_disk_stars_num(
+                sm.nsc_mass,
+                sm.nsc_ratio_bh_num_star_num,
+                sm.nsc_ratio_bh_mass_star_mass,
+                sm.disk_star_scale_factor,
+                sm.nsc_radius_outer,
+                sm.nsc_density_index_outer,
+                sm.smbh_mass,
+                sm.disk_radius_outer,
+                sm.disk_aspect_ratio_avg,
+                sm.nsc_radius_crit,
+                sm.nsc_density_index_inner,
+            )
+        # w setup_disk_nbh fix
+        if sm.disk_nbh_fully_calc:
+            # MM MODDED 10/19/2026 happy halloween, note that UNLIKE WHEN I DID THIS IN RESTRUCTURE IN JUNE I AM ACTUALLY LETTING THIS READ THE SETTINGS TO DETERMINE M_BH AND M_STAR
+            dbhnum_mbh = sm.nsc_imf_bh_mode # w defaults as I expect them to be at time of writing, this would be 10
+            dbhnum_mstar = sm.nsc_imf_bh_mode/sm.nsc_ratio_bh_mass_star_mass # w defaults as I expect them to be at time of writing, this would be 10/10 = 1
+            # MM note 10/27/2026 - threre are a few settings in this, namely num_points_diskvol_interp, forceround, and debugprints, that are options effectively uneditable without changing this file directly, since they're not attached to any setting. To do for me is to fix that, at some point. 
+            star_num_initial = setupdiskstars.setup_disk_stars_num(
+                nsc_mass = sm.nsc_mass,
+                disk_radius_outer = sm.disk_radius_outer, 
+                nsc_radius_crit = sm.nsc_radius_crit, 
+                nsc_radius_outer = sm.nsc_radius_outer, 
+                nsc_ratio_bh_num_star_num = sm.nsc_ratio_bh_num_star_num, 
+                smbh_mass = sm.smbh_mass, agn_disk = agn_disk, 
+                nsc_density_index_inner = sm.nsc_density_index_inner, nsc_density_index_outer = sm.nsc_density_index_outer, 
+                disk_star_scale_factor = sm.disk_star_scale_factor, 
+                num_points_diskvol_interp = sm.disk_nbh_diskvol_interp_points, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, 
+                forceround = True, debugprints = sm.disk_nbh_debugprints
+            )
 
         if sm.flag_coalesce_initial_stars:
             self.log(f"num stars initial {star_num_initial}")

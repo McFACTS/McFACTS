@@ -222,6 +222,12 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("scale_capture_radius", "scale", "sqrt-smbh", str),
         SettingsProperty("scale_capture_time", "scale", "hubble", str),
 
+        # NBH calculation (for number of BH in disk at start of the simulation.) Added by Miranda McCarthy (MM) Nov 3, 2026. 
+        SettingsProperty("disk_nbh_fully_calc", "setup_bh", False, bool), # Whether to use the 'fixed' setup_disk_nbh function or the original, nonscaled, rougher approximation version. If left as False, none of the following arguments in setup_bh matter.
+        SettingsProperty("disk_nbh_diskvol_interp_points", "setup_bh", int(1e6), int), # How many points to use in the interpolation of the disk volume within the modified setup_disk_nbh function. minimum is 1. I note that I get the same answer with a 1e8 Msun bh with 3 points as i do 1e6, but it weirdly took more time with 3 points than with 1e6???
+        # SettingsProperty("disk_nbh_forceround", "setup_bh", True, bool), # force whatever the calculated nbh is to be a round number. This is an option because I had originally designed setup_disk_nbh to have it possible, for debugging reasons, NOT to do that. But then I realized that that is completely useless outside of debugging because it'll break the simulation if you actually run it with a float for what should be an integer number (how would you have half a black hole?). The forceround option remains in setup_disk_nbh itself so you can call that function *outside* the context of a McFACTS run and get an exact answer printed. 
+        SettingsProperty("disk_nbh_debugprints", "setup_bh", False, bool), # if True will print information about the number of black holes that it has calculated EVERY TIME IT DOES THIS (ie, on every galaxy). This will act weirdly with the progress bar (it'll print, and then the next "frame" of the progress bar will print, and it just gets very long) but the number CAN vary slightly in my experience with a 1e8 BH (from 341-342) so... I leave the option open to you, if you want to check that it's not varying horrendously between galaxies.
+
         # Filing cabinet array names
         StaticSettingsProperty("bh_array_name", "arrays", "blackholes_unsort", str),
         StaticSettingsProperty("bh_inner_disk_array_name", "arrays", "blackholes_inner_disk", str),

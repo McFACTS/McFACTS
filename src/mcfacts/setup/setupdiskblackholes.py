@@ -3,6 +3,11 @@
 import numpy as np
 from mcfast import generate_r
 
+# below three imports added oct 19 2026 (happy halloween!!!) by miranda mccarthy
+import pdb
+import astropy.units as u
+import astropy.constants as c
+
 def setup_disk_blackholes_location_uniform(disk_bh_num, disk_outer_radius, disk_inner_stable_circ_orb, random):
     """Generates initial single BH orbital semi-major axes :math:`r_{g,SMBH}'
 
@@ -534,8 +539,135 @@ def setup_disk_blackholes_arg_periapse(disk_bh_num, random):
     bh_initial_orb_arg_periapse = random.choice(a=[0., 0.5*np.pi],size=disk_bh_num)
     return bh_initial_orb_arg_periapse
 
+# lines below modified oct 19th 2026, happy halloween!!! by MM
+def printif(stringtoprint, printiftrue):
+    if printiftrue:
+        print(stringtoprint)
 
-def setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
+def setup_disk_nbh(
+    nsc_mass, disk_radius_outer, nsc_radius_crit, nsc_radius_outer, nsc_ratio_bh_num_star_num, 
+    smbh_mass, agn_disk,
+    nsc_density_index_inner, nsc_density_index_outer, 
+    num_points_diskvol_interp = int(1e6), m_bh = 10.0, m_star = 1.0, min_rg_for_aspectratio_calc = 12.5, 
+    forceround = True, 
+    debugprints = True
+):
+
+    """Calculates integer number of BH in the AGN disk as calculated from user inputs for NSC and disk. HEAVILY modified and rewritten from past versions on June 14th by MM (happy pride!) 
+
+    Parameters
+    ----------
+        nsc_mass : float
+            Mass of Nuclear Star Cluster [M_sun]. Set by user. Default is mass of Milky Way NSC = 3e7M_sun.
+        disk_radius_outer : float
+            Outer radius of disk [r_{g,SMBH}]. Set by user. Default is 5.e4r_g (or 0.25pc around a 10^8M_sun)
+        nsc_radius_crit : float
+            NSC critical radius [pc]. Set by user.
+            Radius at which NSC density changes from inner powerlaw index to outer powerlaw index.
+        nsc_radius_outer : float
+            Outer radius of NSC [pc]. Set by user. Default is 5pc.
+        nsc_ratio_bh_num_star_num : float
+            Ratio of number of BH in NSC to number of stars [unitless]. Set by user. Default is 1.e-3.
+        smbh_mass : float
+            Mass of the SMBH [M_sun]. Set by user. Default is 1.e8M_sun.
+        agn_disk : AGNDisk
+            the agn_disk object, so that I can pull out values from agn_disk.disk_aspect_ratio. 
+
+        REQUIRED, BUT NOT USED FOR ANYTHING BUT CHECKING THAT THIS FUNCTION IS VALID
+        nsc_density_index_outer : float
+            NSC density powerlaw index in outer regions. Set by user.
+            NSC density n(r) is assumed to consist of a broken powerlaw distribution,
+            with one powerlaw in inner regions (Bahcall-Wolf, r^{-7/4} usually) and one in the outer regions.
+            This is the outer region NSC powerlaw density index. Default is :math:`n(r) \propto r^{-5/2}`.
+            (MM: i will note, I'm leaving these in here - and forcing them to be passed as required args - just to ABSOLUTELY SUPER CHECK that these are set to 1.75 for inner and 2.5 for outer, because otherwise the analytic integral at the heart of this function doesn't apply!!!)
+        nsc_density_index_inner : float
+            NSC density powerlaw index in inner regions [unitless]. Set by user.
+            Default is :math:`n(r) \propto r^{-7/4}` (Bahcall-Wolf)
+            (MM: i will note, I'm leaving these in here - and forcing them to be passed as required args - just to ABSOLUTELY SUPER CHECK that these are set to 1.75 for inner and 2.5 for outer, because otherwise the analytic integral at the heart of this function doesn't apply!!!)
+
+        OPTIONAL PARAMETERS
+        num_points_diskvol_interp = int(1e6) : int
+            the number of points to use when interpolating over the agn_disk.disk_aspect_ratio function
+            to calculate the volume of the disk. must be an integer as it is used to set up a np.linspace(0, disk_outer_radius, num_points_diskvol_interp) array
+        m_bh = 10.0 : float
+            [M_sun] mass of a single black hole in the nsc. MM TO DO 06/14/2026: make this based on nsc_imf_bh_mode
+        m_star = 1.0 : float
+            [M_sun] mass of a single star in the nsc.
+        min_rg_for_aspectratio_calc = 12.5 : float
+            minimum R_g value to use when calculating the DAR from agn_disk.disk_aspect_ratio. Currently (06/14/2026) pAGN gets sad and gives you nan when asking for DAR below this limit. I am optimistically hoping that at some point it doesn't do that, and we can set this equal to 0, but for now this function will calculate the aspect ratio from 12.5 out and then numpy interpolate to get the innermost values. 
+        forceround = True : bool
+            whether or not to force the output of setup_disk_nbh to be an integer (you want to do this almost certainly, but for debug purposes, left it as an option to not)
+        debugprints = False : bool
+            whether or not to print DRO, Nbh in NSC, Nbh in a sphere of the disk's radius, and disk-to-sphere volume ratio at the disk outer radius when calculating the number of black holes in the disk (you almost certainly DO NOT want to do this, but for debug purposes again, left it as an option to do so.)
+
+    Returns
+    -------
+        disk_bh_num : int
+            Number of BH in the AGN disk
+    """
+    
+    # ensure that the density indices match what was used in the analytical calc part of this
+    if nsc_density_index_inner != 1.75:
+        raise ValueError('The current function being used to calculate the number of BH in the disk includes an analytically calculated integral that is ONLY APPLICABLE when the nsc_density_index_inner == 1.75 and nsc_density_index_outer == 2.5 .')
+    if nsc_density_index_outer != 2.5:
+        raise ValueError('The current function being used to calculate the number of BH in the disk includes an analytically calculated integral that is ONLY APPLICABLE when the nsc_density_index_inner == 1.75 and nsc_density_index_outer == 2.5 .')
+
+    # lambda for converting rg to pc
+    temp_rg_to_pc = lambda x, M_SMBH: (x*c.G*M_SMBH/(c.c**2)).to(u.pc).value
+    # lambda for calculating the Nbh within a given radius based on an analytically calculated integral of the number density functions
+    Nbh_analytic_no_units = lambda r, C, R_crit: (C*(16*np.pi/5)*(r**1.25)) if r < R_crit else (C*(16*np.pi/5)*(R_crit**1.25)) + (C*8*np.pi*(2/5)*(R_crit**0.75)*(np.sqrt(r) - np.sqrt(R_crit)))    
+
+    # get DRO in parsec
+    dro_pc = temp_rg_to_pc(disk_radius_outer, M_SMBH = smbh_mass*u.Msun)
+    printif(f'Disk radius outer (DRO) in pc: {dro_pc}', debugprints)
+    # get total NSC Nbh
+    Nbh_nsc_tot = np.round(nsc_mass/( m_bh + ( (1/nsc_ratio_bh_num_star_num)*m_star ) ))
+    printif(f'Nbh in NSC: {Nbh_nsc_tot}', debugprints)
+
+    # calculate C
+    C = Nbh_nsc_tot / ( ( (16*np.pi/5)*(nsc_radius_crit**1.25) )  +   (8*np.pi*(2/5)*(nsc_radius_crit**0.75)*( np.sqrt(nsc_radius_outer) - np.sqrt(nsc_radius_crit) ))  )
+    
+    # get number within a sphere of radius = DRO
+    Nbh_in_sphere_at_DRO = Nbh_analytic_no_units(r = dro_pc, C = C, R_crit=nsc_radius_crit)
+    printif(f'Nbh in sphere at DRO: {Nbh_in_sphere_at_DRO}', debugprints)
+
+    # now, set up the agn_disk aspect ratio values, so we can calculate an integral. 
+    # first you do this from 12.5 Rg (or whatever you manually set) out to disk_radius_outer because pagn gets sad inner to 12.5 Rg as of june 2026. 
+    agn_disk_r_g_vals = np.linspace(min_rg_for_aspectratio_calc, disk_radius_outer, num_points_diskvol_interp)
+    agn_disk_aspect_ratio_vals = agn_disk.disk_aspect_ratio(agn_disk_r_g_vals)
+    
+    # get volume ratio between numerically calculated disk volume and spherical volume at DRO
+    disk_vol = np.trapz(
+        y = np.interp(x = np.linspace(0, disk_radius_outer, num_points_diskvol_interp), 
+                  xp = agn_disk_r_g_vals, fp = agn_disk_aspect_ratio_vals
+                 ), x = np.linspace(0, disk_radius_outer, num_points_diskvol_interp)
+    )*2*np.pi*(disk_radius_outer**2)
+    sphere_vol = (4*np.pi*(disk_radius_outer**3))/3
+    DtS_volrat_at_DRO = disk_vol/sphere_vol
+    printif(f'Disk to sphere volume ratio at DRO: {DtS_volrat_at_DRO}', debugprints)
+    
+    # get their product, and voila!!
+    # if forceround:
+    #     # use np.round first, bc np.int64 will always round down!
+    #     return(np.int64(np.round(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO)))
+    # else:
+    #     return(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO)
+
+    # for some reason, in june 2026 happy pride, I had the below two lines instead of returning the actual bh number. 
+    # it doesn't seem to have made a difference in the end, because I had the proper ~340 bh initialized into my disks when it actually ran. 
+    # therefore i'm switching it back to returning the actual bh number, because IDK why it was ever set up differently.
+    #print("THIS IS BROKEN ON PURPOSE AND RETORUNING 201")
+    #return(201)
+    printif(f'NON-rounded final Nbh: {DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO}', debugprints)
+    printif(f'Rounded final Nbh: {np.int64(np.round(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO))}', debugprints)
+    
+    if forceround:
+        # use np.round first, bc np.int64 will always round down!
+        return(np.int64(np.round(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO)))
+    else:
+        return(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO)
+# MM 11/03/2026 - adding the old version back in. 
+def OG_setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
                    nsc_radius_outer, nsc_density_index_outer, smbh_mass, disk_radius_outer,
                    disk_aspect_ratio_avg, nsc_radius_crit, nsc_density_index_inner):
     """Calculates integer number of BH in the AGN disk as calculated from user inputs for NSC and disk
