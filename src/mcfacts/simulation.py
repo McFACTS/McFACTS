@@ -266,8 +266,8 @@ def main(settings: SettingsManager):
         nsc_ratio_bh_num_star_num = settings.nsc_ratio_bh_num_star_num, 
         smbh_mass = settings.smbh_mass, agn_disk = agn_disk, 
         nsc_density_index_inner = settings.nsc_density_index_inner, nsc_density_index_outer = settings.nsc_density_index_outer, 
-        num_points_diskvol_interp = int(1e6), m_bh = dbhnum_mbh, m_star = dbhnum_mstar, forceround = True, 
-    debugprints = True)
+        num_points_diskvol_interp = settings.disk_nbh_num_points_diskvol_interp, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, forceround = True, dar_min_rg = settings.disk_nbh_dar_min_rg,
+    debugprints = settings.disk_nbh_debugprints)
         print(f"Initial Nbh: {final_disk_nbh}")
         print(f"Note that initial Nbh may vary by one between different galaxies.")
     

@@ -548,7 +548,7 @@ def setup_disk_nbh(
     nsc_mass, disk_radius_outer, nsc_radius_crit, nsc_radius_outer, nsc_ratio_bh_num_star_num, 
     smbh_mass, agn_disk,
     nsc_density_index_inner, nsc_density_index_outer, 
-    num_points_diskvol_interp = int(1e6), m_bh = 10.0, m_star = 1.0, min_rg_for_aspectratio_calc = 12.5, 
+    num_points_diskvol_interp = int(1e6), m_bh = 10.0, m_star = 1.0, dar_min_rg = 12.5, 
     forceround = True, 
     debugprints = True
 ):
@@ -593,8 +593,8 @@ def setup_disk_nbh(
             [M_sun] mass of a single black hole in the nsc. MM TO DO 06/14/2026: make this based on nsc_imf_bh_mode
         m_star = 1.0 : float
             [M_sun] mass of a single star in the nsc.
-        min_rg_for_aspectratio_calc = 12.5 : float
-            minimum R_g value to use when calculating the DAR from agn_disk.disk_aspect_ratio. Currently (06/14/2026) pAGN gets sad and gives you nan when asking for DAR below this limit. I am optimistically hoping that at some point it doesn't do that, and we can set this equal to 0, but for now this function will calculate the aspect ratio from 12.5 out and then numpy interpolate to get the innermost values. 
+        dar_min_rg = 12.5 : float
+            minimum R_g value to use when calculating the DAR from agn_disk.disk_aspect_ratio. Effectively means we're calculating  Currently (06/14/2026) pAGN gets sad and gives you nan when asking for DAR below this limit. I am optimistically hoping that at some point it doesn't do that, and we can set this equal to 0, but for now this function will calculate the aspect ratio from 12.5 out and then numpy interpolate to get the innermost values. 
         forceround = True : bool
             whether or not to force the output of setup_disk_nbh to be an integer (you want to do this almost certainly, but for debug purposes, left it as an option to not)
         debugprints = False : bool
@@ -633,7 +633,7 @@ def setup_disk_nbh(
 
     # now, set up the agn_disk aspect ratio values, so we can calculate an integral. 
     # first you do this from 12.5 Rg (or whatever you manually set) out to disk_radius_outer because pagn gets sad inner to 12.5 Rg as of june 2026. 
-    agn_disk_r_g_vals = np.linspace(min_rg_for_aspectratio_calc, disk_radius_outer, num_points_diskvol_interp)
+    agn_disk_r_g_vals = np.linspace(dar_min_rg, disk_radius_outer, num_points_diskvol_interp)
     agn_disk_aspect_ratio_vals = agn_disk.disk_aspect_ratio(agn_disk_r_g_vals)
     
     # get volume ratio between numerically calculated disk volume and spherical volume at DRO

@@ -411,7 +411,7 @@ def setup_disk_stars_num(nsc_mass, disk_radius_outer, nsc_radius_crit, nsc_radiu
                          smbh_mass, agn_disk,
                          nsc_density_index_inner, nsc_density_index_outer, 
                          disk_star_scale_factor,
-                         num_points_diskvol_interp = int(1e6), m_bh = 10.0, m_star = 1.0, forceround = True, 
+                         num_points_diskvol_interp = int(1e6), m_bh = 10.0, m_star = 1.0, dar_min_rg = 12.5, forceround = True, 
                                                      debugprints = False):
     """Calculates integer number of BH in the AGN disk as calculated from user inputs for NSC and disk
 
@@ -447,6 +447,8 @@ def setup_disk_stars_num(nsc_mass, disk_radius_outer, nsc_radius_crit, nsc_radiu
             [M_sun] mass of a single black hole in the nsc. As of 10/27/2026, when this gets called in base_populator, it *should* adjust this and mstar to be based on the settings of the run.
         m_star = 1.0 : float
             [M_sun] mass of a single star in the nsc.
+        dar_min_rg = 12.5 : float
+            minimum R_g value to use when calculating the DAR from agn_disk.disk_aspect_ratio. Effectively means we're calculating  Currently (06/14/2026) pAGN gets sad and gives you nan when asking for DAR below this limit. I am optimistically hoping that at some point it doesn't do that, and we can set this equal to 0, but for now this function will calculate the aspect ratio from 12.5 out and then numpy interpolate to get the innermost values. 
         forceround = True : bool
             whether or not to force the output of setup_disk_nbh to be an integer (you want to do this almost certainly, but for debug purposes, left it as an option to not)
         debugprints = False : bool
@@ -465,7 +467,7 @@ def setup_disk_stars_num(nsc_mass, disk_radius_outer, nsc_radius_crit, nsc_radiu
                                                      agn_disk = agn_disk,
                                                      nsc_density_index_inner = nsc_density_index_inner, 
                                                      nsc_density_index_outer = nsc_density_index_outer, 
-                                                     num_points_diskvol_interp = num_points_diskvol_interp, m_bh = m_bh, m_star = m_star, forceround = forceround, 
+                                                     num_points_diskvol_interp = num_points_diskvol_interp, m_bh = m_bh, m_star = m_star, forceround = forceround, dar_min_rg = dar_min_rg,
                                                      debugprints = debugprints
         )
 

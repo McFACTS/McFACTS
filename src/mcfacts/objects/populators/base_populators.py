@@ -52,7 +52,8 @@ class SingleBlackHolePopulator(GalaxyPopulator):
                 nsc_ratio_bh_num_star_num = sm.nsc_ratio_bh_num_star_num, 
                 smbh_mass = sm.smbh_mass, agn_disk = agn_disk, 
                 nsc_density_index_inner = sm.nsc_density_index_inner, nsc_density_index_outer = sm.nsc_density_index_outer, 
-                num_points_diskvol_interp = sm.disk_nbh_diskvol_interp_points, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, forceround = True, 
+                num_points_diskvol_interp = sm.disk_nbh_num_points_diskvol_interp, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, 
+                dar_min_rg = sm.disk_nbh_dar_min_rg, forceround = True, 
         debugprints = sm.disk_nbh_debugprints
             )
 
@@ -179,7 +180,8 @@ class SingleStarPopulator(GalaxyPopulator):
                 smbh_mass = sm.smbh_mass, agn_disk = agn_disk, 
                 nsc_density_index_inner = sm.nsc_density_index_inner, nsc_density_index_outer = sm.nsc_density_index_outer, 
                 disk_star_scale_factor = sm.disk_star_scale_factor, 
-                num_points_diskvol_interp = sm.disk_nbh_diskvol_interp_points, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, 
+                num_points_diskvol_interp = sm.disk_nbh_num_points_diskvol_interp, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, 
+                dar_min_rg = sm.disk_nbh_dar_min_rg,
                 forceround = True, debugprints = sm.disk_nbh_debugprints
             )
 
