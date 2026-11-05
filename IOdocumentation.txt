@@ -452,7 +452,7 @@ First row is # short parameter listing
 
 
 Output file : output_mergers_population.dat
-15 column file listing all mergers in the disk population of timestep ts in a single run of test1.py
+19 column file listing all mergers in the disk population of timestep ts in a single run of test1.py
 ts = [0:N] where N = number_of_timesteps from input file
 First row is # short parameter listing
     galaxy : float
@@ -487,6 +487,14 @@ First row is # short parameter listing
         timestep in which the objects mergred and are detected by LVK 
     chi_p : float
         precessing spin component of the binary prior to merger
+    v_kick : float
+        recoil velocity imparted on the remnant BH
+    lum_shock : float
+        parameterized shock luminosity generated post-merger by the remnant BH 
+    lum_jet : float
+        parameterized jet luminosity generated post-merger by the remnant BH
+    id_num : Identification number that is assigned to each object
+
     
 
 Output file : output_mergers_surviors.dat

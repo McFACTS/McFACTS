@@ -9,10 +9,11 @@ import scipy
 import scipy.interpolate
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import SettingsManager, AGNDisk
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.utilities.constants import M_SUN_KG
 from mcfacts.utilities import unit_conversion, checks
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray, AGNBinaryBlackHoleArray
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfast import torque_mig_timescale_helper
 

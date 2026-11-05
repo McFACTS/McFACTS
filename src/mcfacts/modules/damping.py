@@ -5,8 +5,9 @@ Module for computing eccentricity damping due to gas interactions.
 import numpy as np
 from numpy.random import Generator
 
-from mcfacts.inputs.settings_manager import AGNDisk, SettingsManager
+from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import AGNBlackHoleArray, FilingCabinet
+from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 
 
