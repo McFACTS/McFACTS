@@ -663,9 +663,14 @@ def setup_disk_nbh(
     
     if forceround:
         # use np.round first, bc np.int64 will always round down!
-        return(np.int64(np.round(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO)))
+        output_nbh = np.int64(np.round(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO))
+        #return(np.int64(np.round(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO)))
     else:
-        return(DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO)
+        output_nbh = DtS_volrat_at_DRO*Nbh_in_sphere_at_DRO
+
+    outputs = {'disk_bh_num':output_nbh, 'nbh_in_sphere_at_dro':Nbh_in_sphere_at_DRO,
+     'disk_radius_outer_pc':dro_pc, 'total_nbh_in_nsc':Nbh_nsc_tot, 'dts_volrat_at_dro':DtS_volrat_at_DRO }
+    return(outputs)
 # MM 11/03/2026 - adding the old version back in. 
 def OG_setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
                    nsc_radius_outer, nsc_density_index_outer, smbh_mass, disk_radius_outer,

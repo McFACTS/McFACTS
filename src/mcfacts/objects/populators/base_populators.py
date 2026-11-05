@@ -55,7 +55,7 @@ class SingleBlackHolePopulator(GalaxyPopulator):
                 num_points_diskvol_interp = sm.disk_nbh_num_points_diskvol_interp, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, 
                 dar_min_rg = sm.disk_nbh_dar_min_rg, forceround = True, 
         debugprints = sm.disk_nbh_debugprints
-            )
+            )['disk_bh_num']
 
         bh_orb_a_initial = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(
             disk_bh_num, sm.disk_radius_outer, sm.disk_inner_stable_circ_orb,

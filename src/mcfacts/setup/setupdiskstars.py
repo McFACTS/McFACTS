@@ -469,7 +469,7 @@ def setup_disk_stars_num(nsc_mass, disk_radius_outer, nsc_radius_crit, nsc_radiu
                                                      nsc_density_index_outer = nsc_density_index_outer, 
                                                      num_points_diskvol_interp = num_points_diskvol_interp, m_bh = m_bh, m_star = m_star, forceround = forceround, dar_min_rg = dar_min_rg,
                                                      debugprints = debugprints
-        )
+        )['disk_bh_num']
 
     # Number of stars is number of BH divided by the number ratio of BH to stars and multiplied by scale factor
     disk_star_num = (disk_bh_num / nsc_ratio_bh_num_star_num) * disk_star_scale_factor

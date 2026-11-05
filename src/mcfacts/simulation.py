@@ -268,8 +268,8 @@ def main(settings: SettingsManager):
         nsc_density_index_inner = settings.nsc_density_index_inner, nsc_density_index_outer = settings.nsc_density_index_outer, 
         num_points_diskvol_interp = settings.disk_nbh_num_points_diskvol_interp, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, forceround = True, dar_min_rg = settings.disk_nbh_dar_min_rg,
     debugprints = settings.disk_nbh_debugprints)
-        print(f"Initial Nbh: {final_disk_nbh}")
-        print(f"Note that initial Nbh may vary by one between different galaxies.")
+        print(f"setup_disk_nbh results: {final_disk_nbh}")
+        #print(f"Note that initial Nbh may vary by one between different galaxies.") # removing this comment because it does not seem to be true at this stage of the simulation. For some reason I occasionally got slight variations when running for 4 Myr on a much older version of this and I still don't know why; may have been sth that got fixed by a different commit for a different fix between then and now. 
     
     # Save the entire population cabinet
     if isinstance(cabinet_snapshot_handler, TxtSnapshotHandler):
