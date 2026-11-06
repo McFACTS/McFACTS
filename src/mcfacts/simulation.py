@@ -33,6 +33,8 @@ from mcfacts.objects.snapshot import SnapshotHandler, TxtSnapshotHandler
 from mcfacts.objects.snapshot import IniSnapshotHandler
 from mcfacts.objects.snapshot import HDF5SnapshotHandler
 from mcfacts.objects.timeline import SimulationTimeline
+# MM MOD 10 27 2026
+from mcfacts.setup.setupdiskblackholes import setup_disk_nbh
 
 
 #### Methods
@@ -224,6 +226,7 @@ def main(settings: SettingsManager):
         single_bh_populator = SingleBlackHolePopulator()
         single_star_populator = SingleStarPopulator()
         galaxy.populate([single_bh_populator, single_star_populator], agn_disk)
+        
 
         ## Run the galaxy ##
         run_galaxy(settings, galaxy, agn_disk=agn_disk)
@@ -252,6 +255,22 @@ def main(settings: SettingsManager):
 
     pbar.close()
 
+    if settings.disk_nbh_fully_calc:
+        ## MM MOD 10 27 2026 - if on the very LAST galaxy, print NBH and all intermediary calculations. 
+        ## must be done on the last one to not interfere w the loading bar. 
+        dbhnum_mbh = settings.nsc_imf_bh_mode # w defaults as I expect them to be at time of writing, this would be 10
+        dbhnum_mstar = settings.nsc_imf_bh_mode/settings.nsc_ratio_bh_mass_star_mass # w defaults as I expect them to be at time of writing, this would be 10/10 = 1
+    
+        final_disk_nbh = setup_disk_nbh(nsc_mass = settings.nsc_mass, disk_radius_outer = settings.disk_radius_outer, 
+        nsc_radius_crit = settings.nsc_radius_crit, nsc_radius_outer = settings.nsc_radius_outer, 
+        nsc_ratio_bh_num_star_num = settings.nsc_ratio_bh_num_star_num, 
+        smbh_mass = settings.smbh_mass, agn_disk = agn_disk, 
+        nsc_density_index_inner = settings.nsc_density_index_inner, nsc_density_index_outer = settings.nsc_density_index_outer, 
+        num_points_diskvol_interp = settings.disk_nbh_num_points_diskvol_interp, m_bh = dbhnum_mbh, m_star = dbhnum_mstar, forceround = True, dar_min_rg = settings.disk_nbh_dar_min_rg,
+    debugprints = settings.disk_nbh_debugprints)
+        print(f"setup_disk_nbh results: {final_disk_nbh}")
+        #print(f"Note that initial Nbh may vary by one between different galaxies.") # removing this comment because it does not seem to be true at this stage of the simulation. For some reason I occasionally got slight variations when running for 4 Myr on a much older version of this and I still don't know why; may have been sth that got fixed by a different commit for a different fix between then and now. 
+    
     # Save the entire population cabinet
     if isinstance(cabinet_snapshot_handler, TxtSnapshotHandler):
         cabinet_snapshot_handler.save_cabinet(

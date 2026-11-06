@@ -223,6 +223,12 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("scale_capture_radius", "scale", "sqrt-smbh", str),
         SettingsProperty("scale_capture_time", "scale", "hubble", str),
 
+        # NBH calculation (for number of BH in disk at start of the simulation.) Added by Miranda McCarthy (MM) Nov 3, 2026. 
+        SettingsProperty("disk_nbh_fully_calc", "setup_bh", False, bool), # Whether to use the 'fixed' setup_disk_nbh function or the original, nonscaled, rougher approximation version. If left as False, none of the following arguments in setup_bh matter.
+        SettingsProperty("disk_nbh_num_points_diskvol_interp", "setup_bh", int(1e6), int), # How many points to use in the interpolation of the disk volume within the modified setup_disk_nbh function. minimum is 1. 
+        SettingsProperty("disk_nbh_debugprints", "setup_bh", False, bool), # if True will print information about the number of black holes that it has calculated EVERY TIME IT DOES THIS (ie, on every galaxy). This will act weirdly with the progress bar (it'll print, and then the next "frame" of the progress bar will print, and it just gets very long) but the number CAN vary slightly in my experience with a 1e8 BH (from 341-342) so... I leave the option open to you, if you want to check that it's not varying horrendously between galaxies.
+        SettingsProperty("disk_nbh_dar_min_rg", "setup_bh", 12.5, float), # "disk aspect ratio" min rg - As of 06/2026 when the fix was initially written, pAGN would throw errors if I tried to pass a value under around 12.5 to agn_disk.disk_aspect_ratio(). This seems to still happen as of 11/04/2026. Therefore I used np.interp() to interpolate over the disk from dar_min_rg to the outer edge of the disk, giving me the disk aspect ratio across the disk (as needed for calculating the disk volume). 
+
         # Filing cabinet array names
         StaticSettingsProperty("bh_array_name", "arrays", "blackholes_unsort", str),
         StaticSettingsProperty("bh_inner_disk_array_name", "arrays", "blackholes_inner_disk", str),

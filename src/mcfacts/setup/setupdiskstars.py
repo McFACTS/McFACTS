@@ -406,8 +406,77 @@ def setup_disk_stars_circularized(star_num, crit_ecc):
     star_orb_ecc_initial = crit_ecc*np.ones(shape=star_num, dtype=float)
     return (star_orb_ecc_initial)
 
+# Below function modified oct 19 2026 happy halloween!!! by MM
+def setup_disk_stars_num(nsc_mass, disk_radius_outer, nsc_radius_crit, nsc_radius_outer, nsc_ratio_bh_num_star_num, 
+                         smbh_mass, agn_disk,
+                         nsc_density_index_inner, nsc_density_index_outer, 
+                         disk_star_scale_factor,
+                         num_points_diskvol_interp = int(1e6), m_bh = 10.0, m_star = 1.0, dar_min_rg = 12.5, forceround = True, 
+                                                     debugprints = False):
+    """Calculates integer number of BH in the AGN disk as calculated from user inputs for NSC and disk
 
-def setup_disk_stars_num(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
+    Parameters
+    ----------
+        nsc_mass : float
+            Mass of Nuclear Star Cluster [M_sun]. Set by user. Default is mass of Milky Way NSC = 3e7M_sun.
+        disk_radius_outer : float
+            Outer radius of disk [r_{g,SMBH}]. Set by user. Default is 5.e4r_g (or 0.25pc around a 10^8M_sun)
+        nsc_radius_crit : float
+            NSC critical radius [pc]. Set by user.
+            Radius at which NSC density changes from inner powerlaw index to outer powerlaw index.
+        nsc_radius_outer : float
+            Outer radius of NSC [pc]. Set by user. Default is 5pc.
+        nsc_ratio_bh_num_star_num : float
+            Ratio of number of BH in NSC to number of stars [unitless]. Set by user. Default is 1.e-3.
+        smbh_mass : float
+            Mass of the SMBH [M_sun]. Set by user. Default is 1.e8M_sun.
+        nsc_density_index_outer : float
+            NSC density powerlaw index in outer regions. Set by user. 
+            NSC density n(r) is assumed to consist of a broken powerlaw distribution,
+            with one powerlaw in inner regions (Bahcall-Wolf, r^{-7/4} usually) and one in the outer regions.
+            This is the outer region NSC powerlaw density index. Default is :math:`n(r) \\propto r^{-5/2}`
+        nsc_density_index_inner : float
+            NSC density powerlaw index in inner regions [unitless]. Set by user.
+            Default is :math:`n(r) \propto r^{-7/4}` (Bahcall-Wolf)
+        disk_star_scale_factor : float
+            Scale factor [unitless] to go from number of BH to number of stars. Set by user.
+        num_points_diskvol_interp = int(1e6) : int
+            the number of points to use when interpolating over the agn_disk.disk_aspect_ratio function
+            to calculate the volume of the disk. must be an integer as it is used to set up a np.linspace(0, disk_outer_radius, num_points_diskvol_interp) array
+        m_bh = 10.0 : float
+            [M_sun] mass of a single black hole in the nsc. As of 10/27/2026, when this gets called in base_populator, it *should* adjust this and mstar to be based on the settings of the run.
+        m_star = 1.0 : float
+            [M_sun] mass of a single star in the nsc.
+        dar_min_rg = 12.5 : float
+            minimum R_g value to use when calculating the DAR from agn_disk.disk_aspect_ratio. Effectively means we're calculating  Currently (06/14/2026) pAGN gets sad and gives you nan when asking for DAR below this limit. I am optimistically hoping that at some point it doesn't do that, and we can set this equal to 0, but for now this function will calculate the aspect ratio from 12.5 out and then numpy interpolate to get the innermost values. 
+        forceround = True : bool
+            whether or not to force the output of setup_disk_nbh to be an integer (you want to do this almost certainly, but for debug purposes, left it as an option to not)
+        debugprints = False : bool
+            whether or not to print DRO, Nbh in NSC, Nbh in a sphere of the disk's radius, and disk-to-sphere volume ratio at the disk outer radius when calculating the number of black holes in the disk (you almost certainly DO NOT want to do this, but for debug purposes again, left it as an option to do so.)
+
+    Returns
+    -------
+        disk_star_num : int
+            Number of stars in the AGN disk
+    """
+
+    # Get number of BH in disk
+    disk_bh_num = setupdiskblackholes.setup_disk_nbh(nsc_mass = nsc_mass, disk_radius_outer = disk_radius_outer, 
+                                                     nsc_radius_crit = nsc_radius_crit, nsc_radius_outer = nsc_radius_outer, 
+                                                     nsc_ratio_bh_num_star_num = nsc_ratio_bh_num_star_num, smbh_mass = smbh_mass, 
+                                                     agn_disk = agn_disk,
+                                                     nsc_density_index_inner = nsc_density_index_inner, 
+                                                     nsc_density_index_outer = nsc_density_index_outer, 
+                                                     num_points_diskvol_interp = num_points_diskvol_interp, m_bh = m_bh, m_star = m_star, forceround = forceround, dar_min_rg = dar_min_rg,
+                                                     debugprints = debugprints
+        )['disk_bh_num']
+
+    # Number of stars is number of BH divided by the number ratio of BH to stars and multiplied by scale factor
+    disk_star_num = (disk_bh_num / nsc_ratio_bh_num_star_num) * disk_star_scale_factor
+
+    return (int(disk_star_num))
+# OG function
+def OG_setup_disk_stars_num(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
                          disk_star_scale_factor,
                          nsc_radius_outer, nsc_density_index_outer, smbh_mass, disk_radius_outer,
                          disk_aspect_ratio_avg, nsc_radius_crit, nsc_density_index_inner):
@@ -450,7 +519,7 @@ def setup_disk_stars_num(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass
     """
 
     # Get number of BH in disk
-    disk_bh_num = setupdiskblackholes.setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
+    disk_bh_num = setupdiskblackholes.OG_setup_disk_nbh(nsc_mass, nsc_ratio_bh_num_star_num, nsc_ratio_mbh_mass_star_mass,
                                                      nsc_radius_outer, nsc_density_index_outer, smbh_mass, disk_radius_outer,
                                                      disk_aspect_ratio_avg, nsc_radius_crit, nsc_density_index_inner)
 

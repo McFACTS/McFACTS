@@ -79,34 +79,6 @@ def num_mergers_vs_mass(settings, figsize, save_dir, merger_masks, mass_final):
     svf_ax.xaxis.set_major_formatter(mticker.StrMethodFormatter('{x:.0f}'))
     svf_ax.xaxis.set_minor_formatter(mticker.NullFormatter())
 
-    mass_sum = len(g1_mass) + len(g2_mass) + len(gX_mass)
-
-    g1_ratio = len(g1_mass) / mass_sum
-    g2_ratio = len(g2_mass) / mass_sum
-    gX_ratio = len(gX_mass) / mass_sum
-
-    rect_x = 180
-    rect_y = 2
-    rect_height = 25
-    rect_width = 20
-
-    rect1 = patches.Rectangle((rect_x, rect_y), rect_width, rect_height * g1_ratio, facecolor=styles.color_gen1)
-    rect2 = patches.Rectangle((rect_x, rect_y + rect_height * g1_ratio), rect_width, rect_height * g2_ratio, facecolor=styles.color_gen2)
-    rectX = patches.Rectangle((rect_x, rect_y + (rect_height * g1_ratio) + (rect_height * g2_ratio)), rect_width, rect_height * gX_ratio,
-                              facecolor=styles.color_genX)
-
-    svf_ax.add_patch(rect1)
-    svf_ax.add_patch(rect2)
-    svf_ax.add_patch(rectX)
-
-    svf_ax.text(rect1.get_x() - 25, rect1.get_y() + rect1.get_height() / 2.0,
-                f'{g1_ratio * 100:.2f}%', ha='center', va='center', fontsize=5)
-    svf_ax.text(rect2.get_x() - 25, rect2.get_y() + rect2.get_height() / 2.0,
-                f'{g2_ratio * 100:.2f}%', ha='center', va='center', fontsize=5)
-    svf_ax.text(rectX.get_x() - 25, rectX.get_y() + rectX.get_height() / 2.0,
-                f'{gX_ratio * 100:.2f}%', ha='center', va='center', fontsize=5)
-
-
     if figsize == 'apj_col':
         plt.legend(fontsize=6)
     elif figsize == 'apj_page':
