@@ -5,7 +5,7 @@ import astropy.constants as const
 import astropy.units as u
 import numpy as np
 from numpy.random import Generator
-from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
+from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper, generate_r
 
 from mcfacts.utilities import unit_conversion
 from mcfacts.utilities.constants import M_SUN_KG
@@ -855,7 +855,7 @@ def bin_recapture(bin_mass_1_all, bin_mass_2_all, bin_orb_a_all, bin_orb_inc_all
 
     return (bin_orb_inc_all)
 
-def disk_capture_rate(smbh_mass, disk_inner_stable_circ_orb, disk_radius_outer, disk_surf_density_func, nsc_radius_crit, nsc_density_index_inner, nsc_density_index_outer, nsc_imf_bh_mode, nsc_imf_bh_mass_max, nsc_imf_bh_powerlaw_index, mass_pile_up, nsc_imf_bh_method, disk_bh_num, disk_aspect_ratio_avg):
+def disk_capture_rate(smbh_mass, disk_inner_stable_circ_orb, disk_radius_outer, disk_surf_density_func, nsc_radius_crit, nsc_density_index_inner, nsc_density_index_outer, nsc_imf_bh_mode, nsc_imf_bh_mass_max, nsc_imf_bh_powerlaw_index, mass_pile_up, nsc_imf_bh_method, disk_bh_num, disk_aspect_ratio_avg, random_generator):
     """Function to compute the disk capture rate of BH, based on scaling to results of WZL and Fabj et al. 2020
     i.e. 10 captured BH per Myr around a 1e8 SMBH for an SG disk, default BH IMF, default NSC radial distribution,
     thermal eccentricity distribution. Scales for variable BH IMF, number of BH in NSC, radial distribution,
@@ -891,12 +891,17 @@ def disk_capture_rate(smbh_mass, disk_inner_stable_circ_orb, disk_radius_outer, 
         computed--careful on ooo
     disk_aspect_ratio_avg : float
         from inputs, but should be computed (again careful on ooo)
+    random_generator : function
+        duh.
 
     Returns
     -------
     rate : float
         number of captured BH per Myr of disk lifetime
     """
+    # do not pass in nbh, instead call setup_disk_nbh or retrieve the number from where stored(?)
+    # when changing smbh mass to 1e6 I get outrageous answers--why? Is the capture rate actually stupid high?
+
     rate_0 = 10.0 # fiducial captures per Myr
     smbh_mass_0 = 1.e8 # fiducial SMBH mass for capture rate--see Fabj et al. 2020 and WZL
     num_nsc_obj_0 = 6700.0 # fiducial number of NSC objects with semi-maj axis inside disk R_out
@@ -911,11 +916,11 @@ def disk_capture_rate(smbh_mass, disk_inner_stable_circ_orb, disk_radius_outer, 
     num_nsc_obj = disk_bh_num/disk_aspect_ratio_avg
 
     # careful here: do we always use these methods to get orb_a, orb_ecc and masses? Or do we sometimes use other methods?
-    nsc_obj_masses = setup.setup_disk_blackholes_masses(int(sample_size), nsc_imf_bh_mode, nsc_imf_bh_mass_max, nsc_imf_bh_powerlaw_index, mass_pile_up, nsc_imf_bh_method)
+    nsc_obj_masses = setupdiskblackholes.setup_disk_blackholes_masses(int(sample_size), nsc_imf_bh_mode, nsc_imf_bh_mass_max, nsc_imf_bh_powerlaw_index, mass_pile_up, nsc_imf_bh_method, random=random_generator)
     avg_nsc_obj_mass = sum(nsc_obj_masses)/sample_size # draw 1e4 times from setup disk black holes mass func and take average?
 
-    orb_a_dist = setup.setup_disk_blackholes_location_NSC_powerlaw(int(sample_size), disk_radius_outer, disk_inner_stable_circ_orb, smbh_mass, nsc_radius_crit, nsc_density_index_inner, nsc_density_index_outer, volume_scaling=True)
-    orb_ecc_dist = setup.setup_disk_blackholes_eccentricity_thermal(int(sample_size))
+    orb_a_dist = setupdiskblackholes.setup_disk_blackholes_location_NSC_powerlaw(int(sample_size), disk_radius_outer, disk_inner_stable_circ_orb, smbh_mass, nsc_radius_crit, nsc_density_index_inner, nsc_density_index_outer, volume_scaling=True, random=random_generator)
+    orb_ecc_dist = setupdiskblackholes.setup_disk_blackholes_eccentricity_thermal(int(sample_size), random=random_generator)
     orb_semi_lat_dist = orb_a_dist * (1.0 - orb_ecc_dist**2)
     avg_semi_lat_nsc_obj = sum(orb_semi_lat_dist)/sample_size # draw 1e4 times from setupdisk black holes orb a and ecc and take average?
 
@@ -938,11 +943,11 @@ def disk_capture_crit_radius(time, R_out, R_in):
     Parameters
     ----------
     time : float
-        time in simulation at capture (units?)
+        time in simulation at capture in seconds
     R_out : float
         Outer radius of disk in units of Rg (from inputs)
     R_in : float
-        innermost radius of disk or innermost radius where objects can capture (R_tidal?) units of Rg
+        innermost radius of disk or innermost radius where objects can capture (R_tidal or R_ISCO) units of Rg
 
     Returns
     -------
@@ -952,6 +957,7 @@ def disk_capture_crit_radius(time, R_out, R_in):
     
     # This is literally eyeballing a plot: roughly the critical capture radius seems to be 100rg at 10^5 yrs
     # then 1000rg at 10^6 yrs, and 10^4rg at 10^7 yrs
+    year = u.yr.to(u.s)
     idx_crit_rad = np.log10(time/year) - 3.0
     cap_crit_radius = pow(10.0, idx_crit_rad)
 
@@ -963,10 +969,43 @@ def disk_capture_crit_radius(time, R_out, R_in):
 
     return cap_crit_radius
 
-def where_capture(R_in, R_out, R_cap_crit):
+def where_capture(R_in, R_out, R_cap_crit, random_generator):
+    """Computes location of capture of a BH from the NSC. Location is weighted random draw
+    and depends on time-dependent critical capture radius, probability of
+    capture scales as r^-1/4 inside of crit radius, outside scales as r^-2; 
+    critical capture radius grows with time until it
+    reaches the outer radius of the disk, and is computed by disk_capture_crit_radius.
 
+    Parameters
+    ----------
+    R_in : float
+        Inner most disk radius (in Rg of SMBH)
+    R_out : float
+        Outer most disk radius (in Rg of SMBH)
+    R_cap_crit : float
+        critical capture radius inside of which the probability of capture at a radius R scales as R^(-1/4)
+        outside of which it scales as R^(-2) (in Rg of SMBH)
+    random_generator : function
+        passed in function for random number gen
+
+    Returns
+    -------
+    where_capture : array[float]
+        semi-major axis at which an NSC object is captured
+    """
+    # saavik 100% lifted this from setup, where Nico did it to get the distribution of BH locations in the disk
+    r, r_pdf = generate_r(R_in, R_out, 1000000, R_cap_crit, 0.25, 2.0, volume_scaling=False)
+
+    # Ensure the total probabiliy is 1.0 accounting for deviations at machine precision
+    if not np.isclose(r_pdf.sum(), 1.0):
+        raise ValueError(f"[Setup BH Locs] Sum of p(r) must be less than 1 but is {r_pdf.sum()}.")
+
+    # Draw locations the captured black hole from the r array with the associated probabilities.
+    where_capture = random_generator.choice(r, size=1, p=r_pdf)
+
+    # inner_interval = R_cap_crit - R_in
+    # where_capture = (random_generator.uniform()) * inner_interval
     
-
     return where_capture
 
 class CaptureNSCProgradeBlackHoles(TimelineActor):
