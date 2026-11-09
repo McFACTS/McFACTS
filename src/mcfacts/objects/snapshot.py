@@ -813,9 +813,9 @@ class HDF5SnapshotHandler(SnapshotHandler):
         save_attrs["seed"] = str(save_attrs["seed"])
         # Loop settings (leave this here for testing)
         """
-        #for key, value in save_attrs.items():
-        #    print(key, type(value), value)
-        #    db.attr_set(".", key, value)
+        for key, value in save_attrs.items():
+            print(key, type(value), value)
+            db.attr_set(".", key, value)
         """
         # Save the dictionary
         db.attr_set_dict(".", save_attrs)

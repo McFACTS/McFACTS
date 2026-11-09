@@ -8,7 +8,7 @@ from numpy.random import Generator
 from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 from mcfacts.utilities import unit_conversion
-from mcfacts.utilities.constants import M_SUN_KG, HUBBLE_TIME_SI, CONST_G_SI
+from mcfacts.utilities.constants import M_SUN_KG, CONST_G_SI
 from mcfacts.utilities.unit_conversion import si_from_r_g_optimized
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
@@ -834,7 +834,6 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     #   fortunately it's a few factors off of tau_p_dyn (this may be a dumb way to handle it)
     tau_a_dyn = tau_p_dyn * (1.0 - (ecc ** 2)) * kappa * np.abs(np.cos(inc) - zeta) / (
             kappa_bar * np.abs(np.cos(inc) - zeta_bar))
-    tau_a_dyn[ecc == 0] = HUBBLE_TIME_SI.value
     # WZL Eqn 73
     tau_e_dyn = (2.0 * (ecc ** 2) / (1.0 - (ecc ** 2))) * 1.0 / np.abs(1.0 / tau_a_dyn - 1.0 / tau_p_dyn)
     # The limit of 1 / ((1/x) + (1/x)) as x goes to zero is zero
