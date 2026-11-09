@@ -46,7 +46,7 @@ def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dl
     Torque_paardekooper_coeff = -0.85 + dlogSigmadlogR + (0.9 * dlogTempdlogR)
 
     # Check for nans
-    nan_mask = np.isnan(Torque_paardekooper_coeff)
+    nan_mask = ~np.isfinite(Torque_paardekooper_coeff)
     if any(nan_mask):
         if all(orbs_a[migration_indices][nan_mask] < 12.1):
             # They are not migrating if they have already been captured
@@ -636,7 +636,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             temp_orbs_a = new_orbs_a[mask_in_trap] - migration_distance[mask_in_trap]
             new_orbs_a[mask_in_trap] = temp_orbs_a
 
-        if smbh_mass < 1.e8 and smbh_mass > 1.e6:
+        if smbh_mass < 1.e8 and smbh_mass >= 1.e6:
             # Trap radius changes as a function of mass.
             # Also new(!) anti-trap radius. Region between trap and anti-trap migrates out, all others migrate inwards
             # Calc new trap radius from Grishin+24
@@ -1341,7 +1341,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     disk_trap_radius = sm.disk_radius_trap
                     disk_anti_trap_radius = sm.disk_radius_trap
                 # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
-                if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
+                if sm.smbh_mass < 1.e8 and sm.smbh_mass >= 1.e6:
                     disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
                     disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
                 # Trap location changes again at low SMBH mass (Grishin+24)
@@ -1527,7 +1527,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                         disk_trap_radius = sm.disk_radius_trap
                         disk_anti_trap_radius = sm.disk_radius_trap
                     # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
-                    if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
+                    if sm.smbh_mass < 1.e8 and sm.smbh_mass >= 1.e6:
                         disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
                         disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
                     # Trap location changes again at low SMBH mass (Grishin+24)
