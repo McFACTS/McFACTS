@@ -8,7 +8,7 @@ from numpy.random import Generator
 from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 from mcfacts.utilities import unit_conversion
-from mcfacts.utilities.constants import M_SUN_KG, HUBBLE_TIME_SI
+from mcfacts.utilities.constants import M_SUN_KG, HUBBLE_TIME_SI, CONST_G_SI
 from mcfacts.utilities.unit_conversion import si_from_r_g_optimized
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
@@ -16,10 +16,6 @@ from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.setup import setupdiskblackholes
 from mcfacts.utilities.random_state import uuid_provider
-
-######### Setup ########
-
-CONST_G_SI = const.G.si.value
 
 ######## Functions ########
 
@@ -354,70 +350,73 @@ def retro_bh_orb_disk_evolve(smbh_mass, disk_bh_retro_masses, disk_bh_retro_orbs
         cos_pm1_mask & barely_prograde_mask]
     inc_scale_factor[cos_0_mask] = stepw0_time * tau_inc_div[cos_0_mask]
 
-    # Calculate new orb_ecc values
-    here_mask = cos_pm1_mask & no_max_ecc_retro_mask
+    ## Calculate new orb_ecc values
+    # Note on masking: previously, sequences of logic checks were all in-line,
+    #  and this was realy hard to read.
+    # There are four cases:
+    # case 1: abs(cos(w)) >= 0.5 and ecc is still below max for step 1
+    # case 2: abs(cos(w)) >= 0.5 and ecc has reached max for step 1; in step 2
+    # case 3: abs(cos(w)) >= 0.5 and we are barely prograde
+    # case 4: abs(cos(w)) < 0.5
+
+    case_1 = cos_pm1_mask & no_max_ecc_retro_mask
+    case_2 = cos_pm1_mask & max_ecc_mask
+    case_3 = cos_pm1_mask & barely_prograde_mask
+    case_4 = cos_0_mask
     # This one is + all the other ones are -
     # See Fig 9 of Wang, Zhu, and Lin
-    disk_bh_retro_orbs_ecc_new[here_mask] = \
-        disk_bh_retro_orbs_ecc[here_mask] + (
-            step1_delta_ecc * timestep_duration_yr / ecc_scale_factor[here_mask]
+    disk_bh_retro_orbs_ecc_new[case_1] = \
+        disk_bh_retro_orbs_ecc[case_1] + (
+            step1_delta_ecc * timestep_duration_yr / ecc_scale_factor[case_1]
         )
-    here_mask = cos_pm1_mask & max_ecc_mask
-    disk_bh_retro_orbs_ecc_new[here_mask] = \
-        disk_bh_retro_orbs_ecc[here_mask] - (
-            step2_delta_ecc * timestep_duration_yr / ecc_scale_factor[here_mask]
+    disk_bh_retro_orbs_ecc_new[case_2] = \
+        disk_bh_retro_orbs_ecc[case_2] - (
+            step2_delta_ecc * timestep_duration_yr / ecc_scale_factor[case_2]
         )
-    here_mask = cos_pm1_mask & barely_prograde_mask
-    disk_bh_retro_orbs_ecc_new[here_mask] = \
-        disk_bh_retro_orbs_ecc[here_mask] - (
-            step3_delta_ecc * timestep_duration_yr / ecc_scale_factor[here_mask]
+    disk_bh_retro_orbs_ecc_new[case_3] = \
+        disk_bh_retro_orbs_ecc[case_3] - (
+            step3_delta_ecc * timestep_duration_yr / ecc_scale_factor[case_3]
         )
-    disk_bh_retro_orbs_ecc_new[cos_0_mask] = \
-        disk_bh_retro_orbs_ecc[cos_0_mask] - (
-            stepw0_delta_ecc * timestep_duration_yr / ecc_scale_factor[cos_0_mask]
+    disk_bh_retro_orbs_ecc_new[case_4] = \
+        disk_bh_retro_orbs_ecc[case_4] - (
+            stepw0_delta_ecc * timestep_duration_yr / ecc_scale_factor[case_4]
         )
 
     # Calculate new orb_a values
-    here_mask = cos_pm1_mask & no_max_ecc_retro_mask
-    disk_bh_retro_orbs_a_new[here_mask] = \
-        disk_bh_retro_orbs_a[here_mask] - (
-            step1_delta_semimaj * timestep_duration_yr / semimaj_scale_factor[here_mask]
+    disk_bh_retro_orbs_a_new[case_1] = \
+        disk_bh_retro_orbs_a[case_1] - (
+            step1_delta_semimaj * timestep_duration_yr / semimaj_scale_factor[case_1]
         )
-    here_mask = cos_pm1_mask & max_ecc_mask
-    disk_bh_retro_orbs_a_new[here_mask] = \
-        disk_bh_retro_orbs_a[here_mask] - (
-            step2_delta_semimaj * timestep_duration_yr / semimaj_scale_factor[here_mask]
+    disk_bh_retro_orbs_a_new[case_2] = \
+        disk_bh_retro_orbs_a[case_2] - (
+            step2_delta_semimaj * timestep_duration_yr / semimaj_scale_factor[case_2]
         )
-    here_mask = cos_pm1_mask & barely_prograde_mask
-    disk_bh_retro_orbs_a_new[here_mask] = \
-        disk_bh_retro_orbs_a[here_mask] - (
-            step3_delta_semimaj * timestep_duration_yr / semimaj_scale_factor[here_mask]
+    disk_bh_retro_orbs_a_new[case_3] = \
+        disk_bh_retro_orbs_a[case_3] - (
+            step3_delta_semimaj * timestep_duration_yr / semimaj_scale_factor[case_3]
         )
-    disk_bh_retro_orbs_a_new[cos_0_mask] = \
-        disk_bh_retro_orbs_a[cos_0_mask]  - (
-                stepw0_delta_semimaj * timestep_duration_yr / semimaj_scale_factor[cos_0_mask]
+    disk_bh_retro_orbs_a_new[case_4] = \
+        disk_bh_retro_orbs_a[case_4]  - (
+                stepw0_delta_semimaj * timestep_duration_yr / semimaj_scale_factor[case_4]
         )
 
     # Calculate new orb_inc values
-    here_mask = cos_pm1_mask & no_max_ecc_retro_mask
-    disk_bh_retro_orbs_inc_new[here_mask] = \
-        disk_bh_retro_orbs_inc[here_mask] - (
-            step1_delta_inc * timestep_duration_yr / inc_scale_factor[here_mask]
+    disk_bh_retro_orbs_inc_new[case_1] = \
+        disk_bh_retro_orbs_inc[case_1] - (
+            step1_delta_inc * timestep_duration_yr / inc_scale_factor[case_1]
         )
 
-    here_mask = cos_pm1_mask & max_ecc_mask
-    disk_bh_retro_orbs_inc_new[here_mask] = \
-        disk_bh_retro_orbs_inc[here_mask] - (
-            step2_delta_inc * timestep_duration_yr / inc_scale_factor[here_mask]
+    disk_bh_retro_orbs_inc_new[case_2] = \
+        disk_bh_retro_orbs_inc[case_2] - (
+            step2_delta_inc * timestep_duration_yr / inc_scale_factor[case_2]
         )
-    here_mask = cos_pm1_mask & barely_prograde_mask
-    disk_bh_retro_orbs_inc_new[here_mask] = \
-        disk_bh_retro_orbs_inc[here_mask] - (
-            step3_delta_inc * timestep_duration_yr / inc_scale_factor[here_mask]
+    disk_bh_retro_orbs_inc_new[case_3] = \
+        disk_bh_retro_orbs_inc[case_3] - (
+            step3_delta_inc * timestep_duration_yr / inc_scale_factor[case_3]
         )
-    disk_bh_retro_orbs_inc_new[cos_0_mask] = \
-        disk_bh_retro_orbs_inc[cos_0_mask] - (
-            stepw0_delta_inc * timestep_duration_yr / inc_scale_factor[cos_0_mask]
+    disk_bh_retro_orbs_inc_new[case_4] = \
+        disk_bh_retro_orbs_inc[case_4] - (
+            stepw0_delta_inc * timestep_duration_yr / inc_scale_factor[case_4]
         )
 
     # Catch overshooting ecc = 0
@@ -648,7 +647,9 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     ecc = retrograde_bh_orb_ecc  # unitless
     inc = retrograde_bh_orb_inc  # radians
     cos_omega = np.cos(omega)
-    # Okay if inc == 0 or ecc == 0
+    # Following discussion with Saavik, we decided that this correction
+    #  was okay, because the value we set here isn't used for anything
+    #  when this statement is true.
     mask_here = (np.isclose(inc, 0.0) | np.isclose(ecc, 0.0)) & np.isclose(cos_omega, 0.0)
     cos_omega[mask_here] = 0.01
 
@@ -800,7 +801,9 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
     cos_omega = np.cos(omega)
-    # Okay if inc == 0 or ecc == 0
+    # Following discussion with Saavik, we decided that this correction
+    #  was okay, because the value we set here isn't used for anything
+    #  when this statement is true.
     mask_here = (np.isclose(inc, 0.0) | np.isclose(ecc, 0.0)) & np.isclose(cos_omega, 0.0)
     cos_omega[mask_here] = 0.01
 
