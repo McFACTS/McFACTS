@@ -1,5 +1,15 @@
 <!--
-Thank you for contributing a pull request! Here are a few tips to help you. Please be detailed where necessary.
+Please review our code of conduct (CODE_OF_CONDUCT.md) and contribution guidelines (CONTRIBUTING.md) before continuing.
+
+Thank you for contributing a pull request! If this is your first pull request, 
+the steps below will get you on the right track.
+
+If you are not a member of the McFACTS collaboration, please do not introduce yourself through a pull request! Instead, 
+we kindly ask that you first reach out via email, or through the discussion forms on GitHub to discuss your changes.
+
+Changes from external collaborators, especially individuals who have not historically worked 
+with the research topics and physics used in McFACTS, may have their pull request rejected if no
+prior communication with members of our collaboration exists.
 -->
 
 <!-- Optional Testing-->

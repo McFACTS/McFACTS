@@ -12,9 +12,18 @@
 
 McFACTS is the first public, open source, population synthesis code modeling the *full* AGN channel for LVK detectable BBH mergers.
 
+> [!IMPORTANT]
+> If you would like to contribute, please review [contribution guidelines](https://github.com/McFACTS/McFACTS/blob/main/CONTRIBUTING.md) along
+> with familiarizing yourself with our [code of conduct](https://github.com/McFACTS/McFACTS/blob/main/CODE_OF_CONDUCT.md)
+
+> [!WARNING]
+> Pull requests from external collaborators, especially individuals who have not historically worked 
+> with the research topics and physics used in McFACTS, may have their pull request rejected if no
+> prior communication with members of our collaboration exists.
+
 ## Documentation
 
-You can find more information about McFACTS as well as contact and office hour information at our [website](https://saavikford.wixsite.com/saavik/general-7). It's a work in progress, so please be patient!
+You can find more information about McFACTS, along with contact and office hour information, on our [website](https://saavikford.wixsite.com/saavik/general-7). It's a work in progress, so please be patient!
 
 Opt-in to everything McFACTS: click [here](https://docs.google.com/forms/d/e/1FAIpQLSeupzj8ledPslYc0bHbnJHKB7_LKlr8SY3SfbEVyL5AfeFlVg/viewform) to join our mailing list.
 
