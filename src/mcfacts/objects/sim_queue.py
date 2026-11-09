@@ -16,7 +16,7 @@ import numpy as np
 #### Vera ####
 from xdata import Database, Connection
 #### McFACTS ####
-from mcfacts.inputs import setup_scaling
+from mcfacts.inputs.scaling import setup_scaling
 from mcfacts.inputs.settings_manager import SettingsProperty
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.inputs.settings_manager import DEFAULT_SETTINGS
