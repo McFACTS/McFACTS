@@ -1053,12 +1053,6 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
     # set ratio = 1 (no migration) for black holes at or beyond the disk outer radius
     ratio_feedback_migration_torque[np.where(disk_bh_pro_orbs_a >= disk_radius_outer)] = 1.
 
-    # print("--------")
-    # print(disk_bh_pro_orbs_a)
-    # print(disk_opacity)
-    # print(disk_surface_density)
-    # print(ratio_feedback_migration_torque)
-
     nan_mask = ~np.isfinite(ratio_feedback_migration_torque)
     if np.any(nan_mask):
         print("disk_bh_pro_orbs_a:", disk_bh_pro_orbs_a[nan_mask])

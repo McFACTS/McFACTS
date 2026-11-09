@@ -639,16 +639,13 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, retrograde_bh_locations).value
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
-    smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    if smbh_mass < 1.e30 or smbh_mass > 1.e60:
+    smbh_mass_si = smbh_mass * u.Msun.to("kg")  # kg
+    if smbh_mass_si < 1.e30 or smbh_mass_si > 1.e60:
         raise RuntimeError(f"Some units are not right.")
     retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
     omega = retro_arg_periapse  # radians
-    print("tau omega:", omega)
     ecc = retrograde_bh_orb_ecc  # unitless
-    print("tau ecc:", ecc)
     inc = retrograde_bh_orb_inc  # radians
-    print("tau inc:", inc)
     cos_omega = np.cos(omega)
     # Following discussion with Saavik, we decided that this correction
     #  was okay, because the value we set here isn't used for anything
@@ -657,30 +654,23 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     cos_omega[mask_here] = 0.01
 
     # period in units of sec
-    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (CONST_G_SI * smbh_mass))
+    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (CONST_G_SI * smbh_mass_si))
     # semi-latus rectum in units of meters
     semi_lat_rec = semi_maj_axis * (1.0 - (ecc ** 2))
-    print("tau semi_lat_rec:", semi_lat_rec)
     # WZL Eqn 7 (sigma+/-)
     sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * cos_omega)
     sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * cos_omega)
-    print("tau: sigma_plus, sigma_minus:", sigma_plus, sigma_minus)
     # WZL Eqn 8 (eta+/-)
     eta_plus = np.sqrt(1.0 + ecc * cos_omega)
     eta_minus = np.sqrt(1.0 - ecc * cos_omega)
-    print(f"tau eta_plus, eta_minus:", eta_plus, eta_minus)
     # WZL Eqn 62
     kappa = 0.5 * (np.sqrt(1.0 / (eta_plus ** 15)) + np.sqrt(1.0 / (eta_minus ** 15)))
-    print(f"tau kappa:", kappa)
     # WZL Eqn 63
     xi = 0.5 * (np.sqrt(1.0 / (eta_plus ** 13)) + np.sqrt(1.0 / (eta_minus ** 13)))
-    print(f"tau xi:", xi)
     # WZL Eqn 64
     zeta = xi / kappa
-    print(f"tau zeta:", zeta)
     # WZL Eqn 30
     delta = 0.5 * (sigma_plus / (eta_plus ** 2) + sigma_minus / (eta_minus ** 2))
-    print(f"tau delta:", delta)
     # WZL Eqn 70
     #   NOTE: preserved retrograde_bh_locations in r_g to feed to disk_surf_model function
     #   tau in units of sec
@@ -820,41 +810,31 @@ def tau_ecc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     # WZL Eqn 7 (sigma+/-)
     sigma_plus = np.sqrt(1.0 + (ecc ** 2) + 2.0 * ecc * cos_omega)
     sigma_minus = np.sqrt(1.0 + (ecc ** 2) - 2.0 * ecc * cos_omega)
-    print(f"sigma_plus, sigma_minus = {sigma_plus}, {sigma_minus}")
     # WZL Eqn 8 (eta+/-)
     eta_plus = np.sqrt(1.0 + ecc * cos_omega)
     eta_minus = np.sqrt(1.0 - ecc * cos_omega)
-    print(f"eta_plus, eta_minus = {eta_plus}, {eta_minus}")
     # WZL Eqn 62
     kappa = 0.5 * (np.sqrt(1.0 / (eta_plus ** 15)) + np.sqrt(1.0 / (eta_minus ** 15)))
-    print(f"kappa: {kappa}")
     # WZL Eqn 63
     xi = 0.5 * (np.sqrt(1.0 / (eta_plus ** 13)) + np.sqrt(1.0 / (eta_minus ** 13)))
-    print(f"xi: {xi}")
     # WZL Eqn 64
     zeta = xi / kappa
-    print(f"zeta: {zeta}")
     # WZL Eqn 65
     kappa_bar = 0.5 * (np.sqrt(1.0 / (eta_plus ** 7)) + np.sqrt(1.0 / (eta_minus ** 7)))
-    print(f"kappa_bar: {kappa_bar}")
     # WZL Eqn 66
     xi_bar = 0.5 * (np.sqrt((sigma_plus ** 4) / (eta_plus ** 13)) + np.sqrt((sigma_minus ** 4) / (eta_minus ** 13)))
-    print(f"xi_bar: {xi_bar}")
     # WZL Eqn 67
     zeta_bar = xi_bar / kappa_bar
-    print(f"zeta_bar: {zeta_bar}")
 
     # call function for tau_p_dyn (WZL Eqn 70)
     tau_p_dyn = tau_semi_lat(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_retro_orbs_ecc,
                              disk_bh_retro_orbs_inc, disk_bh_retro_arg_periapse,
                              disk_surf_density_func, r_g_in_meters)
-    print(f"tau_p_dyn: {tau_p_dyn}")
     #  also need to find tau_a_dyn, but
     #   fortunately it's a few factors off of tau_p_dyn (this may be a dumb way to handle it)
     tau_a_dyn = tau_p_dyn * (1.0 - (ecc ** 2)) * kappa * np.abs(np.cos(inc) - zeta) / (
             kappa_bar * np.abs(np.cos(inc) - zeta_bar))
     tau_a_dyn[ecc == 0] = HUBBLE_TIME_SI.value
-    print(f"tau_a_dyn: {tau_a_dyn}")
     # WZL Eqn 73
     tau_e_dyn = (2.0 * (ecc ** 2) / (1.0 - (ecc ** 2))) * 1.0 / np.abs(1.0 / tau_a_dyn - 1.0 / tau_p_dyn)
     # The limit of 1 / ((1/x) + (1/x)) as x goes to zero is zero
