@@ -46,7 +46,7 @@ def paardekooper10_torque(orbs_a, orbs_ecc, orb_ecc_crit, disk_dlog10surfdens_dl
     Torque_paardekooper_coeff = -0.85 + dlogSigmadlogR + (0.9 * dlogTempdlogR)
 
     # Check for nans
-    nan_mask = np.isnan(Torque_paardekooper_coeff)
+    nan_mask = ~np.isfinite(Torque_paardekooper_coeff)
     if any(nan_mask):
         if all(orbs_a[migration_indices][nan_mask] < 12.1):
             # They are not migrating if they have already been captured
@@ -636,7 +636,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             temp_orbs_a = new_orbs_a[mask_in_trap] - migration_distance[mask_in_trap]
             new_orbs_a[mask_in_trap] = temp_orbs_a
 
-        if smbh_mass < 1.e8 and smbh_mass > 1.e6:
+        if smbh_mass < 1.e8 and smbh_mass >= 1.e6:
             # Trap radius changes as a function of mass.
             # Also new(!) anti-trap radius. Region between trap and anti-trap migrates out, all others migrate inwards
             # Calc new trap radius from Grishin+24
@@ -987,7 +987,6 @@ def type1_migration_binary(smbh_mass, bin_mass_1, bin_mass_2, bin_orb_a, bin_orb
 
     return (new_bin_orb_a)
 
-
 def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_func, disk_bh_eddington_ratio,
                        disk_alpha_viscosity, disk_radius_outer):
     """Calculate the ratio of radiative feedback torque to migration torque.
@@ -1008,8 +1007,8 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
     disk_opacity_model : lambda
         Opacity as a function of radius
     disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
+        Accretion rate of fully embedded stellar mass black holes [Eddington accretion rate].
+        1.0 = embedded black holes are accreting at 100% of their Eddington limit.
         Super-Eddington accretion rates are permitted.
         User chosen input set by input file
     disk_alpha_viscosity : float
@@ -1096,11 +1095,6 @@ def feedback_stars_hankla(disk_stars_pro_orbs_a, disk_surf_density_func, disk_op
         can accept a simple float (constant), but this is deprecated
     disk_opacity_model : lambda
         Opacity as a function of radius
-    disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
-        Super-Eddington accretion rates are permitted.
-        User chosen input set by input file
     disk_alpha_viscosity : float
         Disk gas viscocity [units??] alpha parameter
     disk_radius_outer : float
@@ -1165,8 +1159,8 @@ def bin_com_feedback_hankla(bin_orb_a, disk_surface_density, disk_opacity_func, 
     disk_opacity_model : lambda
         Opacity as a function of radius
     disk_bh_eddington_ratio : float
-        Accretion rate of fully embedded stellar mass black hole [Eddington accretion rate].
-        1.0=embedded BH accreting at Eddington.
+        Accretion rate of fully embedded stellar mass black holes [Eddington accretion rate].
+        1.0 = embedded black holes are accreting at 100% of their Eddington limit.
         Super-Eddington accretion rates are permitted.
         User chosen input set by input file
     disk_alpha_viscosity : float
@@ -1323,7 +1317,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     agn_disk.disk_dlog10temp_dlog10R_func,
                     sm.r_g_in_meters
                 )
-
+                
                 # Thermal torque from JM17 (if flag_thermal_feedback off, this component is 0.)
                 jimenez_masset_thermal_torque_coeff_bh = jimenezmasset17_thermal_torque_coeff(
                     sm.smbh_mass,
@@ -1357,7 +1351,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                     disk_trap_radius = sm.disk_radius_trap
                     disk_anti_trap_radius = sm.disk_radius_trap
                 # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
-                if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
+                if sm.smbh_mass < 1.e8 and sm.smbh_mass >= 1.e6:
                     disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
                     disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
                 # Trap location changes again at low SMBH mass (Grishin+24)
@@ -1543,7 +1537,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                         disk_trap_radius = sm.disk_radius_trap
                         disk_anti_trap_radius = sm.disk_radius_trap
                     # Trap changes as a function of r_g if M_smbh <10^8Msun (default trap radius ~700r_g). Grishin+24
-                    if sm.smbh_mass < 1.e8 and sm.smbh_mass > 1.e6:
+                    if sm.smbh_mass < 1.e8 and sm.smbh_mass >= 1.e6:
                         disk_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (-1.225)
                         disk_anti_trap_radius = sm.disk_radius_trap * (sm.smbh_mass / 1.e8) ** (0.099)
                     # Trap location changes again at low SMBH mass (Grishin+24)

@@ -501,7 +501,7 @@ class BinaryBlackHoleFormation(TimelineActor):
                                             old_gw_freq=-1, smbh_mass=sm.smbh_mass, agn_redshift=sm.agn_redshift,
                                             flag_include_old_gw_freq=0)
 
-        new_unique_ids = np.array([uuid_provider(random_generator) for _ in range(primary_ids.size)])
+        new_unique_ids = np.array([uuid_provider(random_generator) for _ in range(primary_ids.size)], dtype=object)
 
         new_binaries = AGNBinaryBlackHoleArray(
             unique_id=new_unique_ids,
