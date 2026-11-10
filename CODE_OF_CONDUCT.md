@@ -1,4 +1,4 @@
-# Contributor Covenant 3.0 Code of Conduct
+# McFACTS Code of Conduct
 
 ## Our Pledge
 
@@ -41,11 +41,11 @@ We agree to restrict the following behaviors in our community. Instances, threat
 4. **Irresponsible communication.** Failing to responsibly present content which includes, links or describes any other restricted behaviors.
 
 
-## Reporting an Issue; Addressing and Repairing Harm
+## Reporting an Issue
 
 Tensions can occur between community members even when they are trying their best to collaborate. Not every conflict represents a code of conduct violation, and this Code of Conduct reinforces encouraged behaviors and norms that can help avoid conflicts and minimize harm.
 
-When an incident does occur, it is important to report it promptly. A report can be through the contacts made available on our website (https://saavikford.wixsite.com/saavik/general-7).
+When an incident does occur, it is important to report it promptly. A report can be made through the contacts available on our website (https://saavikford.wixsite.com/saavik/general-7).
 
 Community Moderators are generally accepted to be active members of the McFACTS research collaboration and core maintainers of the McFACTS repository.
 
@@ -53,8 +53,6 @@ Community Moderators take reports of violations seriously and will make every ef
 
 
 ## Addressing and Repairing Harm
-
-****
 
 If an investigation by the Community Moderators finds that this Code of Conduct has been violated, the following enforcement ladder may be used to determine how best to repair harm, based on the incident's impact on the individuals involved and the community as a whole. Depending on the severity of a violation, lower rungs on the ladder may be skipped.
 
