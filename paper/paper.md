@@ -168,13 +168,14 @@ it into their work.
 Several population synthesis codes targeting BBH formation and
 evolution currently exist, include `COSMIC` [@breivik:2020], 
 `COMPAS` [@riley:2022], `CMC` [@rodriguez:2022], and `cogsworth` [@wagg:2024].
-These codes focus on formation channels for isolated binaries and dense
-stellar clusters [EMILY COMMENT: this is a hard transition for a non-astro person. I think rephrasing this to be "formation channels for BBHs in gas-free environments (e.g. isolated binaries and dense stellar clusters...)], but do not model the [EMILY COMMENT: add "critical" or some other elevating the stakes adjective] gas-driven dynamics of an AGN disk.
-Codes that focused on the AGN channel have historically been geared towards
-specific features, such as focusing on the mergers found at migration traps, or 
-are not open source and have not been released publicly. `McFACTS` distinguishes
-itself from its predecessors by being public, open-source, and tooled to
-simulate the full AGN channel for BBH mergers [EMILY COMMENT: ehhh is it the full if we don't have NSs and WDs (which I know is impossible ATM), just semantics] across a broad range of the AGN parameter space.
+These codes focus on formation channels for BBHs in gas-poor environments (e.
+g. isolated binaries, dense stellar clusters, etc.), but do not model the 
+critical gas-rich dynamics of an AGN disk. Codes that focused on the AGN 
+channel have historically been geared towards specific features, such as 
+focusing on the mergers found at migration traps, or are not open source 
+and have not been released publicly. `McFACTS` distinguishes itself from 
+its predecessors by being public, open-source, and tooled to simulate the 
+AGN channel for BBH mergers across a broad range of the AGN parameter space.
 
 # Software design
 
