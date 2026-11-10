@@ -223,7 +223,13 @@ def main(settings: SettingsManager):
         # Create instance of populators
         single_bh_populator = SingleBlackHolePopulator()
         single_star_populator = SingleStarPopulator()
-        galaxy.populate([single_bh_populator, single_star_populator], agn_disk)
+        # For smbh_mass != 1e8, allow empty galaxies
+        default_strict_fill = settings.smbh_mass == 1.e8
+        galaxy.populate(
+            [single_bh_populator, single_star_populator],
+            agn_disk,
+            strict_fill=default_strict_fill,
+        )
 
         ## Run the galaxy ##
         run_galaxy(settings, galaxy, agn_disk=agn_disk)
