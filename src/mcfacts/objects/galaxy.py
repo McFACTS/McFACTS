@@ -274,7 +274,7 @@ class Galaxy:
                 if actor.settings is None:
                     actor.settings = self.settings
 
-                self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.settings_finals == self.settings.settings_finals}")
+                self.log(f"<T:{timestep}> Running {actor.name}, Using Galaxy Settings: {actor.settings.flat_settings == self.settings.flat_settings}")
 
                 actor.set_log_func(self.parent_log_func.spawn(
                     prefix=f"{actor.name} :: ",

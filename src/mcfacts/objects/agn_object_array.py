@@ -964,7 +964,7 @@ class FilingCabinet:
             elif isinstance(arr, dict):
                 # Initialize match
                 match = None
-                for _skey, _svalue in settings.settings_finals.items():
+                for _skey, _svalue in settings.flat_settings.items():
                     if (item == _svalue) and ("_array_name" in _skey):
                         match = _skey
                         break

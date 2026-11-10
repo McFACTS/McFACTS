@@ -250,6 +250,11 @@ class TxtSnapshotHandler(SnapshotHandler):
             file_name: str | bytes | PathLike,
             settings: SettingsManager = None,
         ):
+        """
+        Save a settings manager in the .txt format
+
+        Important: The TXT handler does not currently support custom categories.
+        """
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
@@ -257,9 +262,9 @@ class TxtSnapshotHandler(SnapshotHandler):
             file_name = file_name + ".txt"
         final_path = os.path.join(directory, file_name)
 
-        temp_keys = list(settings.settings_finals.keys())
-        temp_values = list(settings.settings_finals.values())
-        temp_types = list(self.get_fully_qualified_type(x) for x in settings.settings_finals.values())
+        temp_keys = list(settings.flat_settings.keys())
+        temp_values = list(settings.flat_settings.values())
+        temp_types = list(self.get_fully_qualified_type(x) for x in settings.flat_settings.values())
 
         # Fixes a bug with an unset "settings_file" that I found in testing
         for i, (t, key, val) in enumerate(zip(temp_types, temp_keys, temp_values)):
@@ -362,23 +367,37 @@ class IniSnapshotHandler(SnapshotHandler):
         name_to_category = {prop.name: prop.category for prop in settings_manager.DEFAULT_SETTINGS}
 
         config = configparser.ConfigParser()
+        config.optionxform = str
 
         # Write all standard settings, grouped by category
-        for name, value in settings.settings_finals.items():
-            category = name_to_category.get(name, "custom")
+        for name, value in settings.flat_settings.items():
+            category = name_to_category.get(name)
+
             if not config.has_section(category):
                 config.add_section(category)
+
             config.set(category, name, str(value))
 
-        # Write any custom categories that aren't in settings_finals
+        # Write any custom categories that aren't in the default settings
         standard_categories = {prop.category for prop in settings_manager.DEFAULT_SETTINGS}
+
         for category, proxy in settings.categories.items():
             if category in standard_categories:
                 continue
+
             if not config.has_section(category):
                 config.add_section(category)
-            for name, value in proxy._props.items():
+
+            for name, value in proxy.props.items():
                 config.set(category, name, str(value))
+
+            for a, b in proxy.aliases.items():
+                cat_alias = f'{category}.aliases'
+
+                if not config.has_section(cat_alias):
+                    config.add_section(cat_alias)
+
+                config.set(cat_alias, a, b)
 
         with open(final_path, "w") as f:
             config.write(f)
@@ -398,13 +417,15 @@ class IniSnapshotHandler(SnapshotHandler):
             raise FileNotFoundError(f"Settings file not found: {final_path}")
 
         config = configparser.ConfigParser()
+        config.optionxform = str
         config.read(final_path)
 
-        standard_setting_names = {prop.name for prop in settings_manager.DEFAULT_SETTINGS}
+        standard_setting_names = settings_manager.DEFAULT_KEYS | settings_manager.DEFAULT_ALIASES_KEYS
         standard_categories = {prop.category for prop in settings_manager.DEFAULT_SETTINGS}
 
         settings_overrides = {}
         custom_categories = {}
+        custom_alias = {}
 
         for section in config.sections():
             if section in standard_categories:
@@ -413,14 +434,16 @@ class IniSnapshotHandler(SnapshotHandler):
                     if name in standard_setting_names:
                         settings_overrides[name] = value
             else:
-                # Save custom section for later to be loaded with method
-                custom_categories[section] = dict(config[section].items())
+                if section.endswith(".aliases"):
+                    custom_alias[section.removesuffix(".aliases")] = dict(config[section].items())
+                else:
+                    # Save custom section for later to be loaded with method
+                    custom_categories[section] = dict(config[section].items())
 
-        print(settings_overrides)
         manager = SettingsManager(settings_overrides)
 
         for category, props in custom_categories.items():
-            manager.add_custom_category(category, props)
+            manager.add_custom_category(category, props, custom_alias.get(category))
 
         return manager
 
@@ -781,6 +804,8 @@ class HDF5SnapshotHandler(SnapshotHandler):
         ):
         """Save settings to HDF5 using xdata
 
+        Important: The HDF5 handler does not currently support custom categories.
+
         Parameters
         ----------
         directory   : path_like
@@ -804,7 +829,7 @@ class HDF5SnapshotHandler(SnapshotHandler):
         db = Database(final_path, addr)
 
         ## Save requires mutating data ##
-        save_attrs = {key:value for key, value in settings.settings_finals.items()}
+        save_attrs = {key:value for key, value in settings.flat_settings.items()}
         # Cannot save objects to hdf5
         if save_attrs["settings_file"] is None:
             save_attrs["settings_file"] = ""
