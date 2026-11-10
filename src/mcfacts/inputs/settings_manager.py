@@ -161,7 +161,7 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("mass_pile_up", "bh", 35.0, float),
         SettingsProperty("initial_binary_orbital_ecc", "bh", 0.01, float),
         SettingsProperty("fraction_bin_retro", "bh", 0.0, float),
-        SettingsProperty("flag_use_surrogate", "bh", False, bool),
+        SettingsProperty("flag_use_surrogate", "bh", 0, int),
         SettingsProperty("flag_use_spin_check", "bh", False, bool),
         SettingsProperty("mean_harden_energy_delta", "bh", 0.9, float),
         SettingsProperty("var_harden_energy_delta", "bh", 0.025, float),
