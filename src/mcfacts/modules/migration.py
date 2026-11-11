@@ -462,7 +462,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
                              disk_feedback_ratio,
                              disk_radius_trap, disk_radius_anti_trap, disk_radius_outer, timestep_duration_yr,
                              flag_phenom_turb, phenom_turb_centroid, phenom_turb_std_dev, bh_min_mass,
-                             torque_prescription, random):
+                             torque_prescription, random, inner_disk_outer_radius, bh_inner_disk_array_name, blackholes_array):
     """Calculates how far an object migrates in an AGN gas disk in a single timestep given a torque migration timescale
     calculated elsewhere (e.g. torque_migration_timescale)
     Returns their new locations after migration over one timestep.
@@ -504,6 +504,12 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         Torque prescription 'paardekooper' or 'jimenez_masset' ('old' is deprecated),
     random: numpy.random.Generator
         Generator used to generate random numbers
+    inner_disk_outer_radius : float
+        Outer radius of the inner disk in r_g
+    bh_inner_disk_array_name : numpy.ndarray
+        Black holes that have merged with the SMBH
+    blackholes_array : numpy.ndarray
+        Array of indices of objects that remain as black holes
     Returns
     -------
     orbs_a : float array
@@ -673,7 +679,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             # Get masks for objects outside trap, inside trap and inside anti-trap
             mask_out_trap = new_orbs_a > disk_radius_trap
             mask_in_anti_trap = new_orbs_a < disk_radius_anti_trap
-            mask_in_trap = new_orbs_a > disk_radius_anti_trap and new_orbs_a < disk_radius_trap
+            mask_in_trap = (new_orbs_a > disk_radius_anti_trap) & (new_orbs_a < disk_radius_trap)
 
             # If outside trap migrate inwards
             temp_orbs_a = new_orbs_a[mask_out_trap] - migration_distance[mask_out_trap]
@@ -697,6 +703,11 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
     new_orbs_a[new_orbs_a > disk_radius_outer] = disk_radius_outer - epsilon_outer_radius[
         new_orbs_a > disk_radius_outer]
 
+    #if new_orbs_a is less than inner disk adds it to EMRI array and remove from blackhole array
+    bh_inner_disk_array_name = new_orbs_a[new_orbs_a <= inner_disk_outer_radius]
+    new_orbs_a = new_orbs_a[new_orbs_a > inner_disk_outer_radius]
+    blackholes_array = new_orbs_a[new_orbs_a > inner_disk_outer_radius]
+
     # Update orbs_a
     orbs_a[migration_indices] = new_orbs_a
 
@@ -705,7 +716,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
     assert np.all(new_orbs_a > 0), \
         "new_orbs_a contains values <= 0"
 
-    return (orbs_a)
+    return (orbs_a, bh_inner_disk_array_name, blackholes_array)
 
 
 def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
@@ -1378,7 +1389,10 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.phenom_turb_std_dev,
                 sm.nsc_imf_bh_mode,
                 sm.torque_prescription,
-                random_generator
+                random_generator,
+                sm.inner_disk_outer_radius,
+                sm.bh_inner_disk_array_name,
+                blackholes_array
             )
 
         # TODO: Reconsider for physicality
@@ -1386,7 +1400,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
         # Was this supposed to be some sort of edge detection?
         blackholes_array.orb_a = np.where(blackholes_array.orb_a > sm.disk_inner_stable_circ_orb, blackholes_array.orb_a,
                                         3 * sm.disk_inner_stable_circ_orb)
-
+        
         delta_distance = np.abs(new_orb_a_bh - blackholes_array.orb_a)
         delta_distance_meters = unit_conversion.si_from_r_g_optimized(sm.smbh_mass, delta_distance, r_g_defined=sm.r_g_in_meters)
         blackholes_array.migration_velocity = (delta_distance_meters / (timestep_length * u.yr).to(u.s)).value
