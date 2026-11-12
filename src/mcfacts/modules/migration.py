@@ -462,7 +462,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
                              disk_feedback_ratio,
                              disk_radius_trap, disk_radius_anti_trap, disk_radius_outer, timestep_duration_yr,
                              flag_phenom_turb, phenom_turb_centroid, phenom_turb_std_dev, bh_min_mass,
-                             torque_prescription, random, inner_disk_outer_radius, bh_inner_disk_array_name, blackholes_array):
+                             torque_prescription, random, inner_disk_outer_radius, bh_inner_disk_array_name):
     """Calculates how far an object migrates in an AGN gas disk in a single timestep given a torque migration timescale
     calculated elsewhere (e.g. torque_migration_timescale)
     Returns their new locations after migration over one timestep.
@@ -704,9 +704,11 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         new_orbs_a > disk_radius_outer]
 
     #if new_orbs_a is less than inner disk adds it to EMRI array and remove from blackhole array
-    bh_inner_disk_array_name = new_orbs_a[new_orbs_a <= inner_disk_outer_radius]
-    new_orbs_a = new_orbs_a[new_orbs_a > inner_disk_outer_radius]
-    blackholes_array = new_orbs_a[new_orbs_a > inner_disk_outer_radius]
+    emri_mask = new_orbs_a <= inner_disk_outer_radius
+    migration_indices = migration_indices[~emri_mask] # removing emris
+    bh_inner_disk_array_name = new_orbs_a[emri_mask] #adding emris to inner disk array
+    new_orbs_a = new_orbs_a[~emri_mask] #~ means anything not in the mask
+    #blackholes_array = new_orbs_a[~emri_mask]
 
     # Update orbs_a
     orbs_a[migration_indices] = new_orbs_a
@@ -716,7 +718,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
     assert np.all(new_orbs_a > 0), \
         "new_orbs_a contains values <= 0"
 
-    return (orbs_a, bh_inner_disk_array_name, blackholes_array)
+    return (orbs_a)
 
 
 def type1_migration(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit,
@@ -1391,8 +1393,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.torque_prescription,
                 random_generator,
                 sm.inner_disk_outer_radius,
-                sm.bh_inner_disk_array_name,
-                blackholes_array
+                sm.bh_inner_disk_array_name
             )
 
         # TODO: Reconsider for physicality
@@ -1577,6 +1578,8 @@ class BinaryBlackHoleMigration(TimelineActor):
                     sm.phenom_turb_std_dev,
                     sm.nsc_imf_bh_mode,
                     sm.torque_prescription,
-                    random_generator
+                    random_generator,
+                    sm.inner_disk_outer_radius,
+                    sm.bh_inner_disk_array_name
                 )
 
