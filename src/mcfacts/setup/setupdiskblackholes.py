@@ -236,6 +236,7 @@ def setup_disk_blackholes_masses(
         nsc_bh_imf_powerlaw_index, 
         mass_pile_up,
         nsc_imf_bh_method,
+        bh_initial_locations,
         random
     ):
     """Generates disk BH initial masses [M_sun] of size disk_bh_num for user defined inputs.
@@ -275,6 +276,17 @@ def setup_disk_blackholes_masses(
         # In this case, I'm going to interpret the mode as the sigma,
         # The pileup as mu, and I'm going to ignore everything else.
         disk_bh_initial_masses = random.normal(loc=mass_pile_up, scale=nsc_bh_imf_mode, size=disk_bh_num)
+    elif nsc_imf_bh_method == "twin-peaks":
+        # In this case, we have both 10 and 33 solar mass Gaussians
+        floor = 5.0
+        which_peak = bh_initial_locations >= 5.e4
+        disk_bh_initial_masses = np.zeros(disk_bh_num, dtype=float)
+        while np.any(disk_bh_initial_masses < floor):
+            floor_mask = disk_bh_initial_masses < floor
+            disk_bh_initial_masses[floor_mask] = random.normal(
+                loc=10.0, scale=3.0, size=int(floor_mask.sum()))
+        disk_bh_initial_masses[which_peak] = random.normal(
+            loc=33.0, scale=3.0, size=which_peak.sum())
     elif nsc_imf_bh_method in ["uniform","linear"]:
         # Here, we're going from mode to max
         disk_bh_initial_masses = random.uniform(low=nsc_bh_imf_mode,high=nsc_bh_imf_max_mass, size=disk_bh_num)

@@ -52,6 +52,7 @@ class SingleBlackHolePopulator(GalaxyPopulator):
             sm.nsc_imf_bh_powerlaw_index,
             sm.mass_pile_up,
             sm.nsc_imf_bh_method,
+            bh_orb_a_initial,
             random_generator
         )
 

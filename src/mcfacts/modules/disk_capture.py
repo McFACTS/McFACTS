@@ -941,8 +941,13 @@ class CaptureNSCProgradeBlackHoles(TimelineActor):
         )
 
         bh_mass_captured = setupdiskblackholes.setup_disk_blackholes_masses(
-            1, sm.nsc_imf_bh_mode, sm.nsc_imf_bh_mass_max, sm.nsc_imf_bh_powerlaw_index, sm.mass_pile_up,
-            sm.nsc_imf_bh_method, random_generator
+            1, sm.nsc_imf_bh_mode,
+            sm.nsc_imf_bh_mass_max,
+            sm.nsc_imf_bh_powerlaw_index,
+            sm.mass_pile_up,
+            sm.nsc_imf_bh_method,
+            bh_orb_a_captured,
+            random_generator
         )
 
         bh_spin_captured = setupdiskblackholes.setup_disk_blackholes_spins(
