@@ -279,14 +279,16 @@ def setup_disk_blackholes_masses(
     elif nsc_imf_bh_method == "twin-peaks":
         # In this case, we have both 10 and 33 solar mass Gaussians
         floor = 5.0
-        which_peak = bh_initial_locations >= 5.e4
+        which_peak = bh_initial_locations < 5.e4
         disk_bh_initial_masses = np.zeros(disk_bh_num, dtype=float)
         while np.any(disk_bh_initial_masses < floor):
             floor_mask = disk_bh_initial_masses < floor
-            disk_bh_initial_masses[floor_mask] = random.normal(
-                loc=10.0, scale=3.0, size=int(floor_mask.sum()))
-        disk_bh_initial_masses[which_peak] = random.normal(
-            loc=33.0, scale=3.0, size=which_peak.sum())
+            inner_mask = floor_mask & which_peak
+            outer_mask = floor_mask & ~which_peak
+            disk_bh_initial_masses[inner_peak] = random.normal(
+                loc=33.0, scale=3.0, size=inner_peak.sum())
+            disk_bh_initial_masses[outer_mask] = random.normal(
+                loc=10.0, scale=3.0, size=outer_mask.sum())
     elif nsc_imf_bh_method in ["uniform","linear"]:
         # Here, we're going from mode to max
         disk_bh_initial_masses = random.uniform(low=nsc_bh_imf_mode,high=nsc_bh_imf_max_mass, size=disk_bh_num)
