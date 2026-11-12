@@ -145,7 +145,7 @@ code where one did not previously exist. This inaugural version concentrated
 the simulation logic and general bookkeeping into one main script, making new
 contributions difficult to add and different combinations of physical processes
 hard to test. With the continued growth of the `McFACTS` collaboration, the 
-limited flexibility of the main script became a significant pbstacle in 
+limited flexibility of the main script became a significant obstacle in 
 maintaining and upgrading the code.
 
 The restructured version of `McFACTS`, documented in this paper, address these
@@ -193,7 +193,7 @@ The population is seeded with `Populator` objects.
 
 The `Galaxy` object sits at the core of the simulation framework. A single
 `Galaxy` object represents one synthetic galaxy, with its own population,
-deterministic random state using `Philox`, and the history of simulation
+deterministic random state using a Philox pseudo-random number generator, and the history of simulation
 timelines that have been run (graphically represented in \autoref{diag}). A 
 `Galaxy` is first populated using `Populator`objects. Once the `Galaxy` is 
 seeded, a `SimulationTimeline` holding several `TimelineActor` objects is run.
@@ -228,7 +228,7 @@ physical processes through a common `perform` interface, with each actor
 generally representing a single physical process (migration, accretion, 
 eccentricity damping, binary formation, merger processing, etc.). Each 
 actor is passed a reference to the `FilingCabinet` of that galaxy, and can
-read and write directly to it. A `Populator` is structured similarly to a
+read and written directly to it. A `Populator` is structured similarly to a
 `TimelineActor`, but distinctly plays the role of seeding the initial 
 populations, constructing the starting `AGNObjectArray` objects passed to the
 filling cabinet.
@@ -244,9 +244,10 @@ third-party modules. The `SnapshotHandler` provides an interface for the
 simulation framework to load and save `SettingsManager` and `FilingCabinet`
 objects. By default, we support both `.txt` and `.ini` for the loading and
 saving of the `SettingsManger` and support `.txt` files for the `FilingCabinet`. 
-Members of the `McFACTS` collaboration have developed tooling to support `.h5`
-files and the HDF5 format, along with `.parquet` files using the Apache Parquet 
-format. There are also plans to support `.db, .sqlite` files through SQLite. 
+Members of the `McFACTS` collaboration have developed tooling to support `.hdf5`
+files and the HDF5 format.
+There are also plans to supportwith `.parquet` files using the Apache Parquet 
+format and  `.db, .sqlite` files through SQLite. 
 This flexibility in IO formating allows for a highly customizable
 experience, encouraging the implementation of `McFACTS` in to third-party data 
 processing pipelines and software stacks.
