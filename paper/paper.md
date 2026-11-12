@@ -228,7 +228,7 @@ physical processes through a common `perform` interface, with each actor
 generally representing a single physical process (migration, accretion, 
 eccentricity damping, binary formation, merger processing, etc.). Each 
 actor is passed a reference to the `FilingCabinet` of that galaxy, and can
-read and written directly to it. A `Populator` is structured similarly to a
+read and write directly to it. A `Populator` is structured similarly to a
 `TimelineActor`, but distinctly plays the role of seeding the initial 
 populations, constructing the starting `AGNObjectArray` objects passed to the
 filling cabinet.
@@ -251,6 +251,26 @@ format and  `.db, .sqlite` files through SQLite.
 This flexibility in IO formating allows for a highly customizable
 experience, encouraging the implementation of `McFACTS` in to third-party data 
 processing pipelines and software stacks.
+
+### Scaling with SMBH Mass
+
+Between parsing command line arguments and running the simulation,
+ the primary executable in the restructured workflow supports scaling
+ several properties of the AGN with the provided SMBH (or stellar) mass
+ and galaxy morphology (early-/late-type).
+When enabled, this 
+ scaling feature can adjust the NSC mass, the outer disk radius,
+ the boundary between the inner/outer disk, the type-I migration
+ trap radius, and capture rates from the NSC
+ in a way consistent with published literature [@delfavero:2025].
+Previous to the restructure,
+ these parameters needed to be tuned by hand
+ or modified by a script using regular expressions.
+Because this step happens during initialization,
+ the settings written and logged in the output directory
+ are the final scaled settings used in-situ.
+As a result, it is easier to simulate AGN of different types
+ and sizes.
 
 
 ## Extension: McFAST
