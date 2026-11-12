@@ -704,7 +704,8 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         new_orbs_a > disk_radius_outer]
 
     #if new_orbs_a is less than inner disk adds it to EMRI array and remove from blackhole array
-    emri_mask = new_orbs_a <= inner_disk_outer_radius
+    scaled_inner_disk_radius = inner_disk_outer_radius * (smbh_mass / 1.e8) ** (-0.5) #get this from seeing the time it would take for a BH orbit to decay in years
+    emri_mask = new_orbs_a <= scaled_inner_disk_radius
     migration_indices = migration_indices[~emri_mask] # removing emris
     bh_inner_disk_array_name = new_orbs_a[emri_mask] #adding emris to inner disk array
     new_orbs_a = new_orbs_a[~emri_mask] #~ means anything not in the mask
