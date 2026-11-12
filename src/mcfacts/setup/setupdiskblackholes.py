@@ -285,8 +285,8 @@ def setup_disk_blackholes_masses(
             floor_mask = disk_bh_initial_masses < floor
             inner_mask = floor_mask & which_peak
             outer_mask = floor_mask & ~which_peak
-            disk_bh_initial_masses[inner_peak] = random.normal(
-                loc=33.0, scale=3.0, size=inner_peak.sum())
+            disk_bh_initial_masses[inner_mask] = random.normal(
+                loc=33.0, scale=3.0, size=inner_mask.sum())
             disk_bh_initial_masses[outer_mask] = random.normal(
                 loc=10.0, scale=3.0, size=outer_mask.sum())
     elif nsc_imf_bh_method in ["uniform","linear"]:
