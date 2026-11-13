@@ -1,8 +1,8 @@
 """Define the SettingsManager object and various components"""
+import types
 ######## Imports ########
 #### Standard Library ####
 import warnings
-from functools import cached_property
 from types import NoneType
 from typing import Any, TypeVar, Type
 
@@ -10,7 +10,6 @@ from typing import Any, TypeVar, Type
 import numpy as np
 
 #### McFACTS ####
-from mcfacts.inputs import ReadInputs
 from mcfacts.utilities import unit_conversion
 
 #### Setup ####
@@ -24,13 +23,34 @@ IGNORE_ARGS = [
 class SettingsProperty:
     T = TypeVar("T")
 
-    def __init__(self, name: str, category: str, value: Any, prop_type: Type[T] = str):
-        assert type(value) == prop_type, f"SettingsProperty: the type of value ({type(value)}) must match prop_type {prop_type}"
+    def __init__(self, name: str, category: str, value: Any,
+                 prop_type: Type[T] = str, aliases: list[str] | None = None):
+
+        # Validate inputs
+        if not name or not name.strip():
+            raise ValueError("SettingsProperty: name cannot be empty or whitespace")
+        if not category or not category.strip():
+            raise ValueError("SettingsProperty: category cannot be empty or whitespace")
+
+        # Strict check that the input type matches the expected type
+        if type(value) is not prop_type:
+            raise TypeError(f"SettingsProperty: the type of value ({type(value)}) must match prop_type {prop_type}")
+
+        # Check that the aliases are an array instead of a single string
+        if isinstance(aliases, str):
+            raise TypeError("SettingsProperty: aliases must be a list of str, not a str")
+
+        # Check that all of the passed aliases are not empty or whitespace
+        aliases = aliases if aliases is not None else []
+        for alias in aliases:
+            if not alias or not alias.strip():
+                raise ValueError("SettingsProperty: aliases cannot be empty or whitespace")
 
         self._name = name
         self._category = category
         self._value = value
         self._prop_type = prop_type
+        self._aliases = tuple(aliases or ())
 
 
     @property
@@ -64,48 +84,77 @@ class SettingsProperty:
 
 
     @property
+    def aliases(self) -> tuple[str, ...]:
+        return self._aliases
+
+
+    @property
     def prop_type(self) -> Type[T]:
         return self._prop_type
+
+
+    def __str__(self):
+        return f"{self.category}.{self.name}"
+
+
+    def __eq__(self, other):
+        """Check if one SettingsProperty is equal to another SettingsProperty
+
+        Parameters
+        ----------
+        other : SettingsProperty object
+            The alternative property
+        """
+
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+
+        return (self.name == other.name and
+                self.category == other.category and
+                self.value == other.value and
+                self.prop_type == other.prop_type and
+                self.aliases == other.aliases)
 
 
 class StaticSettingsProperty(SettingsProperty):
     T = TypeVar("T")
 
-    def __init__(self, name: str, category: str, value: Any, prop_type: Type[T] = str):
-        super().__init__(name, category, value, prop_type)
-
-        # Pre-cache properties
-        _ = self.name
-        _ = self.category
-        _ = self.value
-        _ = self.prop_type
+    def __init__(self, name: str, category: str, value: Any,
+                 prop_type: Type[T] = str, aliases: list[str] | None = None):
+        super().__init__(name, category, value, prop_type, aliases)
 
 
-    @cached_property
+    @property
     def name(self) -> str:
         return self._name
 
 
-    @cached_property
+    @property
     def category(self) -> str:
         return self._category
 
 
-    @cached_property
+    @property
     def value(self) -> T:
         return self._value
 
 
-    @cached_property
+    @property
     def prop_type(self) -> Type[T]:
         return self._prop_type
+
+
+    @property
+    def aliases(self) -> tuple[str, ...]:
+        return self._aliases
 
 
 class OptionalSettingsProperty(SettingsProperty):
     T = TypeVar("T")
 
-    def __init__(self, name: str, category: str, value: Any, prop_type: Type[T] = str):
-        super().__init__(name, category, value, prop_type)
+    def __init__(self, name: str, category: str, value: Any,
+                 prop_type: Type[T] = str, aliases: list[str] | None = None):
+        super().__init__(name, category, value, prop_type, aliases)
 
 
 DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
@@ -163,10 +212,10 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         SettingsProperty("fraction_bin_retro", "bh", 0.0, float),
         SettingsProperty("flag_use_surrogate", "bh", False, bool),
         SettingsProperty("flag_use_spin_check", "bh", False, bool),
-        SettingsProperty("mean_harden_energy_delta", "bh", 0.9, float),
-        SettingsProperty("var_harden_energy_delta", "bh", 0.025, float),
-        SettingsProperty("delta_energy_strong_mu", "bh", 0.1, float),
-        SettingsProperty("delta_energy_strong_sigma", "bh", 0.02, float),
+        SettingsProperty("mu_circ_encounter", "bh", 0.9, float, aliases=["mean_harden_energy_delta"]),
+        SettingsProperty("sigma_circ_encounter", "bh", 0.025, float, aliases=["var_harden_energy_delta"]),
+        SettingsProperty("mu_ecc_encounter", "bh", 0.1, float, aliases=["delta_energy_strong_mu"]),
+        SettingsProperty("sigma_ecc_encounter", "bh", 0.02, float, aliases=["delta_energy_strong_sigma"]),
         SettingsProperty("flag_thermal_feedback", "bh", True, bool),
         SettingsProperty("flag_orb_ecc_damping", "bh", True, bool),
         SettingsProperty("flag_dynamic_enc", "bh", True, bool),
@@ -242,21 +291,72 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
     ]
 
 
+DEFAULT_KEYS = {setting.name for setting in DEFAULT_SETTINGS}
+DEFAULT_ALIASES_KEYS = {alias for setting in DEFAULT_SETTINGS for alias in setting.aliases}
+DEFAULT_CATEGORIES = {setting.category for setting in DEFAULT_SETTINGS}
+
+assert not DEFAULT_KEYS & DEFAULT_ALIASES_KEYS
+
+
 class CategoryProxy:
     """
-    A proxy object that holds settings for a single property category
+    A proxy object that holds properties for a single settings category
     """
 
-    def __init__(self, props: dict[str, Any] = None):
-        self._props: dict[str, Any] = props if props is not None else {}
+    def __init__(self, props: dict[str, Any] | None = None, aliases: dict[str, str] | None = None):
+        props = props if props is not None else dict()
+        aliases = aliases if aliases is not None else dict()
 
-    def __getattr__(self, item: str) -> Any:
-        if item.startswith("_"):
-            raise AttributeError(f"No private attribute '{item}'")
+        # Check if any aliases conflicts with an existing property
+        for alias, prop_name in aliases.items():
+            if alias in props:
+                raise AttributeError(f"Alias '{alias}' (for '{prop_name}') conflicts with an existing property name in this category.")
+            if prop_name not in props:
+                raise AttributeError(f"Alias '{alias}' points to property name '{prop_name}', which doesn't exist in this category.")
+            if alias in self.__dict__ or alias in self.__class__.__dict__:
+                raise AttributeError(f"Alias '{alias}' (for '{prop_name}') conflicts with an existing attribute of CategoryProxy.")
+
+        # Check that the alias or prop name does not conflict with existing attributes of the class
+        for prop_name, value in props.items():
+            if prop_name in self.__dict__ or prop_name in self.__class__.__dict__:
+                raise AttributeError(f"Property name '{prop_name}' conflicts with an existing attribute of CategoryProxy.")
+
+
+        self._props: dict[str, Any] = dict(props)
+        self._aliases: dict[str, str] = dict(aliases)
+
+
+    def __getattr__(self, key: str) -> Any:
+        if key.startswith("_"):
+            raise AttributeError(f"Unable to access private attribute '{key}'")
         try:
-            return self._props[item]
+            name_alias = self._aliases.get(key)
+
+            if name_alias is not None:
+                return self._props[name_alias]
+
+            return self._props[key]
         except KeyError:
-            raise AttributeError(f"No setting '{item}' in this category")
+            raise AttributeError(f"No property named '{key}' in this category")
+
+
+    # Prevent direct assignment to properties -- use SettingsManager.set_preprocessing() instead
+    def __setattr__(self, key: str, value: Any) -> None:
+        if not key.startswith("_"):
+            raise AttributeError(f"Cannot set '{key}' directly. Please use SettingsManager.set_preprocessing()")
+
+        super().__setattr__(key, value)
+
+
+    @property
+    def props(self):
+        return types.MappingProxyType(self._props)
+
+
+    @property
+    def aliases(self):
+        return types.MappingProxyType(self._aliases)
+
 
     def __repr__(self):
         return f"CategoryProxy({self._props})"
@@ -304,7 +404,7 @@ class SettingsManager:
     @staticmethod
     def _cast_override(prop: SettingsProperty, override: Any) -> Any:
         """
-        Attempts to safely cast an override value to the expected type of a SettingsProperty.
+        Attempts to safely cast an override value to the expected type of SettingsProperty.
 
         Parameters
         ----------
@@ -379,60 +479,119 @@ class SettingsManager:
         )
 
 
-    def __init__(self, settings_overrides: dict[str, Any] = None):
+    def __init__(self, setting_overrides: dict[str, Any] | None = None):
         """
         Initializes the SettingsManager with a dictionary of overrides.
 
         Parameters
         ----------
-        settings_overrides : dict[str, Any]
+        setting_overrides : dict[str, Any]
             A dictionary containing user-provided overrides for specific settings.
+            Settings may be referenced by name or by any of their aliases.
 
         Raises
         ------
         TypeError
             If an override value is not the expected type and cannot be cast to it.
+        ValueError
+            If a setting is given more than once (by name and/or aliases).
         """
-        settings_overrides = dict() if settings_overrides is None else settings_overrides
+        setting_overrides = setting_overrides if setting_overrides is not None else dict()
 
-        self.settings_finals: dict[str, Any] = {}
-        category_props: dict[str, dict[str, Any]] = {}
-
-        for prop in DEFAULT_SETTINGS:
-            is_static = isinstance(prop, StaticSettingsProperty)
-            override = settings_overrides.get(prop.name, prop.value)
-            final_value = prop.value if is_static else self._cast_override(prop, override)
-
-            self.settings_finals[prop.name] = final_value
-            category_props.setdefault(prop.category, {})[prop.name] = final_value
-
-        for key in settings_overrides.keys():
-            if key in IGNORE_ARGS:
-                continue
-            if key in self.settings_finals:
+        # Raise an error if there are overrides that do not correspond to a default setting
+        for key in setting_overrides.keys():
+            # If the key is in the ignore list or default list, skip it
+            if key in IGNORE_ARGS or key in DEFAULT_KEYS or key in DEFAULT_ALIASES_KEYS:
                 continue
 
-            warnings.warn(
-                f"Inputted settings dictionary contains {key}, which does not exist in the default settings."
-                f"Custom settings must be added through the add_custom_settings method.",
-                UserWarning,
-                stacklevel=3,
+            raise ValueError(
+                f"Setting dictionary contains {key}, which does not exist as a default setting."
+                f"Custom settings must be added through the add_custom_category method."
             )
 
-        self._categories = {cat: CategoryProxy(props) for cat, props in category_props.items()}
+        category_props: dict[str, dict[str, Any]] = {}
+        category_aliases: dict[str, dict[str, str]] = {}
+
+        for prop in DEFAULT_SETTINGS:
+            keys = [key for key in (prop.name, *prop.aliases) if key in setting_overrides]
+
+            category_aliases.setdefault(prop.category, {}).update({a: prop.name for a in prop.aliases})
+
+            # If the property does not exist in overrides, use the default value
+            if len(keys) == 0:
+                category_props.setdefault(prop.category, {})[prop.name] = prop.value
+                continue
+
+            if len(keys) > 1:
+                raise ValueError(f"Setting {prop} was defined more than once: {keys}")
+
+            override_value = setting_overrides[keys[0]]
+
+            # If the property is static, use the default value
+            if isinstance(prop, StaticSettingsProperty):
+                if self._cast_override(prop, override_value) != prop.value:
+                    warnings.warn(
+                        f"Static setting '{prop.name}' cannot be overridden. "
+                        f"Using default value: {prop.value}",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+
+                category_props.setdefault(prop.category, {})[prop.name] = prop.value
+                continue
+
+            # Cast the override value to the correct type
+            category_props.setdefault(prop.category, {})[prop.name] = self._cast_override(prop, override_value)
+
+        # Build the final settings list of main category reference
+        self._categories = {cat: CategoryProxy(props, category_aliases.get(cat, {})) for cat, props in category_props.items()}
+
+        self.flat_settings: dict[str, Any] = dict()
+        self.flat_aliases: dict[str, str] = dict()
+        self._update_flat_settings()
 
         # TODO: Update for changing mass SMBH
-        self.r_g_in_meters = unit_conversion.initialize_r_g(self.smbh_mass)
+        self.r_g_in_meters = unit_conversion.initialize_r_g(self.sim.smbh_mass)
 
 
-    def __getattr__(self, item: str) -> Any:
+    def _update_flat_settings(self) -> None:
+        """
+        Updates the final settings dictionary with the default values stored in the category proxies.
+        """
+
+        new_flat_settings: dict[str, Any] = {}
+        new_flat_aliases: dict[str, str] = {}
+
+        for name, cat in self._categories.items():
+            if name not in DEFAULT_CATEGORIES:
+                continue
+
+            for key, value in cat.props.items():
+                if key in new_flat_settings:
+                    raise ValueError(f"Duplicate setting name '{key}' found in category '{name}'")
+
+                new_flat_settings[key] = value
+
+            for alias_key, point_key in cat.aliases.items():
+                if alias_key in new_flat_aliases:
+                    raise ValueError(f"Duplicate alias name '{alias_key}' found in category '{name}'")
+
+                if alias_key in new_flat_settings:
+                    raise ValueError(f"Alias '{alias_key}' already exists as a setting in category '{name}'")
+
+                new_flat_aliases[alias_key] = point_key
+
+        self.flat_settings = new_flat_settings
+        self.flat_aliases = new_flat_aliases
+
+    def __getattr__(self, key: str) -> Any:
         """
         Retrieves a category proxy (settings.sim) or a flat setting value
         (settings.smbh_mass) from the final compiled dictionary.
 
         Parameters
         ----------
-        item : str
+        key : str
             A category name or setting name.
 
         Returns
@@ -447,25 +606,27 @@ class SettingsManager:
         """
 
         # Compatibility for deepcopy
-        if item.startswith("__"):
-            raise AttributeError(
-                f"attempted to get missing private attribute '{item}'"
-            )
+        if key.startswith("_"):
+            raise AttributeError(f"Attempted to get missing private attribute '{key}'")
 
-        # Category access: settings.sim -> CategoryProxy
-        if item in self._categories:
-            return self._categories[item]
+        # Category access
+        if key in self._categories:
+            return self._categories[key]
 
-        # Flat access: settings.smbh_mass (backwards compatibility)
-        try:
-            return self.settings_finals[item]
-        except KeyError:
-            raise AttributeError(f"SettingsManager has no key {item!r}")
+        # Flat access
+        if key in self.flat_settings:
+            return self.flat_settings.get(key)
+
+        if key in self.flat_aliases:
+            actual_key = self.flat_aliases[key]
+            return self.flat_settings.get(actual_key)
+
+        raise AttributeError(f"Setting '{key}' does not exist.")
+
 
     def set_preprocessing(self, key: str, value: Any):
         """
-        Sets the "final" value of a particular setting after the time
-            of creation.
+        Sets the value of a particular setting after the time of creation.
 
         Parameters
         ----------
@@ -474,32 +635,48 @@ class SettingsManager:
         value : Any
             A value for that setting
         """
+        # Get the original key if an alias was passed
+        key = self.flat_aliases.get(key, key)
+
         # Check if key is a setting
-        if key not in self.settings_finals:
+        if key not in self.flat_settings:
             raise ValueError(
                 f"No such setting: {key}; "
-                f"settings: {list(self.settings_finals.key())}"
+                f"settings: {list(self.flat_settings.keys())}"
             )
+
         # Identify the property
         found = None
         for prop in DEFAULT_SETTINGS:
             if prop.name == key:
                 found = prop
                 break
+
         # Check if the property was found
         if found is None:
             raise ValueError(
                 f"Failed to find setting {key} in DEFAULT_SETTINGS."
             )
+
         # Check static settings
-        if isinstance(prop, StaticSettingsProperty):
+        if isinstance(found, StaticSettingsProperty):
             raise TypeError(
                 f"Modifying a StaticSetting is not allowed, "
                 "even in preprocessing!"
             )
+
         # Check value
         final_value = self._cast_override(found, value)
-        self.settings_finals[prop.name] = final_value
+
+        # If the property exists, set the value in the appropriate category
+        self._categories[found.category]._props[found.name] = final_value
+
+        # TODO: Extend for other dynamic settings in the future
+        if found.name == "smbh_mass":
+            self.r_g_in_meters = unit_conversion.initialize_r_g(self.sim.smbh_mass)
+
+        self._update_flat_settings()
+
 
     def __eq__(self, other):
         """Check if one settings object is equal to another settings object
@@ -511,9 +688,14 @@ class SettingsManager:
         """
         if not isinstance(other, self.__class__):
             return NotImplemented
-        return self.settings_finals == other.settings_finals
 
-    def copy(self, replace : dict = None):
+        ours = {key: (cat.props, cat.aliases) for key, cat in self._categories.items()}
+        theirs = {key: (cat.props, cat.aliases) for key, cat in other._categories.items()}
+
+        return ours == theirs
+
+
+    def copy(self, replace : dict | None = None):
         """Return a copy of the settings
 
         Parameters
@@ -521,19 +703,32 @@ class SettingsManager:
         replace : dict
             Replacement parameters for the copy
         """
-        # Handle none
+
         if replace is None:
             replace = {}
-        return self.__class__(
-            {key: replace[key] if key in replace else value for key, value in self.settings_finals.items()}
-        )
+
+        new_default = {
+            setting.name: self.flat_settings[setting.name]
+            for setting in DEFAULT_SETTINGS if not isinstance(setting, StaticSettingsProperty)
+        }
+
+        new_manager = self.__class__(new_default)
+
+        for category, proxy in self._categories.items():
+            if category not in new_manager._categories:
+                new_manager.add_custom_category(category, proxy.props, aliases=proxy.aliases)
+
+        for key, value in replace.items():
+            new_manager.set_preprocessing(key, value)
+
+        return new_manager
 
 
-    def add_custom_category(self, category: str, props: dict[str, Any]) -> None:
+    def add_custom_category(self, category: str, props: dict[str, Any], aliases: dict[str, str] | None = None) -> None:
         """
         Adds a custom settings category with user-defined properties to the SettingsManager.
         Custom settings are only accessible via settings.category.property_name
-        and are not added to the flat settings_finals dictionary.
+        and are not added to the flat settings dictionary.
 
         Parameters
         ----------
@@ -541,18 +736,42 @@ class SettingsManager:
             The name of the custom category to create.
         props : dict[str, Any]
             A dictionary of property names and their values.
+        aliases : dict[str, str] | None
+            A dictionary mapping aliases to property names within the custom category.
 
         Raises
         ------
-        ValueError
+        AttributeError
             If the category name conflicts with an existing category or setting.
         """
-        if category in self._categories:
-            raise ValueError(f"Category '{category}' already exists")
-        if category in self.settings_finals:
-            raise ValueError(f"'{category}' conflicts with an existing setting name")
 
-        self._categories[category] = CategoryProxy(props)
+        aliases = aliases if aliases is not None else dict()
+
+        current_props = {key for cat in self._categories.values() for key in (*cat.props, *cat.aliases)}
+
+        if category in self._categories:
+            raise AttributeError(f"Category '{category}' already exists")
+
+        if category in current_props:
+            raise AttributeError(f"'{category}' conflicts with an existing setting name")
+
+        for alias in aliases:
+            if alias in current_props:
+                raise AttributeError(f"Alias '{alias}' conflicts with an existing setting")
+
+        for prop in props.keys():
+            if prop in current_props:
+                raise AttributeError(f"Property '{prop}' conflicts with an existing setting")
+
+
+        self._categories[category] = CategoryProxy(props, aliases)
+
+        # If the update fails for any reason, remove the category we just added.
+        try:
+            self._update_flat_settings()
+        except Exception:
+            del self._categories[category]
+            raise
 
 
     @property
@@ -563,6 +782,7 @@ class SettingsManager:
         """Return a new settings snapshot"""
         from mcfacts.objects.snapshot import TxtSnapshotHandler
         from mcfacts.objects.snapshot import IniSnapshotHandler
+
         from mcfacts.objects.snapshot import HDF5SnapshotHandler
         if self.settings_snapshot == "txt":
             return TxtSnapshotHandler(settings=self) #Neat that this is allowed
@@ -579,6 +799,7 @@ class SettingsManager:
         """Return a new cabinet snapshot"""
         from mcfacts.objects.snapshot import TxtSnapshotHandler
         from mcfacts.objects.snapshot import HDF5SnapshotHandler
+
         if self.cabinet_snapshot == "txt":
             return TxtSnapshotHandler(settings=self)
         elif self.cabinet_snapshot == "ini":
