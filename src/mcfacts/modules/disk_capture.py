@@ -8,7 +8,7 @@ from numpy.random import Generator
 from mcfast import tau_inc_dyn_helper, tau_ecc_dyn_helper
 
 from mcfacts.utilities import unit_conversion
-from mcfacts.utilities.constants import M_SUN_KG, HUBBLE_TIME_SI, CONST_G_SI
+from mcfacts.utilities.constants import M_SUN_KG, CONST_G_SI
 from mcfacts.utilities.unit_conversion import si_from_r_g_optimized
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
@@ -639,8 +639,8 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, retrograde_bh_locations).value
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
-    smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
-    if smbh_mass < 1.e30 or smbh_mass > 1.e60:
+    smbh_mass_si = smbh_mass * u.Msun.to("kg")  # kg
+    if smbh_mass_si < 1.e30 or smbh_mass_si > 1.e60:
         raise RuntimeError(f"Some units are not right.")
     retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
     omega = retro_arg_periapse  # radians
@@ -654,7 +654,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     cos_omega[mask_here] = 0.01
 
     # period in units of sec
-    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (CONST_G_SI * smbh_mass))
+    period = 2.0 * np.pi * np.sqrt((semi_maj_axis ** 3) / (CONST_G_SI * smbh_mass_si))
     # semi-latus rectum in units of meters
     semi_lat_rec = semi_maj_axis * (1.0 - (ecc ** 2))
     # WZL Eqn 7 (sigma+/-)
@@ -676,7 +676,7 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     #   tau in units of sec
     #   NOTE: had to add an abs(sin(inc)) to avoid negative timescales(!)
     tau_p_dyn = np.abs(np.sin(inc)) * ((delta - np.cos(inc)) ** 1.5) \
-                * (smbh_mass ** 2) * period / (
+                * (smbh_mass_si ** 2) * period / (
                         retro_mass * disk_surf_model(retrograde_bh_locations) * np.pi * (semi_lat_rec ** 2)) \
                 / (np.sqrt(2) * kappa * np.abs(np.cos(inc) - zeta))
 
@@ -717,11 +717,11 @@ def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
         Orbital semi-major axes [r_{g,SMBH}] of retrograde singleton BH at start of a timestep (math:`r_g=GM_{SMBH}/c^2`) with :obj:`float` type
     disk_bh_retro_masses : float array | float
         Mass [M_sun] of retrograde singleton BH at start of timestep_duration_yr with :obj:`float` type
-    disk_bh_retro_arg_periapse : numpy.ndarray
+    omega : numpy.ndarray
         Argument of periapse [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
-    disk_bh_retro_orbs_ecc : numpy.ndarray
+    ecc : numpy.ndarray
         Orbital eccentricity [unitless] of retrograde singleton BH at start of a timestep with :obj:`float` type
-    disk_bh_retro_orbs_inc : numpy.ndarray
+    inc : numpy.ndarray
         Orbital inclination [radian] of retrograde singleton BH at start of a timestep with :obj:`float` type
     disk_surf_density_func : function
         Returns AGN gas disk surface density [kg/m^2] given a distance [r_{g,SMBH}] from the SMBH

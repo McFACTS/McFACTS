@@ -17,4 +17,3 @@ SEC_IN_YR = u.yr.to(u.s)
 M_SUN_KG = u.M_sun.to(u.kg)
 HUBBLE_TIME_SI = cosmo.age(0.).to(u.s)
 CONST_G_SI = const.G.si.value
-
