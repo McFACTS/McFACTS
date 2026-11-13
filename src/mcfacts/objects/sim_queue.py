@@ -20,6 +20,7 @@ from mcfacts.inputs.scaling import setup_scaling
 from mcfacts.inputs.settings_manager import SettingsProperty
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.inputs.settings_manager import DEFAULT_SETTINGS
+from mcfacts.inputs.settings_manager import SETTING_TYPES
 from mcfacts.objects.agn_object_array import FilingCabinet
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.log import ContextLogFunction
@@ -445,9 +446,42 @@ class SimulationQueue(object):
         self.fname_db = fname_db
         self.db = Database(fname_db)
 
+    @staticmethod
+    def read_batch_file(fname_batch):
+        """Read a batch file
+
+        Parameters
+        ----------
+        fname_batch : path_like
+            The file where we define the batch of simulations we would like
+            to run.
+
+        Returns
+        -------
+        batch_dict : dict
+            The dictionary of columns for simulation properties
+        """
+        # Get path of batch file
+        batch = Path(fname_batch)
+        if not batch.is_file():
+            raise ValueError(f"No such file or directory: {batch}")
+        # Load header
+        with open(batch, 'r') as F:
+            header_line = F.readline().lstrip("#")
+        # Get the fields
+        header_fields = header_line.split()
+        # Get header_dtype
+        header_dtype = [(key, SETTING_TYPES[key]) for key in header_fields]
+        # Load batch
+        batch_data = np.loadtxt(batch, dtype=str)
+        batch_dict = {}
+        for i, key in enumerate(header_fields):
+            batch_dict[key] = batch_data[:,i].astype(SETTING_TYPES[key])
+        return batch_dict
+
     @classmethod
-    def from_batch_file(cls, fname_settings, fname_batch):
-        """Generate a SimulationQueue from a saved file
+    def from_inifile(cls, fname_settings, fname_batch):
+        """Generate a SimulationQueue from a settings file and a batch filee
 
         Parameters
         ----------
@@ -458,33 +492,36 @@ class SimulationQueue(object):
         settings = Path(fname_settings)
         if not settings.is_file():
             raise ValueError(f"No such file or directory: {settings}")
-        # Get path of batch file
-        batch = Path(fname_batch)
-        if not batch.is_file():
-            raise ValueError(f"No such file or directory: {batch}")
         # Load SettingsManager object
         ini_handler = IniSnapshotHandler()
-        settings = ini_handler.load_settings(str(settings.parent), str(settings.stem))
-        # Load header
-        with open(batch, 'r') as F:
-            header_line = F.readline().lstrip("#")
-        # Get the fields
-        header_fields = header_line.split()
-        # Get header_dtype
-        header_dtype = [(key, type(getattr(settings,key))) for key in header_fields]
-        # Load batch
-        batch_data = np.loadtxt(batch, dtype=str)
-        batch_dict = {}
-        for i, key in enumerate(header_fields):
-            batch_dict[key] = batch_data[:,i].astype(type(getattr(settings,key)))
+        settings = ini_handler.load_settings(
+            str(settings.parent), str(settings.stem)
+        )
+        batch_dict = cls.read_batch_file(fname_batch)
+        return cls(
+            settings,
+            batch_dict,
+        )
 
-        return SimulationQueue(
+    @classmethod
+    def from_settings(cls, settings, fname_batch):
+        """Generate a SimulationQueue from settings and a batch filee
+
+        Parameters
+        ----------
+        filename : path_like
+            The location of the file
+        """
+        # Get batch dict
+        batch_dict = cls.read_batch_file(fname_batch)
+        return cls(
             settings,
             batch_dict,
         )
 
     def run(self, max_workers : int = 1):
         """Run all the simulations"""
+        tic = time.perf_counter()
         # Initialize a place to put a hypothetical return value
         return_values = np.full((self.n_sim,), None, dtype=object)
         # TQDM
@@ -514,6 +551,8 @@ class SimulationQueue(object):
                     finally:
                         # Update tqdm
                         pbar.update(1)
+        toc = time.perf_counter()
+        print(f"SimulationQueue ran in {toc-tic:.6f} seconds!")
         return return_values
 
     def log_of_run(self, run):
@@ -609,14 +648,11 @@ def main(
         batch : str,
         max_workers : int,
     ):
-    queue = SimulationQueue.from_batch_file(
+    queue = SimulationQueue.from_inifile(
         settings,
         batch,
     )
-    tic = time.perf_counter()
     values = queue.run(max_workers=max_workers)
-    toc = time.perf_counter()
-    print(f"SimulationQueue ran in {toc-tic:.6f} seconds!")
     queue.report()
     return
     

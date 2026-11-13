@@ -241,6 +241,7 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         StaticSettingsProperty("bbh_inter_array_name", "arrays", "blackholes_binary_inter", str),
     ]
 
+SETTING_TYPES = {prop.name : prop.prop_type for prop in DEFAULT_SETTINGS}
 
 class CategoryProxy:
     """
