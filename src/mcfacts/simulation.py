@@ -89,8 +89,8 @@ def run_galaxy(
     active_phase_timeline.add_timeline_actors([
         ProgradeBlackHoleMigration(target_array=innerdisk_array),
         ProgradeBlackHoleMigration(target_array=prograde_array),
+        InnerDiskFilter(),
         SingleBlackHoleRealityCheck(),
-
         ProgradeBlackHoleAccretion(target_array=innerdisk_array),
         ProgradeBlackHoleAccretion(target_array=prograde_array),
         ProgradeBlackHoleDamping(target_array=innerdisk_array),

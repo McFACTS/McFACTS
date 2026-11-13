@@ -462,7 +462,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
                              disk_feedback_ratio,
                              disk_radius_trap, disk_radius_anti_trap, disk_radius_outer, timestep_duration_yr,
                              flag_phenom_turb, phenom_turb_centroid, phenom_turb_std_dev, bh_min_mass,
-                             torque_prescription, random):
+                             torque_prescription, disk_inner_stable_circ_orb, bh_inner_disk_array_name,random):
     """Calculates how far an object migrates in an AGN gas disk in a single timestep given a torque migration timescale
     calculated elsewhere (e.g. torque_migration_timescale)
     Returns their new locations after migration over one timestep.
@@ -504,6 +504,10 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         Torque prescription 'paardekooper' or 'jimenez_masset' ('old' is deprecated),
     random: numpy.random.Generator
         Generator used to generate random numbers
+    disk_inner_stable_circ_orb : float
+        inner stable orbit (~6R_g)
+    bh_inner_disk_array_name : numpy.ndarray
+        Black holes that have merged with the SMBH
     Returns
     -------
     orbs_a : float array
@@ -673,7 +677,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
             # Get masks for objects outside trap, inside trap and inside anti-trap
             mask_out_trap = new_orbs_a > disk_radius_trap
             mask_in_anti_trap = new_orbs_a < disk_radius_anti_trap
-            mask_in_trap = new_orbs_a > disk_radius_anti_trap and new_orbs_a < disk_radius_trap
+            mask_in_trap = (new_orbs_a > disk_radius_anti_trap) & (new_orbs_a < disk_radius_trap)
 
             # If outside trap migrate inwards
             temp_orbs_a = new_orbs_a[mask_out_trap] - migration_distance[mask_out_trap]
@@ -696,6 +700,10 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
     # Assert that objects cannot migrate out of the disk
     new_orbs_a[new_orbs_a > disk_radius_outer] = disk_radius_outer - epsilon_outer_radius[
         new_orbs_a > disk_radius_outer]
+
+    #if new_orbs_a is less than inner disk adds it to EMRI array and remove from blackhole array
+    emri_mask = new_orbs_a < disk_inner_stable_circ_orb #mask for anything lower than circular orbit
+    new_orbs_a[emri_mask] = disk_inner_stable_circ_orb #forces it to be at inner orbit if falls below
 
     # Update orbs_a
     orbs_a[migration_indices] = new_orbs_a
@@ -1378,6 +1386,8 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.phenom_turb_std_dev,
                 sm.nsc_imf_bh_mode,
                 sm.torque_prescription,
+                sm.inner_disk_outer_radius,
+                sm.bh_inner_disk_array_name,
                 random_generator
             )
 
@@ -1386,7 +1396,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
         # Was this supposed to be some sort of edge detection?
         blackholes_array.orb_a = np.where(blackholes_array.orb_a > sm.disk_inner_stable_circ_orb, blackholes_array.orb_a,
                                         3 * sm.disk_inner_stable_circ_orb)
-
+        
         delta_distance = np.abs(new_orb_a_bh - blackholes_array.orb_a)
         delta_distance_meters = unit_conversion.si_from_r_g_optimized(sm.smbh_mass, delta_distance, r_g_defined=sm.r_g_in_meters)
         blackholes_array.migration_velocity = (delta_distance_meters / (timestep_length * u.yr).to(u.s)).value
@@ -1563,6 +1573,8 @@ class BinaryBlackHoleMigration(TimelineActor):
                     sm.phenom_turb_std_dev,
                     sm.nsc_imf_bh_mode,
                     sm.torque_prescription,
+                    sm.inner_disk_outer_radius,
+                    sm.bh_inner_disk_array_name,
                     random_generator
                 )
 

@@ -181,7 +181,7 @@ def scale_inner_disk(settings: SettingsManager):
         print(f"settings.scale_inner_disk: {settings.scale_inner_disk}")
         print(f"settings.inner_disk_outer_radius (before): {settings.inner_disk_outer_radius}")
 
-    ## Paper III method: scale by constant decay time
+    ## Paper III method: scale by constant decay time or sqrt-smbh
     if settings.scale_inner_disk == "decay-time":
         t_gw_inner_disk = peters.time_of_orbital_shrinkage(
             SMBH_MASS_FIDUCIAL * u.solMass,
@@ -206,11 +206,21 @@ def scale_inner_disk(settings: SettingsManager):
             "inner_disk_outer_radius",
             float(new_inner_disk_outer_radius_r_g),
         )
+    elif settings.scale_inner_disk == "sqrt-smbh":
+        scaled_inner_disk_radius = settings.inner_disk_outer_radius *(settings.smbh_mass / 1.e8) ** (-0.5
+                                        ) #get this from seeing the time it would take for a BH orbit to decay in years
+        # re-asasign
+        settings.set_preprocessing(
+            "inner_disk_outer_radius",
+            float(scaled_inner_disk_radius),
+        )
+
+    
     else:
         raise ValueError(
             f"{settings.scale_inner_disk} is not a valid choice for "
             "scale_inner_disk. Please select from "
-            "['none', 'decay-time']."
+            "['none', 'decay-time', 'sqrt-smbh']."
         )
 
     if settings.verbose:
