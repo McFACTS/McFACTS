@@ -10,6 +10,8 @@ from astropy import constants as const, units as u
 from mcfast import r_schwarzschild_of_m_helper
 from mcfast import si_from_r_g_helper
 from mcfast import r_g_from_units_helper
+# MM edit 11/13/2026
+import argparse
 
 
 #### METHODS
