@@ -533,6 +533,10 @@ class SimulationQueue(object):
         if not self.db.exists(pop_addr, kind="group"):
             return 2
         # Check if "blackholes_merged" is in the population group
+        # This will be missing if no black holes merged in the simulation.
+        # We are accepting this because there may be physics questions,
+        # but the program did exactly what we told it to do.
+        # We need to return early here or we will crash at the next one.
         merged_addr = f"{pop_addr}/blackholes_merged"
         if not self.db.exists(merged_addr, kind="group"):
             return 0
