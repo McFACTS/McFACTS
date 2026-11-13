@@ -181,7 +181,7 @@ def scale_inner_disk(settings: SettingsManager):
         print(f"settings.scale_inner_disk: {settings.scale_inner_disk}")
         print(f"settings.inner_disk_outer_radius (before): {settings.inner_disk_outer_radius}")
 
-    ## Paper III method: scale by constant decay time and sqrt-smbh
+    ## Paper III method: scale by constant decay time or sqrt-smbh
     if settings.scale_inner_disk == "decay-time":
         t_gw_inner_disk = peters.time_of_orbital_shrinkage(
             SMBH_MASS_FIDUCIAL * u.solMass,
