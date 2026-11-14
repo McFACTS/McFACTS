@@ -87,8 +87,8 @@ def run_simulation(settings: SettingsManager, fname_log):
     Returns
     -------
     settings : SettingsManager
-        I needed something besides None to distinguish successful runs
-        from early exits, and this seemed like a useful one, anyway.
+        I needed to return something besides None to distinguish successful
+        runs from early exits, and this seemed like a useful thing to return
     """
     # Define log function
     log_fn = ContextLogFunction(
@@ -192,25 +192,44 @@ def run_simulation(settings: SettingsManager, fname_log):
             settings.hdf5_snapshot_label,
             f"gal{galaxy_tag}",
         ])
-        # Check if the galaxy was already run
-        galaxy_prev_exists = db.exists(galaxy_addr)
-        if galaxy_prev_exists:
-            galaxy_prev_seed = int(db.attr_value(galaxy_addr, 'seed'))
-        # Check for a collision
-        if galaxy_prev_exists and galaxy_prev_seed != galaxy_seed:
-            if settings.overwrite_files:
+        # Check if the galaxy was already started
+        galaxy_prev_started = db.exists(galaxy_addr)
+        galaxy_prev_finished = False
+        if galaxy_prev_started:
+            galaxy_prev_attrs = db.attr_dict(galaxy_addr)
+            galaxy_prev_seed = int(galaxy_prev_attrs["seed"])
+            if "success" in galaxy_prev_attrs:
+                galaxy_prev_finished = galaxy_prev_attrs["success"]
+        # Check for a collision, with the intention of rerunning
+        if galaxy_prev_started:
+            # If the galaxy failed to finish last time, we want to resume
+            if not galaxy_prev_finished:
                 print(f"Removing failed galaxy: {galaxy_addr} (seed:{galaxy_seed})")
                 db.remove(galaxy_addr)
-                galaxy_prev_exists = False
+            # If the seed changed, we have not run this before
+            if galaxy_prev_seed != galaxy_seed:
+                galaxy_prev_finished = False
+            # If the galaxy has been marked unfinished since the last check,
+            #  we only want to overwrite if overwrite_files is True
+            if settings.overwrite_files and not galaxy_prev_finished:
+                print(f"Removing galaxy marked as unfinished: {galaxy_addr} "
+                    f"(seed:{galaxy_seed})")
+                db.remove(galaxy_addr)
+                galaxy_prev_finished = False
         # Check if we've literally run this exact simulation before
-        if galaxy_prev_exists:
+        if galaxy_prev_finished:
             print(f"We have run {galaxy_addr} with seed {galaxy_seed} before! No need to rerun")
             continue
         # Create the galaxy group and assign it the seed attribute
         else:
             db.create_group(galaxy_addr)
-            db.attr_set(galaxy_addr, "seed", galaxy_seed)
-            db.attr_set(galaxy_addr, "success", False)
+            db.attr_set_dict(
+                galaxy_addr,
+                {
+                    "seed" : galaxy_seed,
+                    "success" : False,
+                },
+            )
 
         # Define the galaxy object
         galaxy = Galaxy(
@@ -453,8 +472,7 @@ class SimulationQueue(object):
         Parameters
         ----------
         fname_batch : path_like
-            The file where we define the batch of simulations we would like
-            to run.
+            The file where we define the batch of simulations to run
 
         Returns
         -------
@@ -485,8 +503,15 @@ class SimulationQueue(object):
 
         Parameters
         ----------
-        filename : path_like
-            The location of the file
+        fname_settings : path_like
+            The location of the settings file we want to load from
+        fname_batch : path_like
+            The file where we define the batch of simulations to run
+
+        Returns
+        -------
+        cls : SimulationQueue object
+            The SimulationQueue (prior to running any galaxies)
         """
         # Get path of settings
         settings = Path(fname_settings)
@@ -509,8 +534,15 @@ class SimulationQueue(object):
 
         Parameters
         ----------
-        filename : path_like
-            The location of the file
+        settings : SettingsManager
+            The SettingsManager object for this run in particular
+        fname_batch : path_like
+            The file where we define the batch of simulations to run
+
+        Returns
+        -------
+        cls : SimulationQueue object
+            The SimulationQueue (prior to running any galaxies)
         """
         # Get batch dict
         batch_dict = cls.read_batch_file(fname_batch)
@@ -520,7 +552,17 @@ class SimulationQueue(object):
         )
 
     def run(self, max_workers : int = 1):
-        """Run all the simulations"""
+        """Run all the simulations!
+
+        Parameters
+        ----------
+        max_workers : int
+            Number of parallel processes to launch for concurrency
+
+        return_values : numpy.ndarray, dtype=SettingsManager
+            A SettingsManager object for each simulation in the batch
+            (None if a simulation failed).
+        """
         tic = time.perf_counter()
         # Initialize a place to put a hypothetical return value
         return_values = np.full((self.n_sim,), None, dtype=object)
@@ -556,6 +598,18 @@ class SimulationQueue(object):
         return return_values
 
     def log_of_run(self, run):
+        """Determine the path to a log file for an individual simulation
+
+        Parameters
+        ----------
+        run : str
+            The identifying string for a particular simulation
+        
+        Returns
+        -------
+        log : Path (or None)
+            The path to the log file, if present
+        """
         # Determine where the log file should be
         log = Path(self.settings.output_dir) / f"{run}.log"
         # Check if the log file exists
@@ -564,6 +618,23 @@ class SimulationQueue(object):
         return log
 
     def did_run_fail(self, run):
+        """Determine the error code for a particular simulation
+
+        Parameters
+        ----------
+        run : str
+            The identifying string for a particular simulation
+        
+        Returns
+        -------
+        int
+            The error code for a given simulation 
+            (0 -> success;
+            1 -> simulation not found in database;
+            2 -> no 'population' group found -- run started but did not finish;
+            3 -> Cannot find merger population data
+            )
+        """
         # Check if the run is in the database
         if not self.db.exists(run, kind="group"):
             return 1
@@ -582,7 +653,7 @@ class SimulationQueue(object):
         # Check if the compound array exists
         compound_addr = f"{merged_addr}/compound"
         if not self.db.exists(compound_addr):
-            return 5
+            return 3
         # Run succeeded!
         return 0
 
