@@ -186,6 +186,7 @@ def run_simulation(settings: SettingsManager, fname_log):
         # Seed is offset; trick for restarting runs
         galaxy_seed = settings.seed - galaxy_id
         # Tag for labelling galaxy
+        # TODO 03d should support higher digits
         galaxy_tag = f"{galaxy_id:03d}"
         # Address of galaxy
         galaxy_addr = "/".join([
@@ -676,6 +677,9 @@ class SimulationQueue(object):
             # Check if the run succeeded
             ret_code = self.did_run_fail(run)
             success = ret_code == 0
+            failed_galaxy = self.failed_galaxy_id(run)
+            if success and not failed_galaxy == -1:
+                raise RuntimeError("Some logic is broken!")
             # Check if the attrs are available
             if db.exists(run):
                 attrs = db.attr_dict(run)
@@ -694,12 +698,47 @@ class SimulationQueue(object):
                     last = None
                 else:
                     last = last_line(log)
-                print(last)
+                print(f"(gal:{failed_galaxy:03d}): {last}")
 
-    def failed_galaxy_ids(self):
-        """Return the galaxy_ids of each failed run"""
+    def failed_galaxy_id(self, addr):
+        """Return the galaxy_id for which a given simulation failed
+
+        Parameters
+        ----------
+        addr : str
+            A path within the HDF5 Database
         
-
+        Returns
+        -------
+        galaxy_id : int
+            The first galaxy id that failed (or -1 if all is well)
+        """
+        # Get the filename for the snapshot file
+        fname_db = os.path.join(self.wkdir, self.settings.hdf5_snapshot_file)
+        # Open the connection to the HDF5 database
+        with Connection(
+            fname_db,
+            mode='r',
+            retries=self.settings.hdf5_snapshot_retries,
+            sleep=self.settings.hdf5_snapshot_sleep,
+        ) as conn:
+            # Check that addr is in the connection
+            if addr not in conn.file:
+                raise KeyError(f"{addr} not found in {fname_db}!")
+            # Loop the galaxies
+            for galaxy_id in np.arange(self.settings.galaxy_num):
+                # Address of galaxy
+                galaxy_addr = f"{addr}/gal{galaxy_id:03d}"
+                # Check if galaxy started
+                if galaxy_addr not in conn.file:
+                    return galaxy_id
+                # Check for the attributes
+                if "success" not in conn.file[galaxy_addr].attrs:
+                    return galaxy_id
+                if not bool(conn.file[galaxy_addr].attrs["success"]):
+                    return galaxy_id
+        return -1
+                    
 ######## Argparse ########
 def arg():
     parser = argparse.ArgumentParser()
