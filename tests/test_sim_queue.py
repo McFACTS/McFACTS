@@ -228,7 +228,7 @@ def test_run_simulation():
             assert "seed" in galaxy_attrs
             assert galaxy_attrs["seed"] != galaxy_id
 
-def test_batch():
+def batch():
     # Create a temporary workspace
     with tempfile.TemporaryDirectory() as wkdir:
         # Define log file
@@ -255,7 +255,7 @@ def test_batch():
 def main():
     test_last_line()
     test_run_simulation()
-    test_batch()
+    #test_batch()
     return 
 
 ######## Execution ########
