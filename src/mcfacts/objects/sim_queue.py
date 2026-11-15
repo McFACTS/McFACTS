@@ -349,13 +349,16 @@ def run_simulation(settings: SettingsManager, fname_log):
             array_value = np.concatenate(
                 population_arrays[array_name],
             )
+            # Determine compression
+            compression = settings.hdf5_snapshot_compression
+            compression = None if compression == "none" else compression
             # Write population output
             conn.file.create_dataset(
                 array_addr,
                 array_value.shape,
                 dtype=population_dtypes[array_name],
                 data=array_value,
-                compression=settings.hdf5_snapshot_compression,
+                compression=compression,
             )
                 
     return settings
