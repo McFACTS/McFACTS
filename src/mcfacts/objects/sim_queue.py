@@ -128,18 +128,16 @@ def run_simulation(settings: SettingsManager, fname_log):
     match = True
     if prev_settings is None:
         match = False
-        print(f"match failure; case 1")
     else:
         for key, value in prev_settings.settings_finals.items():
             # We might have re-seeded the galaxy
             if key == "seed":
                 continue
-            # Scaling will change some clumns
+            # Scaling will change some columns
             if key in COLUMNS_SCALING:
                 continue
             if value != getattr(settings, key):
                 match = False
-                print(f"match failure; case 2; key: {key}")
 
     # Collision
     if not match and label_group_exists:
@@ -207,16 +205,21 @@ def run_simulation(settings: SettingsManager, fname_log):
             if not galaxy_prev_finished:
                 print(f"Removing failed galaxy: {galaxy_addr} (seed:{galaxy_seed})")
                 db.remove(galaxy_addr)
-            # If the seed changed, we have not run this before
-            if galaxy_prev_seed != galaxy_seed:
-                galaxy_prev_finished = False
             # If the galaxy has been marked unfinished since the last check,
             #  we only want to overwrite if overwrite_files is True
-            if settings.overwrite_files and not galaxy_prev_finished:
+            if (galaxy_prev_seed != galaxy_seed) and settings.overwrite_files:
                 print(f"Removing galaxy marked as unfinished: {galaxy_addr} "
                     f"(seed:{galaxy_seed})")
                 db.remove(galaxy_addr)
                 galaxy_prev_finished = False
+            elif (galaxy_prev_seed != galaxy_seed) and galaxy_prev_finished:
+                # If we've reached this branch, what we're trying to do is
+                #  restart a failed run with a different seed.
+                # In this situation, we don't need any extra logic.
+                # We're not overwriting a successful galaxy run.
+                # It succeeded. Skip it.
+                # This block is here to make it clear this wasn't an accident.
+                pass
         # Check if we've literally run this exact simulation before
         if galaxy_prev_finished:
             print(f"We have run {galaxy_addr} with seed {galaxy_seed} before! No need to rerun")

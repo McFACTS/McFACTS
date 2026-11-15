@@ -25,9 +25,11 @@ def queue_worthy_settings():
     settings.set_preprocessing("hdf5_snapshot_mode",        "compound")
     settings.set_preprocessing("hdf5_snapshot_compression", "none")
     # This just makes testing it faster. :P
-    settings.set_preprocessing("flag_use_pagn",             False)
+    settings.set_preprocessing("flag_use_pagn",             True)
     settings.set_preprocessing("galaxy_num",                N_GAL)
     settings.set_preprocessing("seed",                      9001)
+    # Unnecessary, but helpful
+    settings.set_preprocessing("verbose",                   False)
     return settings
 
 ######## Tests ########
@@ -53,9 +55,175 @@ def test_run_simulation():
         live.set_preprocessing("overwrite_files", False)
         live.set_preprocessing("hdf5_snapshot_file", "test_simulation.hdf5")
         live.set_preprocessing("hdf5_snapshot_label", "testme")
-        print("Running simulation")
+        # Run the simulation once
         run_simulation(live, fname_log)
-        print("Done!")
+        # Check that there is a datafile
+        assert os.path.isfile(os.path.join(wkdir, live.hdf5_snapshot_file))
+        # Open a database pointer
+        db = Database(os.path.join(wkdir, live.hdf5_snapshot_file))
+        # Check that the run exists
+        assert db.exists(live.hdf5_snapshot_label, kind='group')
+        # Update the database pointer
+        db = Database(
+            os.path.join(wkdir, live.hdf5_snapshot_file),
+            group=live.hdf5_snapshot_label,
+        )
+        # Get the attributes
+        attr_dict = db.attr_dict(".")
+        # Check the settings
+        for key, value in attr_dict.items():
+            # Check that the key exists
+            assert key in live.settings_finals
+            # Check that the settings are correct
+            assert SETTING_TYPES[key](value) == getattr(live, key)
+        # There should be a population group
+        subgroups = db.list_items()
+        assert "population" in subgroups
+        # There should also be galaxy groups
+        galaxy_groups = {}
+        for i in np.arange(N_GAL):
+            found = False
+            for sg in subgroups:
+                if not sg.startswith("gal"):
+                    continue
+                if int(sg.lstrip("gal")) == i:
+                    found = True
+                    galaxy_groups[i] = sg
+            assert found
+        # Loop the galaxy groups
+        for galaxy_id, gal_label in galaxy_groups.items():
+            # Get the galaxy attrs
+            galaxy_attrs = db.attr_dict(gal_label)
+            # Check success
+            assert "success" in galaxy_attrs
+            assert galaxy_attrs["success"]
+            # Look at what's in the subgroup
+            states = db.list_items(gal_label)
+            assert len(states) > 0
+
+        ## Check that rerunning a completed run successfully does nothing.
+        # Run the simulation again, but catch stdout and stderr
+        with open(fname_log, 'a') as LogFile:
+          with redirect_stdout(LogFile), redirect_stderr(LogFile):
+            try:
+                run_simulation(live, fname_log)
+            except Exception:
+                traceback.print_exc(file=LogFile)
+                raise
+        chk = f"No need to rerun"
+        found = False
+        with open(fname_log, 'r') as LogFile:
+            for line in LogFile:
+                if chk in line:
+                    found = True
+                    break
+        assert found
+
+        ## Sabotage galaxy success
+        # Loop the galaxy groups
+        for galaxy_id, gal_label in galaxy_groups.items():
+            # Tell them they failed
+            db.attr_set(
+                gal_label,
+                "success",
+                type(galaxy_attrs["success"])(False),
+            )
+        # Clear the logfile
+        os.remove(fname_log)
+        assert not os.path.isfile(fname_log)
+
+        # Run the simulation again
+        with open(fname_log, 'a') as LogFile:
+          with redirect_stdout(LogFile), redirect_stderr(LogFile):
+            try:
+                run_simulation(live, fname_log)
+            except Exception:
+                traceback.print_exc(file=LogFile)
+                raise
+        # Check that it didn't skip anything
+        chk = f"No need to rerun"
+        found = False
+        with open(fname_log, 'r') as LogFile:
+            for line in LogFile:
+                if chk in line:
+                    found = True
+                    break
+        assert not found
+
+        # Check that the run succeeded this time
+        for galaxy_id, gal_label in galaxy_groups.items():
+            galaxy_attrs = db.attr_dict(gal_label)
+            assert "success" in galaxy_attrs
+            assert galaxy_attrs["success"]
+
+        ## Sabotage galaxy seeds
+        for galaxy_id, gal_label in galaxy_groups.items():
+            # Lie about their seed
+            db.attr_set(gal_label, "seed", galaxy_id)
+
+        # Clear the logfile
+        os.remove(fname_log)
+        assert not os.path.isfile(fname_log)
+
+        # Run the simulation again
+        with open(fname_log, 'a') as LogFile:
+          with redirect_stdout(LogFile), redirect_stderr(LogFile):
+            try:
+                run_simulation(live, fname_log)
+            except Exception:
+                traceback.print_exc(file=LogFile)
+                raise
+        # Check that it did skip things
+        chk = f"No need to rerun"
+        found = False
+        with open(fname_log, 'r') as LogFile:
+            for line in LogFile:
+                if chk in line:
+                    found = True
+                    break
+        assert found
+
+        # Check that the run succeeded this time and has the seeds we assigned
+        for galaxy_id, gal_label in galaxy_groups.items():
+            galaxy_attrs = db.attr_dict(gal_label)
+            assert "success" in galaxy_attrs
+            assert galaxy_attrs["success"]
+            assert "seed" in galaxy_attrs
+            assert galaxy_attrs["seed"] == galaxy_id
+
+        ## Bulldoze the seeds
+        live.set_preprocessing("overwrite_files", True)
+        # Clear the logfile
+        os.remove(fname_log)
+        assert not os.path.isfile(fname_log)
+
+        # Run the simulation again
+        with open(fname_log, 'a') as LogFile:
+          with redirect_stdout(LogFile), redirect_stderr(LogFile):
+            try:
+                run_simulation(live, fname_log)
+            except Exception:
+                traceback.print_exc(file=LogFile)
+                raise
+        # Check that it did not skip things
+        chk = f"No need to rerun"
+        found = False
+        with open(fname_log, 'r') as LogFile:
+            for line in LogFile:
+                if chk in line:
+                    found = True
+                    break
+        assert not found
+
+        # Check that the run succeeded this time and has the correct seeds
+        for galaxy_id, gal_label in galaxy_groups.items():
+            galaxy_attrs = db.attr_dict(gal_label)
+            assert "success" in galaxy_attrs
+            assert galaxy_attrs["success"]
+            assert "seed" in galaxy_attrs
+            assert galaxy_attrs["seed"] != galaxy_id
+
+
 
 ######## Main ########
 def main():
