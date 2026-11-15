@@ -753,8 +753,8 @@ def arg():
     parser = argparse.ArgumentParser()
     parser.add_argument("--settings", required=True,
         help="Location of a [settings.ini] file")
-    parser.add_argument("--batch", required=True,
-        help="Location of [batch.txt] file")
+    parser.add_argument("--batch-file", required=True,
+        help="Location of [batch.tsv] file")
     parser.add_argument("--max-workers", default=1, type=int,
         help="How many concurrent processes to start?"
     )
@@ -764,12 +764,12 @@ def arg():
 ######## Main ########
 def main(
         settings : str,
-        batch : str,
+        batch_file : str,
         max_workers : int,
     ):
     queue = SimulationQueue.from_inifile(
         settings,
-        batch,
+        batch_file,
     )
     values = queue.run(max_workers=max_workers)
     queue.report()
