@@ -3,6 +3,7 @@
 ######## Imports ########
 #### Standard ####
 import tempfile
+import warnings
 #### Local ####
 # Yeah, I know this is bad, but this is the module we are testing
 from mcfacts.objects.sim_queue import *
@@ -49,8 +50,12 @@ def test_last_line():
         assert "Goodbye World!" in last_line(fname)
 
 def test_run_simulation():
+    """This is an integration test. It is not as cheap as the other tests."""
     # Create a temporary workspace
     with tempfile.TemporaryDirectory() as wkdir:
+      # Where we're going, we're going to intentionally hit warnings
+      with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
         # Define log file
         fname_log = f"{wkdir}/testing.log"
         # Define some settings
@@ -228,7 +233,19 @@ def test_run_simulation():
             assert "seed" in galaxy_attrs
             assert galaxy_attrs["seed"] != galaxy_id
 
-def batch():
+def test_batch():
+    """This is an integration test for the SimulationQueue object
+
+    It doesn't cover all of the SimulationQueue methods, but it covers
+     setting one up and running it.
+
+    Testing the reporting function would require writing more integration
+     tests, in ways that intentionally setup a simulation to fail,
+     write a log file, read from that log file, and redirect the print
+     statements for the report function to a context manager,
+     and I'm going to be honest: it's just easier to test that stuff when I'm
+     running it.
+    """
     # Create a temporary workspace
     with tempfile.TemporaryDirectory() as wkdir:
         # Define log file
@@ -248,14 +265,16 @@ def batch():
         queue = SimulationQueue.from_settings(live, batch_file)
         # Run the queue, not parallel
         queue.run(max_workers=1)
-        # Check it parallel (basically no-op)
+        # Check it parallel
+        live.set_preprocessing("overwrite_files", True)
+        queue = SimulationQueue.from_settings(live, batch_file)
         queue.run(max_workers=2)
 
 ######## Main ########
 def main():
+    test_batch()
     test_last_line()
     test_run_simulation()
-    #test_batch()
     return 
 
 ######## Execution ########

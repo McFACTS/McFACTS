@@ -77,7 +77,10 @@ def test_process_pool():
         total = N_PROC, desc=f"{N_PROC} Litte monkeys jumping on the bed"
         ) as pbar:
         # Recite the incantation
-        with concurrent.futures.ProcessPoolExecutor(max_workers=N_PROC) as executor:
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=N_PROC,
+            mp_context=mp.get_context("forkserver"),
+        ) as executor:
             # Submit processes
             future_to_monkey = {executor.submit(
                 monkey_hit_head,

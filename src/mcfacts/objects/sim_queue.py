@@ -579,7 +579,10 @@ class SimulationQueue(object):
                 desc = f"",
             ) as pbar:
             # Recite the incantation
-            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=max_workers,
+                mp_context=mp.get_context("forkserver"),
+            ) as executor:
                 # Submit processes
                 future_to_simulation = {executor.submit(
                     run_process,
