@@ -11,6 +11,11 @@ from mcfacts.objects.sim_queue import *
 # Number of Galaxies to run
 N_GAL = 3
 
+BATCH_TEXT = """#hdf5_snapshot_label stellar_mass scale_nsc_mass
+batch/early_010 1.77827941e+10 neumayer-early
+batch/late_010 1.77827941e+10 neumayer-late
+"""
+
 def queue_worthy_settings():
     """Return some example settings compatible with sim_queue"""
     # Define some settings
@@ -223,12 +228,34 @@ def test_run_simulation():
             assert "seed" in galaxy_attrs
             assert galaxy_attrs["seed"] != galaxy_id
 
-
+def test_batch():
+    # Create a temporary workspace
+    with tempfile.TemporaryDirectory() as wkdir:
+        # Define log file
+        fname_log = f"{wkdir}/testing.log"
+        # Define some settings
+        live = queue_worthy_settings()
+        # Set the output directory
+        live.set_preprocessing("output_dir", wkdir)
+        live.set_preprocessing("overwrite_files", False)
+        live.set_preprocessing("hdf5_snapshot_file", "test_simulation.hdf5")
+        live.set_preprocessing("hdf5_snapshot_label", "testme")
+        # Write the batch file
+        batch_file = f"{wkdir}/batch.tsv"
+        with open(batch_file, 'w') as F:
+            print(BATCH_TEXT, file=F)
+        # Make the queue object
+        queue = SimulationQueue.from_settings(live, batch_file)
+        # Run the queue, not parallel
+        queue.run(max_workers=1)
+        # Check it parallel (basically no-op)
+        queue.run(max_workers=2)
 
 ######## Main ########
 def main():
     test_last_line()
     test_run_simulation()
+    test_batch()
     return 
 
 ######## Execution ########
