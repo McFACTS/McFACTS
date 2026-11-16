@@ -6,15 +6,12 @@ import astropy.constants as const
 import numpy as np
 from numpy.random import Generator
 
-import mcfacts.modules.gw
-import mcfacts.utilities.checks
-import mcfacts.utilities.peters
-import mcfacts.utilities.unit_conversion
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.agn_object_array import FilingCabinet, AGNBlackHoleArray
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import peters, checks, unit_conversion
+from mcfacts.utilities.constants import G_SI, C_SI, M_SUN_KG, SEC_IN_YR
 from mcfast import baruteau_helper
 
 def bin_harden_baruteau_optimized( bin_mass_1, bin_mass_2, bin_sep, bin_ecc, bin_time_to_merger_gw, bin_flag_merging, bin_time_merged, smbh_mass, timestep_duration_yr, time_gw_normalization, time_passed, r_g_in_meters):
@@ -146,12 +143,13 @@ def drag_forces(mass, velocity, density, sound_speed, func_drag_force_components
     """
     Finds the radial and azimuthal dynamical friction forces on an object moving through the disk.
     The Mach number is calculated and passed to `func_drag_force_components` to find the semi-analytical components.
+    All I/O are plain SI floats (kg, m/s, kg/m^3, N) without astropy units.
     """
     mach_number = velocity / sound_speed
 
     # Find drag force components based on the specified function passed into the method.
-    drag_force_components = func_drag_force_components(mach_number.value)
-    force_component = (4 * np.pi * density) * (((const.G * mass) / velocity) ** 2)
+    drag_force_components = func_drag_force_components(mach_number)
+    force_component = (4 * np.pi * density) * (((G_SI * mass) / velocity) ** 2)
 
     # Return the negative of the force component, representing the drag force in the correct direction.
     return (-force_component * drag_force_components[0]), (-force_component * drag_force_components[1])
@@ -172,25 +170,27 @@ def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound
     primary_drag_force_components = np.vectorize(primary_drag_force_components_base)
     secondary_drag_force_components = np.vectorize(secondary_drag_force_components_base)
 
-    # Mass Ratio
-    q = np.minimum(mass_1, mass_2) / np.maximum(mass_1, mass_2)
+    r_g = G_SI * smbh_mass * M_SUN_KG / C_SI ** 2
 
     # Convert binary separation to si units
-    si_unit_bin_sep = unit_conversion.si_from_r_g(smbh_mass, bin_sep)
+    si_unit_bin_sep = np.asarray(bin_sep, dtype=float) * r_g
 
-    # Add units to mass and calc total mass
-    unit_mass_1 = (mass_1 * u.M_sun).si
-    unit_mass_2 = (mass_2 * u.M_sun).si
+    # Convert masses to kg and calc total mass
+    unit_mass_1 = mass_1 * M_SUN_KG
+    unit_mass_2 = mass_2 * M_SUN_KG
     total_mass = unit_mass_1 + unit_mass_2
 
-    # Get the local sound speed and density at the binary's location in the disk
-    sound_speed = disk_sound_speed(bin_orb_a) * (u.m / u.s)
-    density = disk_density(bin_orb_a) * (u.kg / u.m ** 3)
+    # Get the local sound speed [m/s] and density [kg/m^3] at the binary's location in the disk
+    sound_speed = disk_sound_speed(bin_orb_a)
+    density = disk_density(bin_orb_a)
 
-    # Size of sub steps (in years) to take within the simulation timestep
-    # Need to take substeps since analytical function can run away under large timesteps
-    sub_step_size = 100 * u.yr
-    sub_steps = (timestep_length * u.yr) / sub_step_size
+    # Hill radius of each binary; once a binary widens past it, stop evolving it and leave it for ionization
+    hill_radius = bin_orb_a * np.power((mass_1 + mass_2) / (3 * smbh_mass), 1. / 3.) * r_g
+
+    # Need to take substeps since the analytical function can run away.
+    # Torque timescales L/|tau| reach ~10 yr near Mach ~1, so the per-substep change is also capped below.
+    sub_step_size = 10 * SEC_IN_YR
+    sub_steps = int(timestep_length * SEC_IN_YR / sub_step_size)
 
     # Merging flag might be stale, so lets run a contact check just incase
     _, flag_merging = checks.bin_contact_check(
@@ -203,20 +203,22 @@ def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound
 
     # Loop over the number of sub-timesteps
     # TODO: Possible implementation for system handling sub-timesteps for multiple modules
-    for n in range(int(sub_steps.value)):
+    for n in range(sub_steps):
         # Turn our merging flag into a mask
-        not_merging = flag_merging >= 0
+        not_merging = (flag_merging >= 0) & (si_unit_bin_sep <= hill_radius)
 
-        if np.all(not_merging):
+        # If there are no binaries left to evolve, break out of the loop
+        if not np.any(not_merging):
             break
 
-        # Find the semi-major axis of each binary component to the center of mass based on mass ratio
-        sep_1 = si_unit_bin_sep[not_merging] / ((1 / q[not_merging]) + 1)
-        sep_2 = si_unit_bin_sep[not_merging] / (q[not_merging] + 1)
+        # Find the semi-major axis of each component to the COM: a_1 = a * m_2 / m_tot, a_2 = a * m_1 / m_tot
+        sep_1 = si_unit_bin_sep[not_merging] * unit_mass_2[not_merging] / total_mass[not_merging]
+        sep_2 = si_unit_bin_sep[not_merging] * unit_mass_1[not_merging] / total_mass[not_merging]
 
         # Find the Keplerian orbital velocity for w.r.t. the center of mass for each binary component
-        orb_vel_1 = np.sqrt((const.G * total_mass[not_merging] / sep_1))
-        orb_vel_2 = np.sqrt((const.G * total_mass[not_merging] / sep_2))
+        # v_1 = (m_2 / m_tot) * sqrt(G * m_tot / a), v_2 = (m_1 / m_tot) * sqrt(G * m_tot / a)
+        orb_vel_1 = unit_mass_2[not_merging] * np.sqrt(G_SI / (si_unit_bin_sep[not_merging] * total_mass[not_merging]))
+        orb_vel_2 = unit_mass_1[not_merging] * np.sqrt(G_SI / (si_unit_bin_sep[not_merging] * total_mass[not_merging]))
 
         # Using Kim+Kim+Sánchez-Salcedo semi-analytical model for double peturbers,
         # find the drag force acting on each component due to the tails of the component and the companion
@@ -226,31 +228,29 @@ def analytical_drag(mass_1, mass_2, bin_sep, bin_orb_a, flag_merging, disk_sound
         prime_df_2 = drag_forces(unit_mass_2[not_merging], orb_vel_2, density[not_merging], sound_speed[not_merging], primary_drag_force_components)
         second_df_2 = drag_forces(unit_mass_1[not_merging], orb_vel_1, density[not_merging], sound_speed[not_merging], secondary_drag_force_components)
 
-        # Find the acceleration on each component using the force in the phi direction
-        accel_phi_1 = (prime_df_1[1] + second_df_1[1]) / unit_mass_1[not_merging]
-        accel_phi_2 = (prime_df_2[1] + second_df_2[1]) / unit_mass_2[not_merging]
+        # Torque on the binary about its center of mass from the azimuthal force on each component
+        # (own-wake drag + companion-wake push). Positive torque adds angular momentum and widens the binary.
+        torque = (sep_1 * (prime_df_1[1] + second_df_1[1])) + (sep_2 * (prime_df_2[1] + second_df_2[1]))
 
-        # Calculate a new orbital velocity for each component, change of velocity over substep
-        new_orb_vel_1 = orb_vel_1 + (accel_phi_1 * (sub_step_size.to(u.s)))
-        new_orb_vel_2 = orb_vel_2 + (accel_phi_2 * (sub_step_size.to(u.s)))
+        # Orbital angular momentum of a circular binary, L = mu * sqrt(G * M * a)
+        reduced_mass = (unit_mass_1[not_merging] * unit_mass_2[not_merging]) / total_mass[not_merging]
+        ang_mom = reduced_mass * np.sqrt(G_SI * total_mass[not_merging] * si_unit_bin_sep[not_merging])
 
-        # Find the new separations corresponding to the new orbital velocities
-        new_sep_1 = ((const.G * total_mass[not_merging]) / (new_orb_vel_1 ** 2))
-        new_sep_2 = ((const.G * total_mass[not_merging]) / (new_orb_vel_2 ** 2))
-
-        # Add the component separations back together
-        si_unit_bin_sep[not_merging] = new_sep_1 + new_sep_2
+        # bin_sep is proportional to the square of the angular momentum for a circular orbit, so a_new = a * (L_new / L)^2
+        # Limit |dL/L| to 10% per sub step; near Mach ~1 the torque timescale L/|tau| can drop to ~10 yr
+        frac_ang_mom_change = np.clip((torque * sub_step_size) / ang_mom, -0.1, 0.1)
+        si_unit_bin_sep[not_merging] = si_unit_bin_sep[not_merging] * (1 + frac_ang_mom_change) ** 2
 
         # Check if any binaries would merge, if so update our flag_merging array so they don't get evolved in the next substep
         merged_bin_sep, flag_merging = checks.bin_contact_check(
             mass_1,
             mass_2,
-            unit_conversion.r_g_from_units(smbh_mass, si_unit_bin_sep).value,
+            si_unit_bin_sep / r_g,
             flag_merging,
             smbh_mass,
         )
 
-    return unit_conversion.r_g_from_units(smbh_mass, si_unit_bin_sep).value
+    return si_unit_bin_sep / r_g
 
 
 def gas_hardening_no_stalling(mass_1, mass_2, bin_sep, flag_merging, smbh_mass, gas_hardening_prescription, orb_a, disk_sound_speed, disk_density, timestep_duration_yr, r_g_in_meters):
