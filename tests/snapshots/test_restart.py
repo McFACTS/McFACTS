@@ -390,9 +390,9 @@ def test_run_galaxy():
                                     f"value: {value}"
                                 )
                                 print(
-                                    f"Txt type: {type(txt_agn_objs[item][key])}; "
-                                    f"shape: {np.shape(txt_agn_objs[item][key])}; "
-                                    f"value: {txt_agn_objs[item][key]}"
+                                    f"Txt type: {type(txt_agn_objs[item].get_super_dict()[key])}; "
+                                    f"shape: {np.shape(txt_agn_objs[item].get_super_dict()[key])}; "
+                                    f"value: {txt_agn_objs[item].get_super_dict()[key]}"
                                 )
                 for key in txt_all_else:
                     assert key in hdf_all_else
