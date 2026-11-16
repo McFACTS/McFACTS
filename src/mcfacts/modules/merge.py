@@ -1051,6 +1051,7 @@ def merge_blackholes_precession(
                 q=mass_ratio[i],
                 chi1=chi_1[i],
                 chi2=chi_2[i],
+                rng=random,
             )
         except OverflowError:
             # This is an internal precession error
@@ -1084,7 +1085,8 @@ def merge_blackholes_precession(
         mass_ratio,
         chi_1,
         chi_2,
-        kms=True
+        kms=True,
+        rng=random,
     )
     bh_spin_merged = precession.remnantspin(
         theta1,
