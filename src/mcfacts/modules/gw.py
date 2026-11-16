@@ -10,6 +10,7 @@ from mcfacts.objects.agn_object_array import FilingCabinet, AGNBinaryBlackHoleAr
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.objects.timeline import TimelineActor
 from mcfacts.utilities import unit_conversion, peters
+from mcfast import bh_near_smbh_helper, gw_hardening_helper
 
 
 def evolve_emri_gw(blackholes_inner_disk_mass, blackholes_inner_disk_orb_a, timestep_duration_yr, old_gw_freq, smbh_mass, agn_redshift):
@@ -377,11 +378,23 @@ class BinaryBlackHoleEvolveGW(TimelineActor):
                 flag_include_old_gw_freq=0)
             )
 
-        blackholes_binary.bin_sep, blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging \
-            = gw_hardening(blackholes_binary.mass, blackholes_binary.mass_2,
-                     blackholes_binary.bin_ecc, blackholes_binary.bin_sep,
-                     blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging,
-                     sm.smbh_mass, timestep_length, sm.r_g_in_meters)
+        if len(blackholes_binary.bin_sep) > 0:
+            # blackholes_binary.bin_sep, blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging \
+            #     = gw_hardening(blackholes_binary.mass, blackholes_binary.mass_2,
+            #              blackholes_binary.bin_ecc, blackholes_binary.bin_sep,
+            #              blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging,
+            #              sm.smbh_mass, timestep_length, sm.r_g_in_meters)
+            #
+            # bin_sep_opt, time_to_merger_gw_opt, flag_merging_opt \
+            blackholes_binary.bin_sep, blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging \
+                = gw_hardening_helper(blackholes_binary.mass, blackholes_binary.mass_2,
+                         blackholes_binary.bin_ecc, blackholes_binary.bin_sep,
+                         blackholes_binary.time_to_merger_gw, blackholes_binary.flag_merging,
+                         sm.smbh_mass, timestep_length)
+
+            # np.testing.assert_allclose(blackholes_binary.bin_sep, bin_sep_opt)
+            # np.testing.assert_allclose(blackholes_binary.time_to_merger_gw, time_to_merger_gw_opt)
+            # np.testing.assert_allclose(blackholes_binary.flag_merging, flag_merging_opt)
 
         blackholes_binary.consistency_check()
 
@@ -401,7 +414,18 @@ class InnerBlackHoleDynamics(TimelineActor):
         inner_bh = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
         # TODO: also get bh_near_smbh to return updated ecc and add here
-        inner_bh.orb_a = bh_near_smbh(
+        # inner_bh.orb_a = bh_near_smbh(
+        #     sm.smbh_mass,
+        #     inner_bh.orb_a,
+        #     inner_bh.mass,
+        #     inner_bh.orb_ecc,
+        #     timestep_length,
+        #     sm.disk_radius_outer,
+        #     sm.disk_inner_stable_circ_orb,
+        #     sm.r_g_in_meters
+        # )
+
+        inner_bh.orb_a = bh_near_smbh_helper(
             sm.smbh_mass,
             inner_bh.orb_a,
             inner_bh.mass,
@@ -409,8 +433,9 @@ class InnerBlackHoleDynamics(TimelineActor):
             timestep_length,
             sm.disk_radius_outer,
             sm.disk_inner_stable_circ_orb,
-            sm.r_g_in_meters
         )
+
+        # np.testing.assert_array_almost_equal(inner_bh.orb_a, dummy)
 
         zero_strain_mask = inner_bh.gw_strain == 0
         inner_bh.gw_strain[zero_strain_mask] = 9.e-7

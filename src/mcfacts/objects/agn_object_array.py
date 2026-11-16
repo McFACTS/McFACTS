@@ -65,21 +65,21 @@ class AGNObjectArray(ABC):
         self.galaxy_id = np.full(len(unique_id), int(0), dtype=np.int64) if len(galaxy_id) == 0 else galaxy_id
 
         self.mass = mass # Mass is required, if this is missing the consistency check with throw an error.
-        self.spin = np.full(len(unique_id), 0., dtype=np.float64) if len(spin) == 0 else spin
-        self.spin_angle = np.full(len(unique_id), 0., dtype=np.float64) if len(spin_angle) == 0 else spin_angle
-        self.orb_a = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_a) == 0 else orb_a
-        self.orb_inc = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_inc) == 0 else orb_inc
-        self.orb_ecc = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_ecc) == 0 else orb_ecc
-        self.orb_ang_mom = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_ang_mom) == 0 else orb_ang_mom
-        self.orb_arg_periapse = np.full(len(unique_id), 0., dtype=np.float64) if len(orb_arg_periapse) == 0 else orb_arg_periapse
-        self.migration_velocity = np.full(len(unique_id), 0., dtype=np.float64) if len(migration_velocity) == 0 else migration_velocity
+        self.spin = np.zeros(len(unique_id), dtype=np.float64) if len(spin) == 0 else spin
+        self.spin_angle = np.zeros(len(unique_id), dtype=np.float64) if len(spin_angle) == 0 else spin_angle
+        self.orb_a = np.zeros(len(unique_id), dtype=np.float64) if len(orb_a) == 0 else orb_a
+        self.orb_inc = np.zeros(len(unique_id), dtype=np.float64) if len(orb_inc) == 0 else orb_inc
+        self.orb_ecc = np.zeros(len(unique_id), dtype=np.float64) if len(orb_ecc) == 0 else orb_ecc
+        self.orb_ang_mom = np.zeros(len(unique_id), dtype=np.float64) if len(orb_ang_mom) == 0 else orb_ang_mom
+        self.orb_arg_periapse = np.zeros(len(unique_id), dtype=np.float64) if len(orb_arg_periapse) == 0 else orb_arg_periapse
+        self.migration_velocity = np.zeros(len(unique_id), dtype=np.float64) if len(migration_velocity) == 0 else migration_velocity
         self.parent_unique_id = np.full(len(unique_id), uuid.UUID(int=0), dtype=uuid.UUID) if len(parent_unique_id) == 0 else parent_unique_id
         self.parent_unique_id_2 = np.full(len(unique_id), uuid.UUID(int=0), dtype=uuid.UUID) if len(parent_unique_id_2) == 0 else parent_unique_id_2
 
         # TODO: One of our modules is passing a float for this value, it should be int. Not game-breaking, but we should ensure type sameness
         self.gen: npt.NDArray[np.int64] = np.full(len(unique_id), int(1), dtype=np.int64) if len(gen) == 0 else gen
 
-        self.time = np.full(len(unique_id), 0., dtype=np.float64) if len(time) == 0 else time
+        self.time = np.zeros(len(unique_id), dtype=np.float64) if len(time) == 0 else time
 
         self.skip_consistency_check = skip_consistency_check
 
@@ -388,13 +388,13 @@ class AGNBinaryBlackHoleArray(AGNBlackHoleArray):
         unused_arguments = {}
 
         if "orb_inc" not in kwargs:
-            unused_arguments["orb_inc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
+            unused_arguments["orb_inc"] = np.zeros(len(kwargs.get("unique_id")), dtype=np.float64)
         if "orb_ecc" not in kwargs:
-            unused_arguments["orb_ecc"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
+            unused_arguments["orb_ecc"] = np.zeros(len(kwargs.get("unique_id")), dtype=np.float64)
         if "orb_ang_mom" not in kwargs:
-            unused_arguments["orb_ang_mom"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
+            unused_arguments["orb_ang_mom"] = np.zeros(len(kwargs.get("unique_id")), dtype=np.float64)
         if "orb_arg_periapse" not in kwargs:
-            unused_arguments["orb_arg_periapse"] = np.full(len(kwargs.get("unique_id")), 0., dtype=np.float64)
+            unused_arguments["orb_arg_periapse"] = np.zeros(len(kwargs.get("unique_id")), dtype=np.float64)
 
 
         # Since we use the parent class variables for the primary component, we need to call the super init last so our consistency check passes.

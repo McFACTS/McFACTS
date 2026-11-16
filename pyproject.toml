@@ -74,7 +74,7 @@ dependencies = [
     "typing-extensions",
     "joblib>=1.4.2",
     "scikit_learn>=1.5.2",
-    "mcfast==0.1.10",
+    "mcfast==0.1.12",
     "xev-data==1.0.1",
 ]
 

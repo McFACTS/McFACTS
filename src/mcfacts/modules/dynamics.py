@@ -3809,7 +3809,7 @@ class SingleBlackHoleDynamics(TimelineActor):
         blackholes_array = filing_cabinet.get_array(self.target_array, AGNBlackHoleArray)
 
         if sm.flag_dynamics_sweep:
-            blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde_sweep(
+            blackholes_array.orb_a, blackholes_array.orb_ecc = circular_singles_encounters_prograde_sweep_optimized(
                 sm.smbh_mass,
                 blackholes_array.orb_a,
                 blackholes_array.mass,
