@@ -751,7 +751,7 @@ def construct_disk_charlemagne(
     smbh_eddington_ratio : float
         Eddington ratio for the supermassive black hole
     rad_efficiency : float
-        An input for pAGN
+        An input for CharlemAGNe
 
     Returns
     -------
@@ -767,10 +767,10 @@ def construct_disk_charlemagne(
         disk density (radius) [kg/m^3]
     disk_model_properties : dict
         Other disk model things we may want
-    bonus_structures : dict
-        Other disk model things we may want, which are only available
-        for pAGN models
+    charles_model : charlemagne.disk.Disk1D object
+        The CharlemAGNe object
     """
+    from charlemagne.disk import SG03, TQM05
     # instead, populate with CharlemAGNe
     if "sirko" in disk_model_name:
         charles_model = SG03(
@@ -846,7 +846,7 @@ def construct_disk_charlemagne(
     surf_dens_func = lambda x, f=surf_dens_func_log: np.exp(f(np.log(x)))
 
     # Generate aspect ratio (h/r) interpolator function
-    ln_aspect_ratio = np.log(h/R)
+    ln_aspect_ratio = np.log(h/r_cyl)
     aspect_func_log = scipy.interpolate.CubicSpline(
         np.log(R),
         ln_aspect_ratio,
@@ -882,14 +882,12 @@ def construct_disk_charlemagne(
     disk_density_func = lambda x, f=disk_density_func_log: np.exp(f(np.log(x)))
 
     # Generate disk pressure gradient (dP/dR) interpolator function
-    pressure_data = [R, np.gradient(P)/np.gradient(R)]
-
     pgas = rho * T * BOTLZMANN_SI / AMU_SI
     prad = tauV * STEFAN_BOLTZMANN_SI * Teff**4 / (2 * C_SI)
     ptot = pgas + prad
     disk_pressure_grad_func_interp = scipy.interpolate.CubicSpline(
         R,
-        np.gradient(ptot)/np.gradient(R),
+        np.gradient(ptot,r_cyl),
         extrapolate=False,
     )
     disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(unit_conversion.si_from_r_g(

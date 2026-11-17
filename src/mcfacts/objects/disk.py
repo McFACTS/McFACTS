@@ -378,7 +378,7 @@ class AGNDiskInterp(object):
         T = charles_model["T"]
         Teff = charles_model["Teff"]
         omega = charles_model["omega"]
-        pgas = rho * T * BOTLZMANN_SI / AMU_SI
+        pgas = rho * T * BOLTZMANN_SI / AMU_SI
         prad = tauV * STEFAN_BOLTZMANN_SI * Teff**4 / (2 * C_SI)
         P = pgas + prad
         mass_disk = charles_model["mass_disk"]
@@ -393,14 +393,14 @@ class AGNDiskInterp(object):
 
         # Temp interpolator function
         surface_density_data = [R, Sigma]
-        aspect_ratio_data = [R, h/R]
+        aspect_ratio_data = [R, h/r_cyl]
         opacity_data = [R, kappa]
         sound_speed_data = [R, cs]
         density_data = [R, rho]
         omega_data = [R, omega]
         temperature_data = [R, T]
         # Generate disk pressure gradient (dP/dR) interpolator function
-        pressure_data = [R, np.gradient(P)/np.gradient(R)]
+        pressure_data = [R, np.gradient(P,r_cyl)]
 
         # Disk
         disk = cls(
@@ -455,8 +455,11 @@ class AGNDisk(AGNDiskInterp):
             kappa = charles_model["kappa"]
             cs = charles_model["cs"]
             T = charles_model["T"]
+            Teff = charles_model["Teff"]
             omega = charles_model["omega"]
-            P = charles_model["PPgas"] + charles_model["PPrad"]
+            pgas = rho * T * BOLTZMANN_SI / AMU_SI
+            prad = tauV * STEFAN_BOLTZMANN_SI * Teff**4 / (2 * C_SI)
+            P = pgas + prad
             mass_disk = charles_model["mass_disk"]
             # Get R_g
             Rg = (charles_model.smbh_mass * M_SUN_KG * CONST_G_SI) / (C_SI * C_SI)
@@ -469,14 +472,14 @@ class AGNDisk(AGNDiskInterp):
 
             # Temp interpolator function
             surface_density_data = [R, Sigma]
-            aspect_ratio_data = [R, h/R]
+            aspect_ratio_data = [R, h/r_cyl]
             opacity_data = [R, kappa]
             sound_speed_data = [R, cs]
             density_data = [R, rho]
             omega_data = [R, omega]
             temperature_data = [R, T]
             # Generate disk pressure gradient (dP/dR) interpolator function
-            pressure_data = [R, np.gradient(P)/np.gradient(R)]
+            pressure_data = [R, np.gradient(P,r_cyl)]
 
             # Disk
             super().__init__(
