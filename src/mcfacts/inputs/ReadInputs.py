@@ -3,7 +3,7 @@ Inifile
 -------
     "disk_model_name"               : str
         'sirko_goodman' or 'thompson_etal'
-    "flag_use_pagn"                 : int
+    "disk_model_source"             : str
         Use pAGN to generate disk model?
     "flag_add_stars"                : int
         Add stars to the disk
@@ -164,7 +164,7 @@ from mcfacts.inputs import data as mcfacts_input_data
 #: Dictionary of types for input parameters
 INPUT_TYPES = {
     "disk_model_name"               : str,
-    "flag_use_pagn"                 : int,
+    "disk_model_source"             : str,
     "flag_add_stars"                : int,
     "flag_coalesce_initial_stars"   : int,
     "flag_initial_stars_BH_immortal": int,
@@ -329,8 +329,8 @@ def ReadInputs_ini(fname_ini, verbose=0):
             input_variables[name] = input_variables[name].strip("'")
 
     # Set default : not use pagn.  this allows us not to provide it
-    if not ('flag_use_pagn' in input_variables):
-        input_variables['flag_use_pagn'] = 0
+    if not ('disk_model_source' in input_variables):
+        input_variables['disk_model_source'] = "data"
 
     ## Check outer disk radius in parsecs
     # Scale factor for parsec distance in r_g
@@ -723,7 +723,7 @@ def construct_disk_interp(
     disk_alpha_viscosity,
     smbh_eddington_ratio,
     disk_radius_max_pc=0.,
-    flag_use_pagn=0,
+    disk_model_source="data",
     verbose=0,
     ):
     """Construct the disk array interpolators
@@ -740,7 +740,7 @@ def construct_disk_interp(
             Eddington ratio for the supermassive black hole
         disk_radius_max_pc : float
             Maximum disk size in parsecs (0. for off)
-        flag_use_pagn : int
+        disk_model_source : str
             use pAGN if 1. Default is 0.
         disk_model_name : str
             Choice of disk model
@@ -765,7 +765,7 @@ def construct_disk_interp(
     #   density in SI in first column
     #   radius in r_g in second column
     #   infile = model_surface_density.txt, where model is user choice
-    if not(flag_use_pagn):
+    if disk_model_source == "data":
         # Load interpolators
         disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, disk_model_properties = \
             construct_disk_direct(
@@ -774,7 +774,7 @@ def construct_disk_interp(
                 verbose=verbose
             )
 
-    else:
+    elif disk_model_source == "pagn":
         # instead, populate with pagn
         disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, disk_model_properties, bonus_structures = \
             construct_disk_pAGN(
@@ -784,6 +784,8 @@ def construct_disk_interp(
                 disk_alpha_viscosity,
                 smbh_eddington_ratio,
             )
+    else:
+        raise ValueError(f"Unknown disk model source: {disk_model_source}")
 
     # Truncate disk models at outer disk radius
     if verbose:
