@@ -801,7 +801,6 @@ def construct_disk_charlemagne(
     else:
         raise RuntimeError("unknown disk model: %s"%(disk_model_name))
 
-    charles_model = cls.run_charlemagne_model(*args,**kwargs)
     # All quantities returned by CharlemAGNe will be in SI units
     # CharlemAGNe makes the following available: 
     #  iter, converged, max_residual, steps, star_formation,
@@ -882,7 +881,7 @@ def construct_disk_charlemagne(
     disk_density_func = lambda x, f=disk_density_func_log: np.exp(f(np.log(x)))
 
     # Generate disk pressure gradient (dP/dR) interpolator function
-    pgas = rho * T * BOTLZMANN_SI / AMU_SI
+    pgas = rho * T * BOLTZMANN_SI / AMU_SI
     prad = tauV * STEFAN_BOLTZMANN_SI * Teff**4 / (2 * C_SI)
     ptot = pgas + prad
     disk_pressure_grad_func_interp = scipy.interpolate.CubicSpline(
