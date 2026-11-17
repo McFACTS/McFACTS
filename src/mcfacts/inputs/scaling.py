@@ -46,7 +46,7 @@ def disk_truncation(
     # Paper III truncation
     if settings.disk_truncation.lower() == "opacity-equals-inner-disk":
         # Make sure pAGN is enabled
-        if not settings.flag_use_pagn:
+        if not settings.disk_model_source == "pagn":
             raise NotImplementedError
         # Load R and tauV
         pagn_R = TempDisk.pagn_bonus_structures["R"]

@@ -160,6 +160,8 @@ import pagn.constants as pagn_ct
 # Local imports 
 import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
+from mcfacts.utilities.constants import CONST_G_SI, C_SI, AMU_SI
+from mcfacts.utilities.constants import BOLTZMANN_SI, STEFAN_BOLTZMANN_SI
 
 #: Dictionary of types for input parameters
 INPUT_TYPES = {
@@ -715,6 +717,220 @@ def construct_disk_pAGN(
     disk_model_properties['T'] = temp_func
     return disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, disk_model_properties, bonus_structures
 
+def construct_disk_charlemagne(
+        disk_model_name,
+        smbh_mass,
+        disk_radius_outer,
+        disk_alpha_viscosity,
+        smbh_eddington_ratio,
+        rad_efficiency=0.1,
+    ):
+    """Construct AGN disk model using the CharlemAGNe code.
+
+    Get 1d functions of radius for your choice of disk model. Disk model can be
+    Sirko & Goodman (2003) or Thompson, Quataert, & Murray (2005)
+
+    Sirko and Goodman. “Spectral Energy Distributions of Marginally
+    Self-Gravitating Quasi-Stellar Object Discs.” 2003MNRAS.341..501S.
+    [DOI](https://doi.org/10.1046/j.1365-8711.2003.06431.x).
+
+    Thompson, Quataert, & Murray. “Radiation Pressure-Supported
+    Starburst Disks and Active Galactic Nucleus Fueling.” 2005ApJ.630..167.
+    [DOI](https://doi.org/10.1086/431923).
+
+    Parameters
+    ----------
+    disk_model_name : str
+        sirko_goodman or thompson_etal
+    smbh_mass : float
+        Mass of the supermassive black hole (M_sun)
+    disk_radius_outer : float
+        final element of disk_model_radius_array (units of r_g)
+    disk_alpha_viscosity : float
+        disk viscosity 'alpha'
+    smbh_eddington_ratio : float
+        Eddington ratio for the supermassive black hole
+    rad_efficiency : float
+        An input for pAGN
+
+    Returns
+    -------
+    disk_surf_dens_func : lambda
+        Surface density (radius)
+    disk_aspect_ratio_func : lambda
+        Aspect ratio (radius)
+    disk_opacity_func : lambda
+        Opacity (radius)
+    sound_speed_func : lambda
+        sound speed (radius) [m/s]
+    disk_density_func : lambda
+        disk density (radius) [kg/m^3]
+    disk_model_properties : dict
+        Other disk model things we may want
+    bonus_structures : dict
+        Other disk model things we may want, which are only available
+        for pAGN models
+    """
+    # instead, populate with CharlemAGNe
+    if "sirko" in disk_model_name:
+        charles_model = SG03(
+            #rmin            = isco,
+            rmax            = disk_radius_outer,
+            #npts            = 10000,
+            smbh_mass       = smbh_mass,
+            eddington_ratio = smbh_eddington_ratio,
+            alpha           = disk_alpha_viscosity,
+            #X_mass_fraction = 0.7,
+            radiative_efficiency = rad_efficiency,
+        )
+    elif 'thompson' in disk_model_name:
+        charles_model = TQM05(
+            #rmin                    = isco,
+            #rmax                    = disk_radius_outer,
+            #npts                    = 10000,
+            smbh_mass               = smbh_mass,
+            eddington_ratio         = smbh_eddington_ratio,
+            #velocity_dispersion     = 0.0,
+            #radiative_efficiency    = 1.e-3,
+            #transport_efficiency    = 0.2,
+            #supernova_pressure      = 0.1,
+            #X_mass_fraction         = 0.7,
+            #radius_inner            = isco,
+            #radius_outer            = disk_radius_outer,
+        )
+    else:
+        raise RuntimeError("unknown disk model: %s"%(disk_model_name))
+
+    charles_model = cls.run_charlemagne_model(*args,**kwargs)
+    # All quantities returned by CharlemAGNe will be in SI units
+    # CharlemAGNe makes the following available: 
+    #  iter, converged, max_residual, steps, star_formation,
+    #  r_cyl, omega, Teff, Mdotprime, Mdot, T, cs, rho, kappa, tauV,
+    #  PPgas, PPrad, opacfac, Q, h, eta, dr, dA, dV, mass_disk, Mdot_sf
+    r_cyl = charles_model["r_cyl"]
+    h = charles_model["h"]
+    rho = charles_model["rho"]
+    tauV = charles_model["tauV"]
+    kappa = charles_model["kappa"]
+    cs = charles_model["cs"]
+    T = charles_model["T"]
+    Teff = charles_model["Teff"]
+    omega = charles_model["omega"]
+    mass_disk = charles_model["mass_disk"]
+    # Get R_g
+    Rg = (charles_model.smbh_mass * M_SUN_KG * CONST_G_SI) / (C_SI * C_SI)
+    # Quick math
+    R = r_cyl / Rg
+    R_agn = R[-1]
+    Sigma = 2 * h * rho  # SI density
+    # This is not consistent with kappa as returned from singularity-opac :(
+    kappa = 2 * tauV / Sigma # Opacity = 2*tau/Sigma
+
+    # Temp interpolator function
+    ln_temp_midplane = np.log(T) # ln midplane temp.
+    temp_func_log = scipy.interpolate.CubicSpline(
+        np.log(R),
+        ln_temp_midplane,
+        extrapolate=False,
+    )
+    temp_func = lambda x, f=temp_func_log: np.exp(f(np.log(x)))
+
+    # Generate surface density (Sigma) interpolator function
+    ln_Sigma = np.log(Sigma)  # log of SI density
+    surf_dens_func_log = scipy.interpolate.CubicSpline(
+        np.log(R),
+        ln_Sigma,
+        extrapolate=False,
+    )
+
+    surf_dens_func = lambda x, f=surf_dens_func_log: np.exp(f(np.log(x)))
+
+    # Generate aspect ratio (h/r) interpolator function
+    ln_aspect_ratio = np.log(h/R)
+    aspect_func_log = scipy.interpolate.CubicSpline(
+        np.log(R),
+        ln_aspect_ratio,
+        extrapolate=False,
+    )
+    aspect_func = lambda x, f=aspect_func_log: np.exp(f(np.log(x)))
+
+    # Generate opacity (kappa) interpolator function
+    ln_opacity = np.log(kappa)
+    opacity_func_log = scipy.interpolate.CubicSpline(
+        np.log(R),
+        ln_opacity,
+        extrapolate=False,
+    )
+    opacity_func = lambda x, f=opacity_func_log: np.exp(f(np.log(x)))
+
+    # Generate sound speed (cs) interpolator function
+    ln_cs = np.log(cs)
+    sound_speed_func_log = scipy.interpolate.CubicSpline(
+        np.log(R),
+        ln_cs,
+        extrapolate=False,
+    )
+    sound_speed_func = lambda x, f=sound_speed_func_log: np.exp(f(np.log(x)))
+
+    # Generate disk density (rho) interpolator function
+    ln_rho = np.log(rho)
+    disk_density_func_log = scipy.interpolate.CubicSpline(
+        np.log(R),
+        ln_rho,
+        extrapolate=False,
+    )
+    disk_density_func = lambda x, f=disk_density_func_log: np.exp(f(np.log(x)))
+
+    # Generate disk pressure gradient (dP/dR) interpolator function
+    pressure_data = [R, np.gradient(P)/np.gradient(R)]
+
+    pgas = rho * T * BOTLZMANN_SI / AMU_SI
+    prad = tauV * STEFAN_BOLTZMANN_SI * Teff**4 / (2 * C_SI)
+    ptot = pgas + prad
+    disk_pressure_grad_func_interp = scipy.interpolate.CubicSpline(
+        R,
+        np.gradient(ptot)/np.gradient(R),
+        extrapolate=False,
+    )
+    disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(unit_conversion.si_from_r_g(
+        charles_model.smbh_mass * astropy_units.kg, x).value)
+
+    # Generate disk Omega interpolator function
+    ln_omega = np.log(omega)
+    disk_omega_func_log = scipy.interpolate.CubicSpline(
+        np.log(R),
+        ln_omega,
+        extrapolate=False
+    )
+    disk_omega_func = lambda x, f=disk_omega_func_log: np.exp(f(np.log(x)))
+
+    # Generate disk log10 Sigma function
+    log10_Sigma = np.log10(Sigma)
+    surf_dens_log10_func = scipy.interpolate.CubicSpline(
+        np.log10(R),
+        log10_Sigma,
+        extrapolate=False
+    )
+    surf_dens_log10_derivative_func = surf_dens_log10_func.derivative()
+
+    # Generate disk log10 temp function
+    log10_temp_midplane = np.log10(T)
+    temp_log10_func = scipy.interpolate.CubicSpline(
+        np.log10(R),
+        log10_temp_midplane,
+        extrapolate=False
+    )
+    temp_log10_derivative_func = temp_log10_func.derivative()
+
+    # Generate disk log10 midplane pressure func
+    log10_pressure = np.log10((cs ** 2) / rho)
+    pressure_log10_func = scipy.interpolate.CubicSpline(
+        np.log10(R),
+        log10_pressure,
+        extrapolate=False
+    )
+    pressure_log10_derivative_func = pressure_log10_func.derivative()
+    return surf_dens_func, aspect_func, opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, charles_model
 
 def construct_disk_interp(
     smbh_mass,
@@ -778,6 +994,15 @@ def construct_disk_interp(
         # instead, populate with pagn
         disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, disk_model_properties, bonus_structures = \
             construct_disk_pAGN(
+                disk_model_name,
+                smbh_mass,
+                disk_radius_outer,
+                disk_alpha_viscosity,
+                smbh_eddington_ratio,
+            )
+    elif disk_model_source == "charlemagne":
+        # instead, populate with CharlemAGNe
+        disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, disk_model_properties, charles_model = construct_disk_charlemagne(
                 disk_model_name,
                 smbh_mass,
                 disk_radius_outer,
