@@ -52,13 +52,14 @@ def disk_single(
         base : SettingsManager,
         stellar_mass,
         scale_nsc_mass,
+        inner_disk_scaling = "decay-time",
     ):
     # Create new settingsmanager
     new = SettingsManager()
     # Universal things for current scaling
     new.set_preprocessing("flag_use_scaling",       True)
     new.set_preprocessing("scale_smbh_mass",       "schramm-silverman")
-    new.set_preprocessing("scale_inner_disk",      "decay-time")
+    new.set_preprocessing("scale_inner_disk",      inner_disk_scaling)
     new.set_preprocessing("scale_trap",            "sqrt-smbh")
     new.set_preprocessing("scale_capture_radius",  "sqrt-smbh")
     new.set_preprocessing("scale_capture_time",    "hubble")
@@ -115,18 +116,22 @@ def make_disks(
         )
     
     ### Make disks ###
-    early_disks = {}
+    early_decay = {}
+    early_sqrt = {}
     late_disks = {}
     ## Make early disks ##
     for i, mstar in enumerate(mstar_arr):
-        new = disk_single(settings, mstar, "neumayer-early")
-        early_disks[i] = AGNDisk(new)
+        new_sqrt = disk_single(settings, mstar, "neumayer-early", "sqrt-smbh") #sqrt-smbh scaling for inner disk
+        new_decay = disk_single(settings, mstar, "neumayer-early", "decay-time") #decay-time scaling for inner disk
+
+        early_decay[i] = AGNDisk(new_decay)
+        early_sqrt[i] = AGNDisk(new_sqrt)
     ## Make late disks ##
     for i, mstar in enumerate(mstar_arr):
         new = disk_single(settings, mstar, "neumayer-late")
         late_disks[i] = AGNDisk(new)
 
-    return early_disks, late_disks
+    return early_decay, early_sqrt, late_disks
 
 
 ######## Plots ########
@@ -155,32 +160,34 @@ def plot_nsc_mass_vs_smbh_mass(early, late, fname_out, title=None):
     # Close plt
     plt.close()
 
-def plot_disk_radii(early, fname_out, title=None):
+def plot_disk_radii(early_decay, early_sqrt, late, fname_out, title=None):
     '''Plot smbh mass'''
     # Initialize plot
     fig, ax = plt.subplots(dpi=200)
     #fig, ax = plt.subplots(figsize=plotting.set_size(size),dpi=200)
     # Grab data
     early_smbh = np.asarray(
-        [early[key].smbh_mass for key in early]
+        [early_decay[key].smbh_mass for key in early_decay]
     )
     early_outer = np.asarray(
-        [early[key].disk_radius_outer for key in early]
+        [early_decay[key].disk_radius_outer for key in early_decay]
     )
-    early_inner = np.asarray(
-        [early[key].settings.inner_disk_outer_radius for key in early]
-    )
+
+    decay_inner = np.asarray([early_decay[key].settings.inner_disk_outer_radius for key in early_decay])
+    
+    sqrt_inner = np.asarray([early_sqrt[key].settings.inner_disk_outer_radius for key in early_sqrt])
+
     early_isco = np.asarray(
-        [early[key].settings.disk_inner_stable_circ_orb for key in early]
+        [early_decay[key].settings.disk_inner_stable_circ_orb for key in early_decay]
     )
     early_trap = np.asarray(
-        [early[key].settings.disk_radius_trap for key in early]
+        [early_decay[key].settings.disk_radius_trap for key in early_decay]
     )
     parsec = r_g_from_units(early_smbh, 1. * u.pc)
 
     # Fix isco
-    isco_mask = early_inner < early_isco
-    early_inner[isco_mask] = early_isco[isco_mask]
+    isco_mask = decay_inner < early_isco
+    decay_inner[isco_mask] = early_isco[isco_mask]
     # Plot things
     ax.scatter(
         np.log10(early_smbh),
@@ -189,8 +196,13 @@ def plot_disk_radii(early, fname_out, title=None):
     )
     ax.scatter(
         np.log10(early_smbh),
-        np.log10(early_inner),
-        label="inner_disk_outer_radius"
+        np.log10(decay_inner),
+        label="inner_disk_outer_radius (decay-time)"
+    )
+    ax.scatter(
+        np.log10(early_smbh),
+        np.log10(sqrt_inner),
+        label="inner_disk_outer_radius (sqrt-smbh)"
     )
     ax.scatter(
         np.log10(early_smbh),
@@ -238,7 +250,7 @@ def main(
     # Assert the directory makes sense
     assert os.path.isdir(output), f"No such directory {output}"
     # Generate all of the disks we will use to make the plot
-    early, late = make_disks(
+    early_decay, early_sqrt, late = make_disks(
         stellar_mass_min=stellar_mass_min,
         stellar_mass_max=stellar_mass_max,
         stellar_mass_bins=stellar_mass_bins,
@@ -249,14 +261,16 @@ def main(
     )
     # Plot nsc_mass
     plot_nsc_mass_vs_smbh_mass(
-        early,
+        early_decay,
         late,
         os.path.join(output, f"{label}_nsc_scaling.png"),
         title=label,
     )
     # Plot disk radii
     plot_disk_radii(
-        early,
+        early_decay,
+        early_sqrt,
+        late,
         os.path.join(output, f"{label}_radius_scaling.png"),
         title=label,
     )
