@@ -88,7 +88,7 @@ def disk_truncation(
         else:
             raise NotImplementedError(
                 "Disk truncation is not setup for disk source "
-                f"{disk_model_source}."
+                f"{settings.disk_model_source}."
             )
     else:
         raise ValueError(

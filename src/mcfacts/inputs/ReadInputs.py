@@ -160,6 +160,7 @@ import pagn.constants as pagn_ct
 # Local imports 
 import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
+from mcfacts.utilities.unit_conversion import si_from_r_g_optimized as si_from_r_g
 from mcfacts.utilities.constants import CONST_G_SI, C_SI, AMU_SI, M_SUN_KG
 from mcfacts.utilities.constants import BOLTZMANN_SI, STEFAN_BOLTZMANN_SI
 
@@ -889,8 +890,8 @@ def construct_disk_charlemagne(
         np.gradient(ptot,r_cyl),
         extrapolate=False,
     )
-    disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(unit_conversion.si_from_r_g(
-        charles_model.smbh_mass * astropy_units.kg, x).value)
+    disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(si_from_r_g(
+        charles_model.smbh_mass * M_SUN_KG, x).value)
 
     # Generate disk Omega interpolator function
     ln_omega = np.log(omega)
