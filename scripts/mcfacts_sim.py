@@ -200,7 +200,7 @@ def main():
                                          opts.disk_alpha_viscosity,
                                          opts.disk_bh_eddington_ratio,
                                          disk_radius_max_pc=opts.disk_radius_max_pc,
-                                         flag_use_pagn=opts.flag_use_pagn,
+                                         disk_model_source=opts.disk_model_source,
                                          verbose=opts.verbose
                                          )
 
@@ -870,6 +870,8 @@ def main():
                     opts.phenom_turb_std_dev,
                     opts.nsc_imf_bh_mode,
                     opts.torque_prescription,
+                    opts.disk_inner_stable_circ_orb,
+                    "blackholes_inner_disk",
                     random=rng
                 )
 
@@ -890,6 +892,8 @@ def main():
                     opts.phenom_turb_std_dev,
                     opts.disk_star_mass_min_init,
                     opts.torque_prescription,
+                    opts.disk_inner_stable_circ_orb,
+                    "blackholes_inner_disk",
                     random = rng
                 )
             # Make sure no zeros in orb_a. Get indices of orbs_a that are less than disk_inner_stable_circ_orb
@@ -2448,6 +2452,8 @@ def main():
                             opts.phenom_turb_std_dev,
                             opts.nsc_imf_bh_mode,
                             opts.torque_prescription,
+                            opts.disk_inner_stable_circ_orb,
+                            "blackholes_inner_disk",
                             random=rng
                         )
 

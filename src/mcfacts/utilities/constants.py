@@ -17,4 +17,7 @@ SEC_IN_YR = u.yr.to(u.s)
 M_SUN_KG = u.M_sun.to(u.kg)
 HUBBLE_TIME_SI = cosmo.age(0.).to(u.s)
 CONST_G_SI = const.G.si.value
-
+C_SI = 299792458.0
+BOLTZMANN_SI = const.k_B.value
+STEFAN_BOLTZMANN_SI = const.sigma_sb.value
+AMU_SI = const.u.value

@@ -12,6 +12,8 @@ from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.disk import AGNDisk
 from mcfacts.utilities import unit_conversion, peters
 from mcfacts.modules.gw import orbital_separation_evolve_reverse
+from mcfacts.utilities.constants import CONST_G_SI, C_SI, AMU_SI, M_SUN_KG
+from mcfacts.utilities.constants import BOLTZMANN_SI, STEFAN_BOLTZMANN_SI
 
 ######## Setup ########
 SMBH_MASS_FIDUCIAL = 1e8 # solar masses
@@ -46,22 +48,48 @@ def disk_truncation(
     # Paper III truncation
     if settings.disk_truncation.lower() == "opacity-equals-inner-disk":
         # Make sure pAGN is enabled
-        if not settings.flag_use_pagn:
-            raise NotImplementedError
-        # Load R and tauV
-        pagn_R = TempDisk.pagn_bonus_structures["R"]
-        pagn_tauV = TempDisk.pagn_bonus_structures["tauV"]
-        # Find where tauV is greater than its initial value
-        tau_drop_mask = (pagn_tauV < pagn_tauV[0]) & (np.log10(pagn_R) > 3)
-        # Find the drop index
-        tau_drop_index = np.argmax(tau_drop_mask)
-        # Find the drop radius
-        tau_drop_radius = float(pagn_R[tau_drop_index])
-        # Update settings
-        settings.set_preprocessing(
-            "disk_radius_outer",
-            tau_drop_radius,
-        )
+        if settings.disk_model_source == "pagn":
+            # Load R and tauV
+            pagn_R = TempDisk.pagn_bonus_structures["R"]
+            pagn_tauV = TempDisk.pagn_bonus_structures["tauV"]
+            # Find where tauV is greater than its initial value
+            tau_drop_mask = (pagn_tauV < pagn_tauV[0]) & (np.log10(pagn_R) > 3)
+            # Find the drop index
+            tau_drop_index = np.argmax(tau_drop_mask)
+            # Find the drop radius
+            tau_drop_radius = float(pagn_R[tau_drop_index])
+            # Update settings
+            settings.set_preprocessing(
+                "disk_radius_outer",
+                tau_drop_radius,
+            )
+        elif settings.disk_model_source == "charlemagne":
+            charles_model = TempDisk.charles_model
+            # Load R and tauV
+            r_cyl = charles_model["r_cyl"]
+            tauV = charles_model["tauV"]
+            # Get R_g
+            Rg = (charles_model.smbh_mass * M_SUN_KG * CONST_G_SI) / (C_SI * C_SI)
+            # Quick math
+            R = r_cyl / Rg
+            R_agn = R[-1]
+            # Find where tauV is greater than its initial value
+            tau_drop_mask = (tauV < tauV[0]) & (np.log10(R) > 3)
+            # Find the drop index
+            tau_drop_index = np.argmax(tau_drop_mask)
+            # Find the drop radius
+            tau_drop_radius = float(R[tau_drop_index])
+            # Update settings
+            settings.set_preprocessing(
+                "disk_radius_outer",
+                tau_drop_radius,
+            )
+
+        else:
+            raise NotImplementedError(
+                "Disk truncation is not setup for disk source "
+                f"{settings.disk_model_source}."
+            )
     else:
         raise ValueError(
             f"disk_truncation set to {settings.disk_truncation}; "

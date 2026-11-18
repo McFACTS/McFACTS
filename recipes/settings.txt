@@ -21,7 +21,7 @@ capture_time_yr                    100000.0                                float
 galaxy_num                         100                                     int  
 seed                               223849053863469657747974663531730220530 int  
 smbh_mass                          100000000.0                             float
-flag_use_pagn                      True                                    bool 
+disk_model_source                  pagn                                    str
 disk_model_name                    sirko_goodman                           str  
 disk_radius_trap                   700.0                                   float
 disk_radius_outer                  50000.0                                 float

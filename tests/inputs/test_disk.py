@@ -319,7 +319,7 @@ def test_from_settings():
     settings.disk_model_name = "sirko_goodman"
     settings.smbh_mass = 1e8
     settings.disk_radius_outer = 5e4
-    settings.flag_use_pagn = False
+    settings.disk_model_source = "data"
     cached_disk = AGNDisk(settings)
     assert cached_disk.smbh_mass == settings.smbh_mass
     assert cached_disk.disk_radius_outer == settings.disk_radius_outer
@@ -335,12 +335,12 @@ def test_from_settings():
     settings.disk_model_name = "sirko_goodman"
     settings.smbh_mass = 1e8
     settings.disk_radius_outer = 5e4
-    settings.flag_use_pagn = True
+    settings.disk_model_source = "pagn"
     pagn_disk = AGNDisk(settings)
     model = pagn_disk.pagn_model
     bonus = pagn_disk.pagn_bonus_structures
     # Test 4: 1 pc
-    settings.flag_use_pagn = False
+    settings.disk_model_source = "data"
     settings.disk_radius_max_pc = -1.0
     cached_disk = AGNDisk(settings)
     parsec = cached_disk.disk_radius_outer

@@ -55,7 +55,7 @@ def test_max_pc():
     live.set_preprocessing("flag_use_scaling",      False)
     live.set_preprocessing("disk_truncation",       "none")
     live.set_preprocessing("disk_radius_max_pc",    0.)
-    live.set_preprocessing("flag_use_pagn",         False)
+    live.set_preprocessing("disk_model_source",     "data")
     # Construct a disk
     untruncated_disk = AGNDisk(live)
     # Get the outer disk radius
@@ -100,10 +100,42 @@ def test_disk_truncation():
     live.set_preprocessing("disk_truncation",       "opacity-equals-inner-disk")
     live.set_preprocessing("disk_radius_max_pc",    0.)
     live.set_preprocessing("disk_model_name",       "sirko_goodman")
-    live.set_preprocessing("smbh_eddington_ratio",             1.0)
-    live.set_preprocessing("smbh_mass", 1.e8)
+    live.set_preprocessing("smbh_eddington_ratio",  1.0)
+    live.set_preprocessing("smbh_mass",             1.e8)
     live.set_preprocessing("disk_radius_outer",     radius_before)
-    live.set_preprocessing("flag_use_pagn",         True)
+    live.set_preprocessing("disk_model_source",     "pagn")
+    # Run the truncator
+    mydisk = disk_truncation(live, return_disk=True)
+    assert live.disk_radius_outer < radius_before
+    # TODO note: I have yet to test making the disk radius smaller
+    # This is why AGNDisk is not returned by the setup_scaling function
+    assert mydisk.disk_radius_outer == radius_before
+    # Test priority
+    live.set_preprocessing(
+        "disk_radius_max_pc",
+        0.5 * mydisk.pc_dist(mydisk.smbh_mass, mydisk.disk_radius_outer),
+    )
+    truncated_disk = AGNDisk(live)
+    assert np.isclose(
+        0.5 * mydisk.disk_radius_outer,
+        truncated_disk.disk_radius_outer,
+    )
+
+def test_charlemagne_truncation():
+    """Test the opacity disk truncation option"""
+    # Define some settings
+    live = SettingsManager()
+    # before
+    radius_before = 5.e4
+    # Turn off truncation and max pc
+    live.set_preprocessing("flag_use_scaling",      False)
+    live.set_preprocessing("disk_truncation",       "opacity-equals-inner-disk")
+    live.set_preprocessing("disk_radius_max_pc",    0.)
+    live.set_preprocessing("disk_model_name",       "sirko_goodman")
+    live.set_preprocessing("smbh_eddington_ratio",  1.0)
+    live.set_preprocessing("smbh_mass",             1.e8)
+    live.set_preprocessing("disk_radius_outer",     radius_before)
+    live.set_preprocessing("disk_model_source",     "charlemagne")
     # Run the truncator
     mydisk = disk_truncation(live, return_disk=True)
     assert live.disk_radius_outer < radius_before

@@ -74,7 +74,7 @@ The second entry goes in the :py:obj:`mcfacts.inputs.ReadInputs.INPUT_TYPES` dic
     # Dictionary of types
     INPUT_TYPES = {
         "disk_model_name"               : str,
-        "flag_use_pagn"                 : int,
+        "disk_model_source"             : str,
         "flag_add_stars"                : int,
         ...
         }
