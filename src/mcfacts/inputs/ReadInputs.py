@@ -890,8 +890,7 @@ def construct_disk_charlemagne(
         np.gradient(ptot,r_cyl),
         extrapolate=False,
     )
-    disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(si_from_r_g(
-        charles_model.smbh_mass, x).value)
+    disk_pressure_grad_func = lambda x, f=disk_pressure_grad_func_interp: f(x)
 
     # Generate disk Omega interpolator function
     ln_omega = np.log(omega)
