@@ -20,6 +20,7 @@ from mcfacts.inputs.ReadInputs import ReadInputs_ini
 from mcfacts.inputs.ReadInputs import load_disk_arrays
 from mcfacts.inputs.ReadInputs import construct_disk_direct
 from mcfacts.inputs.ReadInputs import construct_disk_pAGN
+from mcfacts.inputs.ReadInputs import construct_disk_charlemagne
 from mcfacts.inputs.ReadInputs import construct_disk_interp
 
 ######## Setup ########
@@ -33,11 +34,11 @@ DISK_MODEL_NAMES = [
 #SMBH_MASSES = np.asarray([1e6, 1e7, 1e8, 1e9,])
 SMBH_MASSES = np.asarray([1e8,])
 # disk_alpha_viscosities to try
-DISK_ALPHA_VISCOSITIES = np.asarray([0.1, 0.5])
+DISK_ALPHA_VISCOSITIES = np.asarray([0.01])
 # disk_bh_eddington_ratios to try
 DISK_BH_EDDINGTON_RATIOS = np.asarray([0.5,0.1])
 # pAGN flag
-FLAG_USE_PAGN = np.asarray([True, False])
+DISK_MODEL_SOURCE = np.asarray(["data", "pagn", "charlemagne"])
 
 ######## Functions ########
 
@@ -318,6 +319,53 @@ def test_construct_disk_pAGN(verbose=True):
     if verbose:
         print("  pass!")
 
+def test_construct_disk_charlemagne(verbose=True):
+    """test mcfacts.inputs.ReadInputs.construct_disk_charlemagne
+
+    Parameters
+    ----------
+    verbose : bool
+        Verbose output
+    """
+    if verbose:
+        print("Testing construct_disk_charlemagne")
+    # Check that the data folder exists
+    data_folder = impresources.files(mcfacts_input_data)
+    assert isdir(data_folder), "Cannot find mcfacts.inputs.data folder"
+    # Find the default inifile
+    fname_default_ini = data_folder / "mcfacts_default.ini"
+    assert isfile(fname_default_ini), "Cannot find %s"%(fname_default_ini)
+    # Get input variables
+    input_variables = ReadInputs_ini(fname_default_ini, verbose=verbose)
+    # We only want disk_radius_outer
+    disk_radius_outer = input_variables["disk_radius_outer"]
+    # Construct productspace
+    test_product_space = named_product(
+        disk_model_name         = DISK_MODEL_NAMES,
+        smbh_mass               = SMBH_MASSES,
+        disk_alpha_viscosity    = DISK_ALPHA_VISCOSITIES,
+        disk_bh_eddington_ratio = DISK_BH_EDDINGTON_RATIOS,
+    )
+    # Loop tests
+    for test_config in test_product_space:
+        # Run pAGN
+        disk_surf_dens_func, disk_aspect_ratio_func, \
+                disk_opacity_func, sound_speed_func, \
+                disk_density_func, disk_pressure_grad_func, \
+                disk_omega_func, disk_surf_dens_func_log, \
+                temp_func, surf_dens_log10_derivative_func, \
+                temp_log10_derivative_func, pressure_log10_derivative_func, \
+                charles_model = \
+            construct_disk_charlemagne(
+                test_config.disk_model_name,
+                test_config.smbh_mass,
+                disk_radius_outer,
+                test_config.disk_alpha_viscosity,
+                test_config.disk_bh_eddington_ratio,
+            )
+    if verbose:
+        print("  pass!")
+
 def test_construct_disk_interp(
     verbose=True,
     ):
@@ -347,7 +395,7 @@ def test_construct_disk_interp(
     # Construct productspace
     test_product_space = named_product(
         disk_model_name = DISK_MODEL_NAMES,
-        flag_use_pagn   = FLAG_USE_PAGN,
+        disk_model_source  = DISK_MODEL_SOURCE,
     )
     # Loop tests
     for test_config in test_product_space:
@@ -365,7 +413,7 @@ def test_construct_disk_interp(
                 disk_alpha_viscosity,
                 disk_bh_eddington_ratio,
                 disk_radius_max_pc=disk_radius_max_pc,
-                flag_use_pagn=test_config.flag_use_pagn,
+                disk_model_source=test_config.disk_model_source,
                 verbose=verbose,
             )
     if verbose:
@@ -378,6 +426,7 @@ def main():
     test_load_disk_arrays()
     test_construct_disk_direct()
     test_construct_disk_pAGN()
+    test_construct_disk_charlemagne()
     test_construct_disk_interp()
 
 ######## Execution ########

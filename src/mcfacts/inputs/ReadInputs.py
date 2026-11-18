@@ -160,7 +160,7 @@ import pagn.constants as pagn_ct
 # Local imports 
 import mcfacts.external.DiskModelsPAGN as dm_pagn
 from mcfacts.inputs import data as mcfacts_input_data
-from mcfacts.utilities.constants import CONST_G_SI, C_SI, AMU_SI
+from mcfacts.utilities.constants import CONST_G_SI, C_SI, AMU_SI, M_SUN_KG
 from mcfacts.utilities.constants import BOLTZMANN_SI, STEFAN_BOLTZMANN_SI
 
 #: Dictionary of types for input parameters
@@ -999,7 +999,7 @@ def construct_disk_interp(
             )
     elif disk_model_source == "charlemagne":
         # instead, populate with CharlemAGNe
-        disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, disk_model_properties, charles_model = construct_disk_charlemagne(
+        disk_surf_dens_func, disk_aspect_ratio_func, disk_opacity_func, sound_speed_func, disk_density_func, disk_pressure_grad_func, disk_omega_func, disk_surf_dens_func_log, temp_func, surf_dens_log10_derivative_func, temp_log10_derivative_func, pressure_log10_derivative_func, charles_model = construct_disk_charlemagne(
                 disk_model_name,
                 smbh_mass,
                 disk_radius_outer,
