@@ -1386,7 +1386,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.phenom_turb_std_dev,
                 sm.nsc_imf_bh_mode,
                 sm.torque_prescription,
-                sm.inner_disk_outer_radius,
+                sm.disk_inner_stable_circ_orb,
                 sm.bh_inner_disk_array_name,
                 random_generator
             )
@@ -1573,7 +1573,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                     sm.phenom_turb_std_dev,
                     sm.nsc_imf_bh_mode,
                     sm.torque_prescription,
-                    sm.inner_disk_outer_radius,
+                    sm.disk_inner_stable_circ_orb,
                     sm.bh_inner_disk_array_name,
                     random_generator
                 )
