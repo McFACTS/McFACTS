@@ -45,6 +45,8 @@ def arg():
         type=str, help="Output directory")
     parser.add_argument("--label", default="disk", type=str,
         help="Base of fname for plots")
+    parser.add_argument("--inner-disk-scaling", default="decay-time", type=str,
+        help="How to scale the inner disk radius. Options: decay-time, sqrt-smbh")
     opts = parser.parse_args()
     return opts
 
@@ -160,7 +162,7 @@ def plot_nsc_mass_vs_smbh_mass(early, late, fname_out, title=None):
     # Close plt
     plt.close()
 
-def plot_disk_radii(early_decay, early_sqrt, late, fname_out, title=None):
+def plot_disk_radii(early_decay, early_sqrt, late, fname_out, inner_disk_scaling="decay-time", title=None):
     '''Plot smbh mass'''
     # Initialize plot
     fig, ax = plt.subplots(dpi=200)
@@ -173,10 +175,13 @@ def plot_disk_radii(early_decay, early_sqrt, late, fname_out, title=None):
         [early_decay[key].disk_radius_outer for key in early_decay]
     )
 
-    decay_inner = np.asarray([early_decay[key].settings.inner_disk_outer_radius for key in early_decay])
-    
-    sqrt_inner = np.asarray([early_sqrt[key].settings.inner_disk_outer_radius for key in early_sqrt])
-
+    if inner_disk_scaling == "decay-time":
+        inner_radius = np.asarray([early_decay[key].settings.inner_disk_outer_radius for key in early_decay])
+        inner_disk_label = "inner_disk_outer_radius (decay-time)"
+    elif inner_disk_scaling == "sqrt-smbh":
+        inner_radius = np.asarray([early_sqrt[key].settings.inner_disk_outer_radius for key in early_sqrt])
+        inner_disk_label = "inner_disk_outer_radius (sqrt-smbh)"
+        
     early_isco = np.asarray(
         [early_decay[key].settings.disk_inner_stable_circ_orb for key in early_decay]
     )
@@ -186,8 +191,8 @@ def plot_disk_radii(early_decay, early_sqrt, late, fname_out, title=None):
     parsec = r_g_from_units(early_smbh, 1. * u.pc)
 
     # Fix isco
-    isco_mask = decay_inner < early_isco
-    decay_inner[isco_mask] = early_isco[isco_mask]
+    isco_mask = inner_radius < early_isco
+    inner_radius[isco_mask] = early_isco[isco_mask]
     # Plot things
     ax.scatter(
         np.log10(early_smbh),
@@ -196,13 +201,8 @@ def plot_disk_radii(early_decay, early_sqrt, late, fname_out, title=None):
     )
     ax.scatter(
         np.log10(early_smbh),
-        np.log10(decay_inner),
-        label="inner_disk_outer_radius (decay-time)"
-    )
-    ax.scatter(
-        np.log10(early_smbh),
-        np.log10(sqrt_inner),
-        label="inner_disk_outer_radius (sqrt-smbh)"
+        np.log10(inner_radius),
+        label=inner_disk_label
     )
     ax.scatter(
         np.log10(early_smbh),
@@ -246,6 +246,7 @@ def main(
         disk_model_name = "sirko_goodman",
         output = "./",
         label = "disk",
+        inner_disk_scaling = "decay-time"
     ):
     # Assert the directory makes sense
     assert os.path.isdir(output), f"No such directory {output}"
@@ -272,6 +273,7 @@ def main(
         early_sqrt,
         late,
         os.path.join(output, f"{label}_radius_scaling.png"),
+        inner_disk_scaling=inner_disk_scaling,
         title=label,
     )
 
