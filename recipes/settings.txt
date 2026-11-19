@@ -44,7 +44,7 @@ phenom_turb_std_dev                1.0                                     float
 mass_pile_up                       35.0                                    float
 initial_binary_orbital_ecc         0.01                                    float
 fraction_bin_retro                 0                                       int  
-flag_use_surrogate                 False                                   bool 
+flag_use_surrogate                 -1                                      int
 mean_harden_energy_delta           0.9                                     float
 var_harden_energy_delta            0.025                                   float
 delta_energy_strong_mu             0.1                                     float
