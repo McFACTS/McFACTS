@@ -870,6 +870,7 @@ def main():
                     opts.phenom_turb_std_dev,
                     opts.nsc_imf_bh_mode,
                     opts.torque_prescription,
+                    opts.disk_inner_stable_circ_orb,
                     random=rng
                 )
 
@@ -890,6 +891,7 @@ def main():
                     opts.phenom_turb_std_dev,
                     opts.disk_star_mass_min_init,
                     opts.torque_prescription,
+                    opts.disk_inner_stable_circ_orb,
                     random = rng
                 )
             # Make sure no zeros in orb_a. Get indices of orbs_a that are less than disk_inner_stable_circ_orb
@@ -2448,6 +2450,7 @@ def main():
                             opts.phenom_turb_std_dev,
                             opts.nsc_imf_bh_mode,
                             opts.torque_prescription,
+                            opts.disk_inner_stable_circ_orb,
                             random=rng
                         )
 
