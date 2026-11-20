@@ -1252,20 +1252,25 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
             surrogate
         )
     elif flag_use_surrogate == -1:
-        # Call Davide's code
-        bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = merge_blackholes_precession(
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_sep"),
-            blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_ecc"),
-            smbh_mass,
-            r_g_in_meters,
-            random
-        )
+        if blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1").size > 0:
+            # print("NOT Empty!!")
+            # Call Davide's code
+            bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = merge_blackholes_precession(
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_1"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_sep"),
+                blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_ecc"),
+                smbh_mass,
+                r_g_in_meters,
+                random
+            )
+        else:
+            # print("Empty!!")
+            bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), 
     else:
         raise ValueError(f"Invalid option: flag_use_surrogate = {flag_use_surrogate}")
 
@@ -1454,22 +1459,28 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                     surrogate
                 ))
         elif sm.flag_use_surrogate == -1:
-            # Call Davide's code
-            (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
-             bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) =\
-                merge_blackholes_precession(
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_sep"),
-                    blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_ecc"),
-                    sm.smbh_mass,
-                    sm.r_g_in_meters,
-                    random_generator
-                )
+
+            if blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass").size > 0:
+                # print("NOT Empty!!")
+                # Call Davide's code
+                (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
+                 bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) =\
+                    merge_blackholes_precession(
+                        blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass"),
+                        blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_2"),
+                        blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin"),
+                        blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_2"),
+                        blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle"),
+                        blackholes_binary.at_id_num(bh_binary_id_num_merger, "spin_angle_2"),
+                        blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_sep"),
+                        blackholes_binary.at_id_num(bh_binary_id_num_merger, "bin_ecc"),
+                        sm.smbh_mass,
+                        sm.r_g_in_meters,
+                        random_generator
+                    )
+            else:
+                # print("Empty!!")
+                bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz = np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), 
         else:
             raise ValueError(f"Invalid option: flag_use_surrogate = {sm.flag_use_surrogate}")
 
