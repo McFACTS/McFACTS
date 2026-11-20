@@ -650,8 +650,8 @@ class HDF5SnapshotHandler(SnapshotHandler):
             key_addr = f"{addr}/{key}"
             # Make it an array
             value = np.asarray(value)
-            # Check if compressible
-            if nsystems > MIN_COMPRESS:
+            # Check if compressible (HDF5 can't compress scalar datasets)
+            if value.ndim > 0 and value.size > MIN_COMPRESS:
                 conn.file.create_dataset(
                     key_addr,
                     value.shape,
