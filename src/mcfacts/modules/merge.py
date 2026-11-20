@@ -1253,7 +1253,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
         )
     elif flag_use_surrogate == -1:
         if blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1").size > 0:
-            # print("NOT Empty!!")
             # Call Davide's code
             bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = merge_blackholes_precession(
                 blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass_1"),
@@ -1269,7 +1268,6 @@ def merge_blackholes(blackholes_binary, blackholes_pro, blackholes_merged, bh_bi
                 random
             )
         else:
-            # print("Empty!!")
             bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20Hz, bh_mass_2_20Hz, bh_spin_1_20Hz, bh_spin_2_20Hz = np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), 
     else:
         raise ValueError(f"Invalid option: flag_use_surrogate = {flag_use_surrogate}")
@@ -1461,7 +1459,6 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
         elif sm.flag_use_surrogate == -1:
 
             if blackholes_binary.at_id_num(bh_binary_id_num_merger, "mass").size > 0:
-                # print("NOT Empty!!")
                 # Call Davide's code
                 (bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick,
                  bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz) =\
@@ -1479,7 +1476,6 @@ class ProcessBinaryBlackHoleMergers(TimelineActor):
                         random_generator
                     )
             else:
-                # print("Empty!!")
                 bh_mass_merged, bh_spin_merged, bh_spin_angle_merged, bh_v_kick, bh_mass_1_20_hz, bh_mass_2_20_hz, bh_spin_1_20_hz, bh_spin_2_20_hz = np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64), 
         else:
             raise ValueError(f"Invalid option: flag_use_surrogate = {sm.flag_use_surrogate}")
