@@ -461,7 +461,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
                              disk_feedback_ratio,
                              disk_radius_trap, disk_radius_anti_trap, disk_radius_outer, timestep_duration_yr,
                              flag_phenom_turb, phenom_turb_centroid, phenom_turb_std_dev, bh_min_mass,
-                             torque_prescription, disk_inner_stable_circ_orb, bh_inner_disk_array_name,random):
+                             torque_prescription, disk_inner_stable_circ_orb,random):
     """Calculates how far an object migrates in an AGN gas disk in a single timestep given a torque migration timescale
     calculated elsewhere (e.g. torque_migration_timescale)
     Returns their new locations after migration over one timestep.
@@ -505,8 +505,6 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         Generator used to generate random numbers
     disk_inner_stable_circ_orb : float
         inner stable orbit (~6R_g)
-    bh_inner_disk_array_name : numpy.ndarray
-        Black holes that have merged with the SMBH
     Returns
     -------
     orbs_a : float array
@@ -1384,8 +1382,7 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.phenom_turb_std_dev,
                 sm.nsc_imf_bh_mode,
                 sm.torque_prescription,
-                sm.inner_disk_outer_radius,
-                sm.bh_inner_disk_array_name,
+                sm.disk_inner_stable_circ_orb,
                 random_generator
             )
 
@@ -1571,8 +1568,7 @@ class BinaryBlackHoleMigration(TimelineActor):
                     sm.phenom_turb_std_dev,
                     sm.nsc_imf_bh_mode,
                     sm.torque_prescription,
-                    sm.inner_disk_outer_radius,
-                    sm.bh_inner_disk_array_name,
+                    sm.disk_inner_stable_circ_orb,
                     random_generator
                 )
 
