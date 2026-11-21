@@ -9,7 +9,6 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
 from sklearn.linear_model import LinearRegression
 from sklearn.base import BaseEstimator, RegressorMixin
-from uncertainties import ufloat
 
 
 class GPRFitter(RegressorMixin, BaseEstimator):
@@ -17,6 +16,7 @@ class GPRFitter(RegressorMixin, BaseEstimator):
         return
 
     def __call__(self, xVals, return_std=False, raise_warning=True):
+        from uncertainties import ufloat
         if raise_warning:
             if np.any(xVals < self.minVals) or np.any(xVals > self.maxVals):
                 warnings.warn(

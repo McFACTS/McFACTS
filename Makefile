@@ -73,6 +73,10 @@ version: clean
 install: clean version
 	python -m pip install --editable .
 
+docs: clean version
+	mkdir -p html
+	pdoc -d numpy -o ./html mcfacts
+
 setup: clean version
 	source ~/.bash_profile && \
 	conda activate base && \
@@ -365,6 +369,7 @@ clean:
 	rm -rf ${wd}/dist
 	rm -rf ${wd}/test-build
 	rm -rf ${wd}/*_scaling.png
+	rm -rf ${wd}/html/*
 
 clean_win:
 	for /d %%i in (.\run*) do rd /s /q "%%i"

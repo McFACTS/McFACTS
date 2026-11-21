@@ -1,14 +1,6 @@
-import juliacall
 import numpy as np
-import quaternionic
-from sxs import WaveformModes
-from sxs import m_sun_in_seconds
 
 import mcfacts.external.sxs.fit_modeler
-
-PostNewtonian = juliacall.newmodule("PN")
-PostNewtonian.seval("using PostNewtonian")
-
 
 def log_q_spin_hat_spin_a(q, spin_1, spin_2):
     """
@@ -257,6 +249,7 @@ def compute_frame_rotation(h, idx):
     frame_rotation : quaternionic.array
         rotation to the coorbital frame at h.t[idx].
     """
+    import quaternionic
     # maximal emission reset
     omega = h.angular_velocity[idx]
     omega_as_q = quaternionic.array.from_vector_part(omega).normalized
@@ -319,6 +312,11 @@ def evolve_binary_w_PN(
     frame_rotation : quaternionic.array
         rotation to the coorbital frame 100M before merger
     """
+    import juliacall
+    from sxs import WaveformModes
+    from sxs import m_sun_in_seconds
+    PostNewtonian = juliacall.newmodule("PN")
+    PostNewtonian.seval("using PostNewtonian")
     if verbose:
         print("Evolving binary to merger using PN equations...")
 
@@ -490,6 +488,7 @@ def evolve_binary(
     spin_2_20Hz : float
         spin of the lighter object at the time when the (2,2) mode frequency is 20Hz
     """
+    import quaternionic
     # Map to the frame expected by PN;
     # see https://moble.github.io/PostNewtonian.jl/dev/internals/fundamental_variables/#PostNewtonian.FundamentalVariables.R,
     # i.e., Newtonian orbital angular momentum in the positive z-direction

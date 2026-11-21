@@ -88,3 +88,4 @@ docs/source/_autosummary
 /old_runs/
 /src/mcfacts/inputs/data/surrogate.joblib
 /mcfacts.prof
+html
