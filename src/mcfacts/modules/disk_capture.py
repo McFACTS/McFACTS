@@ -68,10 +68,10 @@ def orb_inc_damping(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_
 
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
-    smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
+    smbh_mass = smbh_mass * u.Msun.to(u.kg)  # kg
     semi_maj_axis = disk_bh_retro_orbs_a * const.G * smbh_mass \
                     / (const.c ** 2)  # m
-    retro_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
+    retro_mass = disk_bh_retro_masses * u.Msun.to(u.kg)  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
@@ -556,10 +556,10 @@ def tau_inc_dyn(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses, disk_bh_r
     """
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
-    SI_smbh_mass = smbh_mass * u.Msun.to("kg")  # kg
+    SI_smbh_mass = smbh_mass * u.Msun.to(u.kg)  # kg
     # SI_semi_maj_axis = mcfacts.utilities.unit_conversion.si_from_r_g(smbh_mass, disk_bh_retro_orbs_a, r_g_defined=r_g_in_meters).to("m").value
     SI_semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, disk_bh_retro_orbs_a).value
-    SI_orbiter_mass = disk_bh_retro_masses * u.Msun.to("kg")  # kg
+    SI_orbiter_mass = disk_bh_retro_masses * u.Msun.to(u.kg)  # kg
     omega = disk_bh_retro_arg_periapse  # radians
     ecc = disk_bh_retro_orbs_ecc  # unitless
     inc = disk_bh_retro_orbs_inc  # radians
@@ -639,10 +639,10 @@ def tau_semi_lat(smbh_mass, retrograde_bh_locations, retrograde_bh_masses, retro
     semi_maj_axis = unit_conversion.si_from_r_g_optimized(smbh_mass, retrograde_bh_locations).value
     # throw most things into SI units (that's right, ENGINEER UNITS!)
     #    or more locally convenient variable names
-    smbh_mass_si = smbh_mass * u.Msun.to("kg")  # kg
+    smbh_mass_si = smbh_mass * u.Msun.to(u.kg)  # kg
     if smbh_mass_si < 1.e30 or smbh_mass_si > 1.e60:
         raise RuntimeError(f"Some units are not right.")
-    retro_mass = retrograde_bh_masses * u.Msun.to("kg")  # kg
+    retro_mass = retrograde_bh_masses * u.Msun.to(u.kg)  # kg
     omega = retro_arg_periapse  # radians
     ecc = retrograde_bh_orb_ecc  # unitless
     inc = retrograde_bh_orb_inc  # radians
