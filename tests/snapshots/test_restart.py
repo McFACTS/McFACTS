@@ -178,7 +178,7 @@ def test_run_galaxy():
 
         # Get an unrelated TxtSnapshotHandler
         txt_loader = TxtSnapshotHandler(settings = \
-            {key: value for key, value in live.settings_finals.items()})
+            {key: value for key, value in live.flat_settings.items()})
         # Load some AGN objects
         txt_cabinet = txt_loader.load_cabinet(
             live.output_dir,
@@ -293,7 +293,7 @@ def test_run_galaxy():
         # Get an unrelated HDF5SnapshotHandler
         hdf_loader = HDF5SnapshotHandler(
             settings = SettingsManager(
-                {key: value for key, value in live.settings_finals.items()}
+                {key: value for key, value in live.flat_settings.items()}
             )
         )
         # Load some AGN objects
@@ -530,7 +530,7 @@ def test_compression():
         # Get an unrelated HDF5SnapshotHandler
         hdf_loader = HDF5SnapshotHandler(
             settings = SettingsManager(
-                {key: value for key, value in live.settings_finals.items()}
+                {key: value for key, value in live.flat_settings.items()}
             )
         )
         # Load some AGN objects

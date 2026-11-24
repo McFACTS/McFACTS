@@ -64,7 +64,7 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
     static_settings = [prop.name for prop in settings_manager.DEFAULT_SETTINGS if isinstance(prop, StaticSettingsProperty)]
 
     # Parse through the loaded settings and create the corresponding arguments with the loaded settings as defaults
-    for key, value in loaded_settings.settings_finals.items():
+    for key, value in loaded_settings.flat_settings.items():
         if key in static_settings:
             continue
 
@@ -81,20 +81,12 @@ def seed_settings_args(sub_parser: argparse.ArgumentParser):
 
         alias = f"-{str(key)[0]}"
 
-        if type(value) is bool:
-            if alias in options:
-                sub_parser.add_argument(f"--{key}",
-                                    default=value, type=str2bool, metavar=key, dest=key)
-            else:
-                sub_parser.add_argument(alias, f"--{key}",
-                                    default=value, type=str2bool, metavar=key, dest=key)
-        else:
-            if alias in options:
-                sub_parser.add_argument(f"--{key}",
-                                    default=value, type=type(value), metavar=key, dest=key)
-            else:
-                sub_parser.add_argument(alias, f"--{key}",
-                                    default=value, type=type(value), metavar=key, dest=key)
+        flags = [f"--{key}", *(f"--{a}" for a, k in loaded_settings.flat_aliases.items() if k == key)]
+        if alias not in options:
+            flags.insert(0, alias)
+
+        sub_parser.add_argument(*flags, default=value, metavar=key, dest=key,
+                                type=str2bool if type(value) is bool else type(value))
 
 
 def run_simulation(settings, profiling=False, filename=None):
