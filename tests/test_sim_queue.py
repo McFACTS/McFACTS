@@ -31,7 +31,7 @@ def queue_worthy_settings():
     settings.set_preprocessing("hdf5_snapshot_mode",        "compound")
     settings.set_preprocessing("hdf5_snapshot_compression", "none")
     # This just makes testing it faster. :P
-    settings.set_preprocessing("flag_use_pagn",             True)
+    settings.set_preprocessing("disk_model_source",         "charlemagne")
     settings.set_preprocessing("galaxy_num",                N_GAL)
     settings.set_preprocessing("seed",                      9001)
     # Unnecessary, but helpful
