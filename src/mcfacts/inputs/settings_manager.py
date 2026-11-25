@@ -138,7 +138,7 @@ DEFAULT_SETTINGS: list[SettingsProperty | StaticSettingsProperty] = [
         StaticSettingsProperty("agn_redshift", "sim", 0.1, float),
 
         # Disk Parameters
-        SettingsProperty("disk_model_source", "disk", "pagn", str),
+        SettingsProperty("disk_model_source", "disk", "charlemagne", str),
         SettingsProperty("disk_model_name", "disk", "sirko_goodman", str),
         SettingsProperty("disk_radius_trap", "disk", 700.0, float),
         SettingsProperty("disk_radius_outer", "disk", 50000.0, float),
