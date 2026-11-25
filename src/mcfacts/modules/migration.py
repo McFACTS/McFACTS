@@ -1389,10 +1389,6 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.nsc_imf_bh_mode,
                 sm.torque_prescription,
                 sm.disk_inner_stable_circ_orb,
-<<<<<<< HEAD
-                sm.bh_inner_disk_array_name,
-=======
->>>>>>> main-dev
                 random_generator
             )
 
@@ -1579,10 +1575,6 @@ class BinaryBlackHoleMigration(TimelineActor):
                     sm.nsc_imf_bh_mode,
                     sm.torque_prescription,
                     sm.disk_inner_stable_circ_orb,
-<<<<<<< HEAD
-                    sm.bh_inner_disk_array_name,
-=======
->>>>>>> main-dev
                     random_generator
                 )
 
