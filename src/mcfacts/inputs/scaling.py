@@ -57,15 +57,14 @@ def disk_truncation(
             # Find the drop index
             tau_drop_index = np.argmax(tau_drop_mask)
             # Check no-op
-            if tau_drop_index == 0:
-                return
-            # Find the drop radius
-            tau_drop_radius = float(pagn_R[tau_drop_index])
-            # Update settings
-            settings.set_preprocessing(
-                "disk_radius_outer",
-                tau_drop_radius,
-            )
+            if tau_drop_index != 0:
+                # Find the drop radius
+                tau_drop_radius = float(pagn_R[tau_drop_index])
+                # Update settings
+                settings.set_preprocessing(
+                    "disk_radius_outer",
+                    tau_drop_radius,
+                )
         elif settings.disk_model_source == "charlemagne":
             charles_model = TempDisk.charles_model
             # Load R and tauV
@@ -81,15 +80,14 @@ def disk_truncation(
             # Find the drop index
             tau_drop_index = np.argmax(tau_drop_mask)
             # Check no-op
-            if tau_drop_index == 0:
-                return
-            # Find the drop radius
-            tau_drop_radius = float(R[tau_drop_index])
-            # Update settings
-            settings.set_preprocessing(
-                "disk_radius_outer",
-                tau_drop_radius,
-            )
+            if tau_drop_index != 0:
+                # Find the drop radius
+                tau_drop_radius = float(R[tau_drop_index])
+                # Update settings
+                settings.set_preprocessing(
+                    "disk_radius_outer",
+                    tau_drop_radius,
+                )
 
         else:
             raise NotImplementedError(
