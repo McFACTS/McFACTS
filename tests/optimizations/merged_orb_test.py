@@ -41,7 +41,7 @@ disk_surface_density, disk_aspect_ratio, disk_opacity, disk_sound_speed, disk_de
                                  0.01,
                                  1.0, 
                                  disk_radius_max_pc=0.0,
-                                 flag_use_pagn=0,
+                                 disk_model_source="data",
                                  verbose=False
                                  )
 

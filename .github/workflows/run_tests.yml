@@ -41,6 +41,7 @@ jobs:
         run: |
           conda activate mcfacts-dev
           conda install pytest
+          conda install hdf5
           python -m pip install --editable .
 
       - name: Run Pytest

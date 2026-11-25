@@ -9,6 +9,8 @@ import numpy as np
 from astropy import units as u
 from astropy import constants as ct
 import pagn.constants as pagn_ct
+#### Vera ####
+from charlemagne.disk import SG03, TQM05
 #### Local ####
 from mcfacts.objects.cache import readonly_cached_property
 from mcfacts.objects.interp import Boundary
@@ -17,6 +19,8 @@ from mcfacts.inputs import data as mcfacts_input_data
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.utilities.unit_conversion import si_from_r_g_optimized
 from mcfacts.utilities.unit_conversion import r_g_from_units
+from mcfacts.utilities.constants import M_SUN_KG, C_SI, CONST_G_SI, AMU_SI
+from mcfacts.utilities.constants import BOLTZMANN_SI, STEFAN_BOLTZMANN_SI
 import mcfacts.external.DiskModelsPAGN as pagn_dm
 
 ######## Without settings, it's easier to test ########
@@ -97,6 +101,8 @@ class AGNDiskInterp(object):
         # A pAGN model can be stored here
         self._pagn_model = None
         self._pagn_bonus_structures = None
+        # A CharlemAGNe model can be stored here
+        self._charles_model = None
 
         ### Boundary Shenanigans ###
         # Options: NAN_INC, NAN_EXC, EXTRAPOLATE, FLAT,
@@ -176,6 +182,18 @@ class AGNDiskInterp(object):
     @pagn_bonus_structures.setter
     def pagn_bonus_structures(self, value):
         self._pagn_bonus_structures = value
+
+    @property
+    def charles_model(self):
+        if self._charles_model is not None:
+            return self._charles_model
+        else:
+            raise RuntimeError(
+                f"{self.__class} not initialized with CharlemAGNe model")
+
+    @charles_model.setter
+    def charles_model(self, value):
+        self._charles_model = value
 
     @property
     def inner_boundary_r_g(self):
@@ -292,6 +310,46 @@ class AGNDiskInterp(object):
                 result = pagn_dm.AGNGasDiskModel(disk_type=pagn_name, **base_args)
         return result
 
+    @staticmethod
+    def run_charlemagne_model(
+        disk_model_name,
+        smbh_mass,
+        disk_radius_outer,
+        disk_alpha_viscosity,
+        smbh_eddington_ratio,
+        rad_efficiency=0.1,
+    ):
+        # instead, populate with CharlemAGNe
+        if "sirko" in disk_model_name:
+            result = SG03(
+                #rmin            = isco,
+                rmax            = disk_radius_outer,
+                #npts            = 10000,
+                smbh_mass       = smbh_mass,
+                eddington_ratio = smbh_eddington_ratio,
+                alpha           = disk_alpha_viscosity,
+                #X_mass_fraction = 0.7,
+                radiative_efficiency = rad_efficiency,
+            )
+        elif 'thompson' in disk_model_name:
+            result = TQM05(
+                #rmin                    = isco,
+                #rmax                    = disk_radius_outer,
+                #npts                    = 10000,
+                smbh_mass               = smbh_mass,
+                eddington_ratio         = smbh_eddington_ratio,
+                #velocity_dispersion     = 0.0,
+                #radiative_efficiency    = 1.e-3,
+                #transport_efficiency    = 0.2,
+                #supernova_pressure      = 0.1,
+                #X_mass_fraction         = 0.7,
+                #radius_inner            = isco,
+                #radius_outer            = disk_radius_outer,
+            )
+        else:
+            raise RuntimeError("unknown disk model: %s"%(disk_model_name))
+        return result
+
     @classmethod
     def from_pagn(cls,*args,**kwargs):
         """Construct a pAGN disk model and interpolate the outputs"""
@@ -300,6 +358,62 @@ class AGNDiskInterp(object):
         disk = cls(*interp_data)
         disk.pagn_bonus_structures = bonus_structures
         disk.pagn_model = pagn_model
+        return disk
+
+    @classmethod
+    def from_charlemagne(cls,*args,**kwargs):
+        """Construct a pAGN disk model and interpolate the outputs"""
+        charles_model = cls.run_charlemagne_model(*args,**kwargs)
+        # All quantities returned by CharlemAGNe will be in SI units
+        # CharlemAGNe makes the following available: 
+        #  iter, converged, max_residual, steps, star_formation,
+        #  r_cyl, omega, Teff, Mdotprime, Mdot, T, cs, rho, kappa, tauV,
+        #  PPgas, PPrad, opacfac, Q, h, eta, dr, dA, dV, mass_disk, Mdot_sf
+        r_cyl = charles_model["r_cyl"]
+        h = charles_model["h"]
+        rho = charles_model["rho"]
+        tauV = charles_model["tauV"]
+        kappa = charles_model["kappa"]
+        cs = charles_model["cs"]
+        T = charles_model["T"]
+        Teff = charles_model["Teff"]
+        omega = charles_model["omega"]
+        pgas = rho * T * BOLTZMANN_SI / AMU_SI
+        prad = tauV * STEFAN_BOLTZMANN_SI * Teff**4 / (2 * C_SI)
+        P = pgas + prad
+        mass_disk = charles_model["mass_disk"]
+        # Get R_g
+        Rg = (charles_model.smbh_mass * M_SUN_KG * CONST_G_SI) / (C_SI * C_SI)
+        # Quick math
+        R = r_cyl / Rg
+        R_agn = R[-1]
+        Sigma = 2 * h * rho  # SI density
+        # This is not consistent with kappa as returned from singularity-opac :(
+        kappa = 2 * tauV / Sigma # Opacity = 2*tau/Sigma
+
+        # Temp interpolator function
+        surface_density_data = [R, Sigma]
+        aspect_ratio_data = [R, h/r_cyl]
+        opacity_data = [R, kappa]
+        sound_speed_data = [R, cs]
+        density_data = [R, rho]
+        omega_data = [R, omega]
+        temperature_data = [R, T]
+        # Generate disk pressure gradient (dP/dR) interpolator function
+        pressure_data = [R, np.gradient(P,r_cyl)]
+
+        # Disk
+        disk = cls(
+            surface_density_data,
+            aspect_ratio_data,
+            opacity_data,
+            sound_speed_data,
+            density_data,
+            omega_data,
+            pressure_data,
+            temperature_data,
+        )
+        disk.charles_model = charles_model
         return disk
 
 ######## Disk object ########
@@ -312,7 +426,7 @@ class AGNDisk(AGNDiskInterp):
         self.settings = settings
         # Cache the smbh mass at the time of creation
         _ = self.smbh_mass
-        if settings.flag_use_pagn:
+        if settings.disk_model_source == "pagn":
             pagn_model = super().run_pagn_model(
                 settings.disk_model_name,
                 self.smbh_mass,
@@ -325,13 +439,69 @@ class AGNDisk(AGNDiskInterp):
             super().__init__(*interp_data)
             self.pagn_model = pagn_model
             self.pagn_bonus_structures = bonus
-        else:
+        elif settings.disk_model_source == "charlemagne":
+            charles_model = super().run_charlemagne_model(
+                settings.disk_model_name,
+                self.smbh_mass,
+                self.disk_radius_outer,
+                settings.disk_alpha_viscosity,
+                settings.smbh_eddington_ratio,
+                rad_efficiency=0.1, # TODO This should really be a setting
+            )
+            r_cyl = charles_model["r_cyl"]
+            h = charles_model["h"]
+            rho = charles_model["rho"]
+            tauV = charles_model["tauV"]
+            kappa = charles_model["kappa"]
+            cs = charles_model["cs"]
+            T = charles_model["T"]
+            Teff = charles_model["Teff"]
+            omega = charles_model["omega"]
+            pgas = rho * T * BOLTZMANN_SI / AMU_SI
+            prad = tauV * STEFAN_BOLTZMANN_SI * Teff**4 / (2 * C_SI)
+            P = pgas + prad
+            mass_disk = charles_model["mass_disk"]
+            # Get R_g
+            Rg = (charles_model.smbh_mass * M_SUN_KG * CONST_G_SI) / (C_SI * C_SI)
+            # Quick math
+            R = r_cyl / Rg
+            R_agn = R[-1]
+            Sigma = 2 * h * rho  # SI density
+            # This is not consistent with kappa as returned from singularity-opac :(
+            kappa = 2 * tauV / Sigma # Opacity = 2*tau/Sigma
+
+            # Temp interpolator function
+            surface_density_data = [R, Sigma]
+            aspect_ratio_data = [R, h/r_cyl]
+            opacity_data = [R, kappa]
+            sound_speed_data = [R, cs]
+            density_data = [R, rho]
+            omega_data = [R, omega]
+            temperature_data = [R, T]
+            # Generate disk pressure gradient (dP/dR) interpolator function
+            pressure_data = [R, np.gradient(P,r_cyl)]
+
+            # Disk
+            super().__init__(
+                surface_density_data,
+                aspect_ratio_data,
+                opacity_data,
+                sound_speed_data,
+                density_data,
+                omega_data,
+                pressure_data,
+                temperature_data,
+            )
+            self.charles_model = charles_model
+        elif settings.disk_model_source == "data":
             super().__init__(
                 *self.importlib_disk_arrays(
                     settings.disk_model_name,
                     self.disk_radius_outer,
                 )
             )
+        else:
+            raise ValueError(f"Unknown disk source {settings.disk_model_source}")
 
     @readonly_cached_property
     def smbh_mass(self):

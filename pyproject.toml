@@ -76,7 +76,8 @@ dependencies = [
     "scikit_learn>=1.5.2",
     "mcfast==0.1.12",
     "xev-data==1.0.1",
-    "precession>=2.1.1"
+    "precession>=2.1.1",
+    "charlemagne==0.1.2",
 ]
 
 #TODO: Add description and other dynamically defined variables created in setup.py

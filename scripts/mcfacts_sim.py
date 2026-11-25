@@ -200,7 +200,7 @@ def main():
                                          opts.disk_alpha_viscosity,
                                          opts.disk_bh_eddington_ratio,
                                          disk_radius_max_pc=opts.disk_radius_max_pc,
-                                         flag_use_pagn=opts.flag_use_pagn,
+                                         disk_model_source=opts.disk_model_source,
                                          verbose=opts.verbose
                                          )
 
