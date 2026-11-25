@@ -471,6 +471,12 @@ def setup_scaling(
     scale_galaxy_mass(settings)
     # truncate disk
     agn_disk = disk_truncation(settings, return_disk=True)
+    # Common sense check
+    if settings.inner_disk_outer_radius < agn_disk.inner_boundary_r_g:
+        settings.set_preprocessing(
+            "inner_disk_outer_radius",
+            agn_disk.inner_boundary_r_g,
+        )
     # Scale inner disk
     scale_inner_disk(settings)
     # Scale migration trap
