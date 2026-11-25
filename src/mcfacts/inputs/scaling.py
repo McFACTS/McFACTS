@@ -58,6 +58,9 @@ def disk_truncation(
             tau_drop_index = np.argmax(tau_drop_mask)
             # Find the drop radius
             tau_drop_radius = float(pagn_R[tau_drop_index])
+            # Check no-op
+            if tau_drop_radius < settings.disk_radius_outer:
+                return
             # Update settings
             settings.set_preprocessing(
                 "disk_radius_outer",
@@ -79,6 +82,9 @@ def disk_truncation(
             tau_drop_index = np.argmax(tau_drop_mask)
             # Find the drop radius
             tau_drop_radius = float(R[tau_drop_index])
+            # Check no-op
+            if tau_drop_radius < settings.disk_radius_outer:
+                return
             # Update settings
             settings.set_preprocessing(
                 "disk_radius_outer",
