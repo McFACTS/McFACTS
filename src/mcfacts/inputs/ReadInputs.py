@@ -431,8 +431,7 @@ def load_disk_arrays(
     # Load data from the surface density file
     disk_surf_density_data = np.loadtxt(fname_disk_surf_density)
     # Truncate surface density data
-    surf_density_mask = disk_surf_density_data[:,1] < disk_radius_outer
-    trunc_surf_density_data = np.flip(disk_surf_density_data[surf_density_mask].T,axis=0)
+    trunc_surf_density_data = np.flip(disk_surf_density_data.T,axis=0)
 
     # open the disk model aspect ratio file and read it in
     # Note format is assumed to be comments with #
@@ -445,8 +444,7 @@ def load_disk_arrays(
     # Load data from the aspect ratio file
     disk_aspect_ratio_data = np.loadtxt(fname_disk_aspect_ratio)
     # Truncate aspect ratio data
-    aspect_ratio_mask = disk_aspect_ratio_data[:,1] < disk_radius_outer
-    trunc_aspect_ratio_data = np.flip(disk_aspect_ratio_data[aspect_ratio_mask].T,axis=0)
+    trunc_aspect_ratio_data = np.flip(disk_aspect_ratio_data.T,axis=0)
 
     # Get opacity filename
     fname_disk_opacity = disk_model_name + '_opacity.txt'
@@ -455,8 +453,7 @@ def load_disk_arrays(
     # Load data from opacity file
     disk_opacity_data = np.loadtxt(fname_disk_opacity)
     # Truncate opacity data
-    opacity_mask = disk_opacity_data[:,1] < disk_radius_outer
-    trunc_opacity_data = np.flip(disk_opacity_data[opacity_mask].T,axis=0)
+    trunc_opacity_data = np.flip(disk_opacity_data.T,axis=0)
 
     # Get sound speed filename
     fname_disk_sound_speed = disk_model_name + '_sound_speed.txt'
@@ -465,8 +462,7 @@ def load_disk_arrays(
     # Load data from opacity file
     disk_sound_speed_data = np.loadtxt(fname_disk_sound_speed)
     # Truncate disk at outer radius
-    sound_speed_mask = disk_sound_speed_data[:,1] < disk_radius_outer
-    trunc_sound_speed_data = np.flip(disk_sound_speed_data[sound_speed_mask].T,axis=0)
+    trunc_sound_speed_data = np.flip(disk_sound_speed_data.T,axis=0)
 
     # Get density filename
     fname_disk_density = disk_model_name + '_density.txt'
@@ -475,8 +471,7 @@ def load_disk_arrays(
     # Load data from opacity file
     disk_density_data = np.loadtxt(fname_disk_density)
     # Truncate disk at outer radius
-    density_mask = disk_density_data[:,1] < disk_radius_outer
-    trunc_density_data = np.flip(disk_density_data[density_mask].T,axis=0)
+    trunc_density_data = np.flip(disk_density_data.T,axis=0)
 
     # Get omega filename
     fname_disk_omega = disk_model_name + '_omega.txt'
@@ -485,8 +480,7 @@ def load_disk_arrays(
     # Load data from opacity file
     disk_omega_data = np.loadtxt(fname_disk_omega)
     # Truncate disk at outer radius
-    omega_mask = disk_omega_data[:,1] < disk_radius_outer
-    trunc_omega_data = np.flip(disk_omega_data[omega_mask].T,axis=0)
+    trunc_omega_data = np.flip(disk_omega_data.T,axis=0)
 
     # Get pressure grad filename
     fname_disk_pressure_gradient = disk_model_name + '_pressure_gradient.txt'
@@ -495,8 +489,7 @@ def load_disk_arrays(
     # Load data from opacity file
     disk_pressure_gradient_data = np.loadtxt(fname_disk_pressure_gradient)
     # Truncate disk at outer radius
-    pressure_mask = disk_pressure_gradient_data[:,1] < disk_radius_outer
-    trunc_pressure_data = np.flip(disk_pressure_gradient_data[pressure_mask].T,axis=0)
+    trunc_pressure_data = np.flip(disk_pressure_gradient_data.T,axis=0)
 
     # Get temp filename
     fname_disk_temperature = disk_model_name + '_temperature.txt'
@@ -505,8 +498,7 @@ def load_disk_arrays(
     # Load data from opacity file
     disk_temperature_data = np.loadtxt(fname_disk_temperature)
     # Truncate disk at outer radius
-    temperature_mask = disk_temperature_data[:,1] < disk_radius_outer
-    trunc_temperature_data = np.flip(disk_temperature_data[temperature_mask].T,axis=0)
+    trunc_temperature_data = np.flip(disk_temperature_data.T,axis=0)
 
     # Now redefine arrays used to generate interpolating functions in terms of truncated arrays
     return trunc_surf_density_data, trunc_aspect_ratio_data, trunc_opacity_data, trunc_sound_speed_data, trunc_density_data, trunc_omega_data, trunc_pressure_data, trunc_temperature_data

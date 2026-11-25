@@ -462,7 +462,7 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
                              disk_feedback_ratio,
                              disk_radius_trap, disk_radius_anti_trap, disk_radius_outer, timestep_duration_yr,
                              flag_phenom_turb, phenom_turb_centroid, phenom_turb_std_dev, bh_min_mass,
-                             torque_prescription, disk_inner_stable_circ_orb, bh_inner_disk_array_name,random):
+                             torque_prescription, disk_inner_stable_circ_orb,random):
     """Calculates how far an object migrates in an AGN gas disk in a single timestep given a torque migration timescale
     calculated elsewhere (e.g. torque_migration_timescale)
     Returns their new locations after migration over one timestep.
@@ -506,8 +506,6 @@ def type1_migration_distance(smbh_mass, orbs_a, masses, orbs_ecc, orb_ecc_crit, 
         Generator used to generate random numbers
     disk_inner_stable_circ_orb : float
         inner stable orbit (~6R_g)
-    bh_inner_disk_array_name : numpy.ndarray
-        Black holes that have merged with the SMBH
     Returns
     -------
     orbs_a : float array
@@ -1061,14 +1059,18 @@ def feedback_bh_hankla(disk_bh_pro_orbs_a, disk_surf_density_func, disk_opacity_
     # set ratio = 1 (no migration) for black holes at or beyond the disk outer radius
     ratio_feedback_migration_torque[np.where(disk_bh_pro_orbs_a >= disk_radius_outer)] = 1.
 
-    # print("--------")
-    # print(disk_bh_pro_orbs_a)
-    # print(disk_opacity)
-    # print(disk_surface_density)
-    # print(ratio_feedback_migration_torque)
-
-    assert np.isfinite(ratio_feedback_migration_torque).all(), \
-        "Finite check failure: ratio_feedback_migration_torque"
+    nan_mask = ~np.isfinite(ratio_feedback_migration_torque)
+    if np.any(nan_mask):
+        print("disk_bh_pro_orbs_a:", disk_bh_pro_orbs_a[nan_mask])
+        print("disk_surface_density:", disk_surface_density[nan_mask])
+        print("disk_opacity:", disk_opacity[nan_mask])
+        print("disk_bh_eddington_ratio:", disk_bh_eddington_ratio)
+        print("disk_alpha_viscosity:", disk_alpha_viscosity)
+        print("disk_radius_outer:", disk_radius_outer)
+        print("ratio_feedback_migration_torque:", ratio_feedback_migration_torque[nan_mask])
+        raise RuntimeError(
+            "Finite check failure: ratio_feedback_migration_torque"
+        )
 
     return ratio_feedback_migration_torque
 
@@ -1387,7 +1389,10 @@ class ProgradeBlackHoleMigration(TimelineActor):
                 sm.nsc_imf_bh_mode,
                 sm.torque_prescription,
                 sm.disk_inner_stable_circ_orb,
+<<<<<<< HEAD
                 sm.bh_inner_disk_array_name,
+=======
+>>>>>>> main-dev
                 random_generator
             )
 
@@ -1574,7 +1579,10 @@ class BinaryBlackHoleMigration(TimelineActor):
                     sm.nsc_imf_bh_mode,
                     sm.torque_prescription,
                     sm.disk_inner_stable_circ_orb,
+<<<<<<< HEAD
                     sm.bh_inner_disk_array_name,
+=======
+>>>>>>> main-dev
                     random_generator
                 )
 
